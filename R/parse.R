@@ -20,6 +20,24 @@ odin_parse <- function(file="", text=NULL) {
   rhs <- lapply(expr, function(x) odin_parse_rhs(x[[3L]]))
   names(lhs) <- names(rhs) <- vcapply(lhs, "[[", "name")
 
+  deps <- lapply(rhs, function(x) setdiff(x$depends$variables, names(lhs)))
+  i <- lengths(deps) > 0L
+  if (any(i)) {
+    ## TODO: These should give much nicer output; name the line, give
+    ## the full expression and consider highlighting the unknown
+    ## variable.
+    ##
+    ## TODO: we'll need some way of declaring known variables (e.g.,
+    ## M_PI) to skip over this warning.
+    ##
+    ## TODO: Consider a suggestion interface (see remake for how that
+    ## might look).
+    stop("Unknown variables used:\n",
+         paste(sprintf("  in '%s': %s",
+                       names(deps[i]), vcapply(deps[i], paste, collapse=", ")),
+               collapse="\n"))
+  }
+
   ## First, pull out the derivatives; these *must* be dealt with
   ## separately as they will have at least two entries; one for the
   ## initial conditions and one for the derivatives themselves.  Array

@@ -35,3 +35,28 @@ Array indices need to be added to the dependencies.  Dynamic vs static arrays ne
 # Constants
 
 Things that are not user configurable should hit the file as a bunch of constants (e.g. `#define`)
+
+# Initial conditions
+
+By default, if no initial conditions are provided, we should require a
+user-provided set of equations.  Define a thing USER perhaps?
+
+Should generate a function: `initial_conditions` which takes as input the initial time (if, and probably only if, the initial conditions are a function of time), and a set of user parameters.
+
+These should be named:
+
+```
+sigma <- user(sigma)
+```
+
+or
+
+```
+sigma <- user(parameters[1])
+```
+
+or even
+
+```
+sigma <- user(parameters[1:na])
+```

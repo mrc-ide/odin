@@ -19,9 +19,7 @@ odin_process <- function(dat) {
 
   ## Some checking:
   if (length(res$deriv$depends$user) > 0L) stop("Not yet handled")
-  if (length(res$deriv$depends$time) > 0L) stop("Not yet handled")
-  if (length(res$initial$depends$user) > 0L) stop("Not yet handled")
-  if (length(res$initial$depends$time) > 0L) stop("Not yet handled")
+  ## if (length(res$deriv$depends$time) > 0L) stop("Not yet handled")
 
   ## Next, work out what depends on what; that's what the underlying
   ## structure is going to need.
@@ -182,6 +180,11 @@ process_derivs <- function(dat) {
   ##
   ## TODO: How do the bits here and initial interact with each other?
   ## No point fetching the same constant twice.
+  ##
+  ##   -- not entirely sure what I meant there?  I think that I mean
+  ##     that some constants will be used in the initialisation and
+  ##     the derivative calculation so we need to be careful where
+  ##     they are put.
   deps$constant <-
     setNames(lapply(deps$constant, get, dat$vars$envir), deps$constant)
   dat$deriv$depends <- deps
