@@ -1,0 +1,46 @@
+; From Hannah Slater, 2016-02-09
+METHOD RK4
+
+STARTTIME = 0
+STOPTIME=100
+DT = 0.01
+
+N_age = 5
+; mean no. of days in each age compartment (0 - 1 yr, 1 - 5 yr, 5 - 15 yr, 15 - 30yr, 30 +)
+age_width[1] = 365*1
+age_width[2] = 365*4
+age_width[3] = 365*10
+age_width[4] = 365*15
+age_width[5] = 365*20
+
+age_rate[1..N_age-1] = 1/age_width[i]
+age_rate[N_age] = 0
+
+den[1]=1/(1+age_rate[1]/b)
+den[2..N_age]=age_rate[i-1]*den[i-1]/(age_rate[i]+b)           ; to work out the % of the population in each age group
+
+den_tot = arraysum(den[*])   ; test to make sure densities add up to 1
+
+
+init S[1..N_age] = den[i]*(N-1)
+init I[1..N_age] =den[i]*1
+init R[1..N_age] = den[i]*0
+
+
+Births = b*N
+b = 1/(365*50)
+N = 1e7
+beta = 1
+sigma = 1/30
+delta = 1/60
+
+I_tot = arraysum(I[*])
+
+d/dt( S[1..N_age] )  =  - beta*S[i]*I_tot/N + delta*R[i]     - b*S[i]    +   (if i = 1 then Births - age_rate[i]*S[i] else  age_rate[i-1]*S[i-1] - age_rate[i]*S[i])
+d/dt( I[1..N_age] )   = beta*S[i]*I_tot/N  - (b+sigma)*I[i]   + (if i = 1 then - age_rate[i]*I[i] else  age_rate[i-1]*I[i-1] - age_rate[i]*I[i])
+
+d/dt( R[1..N_age] ) = sigma*I[i] - b*R[i]-delta*R[i]  + (if i = 1 then - age_rate[i]*R[i] else  age_rate[i-1]*R[i-1] - age_rate[i]*R[i])
+
+N_tot =arraysum(S[*])+arraysum(I[*])+arraysum(R[*])
+
+prev = I_tot / N_tot*100

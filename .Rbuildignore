@@ -4,3 +4,5 @@
 ^README.Rmd$
 ^.travis.yml$
 ^appveyor.yml$
+^tests/testthat/examples/.*\.rds$
+^tests/testthat/examples/malaria_.*$

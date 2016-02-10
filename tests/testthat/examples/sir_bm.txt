@@ -1,0 +1,23 @@
+; From Hannah Slater, 2016-02-05
+METHOD RK4
+
+STARTTIME = 0
+STOPTIME=100
+DT = 0.01
+YEARS = TIME
+
+d/dt( S ) = Births - b*S - beta*S*I/N + delta*R
+d/dt( I ) = beta*S*I/N - (b+sigma)*I
+d/dt( R ) = sigma*I - b*R-delta*R
+
+init S = N - I0
+init I = I0
+init R = 0
+
+Births = N/75
+b = 1/75
+N = 1e7
+I0 = 1
+beta = 24
+sigma = 12
+delta = 1/5

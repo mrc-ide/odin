@@ -1,0 +1,61 @@
+age <- function() {
+  b <- 1 / (365 * 50)
+  N <- 1e7
+  I0 <- 1
+  Births <- b * N
+  beta <- 1
+  sigma <- 1 / 30
+  delta <- 1 / 60
+
+  N_age <- 5L
+  age_width <- c(1, 4, 10, 15, 20) * 365
+  age_rate <- c(1 / age_width[-N_age], 0.0)
+
+  ## to work out the % of the population in each age group
+  den <- numeric(N_age)
+  den[[1L]] <- 1.0 / (1.0 + age_rate[[1L]] / b)
+  for (i in 2:N_age) {
+    den[i] <- age_rate[[i - 1L]] * den[[i - 1L]] / (age_rate[i] + b)
+  }
+
+  initial <- function(t=0, pars=NULL) {
+    if ("I0" %in% names(pars)) {
+      I0 <<- pars$I0
+    }
+    S0 <- den * (N - I0)
+    I0 <- den * I0
+    R0 <- den * 0
+    c(S0, I0, R0)
+  }
+
+  derivs=function(t, y, .) {
+    ## Conditionals for the first case are going to be super important.  I think I should be able to write:
+    ##
+    ##   deriv(S[1]) = ...
+    ##   deriv(S[2..N_age]) = ...
+    ##
+    ## and it might also be worth using R's S[-1] syntax there too.  That would compile out to formula such as
+    ##
+    ##   rhs[0] = ...;
+    ##   for (int i = 1; i < N_age; ++i) ...;
+    ##
+    ## It might be cool to allow if/else on the rhs too, but compile that out.
+    y <- matrix(y, N_age, 3)
+    S <- y[, 1L]
+    I <- y[, 2L]
+    R <- y[, 3L]
+    dSdt <- numeric(N_age)
+    dIdt <- numeric(N_age)
+    dRdt <- numeric(N_age)
+    I_tot <- sum(I)
+    dSdt[[1]] <- - beta * S[[1]] * I_tot/N + delta * R[[1]] - b * S[[1]] + (Births - age_rate[[1]] * S[[1]])
+    dSdt[-1L] <- - beta * S[-1L] * I_tot/N + delta * R[-1L] - b * S[-1L] + (age_rate[-N_age] * S[-N_age] - age_rate[-1L] * S[-1L])
+    dIdt[[1]] <-  beta * S[[1]] * I_tot/N  - (b+sigma) * I[[1]]   + (- age_rate[[1]] * I[[1]])
+    dIdt[-1L] <-  beta * S[-1L] * I_tot/N  - (b+sigma) * I[-1L]   + (age_rate[-N_age] * I[-N_age] - age_rate[-1L] * I[-1L])
+    dRdt[[1]] <-  sigma * I[[1]] - b * R[[1]]-delta * R[[1]] + (- age_rate[[1]] * R[[1]])
+    dRdt[-1L] <-  sigma * I[-1L] - b * R[-1L]-delta * R[-1L] + (age_rate[-N_age] * R[-N_age] - age_rate[-1L] * R[-1L])
+    list(c(dSdt, dIdt, dRdt))
+  }
+
+  list(derivs=derivs, initial=initial, t=c(0, 100))
+}

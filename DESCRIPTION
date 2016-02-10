@@ -8,5 +8,7 @@ License: MIT + file LICENSE
 LazyData: true
 URL: https://bitbucket.com/richfitz/odin
 BugReports: https://bitbucket.com/richfitz/odin/issues
+Imports:
+    deSolve
 Suggests:
     testthat

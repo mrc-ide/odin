@@ -1,0 +1,31 @@
+; From Hannah Slater, 2016-02-09
+METHOD RK4
+
+STARTTIME = 0
+STOPTIME=365
+DT = 0.01
+
+init S = N - 1
+init E = 0
+init I =1
+init R = 0
+
+Births = b*N
+b = 1/10
+N = 1e7
+beta = 10
+sigma = 1/3
+delta = 1/21
+lat_hum = 14
+
+new_inf = beta*S*I/N   ; people developing latent infection
+surv = exp(-b*lat_hum)  ; i.e. proportion of humans surviving the latent period
+lag_inf = delay(new_inf * surv, lat_hum)  ; people that become latent 'lath_um' days ago, less those that died during that time
+
+d/dt( S ) = Births - b*S - beta*S*I/N+delta*R
+d/dt( E ) = new_inf - lag_inf - b*E
+d/dt( I ) = lag_inf  - (b+sigma)*I
+d/dt( R ) = sigma*I - b*R-delta*R
+
+Ntot =S+E+I+R
+prev = I/Ntot*100
