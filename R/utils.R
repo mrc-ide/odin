@@ -15,3 +15,12 @@ vcapply <- function(X, FUN, ...) {
 deparse_str <- function(x) {
   paste(deparse(x), collapse="\n")
 }
+
+collector <- function(init=character(0)) {
+  res <- init
+  list(add=function(x, ...) res <<- c(res, sprintf(x, ...)),
+       get=function() res)
+}
+pastec <- function(..., collapse=", ") {
+  paste(..., collapse=collapse)
+}

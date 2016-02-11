@@ -81,4 +81,5 @@ test_that("RHS array checking", {
   expect_true(check_array_rhs(quote(a), c(b=1)))
   expect_false(check_array_rhs(quote(a[b[1]]), c(a=1, b=1)))
   expect_false(check_array_rhs(quote(a[]), c(a=1)))
+  expect_true(check_array_rhs(quote(sum(a)), c(a=1)))
 })

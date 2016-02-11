@@ -16,7 +16,8 @@ den[2:N_age] <- age_rate[i - 1] * den[i - 1] / (age_rate[i] + b)
 
 ## test to make sure densities add up to 1
 ##   TODO: should do an assert in here?
-den_tot <- sum(den)
+##   TODO: sum not yet supported
+## den_tot <- sum(den)
 
 ## TODO: consider allowing S[] but that does require being able to
 ## infer the length of an array.

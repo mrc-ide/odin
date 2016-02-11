@@ -267,9 +267,24 @@ odin_parse_combine_arrays <- function(obj) {
     obj[[k]] <- x
   }
 
+  ## Check that the derivatives, initial conditions agree in dimensionality
+  check <- unique(nms_real[is_array & (is_deriv | is_initial)])
+
   drop <- unlist(lapply(i, "[", -1L))
   if (length(drop) > 0L) {
     obj <- obj[-drop]
+    nms_real <- nms_real[-drop]
+  }
+
+  if (length(check) > 0L) {
+    idx <- which(nms_real %in% check)
+    for (i in split(idx, nms_real[idx])) {
+      if (length(unique(lapply(obj[i], function(x) x$lhs$nd))) != 1L) {
+        odin_error(
+          "Array dimensionality is not consistent across initial/derivs",
+          get_lines(obj[i]), get_exprs(obj[i]))
+      }
+    }
   }
 
   obj
@@ -431,19 +446,18 @@ odin_parse_dependencies <- function(obj, vars) {
   }
 
   nd <- setNames(viapply(obj[is_array], function(x) x$lhs$nd), nms[is_array])
+  nd <- c(nd, setNames(nd[sprintf("deriv_%s", vars)], vars))
 
   uses_array <- vlapply(obj, function(x)
     any(x$depends$variables %in% nms[is_array]) ||
     any(x$depends$functions %in% "["))
 
   for (i in which(uses_array)) {
-    ## TODO: We could give reasons here; this error message not very helpful.
-    ##   - incorrect length access
-    ##   - invalid functions
-    ##   - referencing array variable without array
     ok <- check_array_rhs(obj[[i]]$rhs$value, nd)
     if (!ok) {
-      odin_error("Invalid array use on rhs", obj[[i]]$line, obj[[i]]$expr)
+      msg <- paste0("\t\t", attr(ok, "message"), collapse="\n")
+      odin_error(sprintf("Invalid array use on rhs:\n%s", msg),
+                 obj[[i]]$line, as.expression(obj[[i]]$expr))
     }
     obj[[i]]$rhs$uses_array <- TRUE
   }
@@ -452,6 +466,65 @@ odin_parse_dependencies <- function(obj, vars) {
        eqs=obj,
        order=order_keep,
        stage=stage_keep)
+}
+
+## I feel like I'm going to end up with a lot of these floating
+## around; perhaps there's some nicer way of doing it...
+check_array_rhs <- function(expr, nd) {
+  if (is.list(expr)) {
+    res <- lapply(expr, check_array_rhs, nd)
+    msg <- as.character(unlist(lapply(res, attr, "message", exact=TRUE)))
+    return(structure(all(vlapply(res, as.logical)), message=msg))
+  }
+
+  nms <- names(nd)
+  err <- collector()
+
+  leaf <- function(e, w) {
+    if (!is.symbol(e)) { # A literal of some type
+      return()
+    } else if (deparse(e) %in% nms) {
+      err$add(sprintf("Found %s on rhs", deparse(e)))
+    }
+  }
+  ## Descend down the call tree until reaching a `[` call, then
+  ## analyse that call with a more restricted set of rules.
+  call <- function (e, w) {
+    if (identical(e[[1L]], quote(`[`))) {
+      x <- deparse(e[[2L]])
+      ijk <- as.list(e[-(1:2)])
+      if (x %in% nms) {
+        if (length(ijk) != nd[[x]]) {
+          err$add("Incorrect dimensionality for %s in '%s'", x, deparse_str(e))
+        }
+        sym <- find_symbols(ijk)
+        nok <- setdiff(sym$functions, c("-", "+", ":"))
+        if (length(nok) > 0L) {
+          err$add("Disallowed functions used for %s in '%s': %s",
+                  x, deparse_str(e), pastec(nok))
+        }
+        nok <- intersect(sym$variables,  c("", nms))
+        if (length(nok) > 0L) {
+          err$add("Disallowed variables used for %s in '%s': %s",
+                  x, deparse_str(e), pastec(nok))
+        }
+      } else {
+        err$add("Unknown array variable %s in '%s'", x, deparse_str(e))
+      }
+    } else {
+      for (a in as.list(e[-1])) {
+        if (!missing(a)) {
+          codetools::walkCode(a, w)
+        }
+      }
+    }
+  }
+
+  walker <- codetools::makeCodeWalker(call=call, leaf=leaf, write=cat)
+  codetools::walkCode(expr, walker)
+  x <- unique(err$get())
+  ok <- length(x) == 0L
+  if (ok) TRUE else structure(FALSE, message=x)
 }
 
 odin_error <- function(msg, line, expr) {
