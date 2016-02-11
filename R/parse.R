@@ -1,6 +1,17 @@
 ## Read in the file and do the basic classification of all expressions.
+##
+## Coming out of parse we want to know:
+##   * classification of all expressions into deriv, initial, var, output
+##   * the set, and order, of ODE variables
+##   * check that all ODE variables are initialised
+##   * collect all array expressions
+##   * do a topological sort
+##
+## Note that this is one big horrific linear function until I work out
+## where the constituent parts are.  There will be some but they're
+## not really obvious at the moment.
 odin_parse <- function(file="", text=NULL) {
-  expr <- parse(file=file, text=text, keep.source=TRUE)
+  exprs <- parse(file=file, text=text, keep.source=TRUE)
 
   ## First pass is to check that all operations are assignments.  No
   ## for loops, no if/else statements.  This might be relaxed later to
@@ -11,108 +22,125 @@ odin_parse <- function(file="", text=NULL) {
     length(x) == 3L &&
       (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
   }
-  err <- which(!vlapply(expr, is_assignment))
+  err <- which(!vlapply(exprs, is_assignment))
   if (length(err) > 0L) {
-    stop(paste(c("Every line must contain an assignment",
-                 paste0("\t", vcapply(err, pretty_ref, expr))), collapse="\n"))
-  }
-  lhs <- lapply(expr, function(x) odin_parse_lhs(x[[2L]]))
-  rhs <- lapply(expr, function(x) odin_parse_rhs(x[[3L]]))
-  names(lhs) <- names(rhs) <- vcapply(lhs, "[[", "name")
-
-  deps <- lapply(rhs, function(x) setdiff(x$depends$variables, names(lhs)))
-  i <- lengths(deps) > 0L
-  if (any(i)) {
-    ## TODO: These should give much nicer output; name the line, give
-    ## the full expression and consider highlighting the unknown
-    ## variable.
-    ##
-    ## TODO: we'll need some way of declaring known variables (e.g.,
-    ## M_PI) to skip over this warning.
-    ##
-    ## TODO: Consider a suggestion interface (see remake for how that
-    ## might look).
-    stop("Unknown variables used:\n",
-         paste(sprintf("  in '%s': %s",
-                       names(deps[i]), vcapply(deps[i], paste, collapse=", ")),
-               collapse="\n"))
+    odin_error("Every line must contain an assignment", err, exprs)
   }
 
-  ## First, pull out the derivatives; these *must* be dealt with
-  ## separately as they will have at least two entries; one for the
-  ## initial conditions and one for the derivatives themselves.  Array
-  ## initial conditions will need to be done in here too, but are not
-  ## handled yet either (see lorenz.R)
-  ##
-  ## TODO: array are assumed to be able to processed all at once with
-  ## the total of all their dependencies.  That means you can't have
-  ## two matrices that have complex interations with one another
-  ## though it means you can do one matrix lagging another.
-  i <- vlapply(lhs, function(x) identical(x$special, "deriv"))
-  deriv <- list(lhs=lhs[i], rhs=rhs[i])
+  ## TODO: This will eventually run with some sort of error collection
+  ## step so that all the errors are reported at once within this
+  ## block.  Similar approaches will apply elsewhere.
+  ret <- lapply(seq_along(exprs), odin_parse_expr, exprs)
 
-  j <- vlapply(lhs, function(x) identical(x$special, "initial"))
-  initial <- list(lhs=lhs[j], rhs=rhs[j])
+  vars <- odin_parse_find_vars(ret)
 
-  k <- i | j
-  vars <- list(lhs=lhs[!k], rhs=rhs[!k])
-
-  list(deriv=combine_arrays(deriv),
-       initial=combine_arrays(initial),
-       vars=combine_arrays(vars))
+  ## Rewrite initial conditions to depend not on the variables, but on
+  ## initial conditions.
+  ret <- odin_parse_rewrite_initial_conditions(ret, vars)
+  ## Next, combine all array expressions together to a single
+  ## expression.
+  ret <- odin_parse_combine_arrays(ret)
+  ret <- odin_parse_dependencies(ret, vars)
+  ret
 }
 
-## Ideally I think we need to handle functions of the form:
-##   symbol <- ...
-##   array[i, j, k] <- ...
-##   array[] <- ...
-##   initial(symbol) <- ...
-##   deriv(symbol) <- ...
-## any others?
-odin_parse_lhs <- function(lhs) {
-  ## TODO: get the source information to follow along here; should at
-  ## least indicate the line number for each symbol, I think.
+odin_parse_expr <- function(i, exprs) {
+  line <- utils::getSrcLocation(exprs[i], "line")
+  x <- exprs[[i]]
+  lhs <- odin_parse_lhs(x[[2L]], line, x)
+  rhs <- odin_parse_rhs(x[[3L]], line, x)
+  deps <- join_deps(list(lhs$depends, rhs$depends))
+
+  list(name=lhs$name,
+       lhs=lhs,
+       rhs=rhs,
+       depends=deps,
+       expr=x,
+       line=line)
+}
+
+odin_parse_lhs <- function(lhs, line, expr) {
   if (is.name(lhs)) {
-    list(type="symbol",
+    ret <- list(type="symbol",
          name=deparse(lhs))
   } else if (is.call(lhs)) {
-    fun <- deparse(lhs[[1]])
-
-    ## TODO: For the special functions, store the variables as
-    ## initial(foo) and deriv(foo) to distinguish from the foo that
-    ## floats around in the system implicitly.
-    special <- c("initial", "deriv")
-    ## Consider allowing "[["?
-    if (fun %in% "[") {
-      stopifnot(is.name(lhs[[2L]]))
-      list(type="array",
-           name=deparse(lhs[[2L]]),
-           index=as.list(lhs[-(1:2)]))
-    } else if (fun %in% special) {
-      if (length(lhs) != 2L) {
-        stop("Invalid length special function: ", deparse_str(lhs))
+    fun <- deparse_str(lhs[[1L]])
+    if (fun %in% "[") { # NOTE: single indexing *only*
+      if (!is.name(lhs[[2L]])) {
+        odin_error("array lhs must be a name", line, expr)
       }
-      ret <- odin_parse_lhs(lhs[[2L]])
+      index <- as.list(lhs[-(1:2)])
+      deps <- join_deps(lapply(index, find_symbols))
+      valid <- c("-", "+", ":") # perhaps * and / are ok too?
+      err <- setdiff(deps$functions, valid)
+      if (length(err) > 0L) {
+        odin_error(paste0("Invalid functions in array calculation: ",
+                          paste(unique(err, collapse=", "))), line, expr)
+      }
+
+      nd <- length(index)
+      if (nd > 3L) {
+        odin_error(
+          sprintf("Arrays must have at at most 3 dimensions (given %d)", nd),
+          line, as.expression(expr))
+      }
+
+      if ("" %in% deps$variables) {
+        odin_error("The empty index is not currently supported",
+                   line, as.expression(expr))
+      }
+
+      ## TODO: Require all array arguments; don't allow for [] or [,1]
+      ## perhaps?  Really depends if we can infer the length of an
+      ## array.
+      ##
+      ## TODO: valid rhs functions are probably only [-, +, /, *, :]
+      ret <- list(type="array",
+                  name=deparse(lhs[[2L]]),
+                  index=index,
+                  nd=nd,
+                  depends=deps)
+    } else if (fun %in% SPECIAL) {
+      if (length(lhs) != 2L) {
+        odin_error("Invalid length special function on lhs", line, expr)
+      }
+      ret <- odin_parse_lhs(lhs[[2L]], line, expr)
       if (is.null(ret$special)) {
         ret$special <- fun
       } else {
-        ## This should be called on the *final* iteration; this will
+        ## TODO: This should be called on the *final* iteration; this will
         ## give the wrong error message on
         ##   initial(initial(initial(x))) <- ...
         ## but noone should do that!
-        stop("Invalid length special function: ", deparse_str(lhs))
+        odin_error("lhs functions require exactly one argument", line, expr)
       }
-      ret
     } else {
-      stop("Unhandled expression ", fun)
+      odin_error(sprintf("Unhandled expression %s on lhs", fun), line, expr)
+    }
+  } else { # things like atomic will raise here: 1 <- 2
+    odin_error("Invalid left hand side", line, expr)
+  }
+
+  if (ret$name %in% RESERVED) {
+    odin_error("Reserved name for lhs", line, expr)
+  }
+
+  if (is.null(ret$special)) {
+    re <- sprintf("^(%s)_.*", paste(SPECIAL, collapse="|"))
+    if (grepl(re, ret$name)) {
+      odin_error(sprintf("Variable name cannot start with '%s_'",
+                         sub(re, "\\1", ret$name)),
+                 line, expr)
     }
   } else {
-    stop("I'm confused")
+    ret$name_target <- ret$name
+    ret$name <- sprintf("%s_%s", ret$special, ret$name)
   }
+
+  ret
 }
 
-## First, go through and see what they depend on.
-odin_parse_rhs <- function(rhs) {
+odin_parse_rhs <- function(rhs, line, expr) {
   if (is.atomic(rhs)) {
     ## These are easy; they're constants so we can deal with these directly.
     ##
@@ -120,50 +148,347 @@ odin_parse_rhs <- function(rhs) {
     ## logical, numeric only.  It's possible that strings would be
     ## possible but I'm not sure that's sensible.
     list(type="atomic", value=rhs)
-  } else {
-    stopifnot(is.call(rhs) || is.name(rhs))
-    list(type="expression",
-         depends=find_symbols(rhs),
-         value=rhs)
-  }
-}
-
-combine_arrays <- function(dat) {
-  lhs <- dat$lhs
-  rhs <- dat$rhs
-  nms <- names(lhs)
-
-  dups <- unique(nms[duplicated(nms)])
-  if (any(dups)) {
-    keep <- rep_len(TRUE, length(nms))
-    for (i in dups) {
-      j <- which(nms == i)
-      k <- j[[1L]]
-      nm <- nms[[k]]
-      type_i <- vcapply(lhs[j], "[[", "type")
-      if (any(type_i != "array")) {
-        stop(sprintf("Duplicate arguments must all be arrays (%s: %s)",
-                     nm, paste(type_i, collapse=", ")))
-      }
-      lhs[[k]]$index <- lapply(lhs[j], "[[", "index")
-      ## Combine the rhs;
-      f <- function(x, i) {
-        unique(as.character(unlist(lapply(x, function(x) x$depends[[i]]))))
-      }
-      tmp <- list(type="array",
-                  depends=list(functions=f(rhs[j], "functions"),
-                               variables=f(rhs[j], "variables")),
-                  value=lapply(rhs[j], "[[", "value"))
-      ## TODO: check the form of the self referential variables; there
-      ## is a limited set of allowed cases really but I don't think
-      ## it's going to be easy to validate them all.
-      tmp$depends$variables <- setdiff(tmp$depends$variables, nm)
-      rhs[[k]] <- tmp
-      keep[j[-1L]] <- FALSE
+  } else if (is.call(rhs) || is.name(rhs)) {
+    deps <- find_symbols(rhs)
+    err <- intersect(SPECIAL, deps$functions)
+    if (length(err) > 0L) {
+      odin_error(sprintf("Function %s is disallowed on rhs",
+                         paste(unique(err), collapse=", ")), line, expr)
     }
-    lhs <- lhs[keep]
-    rhs <- rhs[keep]
+
+    if ("user" %in% deps$functions) {
+      if (length(rhs) > 2L) {
+        odin_error("user() call must have zero or one argument", line, expr)
+      }
+      if (length(deps$variables) > 0L) {
+        odin_error("user() call must not reference variables", line, expr)
+      }
+      deps$functions <- setdiff(deps$functions, "user")
+      default <- length(rhs) == 2L
+      list(type="expression",
+           user=TRUE,
+           default=FALSE,
+           depends=deps,
+           value=if (default) rhs[[2L]] else NULL)
+    } else {
+      list(type="expression",
+           depends=deps,
+           value=rhs)
+    }
+  } else {
+    odin_error("Unhandled expression on rhs", line, expr)
+  }
+}
+
+## So the pair:
+##   x[1] <- ...
+##   x[2:n] <- ...
+## will get grouped together as a single x.  All dependencies of the
+## expression will be combined, and the source reference also gets
+## updated.
+odin_parse_combine_arrays <- function(obj) {
+  is_deriv <- vlapply(obj, function(x) identical(x$lhs$special, "deriv"))
+  is_initial <- vlapply(obj, function(x) identical(x$lhs$special, "initial"))
+  is_array <- vcapply(obj, function(x) x$lhs$type) == "array"
+
+  nms <- vcapply(obj, "[[", "name")
+
+  nms_real <- nms
+  nms_real[is_deriv | is_initial] <-
+    vcapply(obj[is_deriv | is_initial], function(x) x$lhs$name_target)
+
+  err <- intersect(nms_real[is_array], nms_real[!is_array])
+  if (length(err) > 0L) {
+    i <- nms_real %in% err
+    line <- viapply(obj[i], "[[", "line")
+    expr <- as.expression(lapply(obj[i], "[[", "expr"))
+    odin_error(sprintf("Array variables must always assign as arrays (%s)",
+                       paste(err, collapse=", ")),
+               line, expr)
   }
 
-  list(lhs=lhs, rhs=rhs)
+  dup <- unique(nms[duplicated(nms)])
+  err <- unique(nms[nms %in% dup & !is_array])
+  if (length(err) > 0L) {
+    i <- nms %in% err
+    line <- viapply(obj[i], "[[", "line")
+    expr <- as.expression(lapply(obj[i], "[[", "expr"))
+    odin_error(sprintf("Duplicate entries must all be arrays (%s)",
+                       paste(err, collapse=", ")),
+               line, expr)
+  }
+
+  ## Then, work out which sets to combine
+  i <- match(nms, unique(nms[is_array]))
+  i <- unname(split(which(!is.na(i)), na.omit(i)))
+
+  for (j in i) {
+    k <- j[[1]]
+    x <- obj[[k]]
+    x$depends <-
+      join_deps(lapply(obj[j], function(x) x[["depends"]]))
+    ## NOTE: this is the only case where self referential variables
+    ## are allowed.  There's no checking here and things like
+    ##   x[i] = x[i] * 2
+    ## will cause a crash or nonsense behaviour.
+    x$depends$variables <- setdiff(x$depends$variables, x$name)
+    x$expr <- lapply(obj[j], "[[", "expr")
+    x$line <- viapply(obj[j], "[[", "line")
+
+    nd <- viapply(obj[j], function(x) x[["lhs"]][["nd"]])
+    if (length(unique(nd)) > 1L) {
+      odin_error(sprintf("Array dimensionality is not consistent (%s)",
+                         paste(sort(unique(nd)), collapse=", ")),
+                 x$line, as.expression(x$expr))
+    }
+
+    x$lhs$index <- lapply(obj[j], function(x) x[["lhs"]][["index"]])
+    x$lhs$depends <-
+      join_deps(lapply(obj[j], function(x) x[["lhs"]][["depends"]]))
+
+    x$rhs$type <- vcapply(obj[j], function(x) x[["rhs"]][["type"]])
+    x$rhs$depends <-
+      join_deps(lapply(obj[j], function(x) x[["rhs"]][["depends"]]))
+    x$rhs$value <- lapply(obj[j], function(x) x[["rhs"]][["value"]])
+
+    ## Sanity check:
+    ok <- c("name", "lhs", "rhs", "depends", "expr", "line")
+    stopifnot(length(setdiff(unlist(lapply(obj[j], names)), ok)) == 0L)
+    ## NOTE: mixed type specials are dealt with elsewhere.  By this I
+    ## mean that a variable is more than one of initial(), deriv(),
+    ## output() and plain.
+    ok <- c("type", "name", "name_target", "index", "nd", "depends", "special")
+    stopifnot(length(setdiff(unlist(lapply(
+      obj[j], function(x) names(x$lhs))), ok)) == 0L)
+    ok <- c("type", "depends", "value")
+    stopifnot(length(setdiff(unlist(lapply(
+      obj[j], function(x) names(x$rhs))), ok)) == 0L)
+
+    obj[[k]] <- x
+  }
+
+  drop <- unlist(lapply(i, "[", -1L))
+  if (length(drop) > 0L) {
+    obj <- obj[-drop]
+  }
+
+  obj
 }
+
+odin_parse_find_vars <- function(obj) {
+  ## Next, identify initial conditions and derivatives.
+  is_deriv <- vlapply(obj, function(x) identical(x$lhs$special, "deriv"))
+  is_initial <- vlapply(obj, function(x) identical(x$lhs$special, "initial"))
+
+  nms <- vcapply(obj, "[[", "name")
+
+  name_target <- function(x) x$lhs$name_target
+  vars <- unique(vcapply(obj[is_deriv], name_target))
+  vars_initial <- unique(vcapply(obj[is_initial], name_target))
+
+  ## And from these, determine the names of the core variables.  The
+  ## order will be the same as the order they are first defined in the
+  ## file (so for an array calculation this is important).
+  if (!setequal(vars, vars_initial)) {
+    ## TODO: Getting a nicer error message here with the missing and
+    ## extra equations would be nice, but can wait.
+    stop("derivs() and initial() must contain same set of equations")
+  }
+
+  err <- nms %in% vars
+  if (any(err)) {
+    line <- viapply(obj[err], "[[", "line")
+    expr <- as.expression(lapply(obj[err], "[[", "expr"))
+    ## TODO: _or_ the rhs of anything.  Could be clearer.
+    odin_error(
+      sprintf("variables on lhs must be within deriv() or initial() (%s)",
+              paste(intersect(vars, nms), collapse=", ")), line, expr)
+  }
+
+  vars
+}
+
+## TODO: consider  allowing use of  initial(x) anywhere to  access the
+## initial condition.  Then we can do things like
+##
+##   deriv(y) = r * (y - initial(y))
+##
+## for exponential decay towards a stabilising force. For now it's ok,
+## and this can always be achieved by assignment via a common 3rd
+## parameter.
+odin_parse_rewrite_initial_conditions <- function(obj, vars) {
+  i <- vlapply(obj, function(x) (identical(x$lhs$special, "initial") &&
+                                 any(vars %in% x$rhs$depends$variables)))
+  if (any(i)) {
+    replace <- function(x, tr) {
+      i <- match(x, names(tr))
+      j <- !is.na(i)
+      x[j] <- tr[i][j]
+      x
+    }
+    rewrite_expression <- function(expr, env) {
+      eval(substitute(substitute(y, env), list(y = expr)))
+    }
+    warning("This is untested", immediate.=TRUE)
+    subs <- setNames(sprintf("initial_%s", vars), vars)
+    env <- as.environment(lapply(subs, as.name))
+    f <- function(x) {
+      if (any(vars %in% x$rhs$depends$variables)) {
+        x$rhs$value <- rewrite_expression(x$rhs$value, env)
+        x$rhs$depends$variables <- replace(x$rhs$depends$variables, subs)
+        x$depends$variables <- replace(x$depends$variables, subs)
+      }
+      x
+    }
+    obj[i] <- lapply(obj[i], f)
+  }
+  obj
+}
+
+odin_parse_dependencies <- function(obj, vars) {
+  nms <- vcapply(obj, "[[", "name")
+  exclude <- c("", "i", "j", "k", TIME)
+  deps <- lapply(obj, function(el) setdiff(el$depends$variables, exclude))
+  names(deps) <- nms
+
+  msg <- lapply(deps, setdiff, c(nms, vars))
+  i <- lengths(msg) > 0L
+  if (any(i)) {
+    odin_error(sprintf("Unknown variables %s",
+                       paste(sort(unique(unlist(msg))), collapse=", ")),
+               get_lines(obj[i]), get_exprs(obj[i]))
+  }
+
+  ## For the derivative calculations the variables come in with no
+  ## dependencies because they are provided by the integrator, but
+  ## we'll add an implicit time dependency.
+  dummy <- c(list(t=character(0)),
+             setNames(rep(list(TIME), length(vars)), vars))
+  order <- topological_order(c(deps, dummy))
+
+  ## Then, we work out the recursive dependencies; this is the entire
+  ## dependency chain of a thing; including its dependencies, its
+  ## dependencies dependencies and so on.
+  deps_rec <- recursive_dependencies(order, c(deps, dummy), vars)
+
+  ## Then, we can get the stage for these variables:
+  stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
+  stage[TIME] <- STAGE_TIME
+  ## Determine if we are a user stage:
+  is_user <- vlapply(obj[match(order, nms)], function(x) isTRUE(x$rhs$user))
+  stage[is_user] <- STAGE_USER
+  ## In topological order, determine inherited stage (a user/time stage
+  ## anywhere in a chain implies a user/time stage).
+  for (i in seq_along(order)) {
+    stage[[i]] <- max(stage[[i]], stage[deps_rec[[i]]])
+  }
+
+  ## This is the point where we have to give up and start creating a
+  ## real object; it probably should have been the step previous
+  ## (TODO).
+  order_keep <- setdiff(order, names(dummy))
+  stage_keep <- stage[nms]
+  for (i in seq_along(nms)) {
+    obj[[i]]$stage <- stage_keep[[i]]
+  }
+  ## Next, check all the lhs array variables are OK; these must be
+  ## constant or user (not time based).  At the same time it would be
+  ## great to work out how large the arrays actually are; looking for a
+  ## vector of dim here for all of them.  This might be good to go
+  ## into another function.
+  ##
+  ## - if deriv is array, initial must be and they must have the same
+  ##   computed size.
+  ## - all assignments into array varibles are checked already
+  ## - all references *from* array variables must be indexed
+  ##   - those references should be range-checked where possible
+  is_array <- vlapply(obj, function(x) identical(x$lhs$type, "array"))
+
+  ## Should cycle through these in order I think; that way length can
+  ## be inherited.  That requires doing a bit of pretty icky
+  ## book-keeping.  Some of the array dimensions will be constants but
+  ## depend on variables; but we can't compute those until we deal
+  ## with the arrays!  So that's going to require this is integrated
+  ## into an overall resolution approach.
+  ##
+  ## TODO: Compute length(arr) as a special thing and allow it to be
+  ## used directly in code.  Similarly nrow(arr), ncol(arr) and
+  ## dim(arr, n)
+  ##
+  ## NOTE: This is done iteratively, in dependency order, as some
+  ## parts of this might use others?  Or do we want to replace with an
+  ## lapply?
+  ##
+  ## TODO: This does not need to be done in this order now.
+  for (i in match(intersect(order, nms[is_array]), nms)) {
+    x <- obj[[i]]
+    x$stage <- max(c(STAGE_CONSTANT, stage[x$lhs$depends$variables]))
+    if (x$stage == STAGE_TIME) {
+      odin_error("Array extent is determined by time",
+                 x$line, as.expression(x$expr))
+    }
+    obj[[i]] <- x
+  }
+
+  nd <- setNames(viapply(obj[is_array], function(x) x$lhs$nd), nms[is_array])
+
+  uses_array <- vlapply(obj, function(x)
+    any(x$depends$variables %in% nms[is_array]) ||
+    any(x$depends$functions %in% "["))
+
+  for (i in which(uses_array)) {
+    ## TODO: We could give reasons here; this error message not very helpful.
+    ##   - incorrect length access
+    ##   - invalid functions
+    ##   - referencing array variable without array
+    ok <- check_array_rhs(obj[[i]]$rhs$value, nd)
+    if (!ok) {
+      odin_error("Invalid array use on rhs", obj[[i]]$line, obj[[i]]$expr)
+    }
+    obj[[i]]$rhs$uses_array <- TRUE
+  }
+
+  list(vars=vars,
+       eqs=obj,
+       order=order_keep,
+       stage=stage_keep)
+}
+
+odin_error <- function(msg, line, expr) {
+  if (is.expression(expr)) {
+    expr_str <- vcapply(expr, deparse_str)
+  } else {
+    expr_str <- deparse_str(expr)
+  }
+  str <- sprintf("%s # (line %s)", expr_str, line)
+  stop(msg, paste0("\n\t", str, collapse=""), call.=FALSE)
+}
+
+get_lines <- function(x) {
+  unlist(lapply(x, "[[", "line"))
+}
+get_exprs <- function(x) {
+  as.expression(unlist(lapply(x, "[[", "expr")))
+}
+
+recursive_dependencies <- function(order, deps, vars) {
+  deps_rec <- setNames(vector("list", length(order)), order)
+  for (i in order) {
+    j <- as.character(unlist(deps[i]))
+    deps_rec[[i]] <-
+      c(j, unique(as.character(unlist(deps_rec[j], use.names=FALSE))))
+  }
+  deps_rec
+}
+
+STAGE_CONSTANT <- 1L
+STAGE_USER <- 2L
+STAGE_TIME <- 3L
+STAGES <- c("constant", "user", "time")
+TIME <- "t"
+## TODO: None of these deal with the use of these as functions (only
+## variables) but that needs checking too.  Not 100% sure this is done
+## on the lhs index bits.  Probably need to standardise that at some
+## point.
+SPECIAL <- c("initial", "deriv", "output")
+RESERVED <- c("i", "j", "k", TIME, "user", SPECIAL)

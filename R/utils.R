@@ -11,21 +11,7 @@ vcapply <- function(X, FUN, ...) {
   vapply(X, FUN, character(1), ...)
 }
 
-source_line <- function(x) {
-  line <- utils::getSrcLocation(x, "line")
-  if (is.null(line)) {
-    "<source references not available>"
-  } else {
-    sprintf("line %d", line)
-  }
-}
-
-indent <- function(str, n) {
-  indent <- paste(rep(" ", n), collapse="")
-  paste(indent, strsplit(str, "\n", fixed=TRUE)[[1L]],
-        sep="", collapse="\n")
-}
-
+## Like deparse() but always produce a single string
 deparse_str <- function(x) {
   paste(deparse(x), collapse="\n")
 }

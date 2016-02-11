@@ -1,4 +1,7 @@
 find_symbols <- function(expr, hide_errors=TRUE) {
+  if (is.list(expr)) {
+    return(join_deps(lapply(expr, find_symbols)))
+  }
   functions <- variables <- character(0)
 
   leaf <- function(e, w) {
@@ -19,8 +22,24 @@ find_symbols <- function(expr, hide_errors=TRUE) {
   walker <- codetools::makeCodeWalker(call=call, leaf=leaf, write=cat)
   codetools::walkCode(expr, walker)
   list(functions=unique(functions),
-       variables=unique(variables),
-       variables_count=table(variables))
+       variables=unique(variables))
+}
+
+join_deps <- function(x) {
+  stopifnot(is.list(x))
+  x <- x[!vlapply(x, is.null)]
+  ## This should never be triggered
+  ok <- vlapply(x, function(el)
+    identical(names(el), c("functions", "variables")))
+  stopifnot(all(ok))
+  if (length(x) == 0L) {
+    list(functions=character(0), variables=character(0))
+  } else if (length(x) == 1L) {
+    x[[1L]]
+  } else {
+    list(functions=unique(unlist(lapply(x, "[[", "functions"))),
+         variables=unique(unlist(lapply(x, "[[", "variables"))))
+  }
 }
 
 ## This algorithm comes from here:
@@ -44,9 +63,55 @@ topological_order <- function(graph) {
       }
     }
     if (!acyclic) {
-      stop("A cyclic dependency detected")
+      stop("A cyclic dependency detected for: ",
+           paste(intersect(edges, names(graph)), collapse=", "))
     }
   }
 
   graph_sorted
+}
+
+## I feel like I'm going to end up with a lot of these floating
+## around; perhaps there's some nicer way of doing it...
+check_array_rhs <- function(expr, nd) {
+  if (is.list(expr)) {
+    return(all(vlapply(expr, check_array_rhs, nd)))
+  }
+
+  nms <- names(nd)
+  ok <- TRUE
+
+  leaf <- function(e, w) {
+    if (!is.symbol(e)) { # A literal of some type
+      return()
+    } else if (deparse(e) %in% nms) {
+      ok <<- FALSE
+    }
+  }
+  ## Descend down the call tree until reaching a `[` call, then
+  ## analyse that call with a more restricted set of rules.
+  call <- function (e, w) {
+    if (identical(e[[1L]], quote(`[`))) {
+      x <- deparse(e[[2L]])
+      ijk <- as.list(e[-(1:2)])
+      if (x %in% nms && length(ijk) == nd[[x]]) {
+        sym <- find_symbols(ijk)
+        ok <<- (ok &&
+                all(sym$functions %in% c("-", "+", ":")) &&
+                !any(sym$variables %in% c("", nms)))
+      } else {
+        ok <<- FALSE
+      }
+    } else {
+      for (a in as.list(e[-1])) {
+        if (!missing(a)) {
+          codetools::walkCode(a, w)
+        }
+      }
+    }
+  }
+
+  walker <- codetools::makeCodeWalker(call=call, leaf=leaf, write=cat)
+  codetools::walkCode(expr, walker)
+  ok
 }

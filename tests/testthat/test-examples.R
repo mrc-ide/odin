@@ -10,7 +10,7 @@ test_that("deSolve implementations work", {
     mod <- source1(filename[[i]])
     res <- run_model(mod, seq_range(mod$t, 300))
     expect_equal_to_reference(res, sprintf("examples/%s_deSolve.rds", b))
-    if (TRUE) {
+    if (FALSE) {
       j <- seq_len(attr(res, "lengthvar")[[1L]]) + 1L
       if (b == "array") {
         matplot(res[, 1], res[, j], col=rep(1:3, each=5), lty=1:5, type="l")
