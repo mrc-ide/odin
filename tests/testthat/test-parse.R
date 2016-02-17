@@ -12,9 +12,10 @@ test_that("some parse errors", {
   expect_error(odin_parse(text="1[1:4] <- 1"),
                "array lhs must be a name")
   expect_error(odin_parse(text="x[f(1)] <- 1"),
-               "Invalid functions in array calculation")
+               "Invalid function in array calculation")
   expect_error(odin_parse(text="x[c(1, 2)] <- 1"),
-               "Invalid functions in array calculation")
+               "Invalid function in array calculation")
+
   expect_error(odin_parse(text="y <- deriv(x)"),
                "Function deriv is disallowed on rhs")
 
@@ -24,6 +25,8 @@ test_that("some parse errors", {
                "The empty index is not currently supported")
   expect_error(odin_parse(text="x[] <- y[i] * z[i]"),
                "The empty index is not currently supported")
+  expect_error(odin_parse(text="x[i] <- y[i]"),
+               "Special index variable i may not be used on array lhs")
 
   expect_error(odin_parse(text="x[1,2,3,4] <- 1"),
                "Arrays must have at at most 3 dimensions")
@@ -32,6 +35,9 @@ test_that("some parse errors", {
                "Array extent is determined by time")
   expect_error(odin_parse(text="deriv(A) <- 1\ninitial(A) <- 1\nx[1:A] <- 1"),
                "Array extent is determined by time")
+
+  expect_error(odin_parse(text="a[1] <- 1\nb[a] <- 1"),
+               "Array indicies may not be arrays")
 
   expect_error(odin_parse(text="i <- 1"),
                "Reserved name")
@@ -59,6 +65,14 @@ test_that("some parse errors", {
 
   expect_error(odin_parse(text="deriv_x = 1"),
                "Variable name cannot start with 'deriv_'")
+  expect_error(odin_parse(text="dim_x = 1"),
+               "Variable name cannot start with 'dim_'")
+
+
+  expect_error(odin_parse(text="dim(x[1]) = 1"),
+               "must be applied to a name only")
+  expect_error(odin_parse(text="dim(x[1,2]) = c(1, 2)"),
+               "must be applied to a name only")
 
   expect_error(odin_parse(text="x <- user(1, 2)"),
                "user() call must have zero or one argument", fixed=TRUE)
@@ -68,6 +82,10 @@ test_that("some parse errors", {
   ## TODO: this needs way better error messages!
   expect_error(odin_parse(text="y <- x\nx[1] <- 1"),
                "Invalid array use on rhs")
+
+  expect_error(odin_parse(text="dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),
+               ".")
+
 })
 
 test_that("RHS array checking", {
@@ -82,4 +100,23 @@ test_that("RHS array checking", {
   expect_false(check_array_rhs(quote(a[b[1]]), c(a=1, b=1)))
   expect_false(check_array_rhs(quote(a[]), c(a=1)))
   expect_true(check_array_rhs(quote(sum(a)), c(a=1)))
+  check_array_rhs
+})
+
+test_that("lhs array checking", {
+  res <- check_array_lhs_index(quote(a + (2:(n-3) - 4) + z))
+  expect_true(res)
+  expect_equal(attr(res, "value"), quote(a + ((n-3) - 4) + z))
+  expect_equal(attr(res, "value_min"), quote(a + (2 - 4) + z))
+
+  res <- check_array_lhs_index(quote(a))
+  expect_true(res)
+  expect_equal(attr(res, "value"), quote(a))
+  expect_null(attr(res, "value_min"))
+
+  expect_false(check_array_lhs_index(quote(a:b + c:d)))
+  expect_false(check_array_lhs_index(quote(-(a:b))))
+  expect_false(check_array_lhs_index(quote((a:b):c)))
+  expect_false(check_array_lhs_index(quote(c:(a:b))))
+  expect_false(check_array_lhs_index(quote((-a))))
 })

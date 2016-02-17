@@ -41,6 +41,7 @@ odin_parse <- function(file="", text=NULL) {
   ## expression.
   ret <- odin_parse_combine_arrays(ret)
   ret <- odin_parse_dependencies(ret, vars)
+  ret <- odin_parse_variable_order(ret)
   ret
 }
 
@@ -70,13 +71,6 @@ odin_parse_lhs <- function(lhs, line, expr) {
         odin_error("array lhs must be a name", line, expr)
       }
       index <- as.list(lhs[-(1:2)])
-      deps <- join_deps(lapply(index, find_symbols))
-      valid <- c("-", "+", ":") # perhaps * and / are ok too?
-      err <- setdiff(deps$functions, valid)
-      if (length(err) > 0L) {
-        odin_error(paste0("Invalid functions in array calculation: ",
-                          paste(unique(err, collapse=", "))), line, expr)
-      }
 
       nd <- length(index)
       if (nd > 3L) {
@@ -85,19 +79,55 @@ odin_parse_lhs <- function(lhs, line, expr) {
           line, as.expression(expr))
       }
 
-      if ("" %in% deps$variables) {
+      if (any(vlapply(lhs[-1], identical, quote(expr=)))) {
         odin_error("The empty index is not currently supported",
                    line, as.expression(expr))
       }
 
-      ## TODO: Require all array arguments; don't allow for [] or [,1]
-      ## perhaps?  Really depends if we can infer the length of an
-      ## array.
+      ## Valid expressions are:
       ##
-      ## TODO: valid rhs functions are probably only [-, +, /, *, :]
+      ##   binary inline +, - (unlimited number)
+      ##   A single ':' which is the only thing that generates a range
+      ##   A unary -(x) is not allowed as it's too hard to control
+      ##
+      ## With these options, the extent of the array index can be
+      ## expressed as a relatively simple expression; the min and max
+      ## will be the expression with x:y substituted for x and y
+      ## respectively.
+      ##
+      ## TODO: Consider looking for, and warning about (1:x - 1)
+      ## rather than (1:x) - 1 as that will imply a negative length
+      ## array.  Or we can look for the minimum value being negative.
+      tmp <- lapply(index, check_array_lhs_index)
+      ok <- vlapply(tmp, as.logical)
+      if (all(ok)) {
+        extent_max <- lapply(tmp, attr, "value_max", exact=TRUE)
+        extent_min <- lapply(tmp, attr, "value_min", exact=TRUE)
+        is_range <- !vlapply(extent_min, is.null)
+      } else {
+        msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse="\n")
+        odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
+                   line, expr)
+      }
+
+      deps <- find_symbols(index)
+      err <- intersect(INDEX, deps$variables)
+      if (length(err) > 0L) {
+        odin_error(
+          sprintf("Special index variable %s may not be used on array lhs",
+                  pastec(err)), line, as.expression(expr))
+      }
+
+      ## Build a big data structure out of all the index stuff; it's
+      ## going to be heaps easier to deal with later.
+      idx <- list(value=index,
+                  is_range=is_range,
+                  extent_max=extent_max,
+                  extent_min=extent_min)
+
       ret <- list(type="array",
                   name=deparse(lhs[[2L]]),
-                  index=index,
+                  index=idx,
                   nd=nd,
                   depends=deps)
     } else if (fun %in% SPECIAL) {
@@ -105,6 +135,12 @@ odin_parse_lhs <- function(lhs, line, expr) {
         odin_error("Invalid length special function on lhs", line, expr)
       }
       ret <- odin_parse_lhs(lhs[[2L]], line, expr)
+      if (fun == "dim") {
+        if (ret$type != "symbol") {
+          odin_error("dim() must be applied to a name only (not an array)",
+                     line, expr)
+        }
+      }
       if (is.null(ret$special)) {
         ret$special <- fun
       } else {
@@ -126,7 +162,7 @@ odin_parse_lhs <- function(lhs, line, expr) {
   }
 
   if (is.null(ret$special)) {
-    re <- sprintf("^(%s)_.*", paste(SPECIAL, collapse="|"))
+    re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse="|"))
     if (grepl(re, ret$name)) {
       odin_error(sprintf("Variable name cannot start with '%s_'",
                          sub(re, "\\1", ret$name)),
@@ -156,10 +192,16 @@ odin_parse_rhs <- function(rhs, line, expr) {
                          paste(unique(err), collapse=", ")), line, expr)
     }
 
+    ## TODO: This is not acually the right move; if user is not the
+    ## first call, then it should be an error too, so check for
+    ## expr[[1]] being user and nothing else being user?
     if ("user" %in% deps$functions) {
       if (length(rhs) > 2L) {
         odin_error("user() call must have zero or one argument", line, expr)
       }
+      ## TODO: This could be relaxed I think, but dealing with
+      ## potential cycles is hard because they could be generated at
+      ## runtime.
       if (length(deps$variables) > 0L) {
         odin_error("user() call must not reference variables", line, expr)
       }
@@ -187,6 +229,7 @@ odin_parse_rhs <- function(rhs, line, expr) {
 ## expression will be combined, and the source reference also gets
 ## updated.
 odin_parse_combine_arrays <- function(obj) {
+  is_dim <- vlapply(obj, function(x) identical(x$lhs$special, "dim"))
   is_deriv <- vlapply(obj, function(x) identical(x$lhs$special, "deriv"))
   is_initial <- vlapply(obj, function(x) identical(x$lhs$special, "initial"))
   is_array <- vcapply(obj, function(x) x$lhs$type) == "array"
@@ -194,10 +237,12 @@ odin_parse_combine_arrays <- function(obj) {
   nms <- vcapply(obj, "[[", "name")
 
   nms_real <- nms
-  nms_real[is_deriv | is_initial] <-
-    vcapply(obj[is_deriv | is_initial], function(x) x$lhs$name_target)
+  i <- is_deriv | is_initial | is_dim
+  nms_real[i] <- vcapply(obj[i], function(x) x$lhs$name_target)
+  names(nms_real) <- nms
 
-  err <- intersect(nms_real[is_array], nms_real[!is_array])
+  err <- intersect(nms_real[is_array & !is_dim],
+                   nms_real[!is_array & !is_dim])
   if (length(err) > 0L) {
     i <- nms_real %in% err
     line <- viapply(obj[i], "[[", "line")
@@ -207,6 +252,8 @@ odin_parse_combine_arrays <- function(obj) {
                line, expr)
   }
 
+  ## TODO: I don't know if multiple dim() calls would be caught here
+  ## (but they should be!)
   dup <- unique(nms[duplicated(nms)])
   err <- unique(nms[nms %in% dup & !is_array])
   if (length(err) > 0L) {
@@ -216,6 +263,18 @@ odin_parse_combine_arrays <- function(obj) {
     odin_error(sprintf("Duplicate entries must all be arrays (%s)",
                        paste(err, collapse=", ")),
                line, expr)
+  }
+
+  ## Now, work through the dim() calls so we establish dimensionality
+  ## of arrays.
+  nd <- setNames(viapply(obj[is_dim], check_dim_rhs), nms_real[is_dim])
+  if (any(is.na(nd))) {
+    i <- which(is_dim)[is.na(nd)]
+    odin_error("Invalid dim() rhs", get_lines(i), get_exprs(i))
+  }
+  j <- which(is_dim)
+  for (i in seq_along(nd)) {
+    obj[[j[[i]]]]$nd <- nd[[i]]
   }
 
   ## Then, work out which sets to combine
@@ -232,16 +291,26 @@ odin_parse_combine_arrays <- function(obj) {
     ##   x[i] = x[i] * 2
     ## will cause a crash or nonsense behaviour.
     x$depends$variables <- setdiff(x$depends$variables, x$name)
+    if (!is_dim[k]) {
+      x$depends$variables <- union(x$depends$variables,
+                                   sprintf("dim_%s", nms_real[[x$name]]))
+    }
     x$expr <- lapply(obj[j], "[[", "expr")
     x$line <- viapply(obj[j], "[[", "line")
 
-    nd <- viapply(obj[j], function(x) x[["lhs"]][["nd"]])
+    nd_x <- tryCatch(nd[[nms_real[[x$name]]]],
+                     error=function(e)
+                       odin_error(
+                         sprintf("No dim() call found for %s", x$name),
+                         x$line, as.expression(x$expr)))
+    err <- viapply(obj[j], function(x) x[["lhs"]][["nd"]]) != nd_x
     if (length(unique(nd)) > 1L) {
-      odin_error(sprintf("Array dimensionality is not consistent (%s)",
-                         paste(sort(unique(nd)), collapse=", ")),
+      odin_error("Array dimensionality is not consistent (expected %d %s)",
+                 nd_x, ngettext(nd_x, "index", "indices"),
                  x$line, as.expression(x$expr))
     }
 
+    ## TODO: some of the lhs depends stuff will not matter so much now.
     x$lhs$index <- lapply(obj[j], function(x) x[["lhs"]][["index"]])
     x$lhs$depends <-
       join_deps(lapply(obj[j], function(x) x[["lhs"]][["depends"]]))
@@ -267,24 +336,10 @@ odin_parse_combine_arrays <- function(obj) {
     obj[[k]] <- x
   }
 
-  ## Check that the derivatives, initial conditions agree in dimensionality
-  check <- unique(nms_real[is_array & (is_deriv | is_initial)])
-
   drop <- unlist(lapply(i, "[", -1L))
   if (length(drop) > 0L) {
     obj <- obj[-drop]
     nms_real <- nms_real[-drop]
-  }
-
-  if (length(check) > 0L) {
-    idx <- which(nms_real %in% check)
-    for (i in split(idx, nms_real[idx])) {
-      if (length(unique(lapply(obj[i], function(x) x$lhs$nd))) != 1L) {
-        odin_error(
-          "Array dimensionality is not consistent across initial/derivs",
-          get_lines(obj[i]), get_exprs(obj[i]))
-      }
-    }
   }
 
   obj
@@ -362,7 +417,7 @@ odin_parse_rewrite_initial_conditions <- function(obj, vars) {
 
 odin_parse_dependencies <- function(obj, vars) {
   nms <- vcapply(obj, "[[", "name")
-  exclude <- c("", "i", "j", "k", TIME)
+  exclude <- c("", INDEX, TIME)
   deps <- lapply(obj, function(el) setdiff(el$depends$variables, exclude))
   names(deps) <- nms
 
@@ -398,6 +453,13 @@ odin_parse_dependencies <- function(obj, vars) {
     stage[[i]] <- max(stage[[i]], stage[deps_rec[[i]]])
   }
 
+  ## Adjust the order so that it's by stage first, and then the order.
+  ## This should not create any impossible situations because of the
+  ## stage treatent above.
+  i <- order(stage)
+  stage <- stage[i]
+  order <- order[i]
+
   ## This is the point where we have to give up and start creating a
   ## real object; it probably should have been the step previous
   ## (TODO).
@@ -418,40 +480,45 @@ odin_parse_dependencies <- function(obj, vars) {
   ## - all references *from* array variables must be indexed
   ##   - those references should be range-checked where possible
   is_array <- vlapply(obj, function(x) identical(x$lhs$type, "array"))
+  is_dim <- vlapply(obj, function(x) identical(x$lhs$special, "dim"))
 
-  ## Should cycle through these in order I think; that way length can
-  ## be inherited.  That requires doing a bit of pretty icky
-  ## book-keeping.  Some of the array dimensions will be constants but
-  ## depend on variables; but we can't compute those until we deal
-  ## with the arrays!  So that's going to require this is integrated
-  ## into an overall resolution approach.
-  ##
   ## TODO: Compute length(arr) as a special thing and allow it to be
-  ## used directly in code.  Similarly nrow(arr), ncol(arr) and
-  ## dim(arr, n)
-  ##
-  ## NOTE: This is done iteratively, in dependency order, as some
-  ## parts of this might use others?  Or do we want to replace with an
-  ## lapply?
-  ##
-  ## TODO: This does not need to be done in this order now.
-  for (i in match(intersect(order, nms[is_array]), nms)) {
-    x <- obj[[i]]
-    x$stage <- max(c(STAGE_CONSTANT, stage[x$lhs$depends$variables]))
-    if (x$stage == STAGE_TIME) {
-      odin_error("Array extent is determined by time",
-                 x$line, as.expression(x$expr))
-    }
-    obj[[i]] <- x
+  ## used directly in code.  Similarly allow dim(arr, {1,2,3}), stored
+  ## internaly as dim_1, dim_2, dim_3; can do that with code rewriting
+  ## easily enough; make dim an allowed function in the rhs arrays and
+  ## lhs if not a cyclic dependency (this is all done apart from
+  ## _using_ dim).
+  dim_stage <- viapply(obj[is_dim], function(x) x$stage)
+  i <- dim_stage == STAGE_TIME
+  if (any(i)) {
+    odin_error("Array extent is determined by time",
+               get_lines(obj[i]), get_exprs(obj[i]))
   }
 
-  nd <- setNames(viapply(obj[is_array], function(x) x$lhs$nd), nms[is_array])
-  nd <- c(nd, setNames(nd[sprintf("deriv_%s", vars)], vars))
+  ## Determine which variables are array extents and indices; we'll
+  ## flag these as integers.  At the same time we need to try and work
+  ## out which of these are confusing (perhaps used as an argument to
+  ## division).
+  index_vars <- c(lapply(obj[is_dim], function(x) x$rhs$depends$variables),
+                  lapply(obj[is_array], function(x) x$lhs$depends$variables))
+  all_index_vars <- unique(unlist(index_vars))
+  err <- intersect(index_vars, nms[is_array])
+  if (length(err) > 0L) {
+    i <- which(is_array)[vlapply(obj[is_array], function(x)
+      any(err %in% x$lhs$depends$variables))]
+    odin_error(sprintf("Array indices may not be arrays (%s used)",
+                       pastec(err)),
+               get_lines(obj[i]), get_exprs(obj[i]))
+  }
 
+  ## How do we determine that these are not used as floats anywhere?
+  ## The actual variables are already filtered out.
   uses_array <- vlapply(obj, function(x)
     any(x$depends$variables %in% nms[is_array]) ||
     any(x$depends$functions %in% "["))
-
+  ## Number of dimensions for each variable array variable.
+  nd <- setNames(viapply(obj[is_array], function(x) x$lhs$nd), nms[is_array])
+  nd <- c(nd, setNames(nd[sprintf("deriv_%s", vars)], vars))
   for (i in which(uses_array)) {
     ok <- check_array_rhs(obj[[i]]$rhs$value, nd)
     if (!ok) {
@@ -465,11 +532,62 @@ odin_parse_dependencies <- function(obj, vars) {
   list(vars=vars,
        eqs=obj,
        order=order_keep,
-       stage=stage_keep)
+       stage=stage_keep,
+       index_vars=all_index_vars)
+}
+
+odin_parse_variable_order <- function(obj) {
+  ## Within these classes, is it best to put them in topological order
+  ## or in lexical order?  Start with lexical order as we can always
+  ## tweak that later.
+  ##
+  ## I think it should be sorted by stage within the arrays though,
+  ## and stage added here.
+  is_deriv <- vlapply(obj$eqs, function(x) identical(x$lhs$special, "deriv"))
+  tmp <- obj$eqs[is_deriv]
+  is_array <- vlapply(tmp, function(x) x$lhs$type == "array")
+  nms <- vcapply(tmp, function(x) x$lhs$name_target)
+
+  stage <- rep(0L, length(is_array))
+  stage[is_array] <- unname(obj$stage[sprintf("dim_%s", nms[is_array])])
+
+  i <- order(is_array + stage)
+  tmp <- tmp[i]
+  nms <- nms[i]
+  stage <- setNames(stage[i], nms)
+  is_array <- setNames(is_array[i], nms)
+
+  offset <- setNames(as.list(seq_along(is_array) - 1L), nms)
+  for (i in which(is_array)) {
+    if (i == 1L) {
+      offset[[i]] <- 0L
+    } else if (!is_array[[i - 1L]]) {
+      offset[[i]] <- offset[[i - 1L]] + 1L
+    } else if (identical(offset[[i - 1L]], 0L)) {
+      offset[[i]] <- as.name(paste0("dim_", nms[[i - 1L]]))
+    } else {
+      offset[[i]] <- call("+",
+                          as.name(paste0("offset_", nms[[i - 1L]])),
+                          as.name(paste0("dim_", nms[[i - 1L]])))
+    }
+  }
+  offset_is_var <- !vlapply(offset, is.numeric)
+
+  offset_use <- offset
+  offset_use[offset_is_var] <- sprintf("offset_%s", nms[offset_is_var])
+
+  obj$variable_order <-
+    list(order=nms, is_array=is_array,
+         offset=offset, offset_use=offset_use,
+         offset_is_var=offset_is_var)
+  obj
 }
 
 ## I feel like I'm going to end up with a lot of these floating
 ## around; perhaps there's some nicer way of doing it...
+##
+## TODO: Need to pass through here information about the rangedness of
+## the lhs and filter i, j, k by that.
 check_array_rhs <- function(expr, nd) {
   if (is.list(expr)) {
     res <- lapply(expr, check_array_rhs, nd)
@@ -498,7 +616,7 @@ check_array_rhs <- function(expr, nd) {
           err$add("Incorrect dimensionality for %s in '%s'", x, deparse_str(e))
         }
         sym <- find_symbols(ijk)
-        nok <- setdiff(sym$functions, c("-", "+", ":"))
+        nok <- setdiff(sym$functions, VALID_ARRAY)
         if (length(nok) > 0L) {
           err$add("Disallowed functions used for %s in '%s': %s",
                   x, deparse_str(e), pastec(nok))
@@ -525,6 +643,75 @@ check_array_rhs <- function(expr, nd) {
   x <- unique(err$get())
   ok <- length(x) == 0L
   if (ok) TRUE else structure(FALSE, message=x)
+}
+
+check_dim_rhs <- function(x) {
+  if (x$rhs$type == "atomic" || is.name(x$rhs$value)) {
+    1L
+  } else if (identical(x$rhs[[1]], quote(c))) {
+    browser()
+    ok <- vlapply(as.list(x$rhs[-1L]),
+                  function(x) is.symbol(x) || is.atomic(x))
+    if (!all(ok)) {
+      NA_integer_
+    }
+    length(x$rhs) - 1L
+  } else {
+    NA_integer_
+  }
+}
+
+check_array_lhs_index <- function(x) {
+  seen <- FALSE
+  err <- collector()
+  valid <- setdiff(VALID_ARRAY, ":")
+
+  f <- function(x, max) {
+    if (is.recursive(x)) {
+      nm <- as.character(x[[1L]])
+      if (identical(nm, ":")) {
+        if (seen) {
+          err$add("Multiple calls to ':' are not allowed")
+        } else {
+          seen <<- TRUE
+        }
+        if (max) {
+          f(x[[3L]], max)
+        } else {
+          f(x[[2L]], max)
+        }
+      } else {
+        if (nm == "-" && length(x) == 2L) {
+          err$add("Unary minus invalid in array calculation")
+        }
+        if (!(nm %in% valid)) {
+          err$add(paste("Invalid function in array calculation",
+                        as.character(nm)))
+        }
+        as.call(c(list(x[[1L]]), lapply(x[-1L], f, max)))
+      }
+    } else {
+      x
+    }
+  }
+  g <- function(x) {
+    if (is.recursive(x) && identical(x[[1]], quote(`(`))) x[[2L]] else x
+  }
+
+  value_max <- f(x, TRUE)
+  if (seen) { # check minimum branch
+    seen <- FALSE
+    value_min <- f(x, FALSE)
+  } else {
+    value_min <- NULL
+  }
+
+  x <- unique(err$get())
+  if (length(x) == 0L) {
+    structure(TRUE, value_max=g(value_max), value_min=f(value_min))
+  } else {
+    structure(FALSE, message=x)
+  }
 }
 
 odin_error <- function(msg, line, expr) {
@@ -559,9 +746,14 @@ STAGE_USER <- 2L
 STAGE_TIME <- 3L
 STAGES <- c("constant", "user", "time")
 TIME <- "t"
+STATE <- "state"
+DSTATEDT <- "dstatedt"
 ## TODO: None of these deal with the use of these as functions (only
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some
 ## point.
-SPECIAL <- c("initial", "deriv", "output")
-RESERVED <- c("i", "j", "k", TIME, "user", SPECIAL)
+SPECIAL <- c("initial", "deriv", "output", "dim")
+INDEX <- c("i", "j", "k")
+RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, "user", SPECIAL)
+RESERVED_PREFIX <- c(SPECIAL, "dim", "odin", "offset")
+VALID_ARRAY <- c("-", "+", ":", "(")
