@@ -12,7 +12,7 @@ static {{{pars_type}}} *{{{pars_object}}};
 {{{pars_type}}}* {{{prefix}}}_get_pointer(SEXP extPtr, int closed_error);
 static void {{{prefix}}}_finalise(SEXP extPtr);
 void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}});
-void {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given);
+SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given);
 void {{{prefix}}}_deriv({{{pars_type}}} *{{{pars_object}}}, double t, double *{{{state}}}, double *{{{dstatedt}}});
 void {{{prefix}}}_free({{{pars_type}}} *{{{pars_object}}});
 
@@ -33,8 +33,7 @@ SEXP r_{{{prefix}}}_create() {
 }
 
 SEXP r_{{{prefix}}}_initialise(SEXP extPtr, SEXP t, SEXP given) {
-  {{{prefix}}}_initialise({{{prefix}}}_get_pointer(extPtr, 1), REAL(t)[0], given);
-  return R_NilValue;
+  return {{{prefix}}}_initialise({{{prefix}}}_get_pointer(extPtr, 1), REAL(t)[0], given);
 }
 
 SEXP r_{{{prefix}}}_deriv(SEXP extPtr, SEXP y, SEXP t, SEXP given) {
@@ -85,8 +84,9 @@ void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}}) {
 {{{create}}}
 }
 
-void {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given) {
+SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given) {
 {{{initialise}}}
+{{{copy}}}
 }
 void {{{prefix}}}_deriv({{{pars_type}}} *{{{pars_object}}}, double {{{time}}}, double *{{{state}}}, double *{{{dstatedt}}}) {
 {{{deriv}}}

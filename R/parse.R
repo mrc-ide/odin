@@ -558,28 +558,39 @@ odin_parse_variable_order <- function(obj) {
   is_array <- setNames(is_array[i], nms)
 
   offset <- setNames(as.list(seq_along(is_array) - 1L), nms)
-  for (i in which(is_array)) {
+  f <- function(i) {
     if (i == 1L) {
-      offset[[i]] <- 0L
+      0L
     } else if (!is_array[[i - 1L]]) {
-      offset[[i]] <- offset[[i - 1L]] + 1L
+      offset[[i - 1L]] + 1L
     } else if (identical(offset[[i - 1L]], 0L)) {
-      offset[[i]] <- as.name(paste0("dim_", nms[[i - 1L]]))
+      as.name(paste0("dim_", nms[[i - 1L]]))
     } else {
-      offset[[i]] <- call("+",
-                          as.name(paste0("offset_", nms[[i - 1L]])),
-                          as.name(paste0("dim_", nms[[i - 1L]])))
+      call("+",
+           as.name(paste0("offset_", nms[[i - 1L]])),
+           as.name(paste0("dim_", nms[[i - 1L]])))
     }
   }
+  for (i in which(is_array)) {
+    offset[[i]] <- f(i)
+  }
   offset_is_var <- !vlapply(offset, is.numeric)
-
   offset_use <- offset
   offset_use[offset_is_var] <- sprintf("offset_%s", nms[offset_is_var])
+
+  total <- f(length(is_array) + 1L)
+  total_is_var <- !is.numeric(total)
+  total_use <- if (total_is_var) "dim" else total
+  total_stage <- max(stage)
 
   obj$variable_order <-
     list(order=nms, is_array=is_array,
          offset=offset, offset_use=offset_use,
-         offset_is_var=offset_is_var)
+         offset_is_var=offset_is_var,
+         total=total,
+         total_is_var=total_is_var,
+         total_use=total_use,
+         total_stage=total_stage)
   obj
 }
 

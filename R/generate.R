@@ -13,12 +13,15 @@ odin_generate_header <- function(base) {
   wr(template, list(prefix=base))
 }
 
+## TODO: Disallow base_ as a name; otherwise potential for collision,
+## so probably pull that from the DSL?
 odin_generate_loop <- function(dat, base) {
   types <- collector()
   init <- collector()
   user <- collector()
   deriv <- collector()
   free <- collector()
+  copy <- collector()
   res <- list(constant=init, user=user, time=deriv)[STAGES]
 
   body <- list(init, user, deriv)
@@ -46,19 +49,27 @@ odin_generate_loop <- function(dat, base) {
     rewrite_c(x, name_pars, lookup, INDEX)
   }
 
-  ## These are all needed for getting the
+  copy$add("SEXP %s = PROTECT(allocVector(REALSXP, %s->%s));",
+           STATE, name_pars, dat$variable_order$total_use)
   for (i in seq_along(dat$variable_order$offset)) {
     nm <- dat$variable_order$order[[i]]
     if (dat$variable_order$is_array[[i]]) {
-
       offset <- rewrite(dat$variable_order$offset_use[[nm]])
       deriv$add("double *%s = %s + %s;", nm, STATE, offset)
       deriv$add("double *deriv_%s = %s + %s;", nm, DSTATEDT, offset)
+      copy$add(
+        "memcpy(REAL(%s) + %s, %s->initial_%s, %s->dim_%s * sizeof(double));",
+        STATE, offset, name_pars, nm, name_pars, nm)
     } else {
       deriv$add("double %s = %s[%s];", nm, STATE,
-                dat$variable_order$offset[[i]])
+                dat$variable_order$offset_use[[i]])
+      copy$add("REAL(%s)[%s] = %s->initial_%s;",
+               STATE, dat$variable_order$offset_use[[x$lhs$name_target]],
+               name_pars, nm)
     }
   }
+  copy$add("UNPROTECT(1);")
+  copy$add("return %s;", STATE)
 
   ## TODO: Still have to write the user-processing bits yet.  That
   ## should probably be: "try to read an element from the list, and if
@@ -94,17 +105,18 @@ odin_generate_loop <- function(dat, base) {
         types$add("int %s;", nm_offset)
         res[[x$stage]]$add("%s->%s = %s;", name_pars, nm_offset,
                            rewrite(dat$variable_order$offset[[nm_t]]))
-      } else {
-        if (x$stage == STAGE_USER) {
-          res[[STAGE_CONSTANT]]$add("%s->%s = NULL;", name_pars, nm_s)
-          res[[STAGE_USER]]$add("if (%s->%s != NULL) {", name_pars, nm_s)
-          res[[STAGE_USER]]$add("  Free(%s->%s);", name_pars, nm_s)
-          res[[STAGE_USER]]$add("}")
-        }
-        res[[x$stage]]$add("%s->%s = (double*) Calloc(%s->%s, double);",
-                           name_pars, nm_s, name_pars, nm)
-        free$add("Free(%s->%s);", name_pars, nm_s)
       }
+
+      if (x$stage == STAGE_USER) {
+        res[[STAGE_CONSTANT]]$add("%s->%s = NULL;", name_pars, nm_s)
+        res[[STAGE_USER]]$add("if (%s->%s != NULL) {", name_pars, nm_s)
+        res[[STAGE_USER]]$add("  Free(%s->%s);", name_pars, nm_s)
+        res[[STAGE_USER]]$add("}")
+      }
+
+      res[[x$stage]]$add("%s->%s = (double*) Calloc(%s->%s, double);",
+                         name_pars, nm_s, name_pars, nm)
+      free$add("Free(%s->%s);", name_pars, nm_s)
     } else if (x$lhs$type == "symbol") {
       type <- if (nm %in% dat$index_vars) "int" else "double"
       if (x$stage < STAGE_TIME) {
@@ -114,7 +126,7 @@ odin_generate_loop <- function(dat, base) {
       } else if (identical(x$lhs$special, "deriv")) {
         res[[x$stage]]$add("%s[%s] = %s;",
                            DSTATEDT,
-                           dat$variable_order$offset[[x$lhs$name_target]],
+                           dat$variable_order$offset_use[[x$lhs$name_target]],
                            rewrite(x$rhs$value))
       } else {
         res[[x$stage]]$add("%s %s = %s;", type, nm,
@@ -134,7 +146,7 @@ odin_generate_loop <- function(dat, base) {
             res[[x$stage]]$add("%sfor (int %s = %s; %s < %s; ++%s) {",
                                indent,
                                INDEX[[k]], minus1(xj$extent_min[[k]], rewrite),
-                               INDEX[[k]], minus1(xj$extent_max[[k]], rewrite),
+                               INDEX[[k]], rewrite(xj$extent_max[[k]]),
                                INDEX[[k]])
             indent <- paste0("  ", indent)
             target[[k]] <- as.symbol(INDEX[[k]])
@@ -168,11 +180,21 @@ odin_generate_loop <- function(dat, base) {
     }
   }
 
+  ## Add the total information:
+  if (dat$variable_order$total_is_var) {
+    types$add("int %s;", dat$variable_order$total_use)
+    res[[dat$variable_order$total_stage]]$add("%s->%s = %s;",
+                                              name_pars,
+                                              dat$variable_order$total_use,
+                                              rewrite(dat$variable_order$total))
+  }
+
   data <- list()
   data$struct <- paste(indent(types$get()), collapse="\n")
   data$free <- paste(indent(free$get()), collapse="\n")
   data$create <- paste(indent(init$get()), collapse="\n")
   data$initialise <- paste(indent(user$get()), collapse="\n")
+  data$copy <- paste(indent(copy$get()), collapse="\n")
   data$deriv <- paste(indent(deriv$get()), collapse="\n")
   data$time <- TIME
   data$state <- STATE

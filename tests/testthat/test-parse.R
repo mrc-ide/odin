@@ -85,7 +85,6 @@ test_that("some parse errors", {
 
   expect_error(odin_parse(text="dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),
                ".")
-
 })
 
 test_that("RHS array checking", {
