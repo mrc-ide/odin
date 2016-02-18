@@ -74,7 +74,8 @@ odin_generate_loop <- function(dat, base) {
   lookup <- c(
     lookup,
     unlist(dat$variable_order$offset_use[dat$variable_order$offset_is_var],
-           use.names=FALSE))
+           use.names=FALSE),
+    if (dat$variable_order$total_is_var) dat$variable_order$total_use)
   ## TODO: Need to add information for all arrays that have more than
   ## one dimension because we'll need to copy things like dim_<x>_1
   ## and dim_<x>_12 over too.
@@ -83,8 +84,8 @@ odin_generate_loop <- function(dat, base) {
     rewrite_c(x, name_pars, lookup, INDEX)
   }
 
-  copy$add("SEXP %s = PROTECT(allocVector(REALSXP, %s->%s));",
-           STATE, name_pars, dat$variable_order$total_use)
+  copy$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
+           STATE, rewrite(dat$variable_order$total_use))
   order$add("SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
             STATE, length(dat$variable_order$offset))
   order$add("SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",

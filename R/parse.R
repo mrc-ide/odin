@@ -567,7 +567,7 @@ odin_parse_variable_order <- function(obj) {
   is_array <- vlapply(tmp, function(x) x$lhs$type == "array")
   nms <- vcapply(tmp, function(x) x$lhs$name_target)
 
-  stage <- rep(0L, length(is_array))
+  stage <- rep(STAGE_CONSTANT, length(is_array))
   stage[is_array] <- unname(obj$stage[sprintf("dim_%s", nms[is_array])])
 
   i <- order(is_array + stage)

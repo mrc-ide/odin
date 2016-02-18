@@ -11,6 +11,9 @@ seq_range <- function(t, length.out) {
 }
 
 compile <- function(filename, verbose=FALSE) {
+  if (isTRUE(verbose)) {
+    verbose <- ""
+  }
   Sys.setenv(R_TESTS="")
   owd <- setwd(dirname(filename))
   on.exit(setwd(owd))

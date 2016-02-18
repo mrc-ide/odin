@@ -27,7 +27,7 @@ test_that("odin implementations work", {
   base <- sub(re, "\\1", files)
   filename_d <- sprintf("examples/%s_deSolve.R", base)
   filename_o <- sprintf("examples/%s_odin.R", base)
-  test <- "array"
+  test <- c("sir", "array")
 
   for (i in match(test, base)) {
     b <- base[[i]]
