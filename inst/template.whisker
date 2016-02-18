@@ -11,31 +11,31 @@ static {{{pars_type}}} *{{{pars_object}}};
 
 {{{pars_type}}}* {{{prefix}}}_get_pointer(SEXP extPtr, int closed_error);
 static void {{{prefix}}}_finalise(SEXP extPtr);
-void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}});
-SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given);
+void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}}, SEXP user);
+SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t);
 void {{{prefix}}}_deriv({{{pars_type}}} *{{{pars_object}}}, double t, double *{{{state}}}, double *{{{dstatedt}}});
 void {{{prefix}}}_free({{{pars_type}}} *{{{pars_object}}});
 SEXP {{{prefix}}}_order({{{pars_type}}} *{{{pars_object}}});
 SEXP {{{prefix}}}_contents({{{pars_type}}} *{{{pars_object}}});
 
-double {{{prefix}}}_get_user_double(SEXP given, const char *name, double default_value);
-int {{{prefix}}}_get_user_int(SEXP given, const char *name, int default_value);
-void {{{prefix}}}_get_user_vec(SEXP given, const char *name, int len, double *ret);
+double {{{prefix}}}_get_user_double(SEXP user, const char *name, double default_value);
+int {{{prefix}}}_get_user_int(SEXP user, const char *name, int default_value);
+void {{{prefix}}}_get_user_vec(SEXP user, const char *name, int len, double *ret);
 SEXP get_list_element(SEXP list, const char *name);
 double odin_sum(double *x, int len);
 
 // R interface
-SEXP r_{{{prefix}}}_create() {
+SEXP r_{{{prefix}}}_create(SEXP user) {
   {{{pars_type}}} *p = ({{{pars_type}}}*) R_Calloc(1, {{{pars_type}}});
-  {{{prefix}}}_create(p);
+  {{{prefix}}}_create(p, user);
   SEXP extPtr = PROTECT(R_MakeExternalPtr(p, R_NilValue, R_NilValue));
   R_RegisterCFinalizer(extPtr, {{{prefix}}}_finalise);
   UNPROTECT(1);
   return extPtr;
 }
 
-SEXP r_{{{prefix}}}_initialise(SEXP extPtr, SEXP t, SEXP given) {
-  return {{{prefix}}}_initialise({{{prefix}}}_get_pointer(extPtr, 1), REAL(t)[0], given);
+SEXP r_{{{prefix}}}_initialise(SEXP extPtr, SEXP t) {
+  return {{{prefix}}}_initialise({{{prefix}}}_get_pointer(extPtr, 1), REAL(t)[0]);
 }
 
 SEXP r_{{{prefix}}}_deriv(SEXP extPtr, SEXP y, SEXP t) {
@@ -87,11 +87,11 @@ void {{{prefix}}}_finalise(SEXP extPtr) {
 }
 
 // Generated code
-void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}}) {
+void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}}, SEXP user) {
 {{{create}}}
 }
 
-SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given) {
+SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t) {
 {{{initialise}}}
 {{{copy}}}
 }
@@ -113,12 +113,14 @@ SEXP {{{prefix}}}_contents({{{pars_type}}} *{{{pars_object}}}) {
 }
 
 // Utilities for dealing with user-supplied values
-// TODO: These should all go through coerceVector with the appropriate PROTECT/UNPROTECT pair
-double {{{prefix}}}_get_user_double(SEXP given, const char *name, double default_value) {
+double {{{prefix}}}_get_user_double(SEXP user, const char *name, double default_value) {
   double ret = default_value;
-  SEXP el = get_list_element(given, name);
+  SEXP el = get_list_element(user, name);
   if (el != R_NilValue) {
-    ret = REAL(el)[0];
+    if (length(el) != 1) {
+      Rf_error("Expected scalar numeric for %d", name);
+    }
+    ret = REAL(coerceVector(el, REALSXP))[0];
   }
   if (ISNA(ret)) {
     Rf_error("Expected value for %s", name);
@@ -126,28 +128,32 @@ double {{{prefix}}}_get_user_double(SEXP given, const char *name, double default
   return ret;
 }
 
-int {{{prefix}}}_get_user_int(SEXP given, const char *name, int default_value) {
+int {{{prefix}}}_get_user_int(SEXP user, const char *name, int default_value) {
   int ret = default_value;
-  SEXP el = get_list_element(given, name);
+  SEXP el = get_list_element(user, name);
   if (el != R_NilValue) {
-    ret = INTEGER(el)[0];
+    if (length(el) != 1) {
+      Rf_error("Expected scalar integer for %d", name);
+    }
+    ret = INTEGER(coerceVector(el, INTSXP))[0];
   }
-  if (ISNA(ret)) {
+  if (ret == NA_INTEGER) {
     Rf_error("Expected value for %s", name);
   }
   return ret;
 }
 
-void {{{prefix}}}_get_user_vec(SEXP given, const char *name, int len, double *ret) {
-  SEXP el = get_list_element(given, name);
+void {{{prefix}}}_get_user_vec(SEXP user, const char *name, int len, double *ret) {
+  SEXP el = get_list_element(user, name);
   if (el != R_NilValue) {
     if (length(el) != len) {
       Rf_error("Incorrect length for %s; expected %d received %d",
                name, len, length(el));
     }
+    el = PROTECT(coerceVector(el, REALSXP));
     memcpy(ret, REAL(el), len * sizeof(double));
+    UNPROTECT(1);
   }
-  // TODO: how to tell if this was not recieved?
 }
 
 SEXP get_list_element(SEXP list, const char *name) {

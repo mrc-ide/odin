@@ -32,28 +32,7 @@ The compiler inspects the equations and works out which bits are run at model cr
 
 # Initial conditions
 
-By default, if no initial conditions are provided, we should require a
-user-provided set of equations.  Define a thing USER perhaps?
-
-Should generate a function: `initial_conditions` which takes as input the initial time (if, and probably only if, the initial conditions are a function of time), and a set of user parameters.
-
-These should be named:
-
-```
-sigma <- user(sigma)
-```
-
-or
-
-```
-sigma <- user(parameters[1])
-```
-
-or even
-
-```
-sigma <- user(parameters[1:na])
-```
+In contrast to deSolve, models produced by `odin` will compute their own initial conditions.  This is because it is usually convenient to specify initial conditions in terms of parameters shared with the dynamic parts of the model.  Support for user-specified (i.e. non-compiled) parameters is available via the function `user`, which currently only accepts scalars.
 
 # deSolve compatibility
 

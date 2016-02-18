@@ -16,8 +16,16 @@ test_that("some parse errors", {
   expect_error(odin_parse(text="x[c(1, 2)] <- 1"),
                "Invalid function in array calculation")
 
+  expect_error(odin_parse(text="x <- 1 + user(2)"),
+               "user() must be the only call on the rhs", fixed=TRUE)
+  expect_error(odin_parse(text="x <- user(user(2))"),
+               "user() call must not use functions", fixed=TRUE)
+
   expect_error(odin_parse(text="y <- deriv(x)"),
                "Function deriv is disallowed on rhs")
+
+  expect_error(odin_parse(text="dim(x) <- user()"),
+               "user() only valid for non-special variables", fixed=TRUE)
 
   expect_error(odin_parse(text="x[] <- y[i]\ny[1] <- 1"),
                "The empty index is not currently supported")

@@ -47,16 +47,20 @@ odin_parse <- function(file="", text=NULL) {
 
 odin_parse_expr <- function(i, exprs) {
   line <- utils::getSrcLocation(exprs[i], "line")
-  x <- exprs[[i]]
-  lhs <- odin_parse_lhs(x[[2L]], line, x)
-  rhs <- odin_parse_rhs(x[[3L]], line, x)
+  expr <- exprs[[i]]
+  lhs <- odin_parse_lhs(expr[[2L]], line, expr)
+  rhs <- odin_parse_rhs(expr[[3L]], line, expr)
   deps <- join_deps(list(lhs$depends, rhs$depends))
+
+  if (isTRUE(rhs$user) && !is.null(lhs$special)) {
+    odin_error("user() only valid for non-special variables", line, expr)
+  }
 
   list(name=lhs$name,
        lhs=lhs,
        rhs=rhs,
        depends=deps,
-       expr=x,
+       expr=expr,
        line=line)
 }
 
@@ -196,22 +200,31 @@ odin_parse_rhs <- function(rhs, line, expr) {
     ## first call, then it should be an error too, so check for
     ## expr[[1]] being user and nothing else being user?
     if ("user" %in% deps$functions) {
+      if (!identical(rhs[[1L]], quote(user))) {
+        odin_error("user() must be the only call on the rhs", line, expr)
+      }
       if (length(rhs) > 2L) {
         odin_error("user() call must have zero or one argument", line, expr)
       }
+
+      deps <- find_symbols(as.list(rhs[-1L]))
       ## TODO: This could be relaxed I think, but dealing with
       ## potential cycles is hard because they could be generated at
-      ## runtime.
+      ## runtime.  So for now, these values must be constants.  I
+      ## don't want to relax that until it's clear enough how arrays
+      ## get treated here.
+      if (length(deps$functions) > 0L) {
+        odin_error("user() call must not use functions", line, expr)
+      }
       if (length(deps$variables) > 0L) {
         odin_error("user() call must not reference variables", line, expr)
       }
-      deps$functions <- setdiff(deps$functions, "user")
       default <- length(rhs) == 2L
       list(type="expression",
-           user=TRUE,
-           default=FALSE,
            depends=deps,
-           value=if (default) rhs[[2L]] else NULL)
+           value=if (default) rhs[[2L]] else NULL,
+           default=default,
+           user=TRUE)
     } else {
       list(type="expression",
            depends=deps,
@@ -444,11 +457,8 @@ odin_parse_dependencies <- function(obj, vars) {
   ## Then, we can get the stage for these variables:
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[TIME] <- STAGE_TIME
-  ## Determine if we are a user stage:
-  is_user <- vlapply(obj[match(order, nms)], function(x) isTRUE(x$rhs$user))
-  stage[is_user] <- STAGE_USER
-  ## In topological order, determine inherited stage (a user/time stage
-  ## anywhere in a chain implies a user/time stage).
+  ## In topological order, determine inherited stage (a initial/time stage
+  ## anywhere in a chain implies a initial/time stage).
   for (i in seq_along(order)) {
     stage[[i]] <- max(stage[[i]], stage[deps_rec[[i]]])
   }
@@ -753,7 +763,7 @@ recursive_dependencies <- function(order, deps, vars) {
 }
 
 STAGE_CONSTANT <- 1L
-STAGE_USER <- 2L
+STAGE_INITIAL <- 2L
 STAGE_TIME <- 3L
 STAGES <- c("constant", "user", "time")
 TIME <- "t"

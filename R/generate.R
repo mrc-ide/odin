@@ -117,9 +117,6 @@ odin_generate_loop <- function(dat, base) {
   order$add("UNPROTECT(2);")
   order$add("return %s_len;", STATE)
 
-  ## TODO: Still have to write the user-processing bits yet.  That
-  ## should probably be: "try to read an element from the list, and if
-  ## that fails then set to the default value".
   nms <- vcapply(dat$eqs, function(x) x$lhs$name)
   ii <- match(dat$order, nms)
 
@@ -140,7 +137,7 @@ odin_generate_loop <- function(dat, base) {
         ##   dim_%s needs to be the product of these, and done last.
         ##   for nd 3 dim_%s_12 as dim_%s_1 * dim_%s_2, which is used
         ##     in matrix arithmetic
-        stop("Multidimensional arrays not yet supported")
+        stop("Multidimensional arrays not yet supported") # TODO
       } else {
         res[[x$stage]]$add("%s->%s = %s;",
                            name_pars, nm, rewrite(x$rhs$value))
@@ -153,32 +150,53 @@ odin_generate_loop <- function(dat, base) {
                            rewrite(dat$variable_order$offset[[nm_t]]))
       }
 
-      if (x$stage == STAGE_USER) {
+      if (x$stage == STAGE_INITIAL) {
         res[[STAGE_CONSTANT]]$add("%s->%s = NULL;", name_pars, nm_s)
-        res[[STAGE_USER]]$add("if (%s->%s != NULL) {", name_pars, nm_s)
-        res[[STAGE_USER]]$add("  Free(%s->%s);", name_pars, nm_s)
-        res[[STAGE_USER]]$add("}")
+        res[[STAGE_INITIAL]]$add("if (%s->%s != NULL) {", name_pars, nm_s)
+        res[[STAGE_INITIAL]]$add("  Free(%s->%s);", name_pars, nm_s)
+        res[[STAGE_INITIAL]]$add("}")
       }
 
       res[[x$stage]]$add("%s->%s = (double*) Calloc(%s->%s, double);",
                          name_pars, nm_s, name_pars, nm)
       free$add("Free(%s->%s);", name_pars, nm_s)
     } else if (x$lhs$type == "symbol") {
+      if (isTRUE(x$rhs$user)) {
+        if (isTRUE(x$rhs$default)) {
+          default <- rewrite(x$rhs$value)
+        } else {
+          default <- if (type == "int") "NA_INTEGER" else "NA_REAL"
+        }
+        value <- sprintf("%s_get_user_%s(user, \"%s\", %s)",
+                         base, type, nm, default)
+      } else {
+        value <- rewrite(x$rhs$value)
+      }
       type <- if (nm %in% dat$index_vars) "int" else "double"
       if (x$stage < STAGE_TIME) {
         type_add(nm, type)
-        res[[x$stage]]$add("%s->%s = %s;", name_pars, nm,
-                           rewrite(x$rhs$value))
+        res[[x$stage]]$add("%s->%s = %s;", name_pars, nm, value)
       } else if (identical(x$lhs$special, "deriv")) {
         res[[x$stage]]$add("%s[%s] = %s;",
                            DSTATEDT,
                            dat$variable_order$offset_use[[x$lhs$name_target]],
-                           rewrite(x$rhs$value))
+                           value)
       } else {
-        res[[x$stage]]$add("%s %s = %s;", type, nm,
-                           rewrite(x$rhs$value))
+        res[[x$stage]]$add("%s %s = %s;", type, nm, value)
       }
     } else if (x$lhs$type == "array") {
+      if (isTRUE(x$rhs$user)) {
+        ## This will require a bit of woprk here.  We'll support
+        ## things like
+        ##
+        ##   x[a:b] <- user() # compute (b - a + 1) at runtime and check
+        ##   x[] <- user()    # dim_x is required length
+        ##   x[,1] <- user()  # dim_x_1 is required length
+        ##
+        ## and so on.  But this is harder to get right so leaving it
+        ## for now.
+        stop("User-supplied arrays not yet supported") # TODO
+      }
       indent <- ""
       for (j in seq_along(x$lhs$index)) {
         xj <- x$lhs$index[[j]]
