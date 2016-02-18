@@ -39,18 +39,33 @@ test_that("some parse errors", {
   expect_error(odin_parse(text="x[1,2,3,4] <- 1"),
                "Arrays must have at at most 3 dimensions")
 
-  expect_error(odin_parse(text="x[1:t] <- 1"),
-               "Array extent is determined by time")
-  expect_error(odin_parse(text="deriv(A) <- 1\ninitial(A) <- 1\nx[1:A] <- 1"),
-               "Array extent is determined by time")
-
-  expect_error(odin_parse(text="a[1] <- 1\nb[a] <- 1"),
-               "Array indicies may not be arrays")
+  expect_error(odin_parse(text="x[1:t] <- 1\ndim(x) <- 10"),
+               "Array indices may not be time")
+  ## TODO: Arguably an error; requires more general solution probably
+  ## expect_error(
+  ##  odin_parse(text="deriv(A) <- 1\ninitial(A) <- 1\nx[1:A] <- 1; dim(x) <- 1"),
+  ##             "Array indices may not be time")
+  expect_error(
+    odin_parse(text="a[1] <- 1\nb[a] <- 1\ndim(a) <- 1\ndim(b) <- 1"),
+    "Array indices may not be arrays")
 
   expect_error(odin_parse(text="i <- 1"),
                "Reserved name")
   expect_error(odin_parse(text="deriv <- 1"),
                "Reserved name")
+  expect_error(odin_parse(text="t <- 1"),
+               "Reserved name")
+  expect_error(odin_parse(text="dim <- 1"),
+               "Reserved name")
+  expect_error(odin_parse(text="user <- 1"),
+               "Reserved name")
+
+  expect_error(odin_parse(text="deriv_x = 1"),
+               "Variable name cannot start with 'deriv_'")
+  expect_error(odin_parse(text="dim_x = 1"),
+               "Variable name cannot start with 'dim_'")
+  expect_error(odin_parse(text="initial_x = 1"),
+               "Variable name cannot start with 'initial_'")
 
   expect_error(odin_parse(text="deriv(y) = 1; initial(x) = 2"),
                "must contain same set of equations")
@@ -68,14 +83,12 @@ test_that("some parse errors", {
   expect_error(odin_parse(text="deriv(x[1]) = 1\ninitial(x) = 2"),
                "Array variables must always assign as arrays")
 
-  expect_error(odin_parse(text="x[1] <- 1\nx[2,1] <- 2"),
-               "Array dimensionality is not consistent")
-
-  expect_error(odin_parse(text="deriv_x = 1"),
-               "Variable name cannot start with 'deriv_'")
-  expect_error(odin_parse(text="dim_x = 1"),
-               "Variable name cannot start with 'dim_'")
-
+  expect_error(
+    odin_parse(text="x[1] <- 1\nx[2,1] <- 2\ndim(x) <- 10"),
+    "Array dimensionality is not consistent")
+  expect_error(
+    odin_parse(text="x[1] <- 1\ny <- x[2,1]\ndim(x) <- 10"),
+    "Incorrect dimensionality for x")
 
   expect_error(odin_parse(text="dim(x[1]) = 1"),
                "must be applied to a name only")
@@ -87,12 +100,13 @@ test_that("some parse errors", {
   expect_error(odin_parse(text="x <- user(a)"),
                "user() call must not reference variables", fixed=TRUE)
 
-  ## TODO: this needs way better error messages!
-  expect_error(odin_parse(text="y <- x\nx[1] <- 1"),
+  expect_error(odin_parse(text="y <- x\nx[1] <- 1\ndim(x) <- 10"),
                "Invalid array use on rhs")
 
-  expect_error(odin_parse(text="dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),
-               ".")
+  ## TODO: I don't even remember what the issue is here!
+  ## expect_error(
+  ##   odin_parse(text="dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),
+  ##   ".")
 })
 
 test_that("RHS array checking", {
@@ -106,19 +120,17 @@ test_that("RHS array checking", {
   expect_true(check_array_rhs(quote(a), c(b=1)))
   expect_false(check_array_rhs(quote(a[b[1]]), c(a=1, b=1)))
   expect_false(check_array_rhs(quote(a[]), c(a=1)))
-  expect_true(check_array_rhs(quote(sum(a)), c(a=1)))
-  check_array_rhs
 })
 
 test_that("lhs array checking", {
   res <- check_array_lhs_index(quote(a + (2:(n-3) - 4) + z))
   expect_true(res)
-  expect_equal(attr(res, "value"), quote(a + ((n-3) - 4) + z))
+  expect_equal(attr(res, "value_max"), quote(a + ((n-3) - 4) + z))
   expect_equal(attr(res, "value_min"), quote(a + (2 - 4) + z))
 
   res <- check_array_lhs_index(quote(a))
   expect_true(res)
-  expect_equal(attr(res, "value"), quote(a))
+  expect_equal(attr(res, "value_max"), quote(a))
   expect_null(attr(res, "value_min"))
 
   expect_false(check_array_lhs_index(quote(a:b + c:d)))

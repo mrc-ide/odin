@@ -316,11 +316,13 @@ odin_parse_combine_arrays <- function(obj) {
                        odin_error(
                          sprintf("No dim() call found for %s", x$name),
                          x$line, as.expression(x$expr)))
+
     err <- viapply(obj[j], function(x) x[["lhs"]][["nd"]]) != nd_x
-    if (length(unique(nd)) > 1L) {
-      odin_error("Array dimensionality is not consistent (expected %d %s)",
-                 nd_x, ngettext(nd_x, "index", "indices"),
-                 x$line, as.expression(x$expr))
+    if (any(err)) {
+      odin_error(
+        sprintf("Array dimensionality is not consistent (expected %d %s)",
+                nd_x, ngettext(nd_x, "index", "indices")),
+        get_lines(obj[err]), get_exprs(obj[err]))
     }
 
     ## TODO: some of the lhs depends stuff will not matter so much now.
@@ -518,6 +520,13 @@ odin_parse_dependencies <- function(obj, vars) {
       any(err %in% x$lhs$depends$variables))]
     odin_error(sprintf("Array indices may not be arrays (%s used)",
                        pastec(err)),
+               get_lines(obj[i]), get_exprs(obj[i]))
+  }
+
+  if (TIME %in% all_index_vars) {
+    i <- which(is_array)[vlapply(obj[is_array], function(x)
+      any(TIME %in% x$lhs$depends$variables))]
+    odin_error("Array indices may not be time",
                get_lines(obj[i]), get_exprs(obj[i]))
   }
 

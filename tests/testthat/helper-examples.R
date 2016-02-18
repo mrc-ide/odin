@@ -11,6 +11,7 @@ seq_range <- function(t, length.out) {
 }
 
 compile <- function(filename, verbose=FALSE) {
+  Sys.setenv(R_TESTS="")
   owd <- setwd(dirname(filename))
   on.exit(setwd(owd))
   base <- sub("\\.c$", "", basename(filename))
