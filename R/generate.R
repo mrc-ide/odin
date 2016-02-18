@@ -150,6 +150,8 @@ odin_generate_loop <- function(dat, base) {
                            rewrite(dat$variable_order$offset[[nm_t]]))
       }
 
+      ## TODO: I don't see that this is actually possible anymore.
+      ## Consider asserting elsewhere and deleting.
       if (x$stage == STAGE_INITIAL) {
         res[[STAGE_CONSTANT]]$add("%s->%s = NULL;", name_pars, nm_s)
         res[[STAGE_INITIAL]]$add("if (%s->%s != NULL) {", name_pars, nm_s)

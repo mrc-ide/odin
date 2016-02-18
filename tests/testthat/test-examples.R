@@ -20,3 +20,38 @@ test_that("deSolve implementations work", {
     }
   }
 })
+
+test_that("odin implementations work", {
+  re <- "([[:alnum:]]+)_bm\\.txt$"
+  files <- dir("examples", re)
+  base <- sub(re, "\\1", files)
+  filename_d <- sprintf("examples/%s_deSolve.R", base)
+  filename_o <- sprintf("examples/%s_odin.R", base)
+  test <- "array"
+
+  for (i in match(test, base)) {
+    b <- base[[i]]
+    mod <- source1(filename_d[[i]])
+    t <- seq_range(mod$t, 300)
+    t0 <- mod$t[[1L]]
+
+    dat <- odin_parse(filename_o[[i]])
+    path <- odin_generate(dat, dest=tempfile(base[[i]], fileext=".c"))
+    dll <- compile(path)
+
+    ptr <- .Call("r_odin_create", NULL, PACKAGE=dll)
+    expect_is(ptr, "externalptr")
+
+    init <- .Call("r_odin_initialise", ptr, t0, PACKAGE=dll)
+    expect_equal(init, mod$initial(t0))
+
+    deriv_c <- .Call("r_odin_deriv", ptr, init, t0, PACKAGE=dll)
+    deriv_r <- mod$derivs(t0, init)[[1]]
+    expect_equal(deriv_c, deriv_r)
+
+    res_r <- run_model(mod, t)
+    res_c <- deSolve::ode(init, t, "odin_ds_derivs", ptr,
+                          initfunc="odin_ds_initmod", dllname=dll)
+    expect_equal(res_c, res_r, check.attributes=FALSE)
+  }
+})
