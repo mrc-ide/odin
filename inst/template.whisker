@@ -15,6 +15,7 @@ void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}});
 SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given);
 void {{{prefix}}}_deriv({{{pars_type}}} *{{{pars_object}}}, double t, double *{{{state}}}, double *{{{dstatedt}}});
 void {{{prefix}}}_free({{{pars_type}}} *{{{pars_object}}});
+SEXP {{{prefix}}}_order({{{pars_type}}} *{{{pars_object}}});
 SEXP {{{prefix}}}_contents({{{pars_type}}} *{{{pars_object}}});
 
 double {{{prefix}}}_get_user_double(SEXP given, const char *name, double default_value);
@@ -43,6 +44,10 @@ SEXP r_{{{prefix}}}_deriv(SEXP extPtr, SEXP y, SEXP t) {
   {{{prefix}}}_deriv(p, REAL(t)[0], REAL(y), REAL(dydt));
   UNPROTECT(1);
   return dydt;
+}
+
+SEXP r_{{{prefix}}}_order(SEXP extPtr) {
+  return {{{prefix}}}_order({{{prefix}}}_get_pointer(extPtr, 1));
 }
 
 SEXP r_{{{prefix}}}_contents(SEXP extPtr) {
@@ -90,12 +95,17 @@ SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP 
 {{{initialise}}}
 {{{copy}}}
 }
+
 void {{{prefix}}}_deriv({{{pars_type}}} *{{{pars_object}}}, double {{{time}}}, double *{{{state}}}, double *{{{dstatedt}}}) {
 {{{deriv}}}
 }
 
 void {{{prefix}}}_free({{{pars_type}}} *{{{pars_object}}}) {
 {{{free}}}
+}
+
+SEXP {{{prefix}}}_order({{{pars_type}}} *{{{pars_object}}}) {
+{{{order}}}
 }
 
 SEXP {{{prefix}}}_contents({{{pars_type}}} *{{{pars_object}}}) {

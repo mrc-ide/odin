@@ -22,6 +22,7 @@ odin_generate_loop <- function(dat, base) {
   deriv <- collector()
   free <- collector()
   copy <- collector()
+  order <- collector()
 
   contents <- collector()
   contents$i <- 0L
@@ -84,6 +85,10 @@ odin_generate_loop <- function(dat, base) {
 
   copy$add("SEXP %s = PROTECT(allocVector(REALSXP, %s->%s));",
            STATE, name_pars, dat$variable_order$total_use)
+  order$add("SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
+            STATE, length(dat$variable_order$offset))
+  order$add("SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
+            STATE, length(dat$variable_order$offset))
   for (i in seq_along(dat$variable_order$offset)) {
     nm <- dat$variable_order$order[[i]]
     if (dat$variable_order$is_array[[i]]) {
@@ -93,16 +98,24 @@ odin_generate_loop <- function(dat, base) {
       copy$add(
         "memcpy(REAL(%s) + %s, %s->initial_%s, %s->dim_%s * sizeof(double));",
         STATE, offset, name_pars, nm, name_pars, nm)
+      order$add("INTEGER(%s_len)[%s] = %s->dim_%s;",
+                STATE, i - 1L, name_pars, nm)
     } else {
       deriv$add("double %s = %s[%s];", nm, STATE,
                 dat$variable_order$offset_use[[i]])
       copy$add("REAL(%s)[%s] = %s->initial_%s;",
-               STATE, dat$variable_order$offset_use[[x$lhs$name_target]],
-               name_pars, nm)
+               STATE, dat$variable_order$offset_use[[nm]], name_pars, nm)
+      order$add("INTEGER(%s_len)[%s] = 1;", STATE, i - 1L)
     }
+    order$add("SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
+              STATE, i - 1L, nm)
   }
   copy$add("UNPROTECT(1);")
   copy$add("return %s;", STATE)
+
+  order$add("setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
+  order$add("UNPROTECT(2);")
+  order$add("return %s_len;", STATE)
 
   ## TODO: Still have to write the user-processing bits yet.  That
   ## should probably be: "try to read an element from the list, and if
@@ -231,14 +244,19 @@ odin_generate_loop <- function(dat, base) {
   contents$add("UNPROTECT(2);")
   contents$add("return %s;", STATE)
 
+  f <- function(x) {
+    paste(indent(x$get()), collapse="\n")
+  }
+
   data <- list()
-  data$struct <- paste(indent(types$get()), collapse="\n")
-  data$free <- paste(indent(free$get()), collapse="\n")
-  data$create <- paste(indent(init$get()), collapse="\n")
-  data$initialise <- paste(indent(user$get()), collapse="\n")
-  data$copy <- paste(indent(copy$get()), collapse="\n")
-  data$deriv <- paste(indent(deriv$get()), collapse="\n")
-  data$contents <- paste(indent(contents$get()), collapse="\n")
+  data$struct <- f(types)
+  data$free <- f(free)
+  data$create <- f(init)
+  data$initialise <- f(user)
+  data$copy <- f(copy)
+  data$deriv <- f(deriv)
+  data$contents <- f(contents)
+  data$order <- f(order)
   data$time <- TIME
   data$state <- STATE
   data$dstatedt <- DSTATEDT
