@@ -19,6 +19,7 @@ deparse_str <- function(x) {
 collector <- function(init=character(0)) {
   res <- init
   list(add=function(x, ...) res <<- c(res, sprintf(x, ...)),
+       prepend=function(x, ...) res <<- c(sprintf(x, ...), res),
        get=function() res)
 }
 pastec <- function(..., collapse=", ") {

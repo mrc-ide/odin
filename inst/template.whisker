@@ -15,6 +15,7 @@ void {{{prefix}}}_create({{{pars_type}}} *{{{pars_object}}});
 SEXP {{{prefix}}}_initialise({{{pars_type}}} *{{{pars_object}}}, double t, SEXP given);
 void {{{prefix}}}_deriv({{{pars_type}}} *{{{pars_object}}}, double t, double *{{{state}}}, double *{{{dstatedt}}});
 void {{{prefix}}}_free({{{pars_type}}} *{{{pars_object}}});
+SEXP {{{prefix}}}_contents({{{pars_type}}} *{{{pars_object}}});
 
 double {{{prefix}}}_get_user_double(SEXP given, const char *name, double default_value);
 int {{{prefix}}}_get_user_int(SEXP given, const char *name, int default_value);
@@ -36,15 +37,16 @@ SEXP r_{{{prefix}}}_initialise(SEXP extPtr, SEXP t, SEXP given) {
   return {{{prefix}}}_initialise({{{prefix}}}_get_pointer(extPtr, 1), REAL(t)[0], given);
 }
 
-SEXP r_{{{prefix}}}_deriv(SEXP extPtr, SEXP y, SEXP t, SEXP given) {
+SEXP r_{{{prefix}}}_deriv(SEXP extPtr, SEXP y, SEXP t) {
   SEXP dydt = PROTECT(allocVector(REALSXP, LENGTH(y)));
   {{{pars_type}}} *p = {{{prefix}}}_get_pointer(extPtr, 1);
-  if (t != R_NilValue) {
-    {{{prefix}}}_initialise(p, REAL(t)[0], given);
-  }
   {{{prefix}}}_deriv(p, REAL(t)[0], REAL(y), REAL(dydt));
   UNPROTECT(1);
   return dydt;
+}
+
+SEXP r_{{{prefix}}}_contents(SEXP extPtr) {
+  return {{{prefix}}}_contents({{{prefix}}}_get_pointer(extPtr, 1));
 }
 
 // deSolve interface
@@ -96,7 +98,12 @@ void {{{prefix}}}_free({{{pars_type}}} *{{{pars_object}}}) {
 {{{free}}}
 }
 
+SEXP {{{prefix}}}_contents({{{pars_type}}} *{{{pars_object}}}) {
+{{{contents}}}
+}
+
 // Utilities for dealing with user-supplied values
+// TODO: These should all go through coerceVector with the appropriate PROTECT/UNPROTECT pair
 double {{{prefix}}}_get_user_double(SEXP given, const char *name, double default_value) {
   double ret = default_value;
   SEXP el = get_list_element(given, name);

@@ -22,6 +22,39 @@ odin_generate_loop <- function(dat, base) {
   deriv <- collector()
   free <- collector()
   copy <- collector()
+
+  contents <- collector()
+  contents$i <- 0L
+  contents_add <- function(name, type) {
+    contents$add("SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
+                 STATE, contents$i, name)
+    if (type == "array") {
+      if (grepl("^initial_", name)) {
+        name_dim <- sub("^initial_", "dim_", name)
+      } else {
+        name_dim <- sprintf("dim_%s", name)
+      }
+      contents$add("SET_VECTOR_ELT(%s, %d, allocVector(REALSXP, %s->%s));",
+                   STATE, contents$i, name_pars, name_dim)
+      contents$add(
+        "memcpy(REAL(VECTOR_ELT(%s, %d)), %s->%s, %s->%s * sizeof(double));",
+        STATE, contents$i, name_pars, name, name_pars, name_dim)
+    } else {
+      type2 <- if (type == "int") "Integer" else "Real"
+      contents$add("SET_VECTOR_ELT(%s, %d, Scalar%s(%s->%s));",
+                   STATE, contents$i, type2, name_pars, name)
+    }
+    contents$i <<- contents$i + 1L
+  }
+  type_add <- function(name, type) {
+    if (type == "array") {
+      types$add("double *%s;", name)
+    } else {
+      types$add("%s %s;", type, name)
+    }
+    contents_add(name, type)
+  }
+
   res <- list(constant=init, user=user, time=deriv)[STAGES]
 
   body <- list(init, user, deriv)
@@ -85,8 +118,8 @@ odin_generate_loop <- function(dat, base) {
       nm_t <- x$lhs$name_target
       is_var <- nm_t %in% dat$vars
       nm_s <- if (is_var) paste0("initial_", nm_t) else nm_t
-      types$add("int %s;", nm)
-      types$add("double *%s;", nm_s)
+      type_add(nm, "int")
+      type_add(nm_s, "array")
 
       if (x$nd > 1L) {
         ## If allowed here, we'll generate:
@@ -102,7 +135,7 @@ odin_generate_loop <- function(dat, base) {
 
       if (is_var) {
         nm_offset <- paste0("offset_", nm_t)
-        types$add("int %s;", nm_offset)
+        type_add(nm_offset, "int")
         res[[x$stage]]$add("%s->%s = %s;", name_pars, nm_offset,
                            rewrite(dat$variable_order$offset[[nm_t]]))
       }
@@ -120,7 +153,7 @@ odin_generate_loop <- function(dat, base) {
     } else if (x$lhs$type == "symbol") {
       type <- if (nm %in% dat$index_vars) "int" else "double"
       if (x$stage < STAGE_TIME) {
-        types$add("%s %s;", type, nm)
+        type_add(nm, type)
         res[[x$stage]]$add("%s->%s = %s;", name_pars, nm,
                            rewrite(x$rhs$value))
       } else if (identical(x$lhs$special, "deriv")) {
@@ -182,12 +215,21 @@ odin_generate_loop <- function(dat, base) {
 
   ## Add the total information:
   if (dat$variable_order$total_is_var) {
-    types$add("int %s;", dat$variable_order$total_use)
+    type_add(dat$variable_order$total_use, "int")
     res[[dat$variable_order$total_stage]]$add("%s->%s = %s;",
                                               name_pars,
                                               dat$variable_order$total_use,
                                               rewrite(dat$variable_order$total))
   }
+
+  ## This requires knowing how many types we have, so must be done last.
+  contents$prepend("SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
+                   STATE, contents$i)
+  contents$prepend("SEXP %s = PROTECT(allocVector(VECSXP, %d));",
+                   STATE, contents$i)
+  contents$add("setAttrib(%s, R_NamesSymbol, %s_names);", STATE, STATE)
+  contents$add("UNPROTECT(2);")
+  contents$add("return %s;", STATE)
 
   data <- list()
   data$struct <- paste(indent(types$get()), collapse="\n")
@@ -196,6 +238,7 @@ odin_generate_loop <- function(dat, base) {
   data$initialise <- paste(indent(user$get()), collapse="\n")
   data$copy <- paste(indent(copy$get()), collapse="\n")
   data$deriv <- paste(indent(deriv$get()), collapse="\n")
+  data$contents <- paste(indent(contents$get()), collapse="\n")
   data$time <- TIME
   data$state <- STATE
   data$dstatedt <- DSTATEDT

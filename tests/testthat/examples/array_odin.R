@@ -38,7 +38,7 @@ delta <- 1 / 60
 
 I_tot <- sum(I)
 
-deriv(S[1]) <- - beta * S[i] * I_tot / + delta * R[i] - b * S[i] +
+deriv(S[1]) <- - beta * S[i] * I_tot / N + delta * R[i] - b * S[i] +
   (Births - age_rate[i] * S[i])
 deriv(S[2:N_age]) <- - beta * S[i] * I_tot / N + delta * R[i] - b * S[i] +
   (age_rate[i-1] * S[i-1] - age_rate[i]*S[i])
