@@ -14,33 +14,21 @@ A declarative way of running ODEs at native (C) speed in R.  Implements a domain
 
 # Notes on development
 
-The idea is to be able to convert a set of highly restricted R code into a set of differential equations that can be compiled into C and run at native speed.  This will simplify the deSolve/R/C use case and reduce the amount of boilerplate and development time.  The generated code, while not being designed to be edited, should be fairly simple to understand.  R interfaces should be generated to make it easy to test the model.
+The idea is to be able to convert a set of highly restricted R code into a set of differential equations that can be compiled into C.  This will simplify the deSolve/R/C use-case and reduce the amount of boilerplate and development time.  The generated code, while not being designed to be edited, should be fairly simple to understand.  In future versions, R interfaces might be generated to make it easy to test the model.
 
 Berkeley Madonna is the inspiration for the DSL that we'll build up.
 
 * declarative interface
 * array equation syntax
+* delay equations
+
+The compiler inspects the equations and works out which bits are run at model creation (constant for all models), initialisation (depending on initial time, conditions or on user-supplied parameters), or in derivative calculations (depending on the ODE variables or time).
 
 # Special functions that will be allowed
 
-* dim, nrow, ncol; getting matrix dimensions
-* a large set of mathematical constructs, and all basic R operators
-* something to declare arbitrary functions available to R (for initialisation only and not for the derivatives calculations).
-* Some type declaration;
-  `type(foo) <- bool`
-  `type(bar) <- int`
-
-# Optimisation
-
-It might be nice to declare any variables as interactive to the compiler; these would appear in the generated interface and anything set by them would be allowed to change.
-
-# Arrays
-
-Array indices need to be added to the dependencies.  Dynamic vs static arrays need to be identified during processing because we might allocate the memory differently for them.
-
-# Constants
-
-Things that are not user configurable should hit the file as a bunch of constants (e.g. `#define`)
+* `dim`; for getting matrix dimensions
+* a reasonably large set of mathematical constructs, including all basic R operators
+* something to declare arbitrary functions available to R (for initialisation only and not for the derivatives calculations) as it's ok to wear that cost once.
 
 # Initial conditions
 
