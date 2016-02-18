@@ -22,21 +22,21 @@ test_that("deSolve implementations work", {
 })
 
 test_that("odin implementations work", {
-  re <- "([[:alnum:]]+)_bm\\.txt$"
+  re <- "([[:alnum:]]+)_deSolve\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
-  filename_d <- sprintf("examples/%s_deSolve.R", base)
-  filename_o <- sprintf("examples/%s_odin.R", base)
-  test <- c("sir", "array")
+  test <- intersect(c("lorenz", "sir", "array"), base)
 
-  for (i in match(test, base)) {
-    b <- base[[i]]
-    mod <- source1(filename_d[[i]])
+  for (b in test) {
+    filename_d <- sprintf("examples/%s_deSolve.R", b)
+    filename_o <- sprintf("examples/%s_odin.R", b)
+
+    mod <- source1(filename_d)
     t <- seq_range(mod$t, 300)
     t0 <- mod$t[[1L]]
 
-    dat <- odin_parse(filename_o[[i]])
-    path <- odin_generate(dat, dest=tempfile(base[[i]], fileext=".c"))
+    dat <- odin_parse(filename_o)
+    path <- odin_generate(dat, dest=tempfile(b, fileext=".c"))
     dll <- compile(path)
 
     ptr <- .Call("r_odin_create", NULL, PACKAGE=dll)

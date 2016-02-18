@@ -12,6 +12,27 @@
 
 A declarative way of running ODEs at native (C) speed in R.  Implements a domain specific language based on a subset of R to a set of differential equations suitable for solving with deSolve.
 
+For example (and because *all* ODE software seems to like using it), here is the standard Lorenz attractor model in `odin` (actual file [here](tests/testthat/examples/lorenz_odin.R).
+
+```r
+## Derivatives
+deriv(y1) <- sigma * (y2 - y1)
+deriv(y2) <- R * y1 - y2 - y1 * y3
+deriv(y3) <- -b * y3 + y1 * y2
+
+## Initial conditions
+initial(y1) <- 10.0
+initial(y2) <- 1.0
+initial(y3) <- 1.0
+
+## parameters
+sigma <- 10.0
+R     <- 28.0
+b     <-  8.0 / 3.0
+```
+
+Running this through odin generates C code that can be compiled and loaded into R (the actual functions for doing that are still under flux).  For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R).
+
 # Notes on development
 
 The idea is to be able to convert a set of highly restricted R code into a set of differential equations that can be compiled into C.  This will simplify the deSolve/R/C use-case and reduce the amount of boilerplate and development time.  The generated code, while not being designed to be edited, should be fairly simple to understand.  In future versions, R interfaces might be generated to make it easy to test the model.
