@@ -1,7 +1,9 @@
-initial(S) <- N - 1
+initial(S) <- N - I0
 initial(E) <- 0
-initial(I) <-1
+initial(I) <- I0
 initial(R) <- 0
+
+I0 <- 1
 
 Births <- b * N
 b <- 1 / 10
@@ -24,8 +26,10 @@ deriv(E) <- new_inf - lag_inf - b * E
 deriv(I) <- lag_inf  - (b + sigma) * I
 deriv(R) <- sigma * I - b * R - delta * R
 
-Ntot <- S + E + I + R
-prev <- I / Ntot * 100
-
-output(prev) <- I / N
-output(Hpop) <- S + E + I + R
+## Simplify things for now and don't include output variables as
+## they're not supported!
+##
+## Ntot <- S + E + I + R
+## prev <- I / Ntot * 100
+## output(prev) <- I / N
+## output(Hpop) <- S + E + I + R

@@ -107,6 +107,19 @@ test_that("some parse errors", {
   ## expect_error(
   ##   odin_parse(text="dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),
   ##   ".")
+
+  expect_error(odin_parse(text="a = 1 + delay(1)"),
+               "delay() must surround entire rhs", fixed=TRUE)
+  expect_error(odin_parse(text="a = delay(1)"),
+               "delay() requires exactly two arguments", fixed=TRUE)
+  expect_error(odin_parse(text="a = delay(1, 2, 3)"),
+               "delay() requires exactly two arguments", fixed=TRUE)
+  expect_error(odin_parse(text="a = delay(delay(1, 2), 2)"),
+               "delay() may not be nested", fixed=TRUE)
+  expect_error(odin_parse(text="a = delay(2, delay(1, 2))"),
+               "delay() may not be nested", fixed=TRUE)
+
+
 })
 
 test_that("RHS array checking", {

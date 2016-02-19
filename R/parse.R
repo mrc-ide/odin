@@ -37,11 +37,10 @@ odin_parse <- function(file="", text=NULL) {
   ## Rewrite initial conditions to depend not on the variables, but on
   ## initial conditions.
   ret <- odin_parse_rewrite_initial_conditions(ret, vars)
-  ## Next, combine all array expressions together to a single
-  ## expression.
   ret <- odin_parse_combine_arrays(ret)
   ret <- odin_parse_dependencies(ret, vars)
   ret <- odin_parse_variable_order(ret)
+  ret <- odin_parse_delay(ret)
   ret
 }
 
@@ -54,6 +53,16 @@ odin_parse_expr <- function(i, exprs) {
 
   if (isTRUE(rhs$user) && !is.null(lhs$special)) {
     odin_error("user() only valid for non-special variables", line, expr)
+  }
+  ## This might actually be too strict because it's possible that dydt
+  ## could be delayed dzdt but that seems unlikely.  Definitely cannot
+  ## be most of the others.
+  if (isTRUE(rhs$delay) && !is.null(lhs$special)) {
+    odin_error("delay() only valid for non-special variables", line, expr)
+  }
+
+  if (isTRUE(rhs$delay) && lhs$type == "array") {
+    odin_error("delay() not yet supported for array variables")
   }
 
   list(name=lhs$name,
@@ -187,7 +196,7 @@ odin_parse_rhs <- function(rhs, line, expr) {
     ## Should check there that everything is of the classes: integer,
     ## logical, numeric only.  It's possible that strings would be
     ## possible but I'm not sure that's sensible.
-    list(type="atomic", value=rhs)
+    ret <- list(type="atomic", value=rhs)
   } else if (is.call(rhs) || is.name(rhs)) {
     deps <- find_symbols(rhs)
     err <- intersect(SPECIAL, deps$functions)
@@ -195,11 +204,53 @@ odin_parse_rhs <- function(rhs, line, expr) {
       odin_error(sprintf("Function %s is disallowed on rhs",
                          paste(unique(err), collapse=", ")), line, expr)
     }
-
-    ## TODO: This is not acually the right move; if user is not the
-    ## first call, then it should be an error too, so check for
-    ## expr[[1]] being user and nothing else being user?
-    if ("user" %in% deps$functions) {
+    if ("delay" %in% deps$functions) {
+      ## NOTE: Some of the restrictions for delay() are the same as
+      ## user() (first call, no nesting etc).  So perhaps factor those
+      ## out.
+      ##
+      ## Bunch of special treatment here for delay, because this is
+      ## dealt with in a very different way; we'll need to know the
+      ## dependencies of the delayed expression and of the time.
+      ## These will be treated differently depending on which bits are
+      ## time sensitive.
+      if (!identical(rhs[[1]], quote(delay))) {
+        odin_error("delay() must surround entire rhs", line, expr)
+      }
+      if (length(rhs) != 3L) {
+        odin_error("delay() requires exactly two arguments", line, expr)
+      }
+      deps_delay_expr <- find_symbols(rhs[[2L]])
+      deps_delay_time <- find_symbols(rhs[[3L]])
+      fns <- c(deps_delay_expr$functions, deps_delay_time$functions)
+      if ("delay" %in% fns) {
+        odin_error("delay() may not be nested", line, expr)
+      }
+      if (TIME %in% deps_delay_expr) {
+        ## TODO: This could be relaxed by substituting a different
+        ## value of time within the block (say t - delay).
+        ##
+        ## Doing that requires rewriting the expression here
+        ## (substitute would be fine) because we need to replace time
+        ## with something more sensible.
+        ##
+        ## TODO: Worse than that is if any expression *explicitly*
+        ## depends on time, then it's really confusing to deal with
+        ## because "time" there should probably be the original time
+        ## not the delayed time (so t - delay).  Can probably just
+        ## mask the variables.
+        odin_error("delay() may not refer to time as that's confusing")
+      }
+      rhs$deps <- deps
+      ret <- list(type="expression",
+                  delay=TRUE,
+                  ## resolved at the same time as everything else:
+                  depends=deps_delay_time,
+                  ## resolved independently in the previous time:
+                  depends_delay=deps_delay_expr,
+                  value_expr=rhs[[2L]],
+                  value_time=rhs[[3L]])
+    } else if ("user" %in% deps$functions) {
       if (!identical(rhs[[1L]], quote(user))) {
         odin_error("user() must be the only call on the rhs", line, expr)
       }
@@ -220,19 +271,20 @@ odin_parse_rhs <- function(rhs, line, expr) {
         odin_error("user() call must not reference variables", line, expr)
       }
       default <- length(rhs) == 2L
-      list(type="expression",
-           depends=deps,
-           value=if (default) rhs[[2L]] else NULL,
-           default=default,
-           user=TRUE)
+      ret <- list(type="expression",
+                  depends=deps,
+                  value=if (default) rhs[[2L]] else NULL,
+                  default=default,
+                  user=TRUE)
     } else {
-      list(type="expression",
-           depends=deps,
-           value=rhs)
+      ret <- list(type="expression",
+                  depends=deps,
+                  value=rhs)
     }
   } else {
     odin_error("Unhandled expression on rhs", line, expr)
   }
+  ret
 }
 
 ## So the pair:
@@ -455,10 +507,13 @@ odin_parse_dependencies <- function(obj, vars) {
   ## dependency chain of a thing; including its dependencies, its
   ## dependencies dependencies and so on.
   deps_rec <- recursive_dependencies(order, c(deps, dummy), vars)
+  is_delay <- vlapply(obj, function(x) isTRUE(x$rhs$delay))
 
   ## Then, we can get the stage for these variables:
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[TIME] <- STAGE_TIME
+  stage[is_delay] <- STAGE_TIME
+
   ## In topological order, determine inherited stage (a initial/time stage
   ## anywhere in a chain implies a initial/time stage).
   for (i in seq_along(order)) {
@@ -480,6 +535,7 @@ odin_parse_dependencies <- function(obj, vars) {
   for (i in seq_along(nms)) {
     obj[[i]]$stage <- stage_keep[[i]]
   }
+
   ## Next, check all the lhs array variables are OK; these must be
   ## constant or user (not time based).  At the same time it would be
   ## great to work out how large the arrays actually are; looking for a
@@ -548,6 +604,22 @@ odin_parse_dependencies <- function(obj, vars) {
     obj[[i]]$rhs$uses_array <- TRUE
   }
 
+  ## The idea here is to work out which variables to download
+  if (any(is_delay)) {
+    ## Lots of ugly processing here:
+    f <- function(x) {
+      tmp <- x$rhs$depends_delay$variables
+      deps <- deps_rec[tmp]
+      deps <- unique(c(tmp, unlist(deps, use.names=FALSE)))
+      deps <- setdiff(deps[stage[deps] == STAGE_TIME], TIME)
+      deps[order(match(deps, order))]
+    }
+
+    for (i in which(is_delay)) {
+      obj[[i]]$rhs$order_delay <- f(obj[[i]])
+    }
+  }
+
   list(vars=vars,
        eqs=obj,
        order=order_keep,
@@ -610,6 +682,71 @@ odin_parse_variable_order <- function(obj) {
          total_is_var=total_is_var,
          total_use=total_use,
          total_stage=total_stage)
+  obj
+}
+
+odin_parse_delay <- function(obj) {
+  is_delay <- vlapply(obj$eqs, function(x) isTRUE(x$rhs$delay))
+  obj$has_delay <- any(is_delay)
+  if (!obj$has_delay) {
+    return(obj)
+  }
+
+  nms <- vcapply(obj$eqs, function(x) x$name)
+
+  ## We'll need to reorder this to make these the very first variables
+  ## in the time-dependent part of the system.  This is just to make
+  ## the issues with combining multiple lags simpler.  We could
+  ## arguably skip this if there is only a single delay variable I
+  ## suspect (TODO: I don't think I implemented this yet; instead
+  ## we'll do that by skipping over all delay calculations in the main
+  ## loop and running a special set of calculations for the delay
+  ## variables first).
+  delay_eqs <- obj$eqs[is_delay]
+
+  ## NOTE: It would probably be optimal to order time in reverse
+  ## (shortest lag tto longest) but that's really only beneficial in
+  ## the case if >1 independent lag so ignoring for now.
+  delay_time <- lapply(delay_eqs, function(x) x$rhs$value_time)
+  delay_group <- match(delay_time, unique(delay_time))
+  delay_n <- length(unique(delay_group))
+
+  ## At this point, we need to get the full list of dependent
+  ## variables out of all delay variables.  That's going to require
+  ## some serious faff here because some of these might be arrays and
+  ## therefore require us to store more arrays.
+  delay <- vector("list", delay_n)
+  for (i in seq_len(delay_n)) {
+    j <- delay_group == i
+    ## OK, so what we do now is to find all the entries that we need
+    ## in the order variable.  If any are array variables at this
+    ## point we _will_ have to copy the entire thing out; it's
+    ## possible that we could analyse the equations to the point where
+    ## that's not needed but it seems too hard for me.
+    ##
+    ## Then we need to compute; for m distinct arrays over n indices
+    ## (m = n if no arrays, m <= n if there are arrays):
+    ##
+    ## 1. the number of required lags: delay_<i>_n
+    ## 2. the indices of the lags to fetch: int *delay_<i>_idx (length n)
+    ## 3. the values of the lags: double *delay_<i>_value (length n)
+    ## 4. the indices of the lags to unpack int *delay_<i>_offset (length m)
+    ##
+    ## In the non-array case 4 will be possible to do with magic
+    ## numbers, so we'll do that first.
+    ##
+    ## We will fill these arrays during initialisation or earlier: it
+    ## will depend on the dimension variables for arrays.  So for now
+    ## perhaps just assert that's not the case.
+    deps <- unlist(lapply(delay_eqs[j], function(x) x$rhs$order_delay))
+    delay[[i]] <- list(time=delay_time[j][[1L]],
+                       extract=intersect(obj$vars, deps),
+                       order=intersect(obj$order, deps),
+                       names=nms[which(is_delay)[delay_group == i]])
+  }
+
+  obj$delay <- delay
+
   obj
 }
 
@@ -679,6 +816,7 @@ check_dim_rhs <- function(x) {
   if (x$rhs$type == "atomic" || is.name(x$rhs$value)) {
     1L
   } else if (identical(x$rhs[[1]], quote(c))) {
+    stop("not yet supported...")
     browser()
     ok <- vlapply(as.list(x$rhs[-1L]),
                   function(x) is.symbol(x) || is.atomic(x))
@@ -784,6 +922,6 @@ DSTATEDT <- "dstatedt"
 ## point.
 SPECIAL <- c("initial", "deriv", "output", "dim")
 INDEX <- c("i", "j", "k")
-RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, "user", SPECIAL)
-RESERVED_PREFIX <- c(SPECIAL, "dim", "odin", "offset")
+RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, "user", SPECIAL, "delay")
+RESERVED_PREFIX <- c(SPECIAL, "odin", "offset", "delay")
 VALID_ARRAY <- c("-", "+", ":", "(")
