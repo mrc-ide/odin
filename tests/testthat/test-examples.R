@@ -25,11 +25,12 @@ test_that("odin implementations work", {
   re <- "([[:alnum:]]+)_deSolve\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
-  test <- intersect(c("lorenz", "sir", "array"), base)
+  test <- intersect(c("lorenz", "sir", "seir", "array"), base)
 
   for (b in test) {
     filename_d <- sprintf("examples/%s_deSolve.R", b)
     filename_o <- sprintf("examples/%s_odin.R", b)
+    ode <- if (b == "seir") deSolve::dede else deSolve::ode
 
     mod <- source1(filename_d)
     t <- seq_range(mod$t, 300)
@@ -43,15 +44,17 @@ test_that("odin implementations work", {
     expect_is(ptr, "externalptr")
 
     init <- .Call("r_odin_initialise", ptr, t0, PACKAGE=dll)
-    expect_equal(init, mod$initial(t0))
+    expect_equal(init, unname(mod$initial(t0)))
 
     deriv_c <- .Call("r_odin_deriv", ptr, init, t0, PACKAGE=dll)
     deriv_r <- mod$derivs(t0, init)[[1]]
     expect_equal(deriv_c, deriv_r)
 
+    tol <- if (b == "seir") 1e-7 else 1e-9
+
     res_r <- run_model(mod, t)
-    res_c <- deSolve::ode(init, t, "odin_ds_derivs", ptr,
-                          initfunc="odin_ds_initmod", dllname=dll)
-    expect_equal(res_c, res_r, check.attributes=FALSE)
+    res_c <- ode(init, t, "odin_ds_derivs", ptr,
+                 initfunc="odin_ds_initmod", dllname=dll)
+    expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
   }
 })

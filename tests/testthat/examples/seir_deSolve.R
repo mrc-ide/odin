@@ -45,8 +45,9 @@ seir <- function() {
     dI <- lag_inf - (b + sigma) * I
     dR <- sigma * I - b * R - delta * R
 
-    list(c(dS, dE, dI, dR),
-         c(prev = I/N, Hpop = S+E+I+R))
+    list(c(dS, dE, dI, dR))
+    ## Output variables
+    ## c(prev = I/N, Hpop = S+E+I+R))
   }
 
   list(initial=initial, derivs=derivs, delay=TRUE, t=c(0, 365))
