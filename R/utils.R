@@ -20,6 +20,7 @@ collector <- function(init=character(0)) {
   res <- init
   list(add=function(x, ...) res <<- c(res, sprintf(x, ...)),
        prepend=function(x, ...) res <<- c(sprintf(x, ...), res),
+       clear=function() res <<- character(0),
        get=function() res)
 }
 pastec <- function(..., collapse=", ") {

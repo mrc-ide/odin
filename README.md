@@ -12,7 +12,7 @@
 
 A declarative way of running ODEs at native (C) speed in R.  Implements a domain specific language based on a subset of R to a set of differential equations suitable for solving with deSolve.
 
-For example (and because *all* ODE software seems to like using it), here is the standard Lorenz attractor model in `odin` (actual file [here](tests/testthat/examples/lorenz_odin.R).
+For example (and because *all* ODE software seems to like using it), here is the standard Lorenz attractor model in `odin` (actual file [here](tests/testthat/examples/lorenz_odin.R)).
 
 ```r
 ## Derivatives

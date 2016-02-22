@@ -686,11 +686,12 @@ odin_parse_variable_order <- function(obj) {
 }
 
 odin_parse_delay <- function(obj) {
-  is_delay <- vlapply(obj$eqs, function(x) isTRUE(x$rhs$delay))
-  obj$has_delay <- any(is_delay)
+  is_delay <- which(vlapply(obj$eqs, function(x) isTRUE(x$rhs$delay)))
+  obj$has_delay <- length(is_delay) > 0L
   if (!obj$has_delay) {
     return(obj)
   }
+
 
   nms <- vcapply(obj$eqs, function(x) x$name)
 
@@ -727,9 +728,9 @@ odin_parse_delay <- function(obj) {
     ## Then we need to compute; for m distinct arrays over n indices
     ## (m = n if no arrays, m <= n if there are arrays):
     ##
-    ## 1. the number of required lags: delay_<i>_n
-    ## 2. the indices of the lags to fetch: int *delay_<i>_idx (length n)
-    ## 3. the values of the lags: double *delay_<i>_value (length n)
+    ## 1. the number of required lags: dim_delay_<i>_idx
+    ## 2. the indices of the lags to fetch: int *delay_<i>_idx
+    ## 3. the values of the lags: double *delay_<i>_state
     ## 4. the indices of the lags to unpack int *delay_<i>_offset (length m)
     ##
     ## In the non-array case 4 will be possible to do with magic
@@ -739,10 +740,35 @@ odin_parse_delay <- function(obj) {
     ## will depend on the dimension variables for arrays.  So for now
     ## perhaps just assert that's not the case.
     deps <- unlist(lapply(delay_eqs[j], function(x) x$rhs$order_delay))
-    delay[[i]] <- list(time=delay_time[j][[1L]],
+    time <- delay_time[j][[1L]]
+    if (is.recursive(time)) {
+      time <- call("(", time)
+    }
+
+    ## TODO: Consider checking through the time values and making sure
+    ## we don't include any INDEX variables.  Later they will be
+    ## supported.  I think that time is OK though.
+    names <- nms[is_delay[j]]
+    order <- intersect(obj$order, deps)
+
+    ## TODO: This needs to be dealt with.  The issue here is (probably
+    ## rare cases) where a lagged equation is a dependency of another
+    ## lagged equations.  That's never going to work.  But there might
+    ## be other more subtle ways this can happen.
+    if (any(names %in% order)) {
+      stop("I am totally confused about your delay equations")
+    }
+
+    delay[[i]] <- list(time=time,
                        extract=intersect(obj$vars, deps),
-                       order=intersect(obj$order, deps),
-                       names=nms[which(is_delay)[delay_group == i]])
+                       order=order,
+                       names=names)
+
+    ## Then go through and indicate which delay group each variable is
+    ## in.  I might not use this for sure.
+    for (k in is_delay[j]) {
+      obj$eqs[[k]]$rhs$group_delay <- i
+    }
   }
 
   obj$delay <- delay

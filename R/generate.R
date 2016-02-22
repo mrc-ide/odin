@@ -24,22 +24,36 @@ odin_generate_loop <- function(dat, base) {
   copy <- collector()
   order <- collector()
 
+  ## TODO: Going to need to change some of the name here about as the
+  ## names no longer reflect things correctly.
+  ##   constant -> create(?)
+  ##   user -> initialise
+  ##   time ok
+  ## but there are already 5 names here and they don't match up with
+  ## the STAGE names!
+  res <- list(constant=init, user=user, time=deriv)[STAGES]
+
+  name_pars <- sprintf("%s_p", base)
+  type_pars <- sprintf("%s_pars", base)
+
   contents <- collector()
   contents$i <- 0L
-  contents_add <- function(name, type) {
+  contents_add <- function(name, type, array) {
     contents$add("SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
                  STATE, contents$i, name)
-    if (type == "array") {
+    if (array) {
+      rtype <- if (type == "int") "INTSXP" else "REALSXP"
+      raccess <- if (type == "int") "INTEGER" else "REAL"
       if (grepl("^initial_", name)) {
         name_dim <- sub("^initial_", "dim_", name)
       } else {
         name_dim <- sprintf("dim_%s", name)
       }
-      contents$add("SET_VECTOR_ELT(%s, %d, allocVector(REALSXP, %s->%s));",
-                   STATE, contents$i, name_pars, name_dim)
+      contents$add("SET_VECTOR_ELT(%s, %d, allocVector(%s, %s->%s));",
+                   STATE, contents$i, rtype, name_pars, name_dim)
       contents$add(
-        "memcpy(REAL(VECTOR_ELT(%s, %d)), %s->%s, %s->%s * sizeof(double));",
-        STATE, contents$i, name_pars, name, name_pars, name_dim)
+        "memcpy(%s(VECTOR_ELT(%s, %d)), %s->%s, %s->%s * sizeof(%s));",
+        raccess, STATE, contents$i, name_pars, name, name_pars, name_dim, type)
     } else {
       type2 <- if (type == "int") "Integer" else "Real"
       contents$add("SET_VECTOR_ELT(%s, %d, Scalar%s(%s->%s));",
@@ -47,21 +61,21 @@ odin_generate_loop <- function(dat, base) {
     }
     contents$i <<- contents$i + 1L
   }
-  type_add <- function(name, type) {
-    if (type == "array") {
-      types$add("double *%s;", name)
+  type_add <- function(name, type, array) {
+    if (array) {
+      types$add("%s *%s;", type, name)
     } else {
       types$add("%s %s;", type, name)
     }
-    contents_add(name, type)
+    contents_add(name, type, array)
   }
 
-  res <- list(constant=init, user=user, time=deriv)[STAGES]
-
-  body <- list(init, user, deriv)
-
-  name_pars <- sprintf("%s_p", base)
-  type_pars <- sprintf("%s_pars", base)
+  ## Set up initial time so we can refer to it later.  Not all models
+  ## make use of this, but it seems worth adding (and doesn't take
+  ## that much space).  Delay models will make extensive use of this.
+  type_add(paste0("initial_", TIME), "double", FALSE)
+  res[[STAGE_CONSTANT]]$add("%s->initial_%s = NA_REAL;", name_pars, TIME)
+  res[[STAGE_INITIAL]]$add("%s->initial_%s = %s;", name_pars, TIME, TIME)
 
   ## We'll need to find all variables within the struct *except* for
   ## the derivatives.  This could be extended to include non-array
@@ -82,6 +96,152 @@ odin_generate_loop <- function(dat, base) {
 
   rewrite <- function(x) {
     rewrite_c(x, name_pars, lookup, INDEX)
+  }
+
+  nms <- vcapply(dat$eqs, function(x) x$lhs$name)
+  is_array <- vlapply(dat$eqs, function(x) x$lhs$type == "array")
+
+  delay <- vector("list", length(dat$delay))
+
+  if (!is.null(dat$delay)) { # delay model
+    ## NOTE: In the pointer creation we might need to return a little
+    ## additional information about things like being a delay model or
+    ## not.  Return a list?  Affects the template mostly.
+    for (i in seq_along(dat$delay)) {
+      delay_i <- dat$delay[[i]]
+      delay_c <- collector()
+
+      ## TODO: This can be relaxed soon, just requires more book-keeping.
+      if (any(dat$variable_order$is_array[delay_i$extract])) {
+        stop("Delay arrays not supported")
+      }
+      if (any(is_array[match(delay_i$order, nms)])) {
+        stop("Delay dependency arrays not supported")
+      }
+
+      ## Then, we need to pull the variables out!  To do that:
+      ## Number of variables:
+      ## type_add(sprintf("delay_%d_m", i), "int", FALSE)
+      ## ## This one is always constant:
+      ## res[[STAGE_CONSTANT]]$add("%s->delay_%d_m = %d;",
+      ##   name_pars, i, delay_i_n)
+      ##
+      ## TODO: This one varies with things like the length of arrays;
+      ## we'll be looking for
+      ##   tmp <- names(which(dat$variable_order$is_array[delay_i$extract]))
+      ##   paste(sprintf("dim_%s", tmp), collapse=" + ")
+      ## added onto
+      ##   length(delay_i$extract) -
+      ##     sum(dat$variable_order$is_array[delay_i$extract])
+      ##
+      ## NOTE: There's some duplication here in terms of the size of
+      ## various arrays.  That helps with some assumptions about how
+      ## the array allocations and copying works.  It's possible that
+      ## could be worked around with a #define but I don't think it's
+      ## worth it at this point.  For now just accept the redundancy.
+      ##
+      ## NOTE: it would be *heaps* simpler to extract the entire
+      ## structure here (create one vector of length `p->dim` and set
+      ## it as `0..(p->dim-1)` but potentially slower as it will look
+      ## up all varaibles (and most of the time we won't be interested
+      ## in all).
+      ##
+      ## TODO: Consider in the case of a single delay dropping the _1
+      ## and going with delay_idx, etc.
+      ##
+      ## TODO: The Calloc/Free calls here could move into contents if
+      ## it took a stage argument.
+      delay_i_len <- length(delay_i$extract)
+
+      ## 1. delay_<i>_idx & dim_delay_<i>_idx; indices for deSolve
+      delay_i_idx <- sprintf("delay_%d_idx", i)
+      type_add(sprintf("dim_%s", delay_i_idx), "int", FALSE)
+      type_add(delay_i_idx, "int", TRUE)
+      res[[STAGE_CONSTANT]]$add("%s->dim_%s = %d;",
+                                name_pars, delay_i_idx, delay_i_len)
+      res[[STAGE_CONSTANT]]$add("%s->%s = (int*)Calloc(%s->dim_%s, int);",
+                                name_pars, delay_i_idx, name_pars, delay_i_idx)
+      free$add("Free(%s->%s);", name_pars, delay_i_idx)
+
+      ## 2. delay_<i>_state & dim_delay_<i>_state; memory for deSolve
+      ## (NOTE: this is unfortunate in the dim_ variable)
+      delay_i_state <- sprintf("delay_%d_%s", i, STATE)
+      type_add(sprintf("dim_%s", delay_i_state), "int", FALSE)
+      type_add(delay_i_state, "double", TRUE)
+      res[[STAGE_CONSTANT]]$add("%s->dim_%s = %d;",
+                                name_pars, delay_i_state, delay_i_len)
+      res[[STAGE_CONSTANT]]$add(
+                             "%s->%s = (double*)Calloc(%s->dim_%s, double);",
+                             name_pars, delay_i_state, name_pars, delay_i_state)
+      delay_offset <-
+        vcapply(dat$variable_order$offset_use[delay_i$extract], rewrite)
+      ## TODO: If the offsets are stored in the structure, point at
+      ## those instead?  Look for "offset_is_var"
+      res[[STAGE_CONSTANT]]$add(
+                             "%s->%s[%d] = %s;",
+                             name_pars, delay_i_idx,
+                             seq_along(delay_offset) - 1L,
+                             delay_offset)
+      free$add("Free(%s->%s);", name_pars, delay_i_state)
+
+      ## 3. Prepare output variables so we can push them up out of
+      ## scope:
+      delay_c$add("double %s;", delay_i$names)
+      delay_c$add("{")
+
+      ## TODO: Getting this correct is going to require that we can
+      ## output the bits from the big loop+conditional on demand;
+      ## that's going to be a challenge to get right, but will require
+      ## some functionalisation.  If this approach fails I will
+      ## backtrack and and refactor this mess first.
+
+      ## 4. Pull things out of the lag value, but only if time is past
+      ## where the lag is OK to work with.  That's going to look like:
+      ## TODO: when working with arrays, some of these are *<x>.
+      delay_c$add("  double %s;",
+                  paste(delay_i$extract, collapse=", "))
+      ## TODO: delay times are going to matter a lot here.  This block
+      ## actually wants running only when the delay is resolved.  So,
+      ## need to interleave this in appropriately.
+      delay_c$add("  double delay_%s = %s - %s;",
+                  TIME, TIME, rewrite(delay_i$time))
+      delay_c$add("  if (delay_%s <= %s->initial_%s) {",
+                  TIME, name_pars, TIME)
+      delay_c$add("    %s = %s->initial_%s;",
+                  delay_i$extract, name_pars, delay_i$extract)
+      delay_c$add("  } else {")
+      ## TODO: These should be added to the lookup list and done with
+      ## rewrite.
+      delay_c$add("    lagvalue(delay_%s, %s->%s, %s->dim_%s, %s->%s);",
+                  TIME, name_pars, delay_i_idx, name_pars, delay_i_idx,
+                  name_pars, delay_i_state)
+      ## Then dump out all the values.  TODO: when we allow arrays in
+      ## here, then offsets will be required, and the initialisation
+      ## looks a little different. For now this is a little easier
+      ## though, because everything is a number!
+      delay_c$add("    %s = %s->%s[%d];",
+                  delay_i$extract, name_pars, delay_i_state,
+                  seq_along(delay_i$extract) - 1L)
+      delay_c$add("  }")
+
+      ## Then we'll organise that whenever we hit a variable that is
+      ## used in a delay statement we'll add it in here in the
+      ## appropriate order.
+
+      ## TODO: this will need a little more work for the array case;
+      ## by then we'll really need the rhs writing stuff factored out.
+      for (nm in delay_i$order) {
+        delay_c$add("  double %s = %s;", nm,
+                    rewrite(dat$eqs[[match(nm, nms)]]$rhs$value))
+      }
+      for (nm in delay_i$names) {
+        delay_c$add("  %s = %s;", nm,
+                    rewrite(dat$eqs[[match(nm, nms)]]$rhs$value_expr))
+      }
+
+      delay_c$add("}")
+      delay[[i]] <- delay_c
+    }
   }
 
   copy$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
@@ -118,7 +278,6 @@ odin_generate_loop <- function(dat, base) {
   order$add("UNPROTECT(2);")
   order$add("return %s_len;", STATE)
 
-  nms <- vcapply(dat$eqs, function(x) x$lhs$name)
   ii <- match(dat$order, nms)
 
   for (i in match(dat$order, nms)) {
@@ -129,8 +288,8 @@ odin_generate_loop <- function(dat, base) {
       nm_t <- x$lhs$name_target
       is_var <- nm_t %in% dat$vars
       nm_s <- if (is_var) paste0("initial_", nm_t) else nm_t
-      type_add(nm, "int")
-      type_add(nm_s, "array")
+      type_add(nm, "int", FALSE)
+      type_add(nm_s, "double", TRUE)
 
       if (x$nd > 1L) {
         ## If allowed here, we'll generate:
@@ -146,7 +305,7 @@ odin_generate_loop <- function(dat, base) {
 
       if (is_var) {
         nm_offset <- paste0("offset_", nm_t)
-        type_add(nm_offset, "int")
+        type_add(nm_offset, "int", FALSE)
         res[[x$stage]]$add("%s->%s = %s;", name_pars, nm_offset,
                            rewrite(dat$variable_order$offset[[nm_t]]))
       }
@@ -163,6 +322,10 @@ odin_generate_loop <- function(dat, base) {
       res[[x$stage]]$add("%s->%s = (double*) Calloc(%s->%s, double);",
                          name_pars, nm_s, name_pars, nm)
       free$add("Free(%s->%s);", name_pars, nm_s)
+    } else if (isTRUE(x$rhs$delay)) {
+      j <- x$rhs$group_delay
+      res[[STAGE_TIME]]$add(delay[[j]]$get())
+      delay[[j]]$clear()
     } else if (x$lhs$type == "symbol") {
       if (isTRUE(x$rhs$user)) {
         if (isTRUE(x$rhs$default)) {
@@ -177,7 +340,7 @@ odin_generate_loop <- function(dat, base) {
       }
       type <- if (nm %in% dat$index_vars) "int" else "double"
       if (x$stage < STAGE_TIME) {
-        type_add(nm, type)
+        type_add(nm, type, FALSE)
         res[[x$stage]]$add("%s->%s = %s;", name_pars, nm, value)
       } else if (identical(x$lhs$special, "deriv")) {
         res[[x$stage]]$add("%s[%s] = %s;",
@@ -249,7 +412,7 @@ odin_generate_loop <- function(dat, base) {
 
   ## Add the total information:
   if (dat$variable_order$total_is_var) {
-    type_add(dat$variable_order$total_use, "int")
+    type_add(dat$variable_order$total_use, "int", FALSE)
     res[[dat$variable_order$total_stage]]$add("%s->%s = %s;",
                                               name_pars,
                                               dat$variable_order$total_use,

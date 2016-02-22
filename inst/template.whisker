@@ -18,6 +18,8 @@ void {{{prefix}}}_free({{{pars_type}}} *{{{pars_object}}});
 SEXP {{{prefix}}}_order({{{pars_type}}} *{{{pars_object}}});
 SEXP {{{prefix}}}_contents({{{pars_type}}} *{{{pars_object}}});
 
+void lagvalue(double t, int *idx, int dim_idx, double *state);
+
 double {{{prefix}}}_get_user_double(SEXP user, const char *name, double default_value);
 int {{{prefix}}}_get_user_int(SEXP user, const char *name, int default_value);
 void {{{prefix}}}_get_user_vec(SEXP user, const char *name, int len, double *ret);
@@ -174,4 +176,13 @@ double odin_sum(double *x, int len) {
     tot += x[i];
   }
   return tot;
+}
+
+// This is only needed in delay differential equation models.
+void lagvalue(double t, int *idx, int dim_idx, double *state) {
+  static void(*fun)(double, int*, int, double*) = NULL;
+  if (fun == NULL) {
+    fun = (void(*)(double, int*, int, double*))R_GetCCallable("deSolve", "lagvalue");
+  }
+  return fun(t, idx, dim_idx, state);
 }
