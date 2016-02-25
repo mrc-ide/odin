@@ -117,8 +117,8 @@ odin_generate_loop <- function(dat, base) {
     odin_generate_delay(obj, dat)
   }
 
-  nms <- vcapply(dat$eqs, function(x) x$lhs$name)
-  for (x in dat$eqs[match(dat$order, nms)]) {
+  nms <- names(dat$eqs)
+  for (x in dat$eqs) {
     if (identical(x$lhs$special, "dim")) {
       odin_generate_dim(x, obj, dat)
     } else if (isTRUE(x$rhs$delay)) {
@@ -612,11 +612,10 @@ odin_generate_deriv <- function(obj) {
 odin_generate_library_fns <- function(obj) {
   dat <- read_library()
   fns <- obj$library_fns$get()
-
   if (any(grepl("^get_user_", fns))) {
     fns <- c(fns, "get_list_element")
   }
-
+  fns <- unique(fns)
   list(declarations=unname(dat$declarations[fns]),
        definitions=unname(dat$definitions[fns]))
 }

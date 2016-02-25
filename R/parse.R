@@ -39,6 +39,7 @@ odin_parse <- function(file="", text=NULL) {
   ret <- odin_parse_rewrite_initial_conditions(ret, vars)
   ret <- odin_parse_combine_arrays(ret)
   ret <- odin_parse_dependencies(ret, vars)
+  ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
   ret <- odin_parse_delay(ret)
   ret
@@ -510,6 +511,7 @@ odin_parse_dependencies <- function(obj, vars) {
   is_delay <- vlapply(obj, function(x) isTRUE(x$rhs$delay))
 
   ## Then, we can get the stage for these variables:
+  ## TODO: allow for a second layer of user parameter here.
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[TIME] <- STAGE_TIME
   stage[is_delay] <- STAGE_TIME
@@ -520,92 +522,9 @@ odin_parse_dependencies <- function(obj, vars) {
     stage[[i]] <- max(stage[[i]], stage[deps_rec[[i]]])
   }
 
-  ## Adjust the order so that it's by stage first, and then the order.
-  ## This should not create any impossible situations because of the
-  ## stage treatent above.
-  i <- order(stage)
-  stage <- stage[i]
-  order <- order[i]
-
-  ## This is the point where we have to give up and start creating a
-  ## real object; it probably should have been the step previous
-  ## (TODO).
-  order_keep <- setdiff(order, names(dummy))
-  stage_keep <- stage[nms]
-  for (i in seq_along(nms)) {
-    obj[[i]]$stage <- stage_keep[[i]]
-  }
-
-  ## Next, check all the lhs array variables are OK; these must be
-  ## constant or user (not time based).  At the same time it would be
-  ## great to work out how large the arrays actually are; looking for a
-  ## vector of dim here for all of them.  This might be good to go
-  ## into another function.
-  ##
-  ## - if deriv is array, initial must be and they must have the same
-  ##   computed size.
-  ## - all assignments into array varibles are checked already
-  ## - all references *from* array variables must be indexed
-  ##   - those references should be range-checked where possible
-  is_array <- vlapply(obj, function(x) identical(x$lhs$type, "array"))
-  is_dim <- vlapply(obj, function(x) identical(x$lhs$special, "dim"))
-
-  ## TODO: Compute length(arr) as a special thing and allow it to be
-  ## used directly in code.  Similarly allow dim(arr, {1,2,3}), stored
-  ## internaly as dim_1, dim_2, dim_3; can do that with code rewriting
-  ## easily enough; make dim an allowed function in the rhs arrays and
-  ## lhs if not a cyclic dependency (this is all done apart from
-  ## _using_ dim).
-  dim_stage <- viapply(obj[is_dim], function(x) x$stage)
-  i <- dim_stage == STAGE_TIME
-  if (any(i)) {
-    odin_error("Array extent is determined by time",
-               get_lines(obj[i]), get_exprs(obj[i]))
-  }
-
-  ## Determine which variables are array extents and indices; we'll
-  ## flag these as integers.  At the same time we need to try and work
-  ## out which of these are confusing (perhaps used as an argument to
-  ## division).
-  index_vars <- c(lapply(obj[is_dim], function(x) x$rhs$depends$variables),
-                  lapply(obj[is_array], function(x) x$lhs$depends$variables))
-  all_index_vars <- unique(unlist(index_vars))
-  err <- intersect(index_vars, nms[is_array])
-  if (length(err) > 0L) {
-    i <- which(is_array)[vlapply(obj[is_array], function(x)
-      any(err %in% x$lhs$depends$variables))]
-    odin_error(sprintf("Array indices may not be arrays (%s used)",
-                       pastec(err)),
-               get_lines(obj[i]), get_exprs(obj[i]))
-  }
-
-  if (TIME %in% all_index_vars) {
-    i <- which(is_array)[vlapply(obj[is_array], function(x)
-      any(TIME %in% x$lhs$depends$variables))]
-    odin_error("Array indices may not be time",
-               get_lines(obj[i]), get_exprs(obj[i]))
-  }
-
-  ## How do we determine that these are not used as floats anywhere?
-  ## The actual variables are already filtered out.
-  uses_array <- vlapply(obj, function(x)
-    any(x$depends$variables %in% nms[is_array]) ||
-    any(x$depends$functions %in% "["))
-  ## Number of dimensions for each variable array variable.
-  nd <- setNames(viapply(obj[is_array], function(x) x$lhs$nd), nms[is_array])
-  nd <- c(nd, setNames(nd[sprintf("deriv_%s", vars)], vars))
-  for (i in which(uses_array)) {
-    ok <- check_array_rhs(obj[[i]]$rhs$value, nd)
-    if (!ok) {
-      msg <- paste0("\t\t", attr(ok, "message"), collapse="\n")
-      odin_error(sprintf("Invalid array use on rhs:\n%s", msg),
-                 obj[[i]]$line, as.expression(obj[[i]]$expr))
-    }
-    obj[[i]]$rhs$uses_array <- TRUE
-  }
-
   ## The idea here is to work out which variables to download
   if (any(is_delay)) {
+    browser()
     ## Lots of ugly processing here:
     f <- function(x) {
       tmp <- x$rhs$depends_delay$variables
@@ -620,11 +539,111 @@ odin_parse_dependencies <- function(obj, vars) {
     }
   }
 
+  ## Adjust the order so that it's by stage first, and then the order.
+  ## This should not create any impossible situations because of the
+  ## stage treatent above.
+  i <- order(stage)
+  stage <- stage[i]
+  order <- order[i]
+
+  ## This is the point where we have to give up and start creating a
+  ## real object
+  order_keep <- setdiff(order, names(dummy))
+
+  i <- match(order_keep, nms)
+  obj <- obj[i]
+  nms <- nms[i]
+  deps <- deps[i]
+  deps_rec <- deps_rec[i]
+  names(obj) <- nms
+
+  for (i in nms) {
+    obj[[i]]$stage <- stage[[i]]
+  }
+
   list(vars=vars,
-       eqs=obj,
-       order=order_keep,
-       stage=stage_keep,
-       index_vars=all_index_vars)
+       eqs=obj)
+}
+
+odin_parse_check_array_usage <- function(obj) {
+  ## This is *entirely* checking things, except that we set
+  ## "index_vars" on the way out.
+  eqs <- obj$eqs
+
+  ## Next, check all the lhs array variables are OK; these must be
+  ## constant or user (not time based).  At the same time it would be
+  ## great to work out how large the arrays actually are; looking for a
+  ## vector of dim here for all of them.  This might be good to go
+  ## into another function.
+  ##
+  ## - if deriv is array, initial must be and they must have the same
+  ##   computed size.
+  ## - all assignments into array varibles are checked already
+  ## - all references *from* array variables must be indexed
+  ##   - those references should be range-checked where possible
+  is_array <- vlapply(eqs, function(x) identical(x$lhs$type, "array"))
+  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
+
+  ## TODO: Compute length(arr) as a special thing and allow it to be
+  ## used directly in code.  Similarly allow dim(arr, {1,2,3}), stored
+  ## internaly as dim_1, dim_2, dim_3; can do that with code rewriting
+  ## easily enough; make dim an allowed function in the rhs arrays and
+  ## lhs if not a cyclic dependency (this is all done apart from
+  ## _using_ dim).
+  i <- viapply(eqs[is_dim], function(x) x$stage) == STAGE_TIME
+  if (any(i)) {
+    odin_error("Array extent is determined by time",
+               get_lines(eqs[i]), get_exprs(eqs[i]))
+  }
+
+  ## Determine which variables are array extents and indices; we'll
+  ## flag these as integers.  At the same time we need to try and work
+  ## out which of these are confusing (perhaps used as an argument to
+  ## division).
+  index_vars <- c(lapply(eqs[is_dim], function(x) x$rhs$depends$variables),
+                  lapply(eqs[is_array], function(x) x$lhs$depends$variables))
+  all_index_vars <- unique(unlist(index_vars))
+  err <- intersect(index_vars, names(which(is_array)))
+  if (length(err) > 0L) {
+    i <- which(is_array)[vlapply(eqs[is_array], function(x)
+      any(err %in% x$lhs$depends$variables))]
+    odin_error(sprintf("Array indices may not be arrays (%s used)",
+                       pastec(err)),
+               get_lines(eqs[i]), get_exprs(eqs[i]))
+  }
+
+  if (TIME %in% all_index_vars) {
+    i <- which(is_array)[vlapply(eqs[is_array], function(x)
+      any(TIME %in% x$lhs$depends$variables))]
+    odin_error("Array indices may not be time",
+               get_lines(eqs[i]), get_exprs(eqs[i]))
+  }
+
+  ## Number of dimensions for each variable array variable.
+  nd <- setNames(viapply(eqs[is_array], function(x)
+    x$lhs$nd), names(which(is_array)))
+  nd <- c(nd,
+          ## TODO: This should only be done for variables that are
+          ## arrays!  But I don't know how I check that!  Probably
+          ## look for initial values?
+          setNames(nd[sprintf("deriv_%s", obj$vars)], obj$vars))
+
+  ## How do we determine that these are not used as floats anywhere?
+  ## The actual variables are already filtered out.
+  uses_array <- vlapply(eqs, function(x)
+    any(x$depends$variables %in% names(which(is_array))) ||
+    any(x$depends$functions %in% "["))
+  for (i in which(uses_array)) {
+    ok <- check_array_rhs(eqs[[i]]$rhs$value, nd)
+    if (!ok) {
+      msg <- paste0("\t\t", attr(ok, "message"), collapse="\n")
+      odin_error(sprintf("Invalid array use on rhs:\n%s", msg),
+                 eqs[[i]]$line, as.expression(eqs[[i]]$expr))
+    }
+  }
+
+  obj$index_vars <- all_index_vars
+  obj
 }
 
 odin_parse_variable_order <- function(obj) {
@@ -634,32 +653,33 @@ odin_parse_variable_order <- function(obj) {
   ##
   ## I think it should be sorted by stage within the arrays though,
   ## and stage added here.
-  is_deriv <- vlapply(obj$eqs, function(x) identical(x$lhs$special, "deriv"))
-  tmp <- obj$eqs[is_deriv]
-  is_array <- vlapply(tmp, function(x) x$lhs$type == "array")
-  nms <- vcapply(tmp, function(x) x$lhs$name_target)
+  vars <- obj$vars
+  is_array <- setNames(vlapply(obj$eqs[sprintf("deriv_%s", vars)],
+                               function(x) x$lhs$type == "array"), vars)
+
+  ord <- rep(0, length(is_array))
+  ord[is_array] <- match(sprintf("dim_%s", vars[is_array]), names(obj$eqs))
+
+  vars <- vars[order(ord)]
+  is_array <- is_array[vars]
 
   stage <- rep(STAGE_CONSTANT, length(is_array))
-  stage[is_array] <- unname(obj$stage[sprintf("dim_%s", nms[is_array])])
+  stage[is_array] <- viapply(obj$eqs[sprintf("dim_%s", vars[is_array])],
+                             function(x) x$stage)
+  names(stage) <- vars
 
-  i <- order(is_array + stage)
-  tmp <- tmp[i]
-  nms <- nms[i]
-  stage <- setNames(stage[i], nms)
-  is_array <- setNames(is_array[i], nms)
-
-  offset <- setNames(as.list(seq_along(is_array) - 1L), nms)
+  offset <- setNames(as.list(seq_along(is_array) - 1L), vars)
   f <- function(i) {
     if (i == 1L) {
       0L
     } else if (!is_array[[i - 1L]]) {
       offset[[i - 1L]] + 1L
     } else if (identical(offset[[i - 1L]], 0L)) {
-      as.name(paste0("dim_", nms[[i - 1L]]))
+      as.name(paste0("dim_", vars[[i - 1L]]))
     } else {
       call("+",
-           as.name(paste0("offset_", nms[[i - 1L]])),
-           as.name(paste0("dim_", nms[[i - 1L]])))
+           as.name(paste0("offset_", vars[[i - 1L]])),
+           as.name(paste0("dim_", vars[[i - 1L]])))
     }
   }
   for (i in which(is_array)) {
@@ -667,7 +687,7 @@ odin_parse_variable_order <- function(obj) {
   }
   offset_is_var <- !vlapply(offset, is.numeric)
   offset_use <- offset
-  offset_use[offset_is_var] <- sprintf("offset_%s", nms[offset_is_var])
+  offset_use[offset_is_var] <- sprintf("offset_%s", vars[offset_is_var])
 
   total <- f(length(is_array) + 1L)
   total_is_var <- !is.numeric(total)
@@ -675,7 +695,7 @@ odin_parse_variable_order <- function(obj) {
   total_stage <- max(stage)
 
   obj$variable_order <-
-    list(order=nms, is_array=is_array,
+    list(order=vars, is_array=is_array,
          offset=offset, offset_use=offset_use,
          offset_is_var=offset_is_var,
          total=total,
