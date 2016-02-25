@@ -9,7 +9,6 @@ LazyData: true
 URL: https://bitbucket.com/richfitz/odin
 BugReports: https://bitbucket.com/richfitz/odin/issues
 Imports:
-    deSolve,
-    whisker
+    deSolve
 Suggests:
     testthat
