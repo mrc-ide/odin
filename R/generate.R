@@ -138,8 +138,10 @@ odin_generate_loop <- function(dat, base) {
                        lapply(obj$types$get(),
                               as.data.frame, stringsAsFactors=FALSE))
 
-  vars_len <- ifelse(dat$variable_order$is_array,
-                     array_dim_name(dat$variable_order$order, TRUE), "1")
+  vars_len <- rep_len("1", length(dat$variable_order$is_array))
+  vars_len[dat$variable_order$is_array] <-
+    vcapply(dat$variable_order$order[dat$variable_order$is_array],
+            array_dim_name, TRUE)
   obj$vars <- data.frame(
     name=dat$variable_order$order,
     array=dat$variable_order$is_array,
@@ -421,9 +423,9 @@ odin_generate_order <- function(obj) {
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
           obj$type_pars, obj$name_pars, obj$base, obj$base)
   ret$add("  SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
-          STATE, length(dat$variable_order$offset))
+          STATE, nrow(obj$vars))
   ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
-          STATE, length(dat$variable_order$offset))
+          STATE, nrow(obj$vars))
 
   i <- seq_len(nrow(obj[["vars"]])) - 1L
   ret$add("  INTEGER(%s_len)[%s] = %s;", STATE, i, obj[["vars"]]$length)
@@ -505,7 +507,10 @@ odin_generate_finalize <- function(obj) {
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 0);",
           obj$type_pars, obj$name_pars, obj$base, obj$base)
   ret$add("  if (%s_ptr) {", obj$base)
-  ret$add(indent(obj$free$get(), 4))
+  free <- obj$free$get()
+  if (length(free) > 0L) {
+    ret$add(indent(free, 4))
+  }
   ret$add("    Free(%s);", obj$name_pars)
   ret$add("    R_ClearExternalPtr(%s_ptr);", obj$base)
   ret$add("  }")

@@ -40,13 +40,13 @@ test_that("odin implementations work", {
     path <- odin_generate(dat, dest=tempfile(b, fileext=".c"))
     dll <- compile(path)
 
-    ptr <- .Call("r_odin_create", NULL, PACKAGE=dll)
+    ptr <- .Call("odin_create", NULL, PACKAGE=dll)
     expect_is(ptr, "externalptr")
 
-    init <- .Call("r_odin_initialise", ptr, t0, PACKAGE=dll)
+    init <- .Call("odin_initialise", ptr, t0, PACKAGE=dll)
     expect_equal(init, unname(mod$initial(t0)))
 
-    deriv_c <- .Call("r_odin_deriv", ptr, init, t0, PACKAGE=dll)
+    deriv_c <- .Call("r_odin_deriv", ptr, t0, init, PACKAGE=dll)
     deriv_r <- mod$derivs(t0, init)[[1]]
     expect_equal(deriv_c, deriv_r)
 
