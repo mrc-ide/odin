@@ -522,10 +522,10 @@ odin_parse_dependencies <- function(obj, vars) {
     stage[[i]] <- max(stage[[i]], stage[deps_rec[[i]]])
   }
 
-  ## The idea here is to work out which variables to download
+  ## Lots of ugly processing here.  The idea here is to order the
+  ## time-dependent variables correctly within each delay block and to
+  ## filter out any non-time-dependent things.
   if (any(is_delay)) {
-    browser()
-    ## Lots of ugly processing here:
     f <- function(x) {
       tmp <- x$rhs$depends_delay$variables
       deps <- deps_rec[tmp]
@@ -533,7 +533,6 @@ odin_parse_dependencies <- function(obj, vars) {
       deps <- setdiff(deps[stage[deps] == STAGE_TIME], TIME)
       deps[order(match(deps, order))]
     }
-
     for (i in which(is_delay)) {
       obj[[i]]$rhs$order_delay <- f(obj[[i]])
     }
@@ -705,6 +704,41 @@ odin_parse_variable_order <- function(obj) {
   obj
 }
 
+## Delay variables can't depend on delay variables (I believe this is
+## checked somewhere).  That simplifies things because we can't have:
+##
+##   x <- delay(a, t)
+##   y <- delay(x, t)
+##
+## and then have to extract the delayed variable over the delayed
+## variable!  That would just be too much for deSolve to deal with I
+## think.
+##
+## The ordering of delay variables is based on the lag time.  Delay
+## variables will be computed before they are needed for the rest of
+## the variables but ideally we'd collect all variables that
+## correspond to a particular time to allow sharing of computation.
+## So if there are two delay variables with the same lag time then
+## we'd extract the pair of them together:
+##
+##   x <- delay(a + c, t)
+##   y <- delay(b + c, t)
+##
+## will group x and y together so that the lookup happens at once:
+##
+##   {
+##      ... pull a, b, c out of the delay loop ...
+##      ... compute x and y ...
+##   }
+##
+## however, that complicates things significantly for gains that might
+## not be that apparent.  In particular we would need to reorder the
+## expressions computed on underlying a, b, c above and get the
+## topological order there correct.  I think that can be looked up
+## against the order vector though.  I'm really in two minds about
+## this because I don't see it being used much in the BM code that I
+## have seen, and because correct is better than fast.  For now, we
+## don't combine.
 odin_parse_delay <- function(obj) {
   is_delay <- which(vlapply(obj$eqs, function(x) isTRUE(x$rhs$delay)))
   obj$has_delay <- length(is_delay) > 0L
@@ -712,86 +746,26 @@ odin_parse_delay <- function(obj) {
     return(obj)
   }
 
-
-  nms <- vcapply(obj$eqs, function(x) x$name)
-
-  ## We'll need to reorder this to make these the very first variables
-  ## in the time-dependent part of the system.  This is just to make
-  ## the issues with combining multiple lags simpler.  We could
-  ## arguably skip this if there is only a single delay variable I
-  ## suspect (TODO: I don't think I implemented this yet; instead
-  ## we'll do that by skipping over all delay calculations in the main
-  ## loop and running a special set of calculations for the delay
-  ## variables first).
-  delay_eqs <- obj$eqs[is_delay]
-
-  ## NOTE: It would probably be optimal to order time in reverse
-  ## (shortest lag tto longest) but that's really only beneficial in
-  ## the case if >1 independent lag so ignoring for now.
-  delay_time <- lapply(delay_eqs, function(x) x$rhs$value_time)
-  delay_group <- match(delay_time, unique(delay_time))
-  delay_n <- length(unique(delay_group))
-
-  ## At this point, we need to get the full list of dependent
-  ## variables out of all delay variables.  That's going to require
-  ## some serious faff here because some of these might be arrays and
-  ## therefore require us to store more arrays.
-  delay <- vector("list", delay_n)
-  for (i in seq_len(delay_n)) {
-    j <- delay_group == i
-    ## OK, so what we do now is to find all the entries that we need
-    ## in the order variable.  If any are array variables at this
-    ## point we _will_ have to copy the entire thing out; it's
-    ## possible that we could analyse the equations to the point where
-    ## that's not needed but it seems too hard for me.
-    ##
-    ## Then we need to compute; for m distinct arrays over n indices
-    ## (m = n if no arrays, m <= n if there are arrays):
-    ##
-    ## 1. the number of required lags: dim_delay_<i>_idx
-    ## 2. the indices of the lags to fetch: int *delay_<i>_idx
-    ## 3. the values of the lags: double *delay_<i>_state
-    ## 4. the indices of the lags to unpack int *delay_<i>_offset (length m)
-    ##
-    ## In the non-array case 4 will be possible to do with magic
-    ## numbers, so we'll do that first.
-    ##
-    ## We will fill these arrays during initialisation or earlier: it
-    ## will depend on the dimension variables for arrays.  So for now
-    ## perhaps just assert that's not the case.
-    deps <- unlist(lapply(delay_eqs[j], function(x) x$rhs$order_delay))
-    time <- delay_time[j][[1L]]
+  for (idx in seq_along(is_delay)) {
+    i <- is_delay[[idx]]
+    x <- obj$eqs[[i]]
+    deps <- x$rhs$order_delay
+    time <- x$rhs$value_time
     if (is.recursive(time)) {
       time <- call("(", time)
     }
-
     ## TODO: Consider checking through the time values and making sure
     ## we don't include any INDEX variables.  Later they will be
     ## supported.  I think that time is OK though.
-    names <- nms[is_delay[j]]
-    order <- intersect(obj$order, deps)
-
-    ## TODO: This needs to be dealt with.  The issue here is (probably
-    ## rare cases) where a lagged equation is a dependency of another
-    ## lagged equations.  That's never going to work.  But there might
-    ## be other more subtle ways this can happen.
-    if (any(names %in% order)) {
-      stop("I am totally confused about your delay equations")
+    if (any(INDEX %in% x$rhs$depends$variables)) {
+      odin_error("delay times may not reference index variables (yet)",
+                 x$line, x$expr)
     }
-
-    delay[[i]] <- list(time=time,
-                       extract=intersect(obj$vars, deps),
-                       order=order,
-                       names=names)
-
-    ## Then go through and indicate which delay group each variable is
-    ## in.  I might not use this for sure.
-    for (k in is_delay[j]) {
-      obj$eqs[[k]]$rhs$group_delay <- i
-    }
+    obj$eqs[[i]]$delay <- list(idx=idx,
+                               time=time,
+                               extract=intersect(obj$vars, deps),
+                               order=intersect(names(obj$eqs), deps))
   }
-
-  obj$delay <- delay
 
   obj
 }
