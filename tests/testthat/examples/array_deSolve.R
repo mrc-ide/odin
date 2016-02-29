@@ -25,7 +25,9 @@ age <- function() {
     S0 <- den * (N - I0)
     I0 <- den * I0
     R0 <- den * 0
-    c(S0, I0, R0)
+    ret <- c(S0, I0, R0)
+    attr(ret, "output_len") <- 2L
+    ret
   }
 
   derivs=function(t, y, .) {
@@ -54,7 +56,10 @@ age <- function() {
     dIdt[-1L] <-  beta * S[-1L] * I_tot/N  - (b+sigma) * I[-1L]   + (age_rate[-N_age] * I[-N_age] - age_rate[-1L] * I[-1L])
     dRdt[[1]] <-  sigma * I[[1]] - b * R[[1]]-delta * R[[1]] + (- age_rate[[1]] * R[[1]])
     dRdt[-1L] <-  sigma * I[-1L] - b * R[-1L]-delta * R[-1L] + (age_rate[-N_age] * R[-N_age] - age_rate[-1L] * R[-1L])
-    list(c(dSdt, dIdt, dRdt))
+    N_tot <- sum(S + I + R)
+    prev <- I_tot / N_tot * 100
+    list(c(dSdt, dIdt, dRdt),
+         c(N_tot=N_tot, prev=prev))
   }
 
   list(derivs=derivs, initial=initial, t=c(0, 100))

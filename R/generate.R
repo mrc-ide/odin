@@ -24,6 +24,7 @@ odin_generate <- function(dat, base="odin", dest=tempfile()) {
               odin_generate_deriv_r(obj),
               odin_generate_contents(obj),
               odin_generate_order(obj),
+              odin_generate_output_order(obj),
               odin_generate_desolve(obj),
               support,
               library_fns$definitions)
@@ -130,6 +131,17 @@ odin_generate_loop <- function(dat, base) {
   }
   obj$variable_size <- obj$rewrite(dat$variable_order$total_use)
 
+  if (dat$has_output) {
+    if (dat$output_order$total_is_var) {
+      obj$add_element(dat$output_order$total_use, "int", FALSE)
+      st <- STAGES[[dat$output_order$total_stage]]
+      obj[[st]]$add("%s = %s;",
+                    obj$rewrite(dat$output_order$total_use),
+                    obj$rewrite(dat$output_order$total))
+    }
+    obj$output_size <- obj$rewrite(dat$output_order$total_use)
+  }
+
   ## We're going to use this in a couple of places and it's kind of
   ## awkward.  In contrast with vars, which is known on entry to this
   ## function, types is collected by this function so needs to be
@@ -148,6 +160,19 @@ odin_generate_loop <- function(dat, base) {
     offset=vcapply(dat$variable_order$offset_use, obj$rewrite),
     length=vcapply(vars_len, obj$rewrite),
     stringsAsFactors=FALSE)
+
+  if (dat$has_output) {
+    output_len <- rep_len("1", length(dat$output_order$is_array))
+    output_len[dat$output_order$is_array] <-
+      vcapply(dat$output_order$order[dat$output_order$is_array],
+              array_dim_name, TRUE)
+    obj$output <- data.frame(
+      name=dat$output_order$order,
+      array=dat$output_order$is_array,
+      offset=vcapply(dat$output_order$offset_use, obj$rewrite),
+      length=vcapply(output_len, obj$rewrite),
+      stringsAsFactors=FALSE)
+  }
 
   obj
 }
@@ -216,6 +241,9 @@ odin_generate_symbol <- function(x, obj, dat) {
                   DSTATEDT,
                   dat$variable_order$offset_use[[x$lhs$name_target]],
                   value)
+  } else if (identical(x$lhs$special, "output")) {
+    obj[[st]]$add("%s[%s] = %s;",
+                  OUTPUT, dat$output_order$offset_use[[nm]], value)
   } else {
     obj[[st]]$add("%s %s = %s;", type, nm, value)
   }
@@ -423,9 +451,9 @@ odin_generate_order <- function(obj) {
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
           obj$type_pars, obj$name_pars, obj$base, obj$base)
   ret$add("  SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
-          STATE, nrow(obj$vars))
+          STATE, nrow(obj[["vars"]]))
   ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
-          STATE, nrow(obj$vars))
+          STATE, nrow(obj[["vars"]]))
 
   i <- seq_len(nrow(obj[["vars"]])) - 1L
   ret$add("  INTEGER(%s_len)[%s] = %s;", STATE, i, obj[["vars"]]$length)
@@ -434,6 +462,33 @@ odin_generate_order <- function(obj) {
   ret$add("  setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
   ret$add("  UNPROTECT(2);")
   ret$add("  return %s_len;", STATE)
+  ret$add("}")
+  ret$get()
+}
+
+odin_generate_output_order <- function(obj) {
+  ret <- collector()
+  ret$add("// Report back to R information on output variable ordering")
+  ret$add("// Like the variable order above, but for any output vars")
+  ret$add("// If no output variables are used, return an R NULL")
+  ret$add("SEXP %s_output_order(SEXP %s_ptr) {", obj$base, obj$base)
+  if (is.null(obj[["output"]])) {
+    ret$add("  return R_NilValue;", STATE)
+  } else {
+    ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+            obj$type_pars, obj$name_pars, obj$base, obj$base)
+    ret$add("  SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
+            STATE, nrow(obj[["output"]]))
+    ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
+            STATE, nrow(obj[["output"]]))
+    i <- seq_len(nrow(obj[["output"]])) - 1L
+    ret$add("  INTEGER(%s_len)[%s] = %s;", STATE, i, obj[["output"]]$length)
+    ret$add("  SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
+            STATE, i, obj[["output"]]$name)
+    ret$add("  setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
+    ret$add("  UNPROTECT(2);")
+    ret$add("  return %s_len;", STATE)
+  }
   ret$add("}")
   ret$get()
 }
@@ -567,6 +622,10 @@ odin_generate_initial <- function(obj) {
   copy[!i] <- sprintf("  REAL(%s)[%s] = %s;",
                       STATE, obj[["vars"]]$offset[!i], nm_initial[!i])
   ret$add(copy)
+  if (!is.null(obj[["output"]])) {
+    ret$add('  setAttrib(%s, install("%s_len"), ScalarInteger(%s));',
+            STATE, OUTPUT, obj$output_size)
+  }
   ret$add("  UNPROTECT(1);")
   ret$add("  return %s;", STATE)
   ret$add("}")
@@ -580,8 +639,9 @@ odin_generate_deriv <- function(obj) {
   vars <- obj[["vars"]]
   ret <- collector()
 
-  ret$add("void %s_deriv(%s *%s, double %s, double *%s, double *%s) {",
-          obj$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT)
+  ret$add(
+    "void %s_deriv(%s *%s, double %s, double *%s, double *%s, double *%s) {",
+    obj$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
 
   ## We always need to pull variables out of the state vector, and set
   ## up pointers for array derivatives.  This happens at the beginning
@@ -595,6 +655,11 @@ odin_generate_deriv <- function(obj) {
             vars$name[vars$array], STATE, vars$offset[vars$array])
     ret$add("  double *deriv_%s = %s + %s;",
             vars$name[vars$array], DSTATEDT, vars$offset[vars$array])
+  }
+  if (any(obj$output$array)) {
+    ret$add("  double *output_%s = %s + %s;",
+            obj$output$name[obj$output$array], OUTPUT,
+            obj$output$offset[obj$output$array])
   }
 
   ret$add(indent(obj$time$get(), 2))
@@ -644,9 +709,21 @@ odin_generate_deriv_r <- function(obj) {
   ret$add("  // NOTE: this assigns to the deSolve-required global variable")
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
           obj$type_pars, obj$name_pars, obj$base, obj$base)
-  ret$add("  %s_deriv(%s, REAL(%s)[0], REAL(%s), REAL(%s));",
-          obj$base, obj$name_pars, TIME, STATE, DSTATEDT)
-  ret$add("  UNPROTECT(1);")
+
+  if (is.null(obj$output)) {
+    ret$add("  double *%s = NULL;", OUTPUT)
+    np <- 1L
+  } else {
+    ret$add("  SEXP %s_ptr = PROTECT(allocVector(REALSXP, %s));",
+            OUTPUT, obj$output_size)
+    ret$add('  setAttrib(%s, install("%s"), %s_ptr);', DSTATEDT, OUTPUT, OUTPUT)
+    ret$add("  double *%s = REAL(%s_ptr);", OUTPUT, OUTPUT)
+    np <- 2L
+  }
+
+  ret$add("  %s_deriv(%s, REAL(%s)[0], REAL(%s), REAL(%s), %s);",
+          obj$base, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
+  ret$add("  UNPROTECT(%d);", np)
   ret$add("  return %s;", DSTATEDT)
   ret$add("}")
   ret$get()
@@ -663,11 +740,12 @@ odin_generate_desolve <- function(obj) {
   ret$add("  %s = %s_get_pointer(get_deSolve_gparms(), 1);",
           obj$name_pars, obj$base)
   ret$add("}")
-  ret$add("void %s_ds_derivs(int *neq, double *t, double *%s,", obj$base, STATE)
-  ret$add("%sdouble *%s, double *yout, int *np) {",
-          strrep(nchar(obj$base) + 15L), DSTATEDT)
-  ret$add("  %s_deriv(%s, *%s, %s, %s);",
-          obj$base, obj$name_pars, TIME, STATE, DSTATEDT)
+  ret$add("void %s_ds_derivs(int *neq, double *%s, double *%s,",
+          obj$base, TIME, STATE)
+  ret$add("%sdouble *%s, double *%s, int *np) {",
+          strrep(nchar(obj$base) + 15L), DSTATEDT, OUTPUT)
+  ret$add("  %s_deriv(%s, *%s, %s, %s, %s);",
+          obj$base, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
   ret$add("}")
   ret$get()
 }

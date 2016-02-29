@@ -46,15 +46,30 @@ test_that("odin implementations work", {
     init <- .Call("odin_initialise", ptr, t0, PACKAGE=dll)
     expect_equal(init, unname(mod$initial(t0)))
 
+    output_len <- attr(init, "output_len")
+
     deriv_c <- .Call("r_odin_deriv", ptr, t0, init, PACKAGE=dll)
-    deriv_r <- mod$derivs(t0, init)[[1]]
-    expect_equal(deriv_c, deriv_r)
+    deriv_r <- mod$derivs(t0, init)
+    expect_equal(deriv_c, deriv_r[[1L]], check.attributes=FALSE)
+
+    if (is.null(output_len)) {
+      expect_null(attr(deriv_c, "output"))
+    } else {
+      ## The check.attributes is necessary because otherwise testthat
+      ## gives entirely meaningless error messages on attribute
+      ## differences (as it looks for differences in the values
+      ## themselves).
+      expect_equal(attr(deriv_c, "output", exact=TRUE), deriv_r[[2L]],
+                   check.attributes=FALSE)
+    }
 
     tol <- if (b == "seir") 1e-7 else 1e-9
+    nout <- if (is.null(output_len)) 0L else output_len
 
     res_r <- run_model(mod, t)
     res_c <- ode(init, t, "odin_ds_derivs", ptr,
-                 initfunc="odin_ds_initmod", dllname=dll)
+                 initfunc="odin_ds_initmod", dllname=dll,
+                 nout=nout)
     expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
   }
 })

@@ -42,6 +42,7 @@ odin_parse <- function(file="", text=NULL) {
   ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
   ret <- odin_parse_delay(ret)
+  ret <- odin_parse_output(ret)
   ret
 }
 
@@ -509,12 +510,13 @@ odin_parse_dependencies <- function(obj, vars) {
   ## dependencies dependencies and so on.
   deps_rec <- recursive_dependencies(order, c(deps, dummy), vars)
   is_delay <- vlapply(obj, function(x) isTRUE(x$rhs$delay))
+  is_output <- vlapply(obj, function(x) identical(x$lhs$special, "output"))
 
   ## Then, we can get the stage for these variables:
   ## TODO: allow for a second layer of user parameter here.
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[TIME] <- STAGE_TIME
-  stage[is_delay] <- STAGE_TIME
+  stage[nms[is_delay | is_output]] <- STAGE_TIME
 
   ## In topological order, determine inherited stage (a initial/time stage
   ## anywhere in a chain implies a initial/time stage).
@@ -770,6 +772,81 @@ odin_parse_delay <- function(obj) {
   obj
 }
 
+odin_parse_output <- function(obj) {
+  is_output <- which(vlapply(obj$eqs, function(x)
+    identical(x$lhs$special, "output")))
+  obj$has_output <- length(is_output) > 0L
+  if (!obj$has_output) {
+    return(obj)
+  }
+  ## Here we really need to know the length of these things but we
+  ## don't have that yet.  Then at the beginning of the derivative
+  ## function we should assign everything out of the appropriate
+  ## pointer so we're going to need to store some offsets.
+
+  ## So a new function "output_order" will return NULL or a vector of
+  ## indices.  We throw a bunch more offsets into the parameter vector
+  ## too I think.
+  vars <- names(is_output)
+  vars_target <- vcapply(obj$eqs[is_output], function(x) x$lhs$name_target)
+  is_array <- vlapply(obj$eqs[is_output], function(x) x$lhs$type == "array")
+
+  ord <- rep(0, length(is_array))
+  stage <- rep(STAGE_CONSTANT, length(is_array))
+  names(stage) <- vars
+
+  if (any(is_array)) {
+    tmp <- vcapply(vars[is_array], array_dim_name)
+    ord[is_array] <- match(tmp, names(obj$eqs))
+    stage[is_array] <- viapply(obj$eqs[tmp], function(x) x$stage)
+  }
+  i <- order(ord)
+  vars <- vars[i]
+  vars_target <- vars_target[i]
+  is_array <- is_array[i]
+  stage <- stage[i]
+
+  ## TODO: This is duplicated from above and could be generalised.
+  offset <- setNames(as.list(seq_along(is_array) - 1L), vars)
+  f <- function(i) {
+    if (i == 1L) {
+      0L
+    } else if (!is_array[[i - 1L]]) {
+      offset[[i - 1L]] + 1L
+    } else if (identical(offset[[i - 1L]], 0L)) {
+      as.name(array_dim_name(vars[[i - 1L]]))
+    } else {
+      call("+",
+           as.name(paste0("offset_", vars[[i - 1L]])),
+           as.name(array_dim_name(vars[[i - 1L]])))
+    }
+  }
+  for (i in which(is_array)) {
+    offset[[i]] <- f(i)
+  }
+
+  offset_is_var <- !vlapply(offset, is.numeric)
+  offset_use <- offset
+  offset_use[offset_is_var] <- sprintf("offset_%s", vars[offset_is_var])
+
+  total <- f(length(is_array) + 1L)
+  total_is_var <- !is.numeric(total)
+  total_use <- if (total_is_var) "dim" else total
+  total_stage <- max(stage)
+
+  obj$output_order <-
+    list(order=vars_target,
+         is_array=is_array,
+         offset=offset,
+         offset_use=offset_use,
+         offset_is_var=offset_is_var,
+         total=total,
+         total_is_var=total_is_var,
+         total_use=total_use,
+         total_stage=total_stage)
+  obj
+}
+
 ## I feel like I'm going to end up with a lot of these floating
 ## around; perhaps there's some nicer way of doing it...
 ##
@@ -936,6 +1013,7 @@ STAGES <- c("constant", "user", "time")
 TIME <- "t"
 STATE <- "state"
 DSTATEDT <- "dstatedt"
+OUTPUT <- "output"
 ## TODO: None of these deal with the use of these as functions (only
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some

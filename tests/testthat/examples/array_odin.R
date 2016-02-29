@@ -53,10 +53,14 @@ deriv(R[1]) <- sigma * I[i] - b * R[i] - delta * R[i] +
 deriv(R[2:N_age]) <- sigma * I[i] - b * R[i] - delta * R[i] +
   (age_rate[i-1] * R[i-1] - age_rate[i] * R[i])
 
-## N_tot <- sum(S) + sum(I) + sum(R)
-## prev <- I_tot / N_tot * 100
-## output(N_tot) <- N_tot
-## output(prev) <- prev
+## TODO: Can I get a nicer syntax here (for the N_tot case
+##
+## NOTE: For this sort of output variable, where things are simply
+## computed from the core variables, post-processing will tend to be
+## preferable I suspect.
+N_tot <- sum(S) + sum(I) + sum(R)
+output(N_tot) <- N_tot
+output(prev) <- I_tot / N_tot * 100
 
 dim(den) <- N_age
 dim(age_width) <- N_age
