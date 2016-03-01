@@ -75,8 +75,19 @@ topological_order <- function(graph) {
       }
     }
     if (!acyclic) {
-      stop("A cyclic dependency detected for: ",
-           paste(intersect(edges, names(graph)), collapse=", "))
+      f <- function(x) {
+        ## Note that this is not going to give the right answer here
+        ## but it might still be useful (dim_x -> dim(x), initial_x ->
+        ## initial(x) etc.)  Could swap these around with
+        ## RESERVED_PREFIX perhaps.
+        y <- graph[[x]]
+        i <- vlapply(graph[y], function(el) x %in% el)
+        sprintf("\t%s: depends on %s", x, y[i])
+      }
+      err <- intersect(edges, names(graph))
+      stop(sprintf("A cyclic dependency detected for %s:\n%s",
+                   paste(err, collapse=", "),
+                   paste(vcapply(err, f), collapse="\n")), call.=FALSE)
     }
   }
 
