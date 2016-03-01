@@ -4,35 +4,35 @@ find_symbols <- function(expr, hide_errors=TRUE) {
   }
   functions <- variables <- character(0)
 
-  leaf <- function(e, w) {
-    if (!is.symbol(e)) { # A literal of some type
-      return()
-    }
-    variables <<- c(variables, deparse(e))
-  }
-  call <- function (e, w) {
-    nm <- deparse(e[[1L]])
-    if (nm %in% c("dim", "length")) {
-      ## These functions are treated separately because length(X) does
-      ## not depend on the value of X so much as the *length*.  That's
-      ## handled by a separate variable that we hook up here.
-      if (length(e) >= 2L) {
-        ## The if here avoids an invalid parse, e.g. length(); we'll
-        ## pick that up later on.
-        variables <<- c(variables, paste0("dim_", deparse(e[[2L]])))
+  f <- function(e) {
+    if (!is.recursive(e)) {
+      if (!is.symbol(e)) { # A literal of some type
+        return()
       }
+      variables <<- c(variables, deparse(e))
     } else {
-      functions <<- c(functions, deparse(e[[1]]))
-      for (a in as.list(e[-1])) {
-        if (!missing(a)) {
-          codetools::walkCode(a, w)
+      nm <- deparse(e[[1L]])
+      if (nm %in% c("dim", "length")) {
+        ## These functions are treated separately because length(X) does
+        ## not depend on the value of X so much as the *length*.  That's
+        ## handled by a separate variable that we hook up here.
+        if (length(e) >= 2L) {
+          ## The if here avoids an invalid parse, e.g. length(); we'll
+          ## pick that up later on.
+          variables <<- c(variables, paste0("dim_", deparse(e[[2L]])))
+        }
+      } else {
+        functions <<- c(functions, deparse(e[[1]]))
+        for (a in as.list(e[-1])) {
+          if (!missing(a)) {
+            f(a)
+          }
         }
       }
     }
   }
 
-  walker <- codetools::makeCodeWalker(call=call, leaf=leaf, write=cat)
-  codetools::walkCode(expr, walker)
+  f(expr)
   list(functions=unique(functions),
        variables=unique(variables))
 }

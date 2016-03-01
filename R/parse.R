@@ -885,20 +885,14 @@ check_array_rhs <- function(expr, nd) {
     return(structure(all(vlapply(res, as.logical)), message=msg))
   }
 
-  nms <- names(nd)
-  err <- collector()
-
-  leaf <- function(e, w) {
-    if (!is.symbol(e)) { # A literal of some type
-      return()
-    } else if (deparse(e) %in% nms) {
-      err$add(sprintf("Found %s on rhs", deparse(e)))
-    }
-  }
-  ## Descend down the call tree until reaching a `[` call, then
-  ## analyse that call with a more restricted set of rules.
-  call <- function (e, w) {
-    if (identical(e[[1L]], quote(`[`))) {
+  f <- function(e) {
+    if (!is.recursive(e)) { # leaf
+      if (!is.symbol(e)) { # A literal of some type
+        return()
+      } else if (deparse(e) %in% nms) {
+        err$add(sprintf("Found %s on rhs", deparse(e)))
+      }
+    } else if (identical(e[[1L]], quote(`[`))) {
       x <- deparse(e[[2L]])
       ijk <- as.list(e[-(1:2)])
       if (x %in% nms) {
@@ -922,14 +916,15 @@ check_array_rhs <- function(expr, nd) {
     } else {
       for (a in as.list(e[-1])) {
         if (!missing(a)) {
-          codetools::walkCode(a, w)
+          f(a)
         }
       }
     }
   }
 
-  walker <- codetools::makeCodeWalker(call=call, leaf=leaf, write=cat)
-  codetools::walkCode(expr, walker)
+  nms <- names(nd)
+  err <- collector()
+  f(expr)
   x <- unique(err$get())
   ok <- length(x) == 0L
   if (ok) TRUE else structure(FALSE, message=x)
