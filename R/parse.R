@@ -629,6 +629,22 @@ odin_parse_check_array_usage <- function(obj) {
           ## look for initial values?
           setNames(nd[sprintf("deriv_%s", obj$vars)], obj$vars))
 
+  ## need to check all length and dim calls here.  Basically we're
+  ## looking for length() to be used with calls on nd==1 arrays and
+  ## range check all dim() calls on the others.  This is moderately
+  ## complicated and we'll need to poke into some expressions we've
+  ## looked at already.  Later on an optimisation pass we can try
+  ## precompute the required information but that's just asking for
+  ## headaches at the moment.  We'll need to check that on both the
+  ## lhs and rhs for every expression that uses either.
+  to_check <- vlapply(
+    eqs[is_array],
+    function(x) any(c("dim", "length") %in% x$lhs$depends$functions) ||
+                any(c("dim", "length") %in% x$depends$functions))
+
+  ## I think this is the right usage here:
+  ok <- vlapply(obj$eqs[is_array][to_check], check_array_length_dim, nd)
+
   ## How do we determine that these are not used as floats anywhere?
   ## The actual variables are already filtered out.
   uses_array <- vlapply(eqs, function(x)
@@ -948,8 +964,7 @@ check_array_lhs_index <- function(x) {
       } else {
         if (nm == "-" && length(x) == 2L) {
           err$add("Unary minus invalid in array calculation")
-        }
-        if (!(nm %in% valid)) {
+        } else if (!(nm %in% valid)) {
           err$add(paste("Invalid function in array calculation",
                         as.character(nm)))
         }
@@ -977,6 +992,70 @@ check_array_lhs_index <- function(x) {
   } else {
     structure(FALSE, message=x)
   }
+}
+
+check_array_length_dim <- function(x, nd) {
+  ## Now, we need to collect and check all usages of length and check.
+  ## If we extract all usages we can check them.
+  f <- function(x, throw) {
+    if (is.recursive(x)) {
+      call <- x[[1L]]
+      if (identical(call, quote(length))) {
+        if (length(x) != 2L) {
+          throw("length() requires exactly one argument (recieved %d)",
+                  length(x) - 1L)
+        } else if (!is.symbol(x[[2L]])) {
+          throw("argument to length must be a symbol")
+        } else {
+          nm <- as.character(x[[2L]])
+          if (!(nm %in% names(nd))) {
+            throw("argument to length must be an array (%s is not)", nm)
+          } else if (nd[[nm]] != 1L) {
+            throw("argument to length must be a 1-D array (%s is %d-D)",
+                    nm, nd[[nm]])
+          }
+        }
+      } else if (identical(call, quote(dim))) {
+        if (length(x) != 3L) {
+          throw("dim() requires exactly two arguments (recieved %d)",
+                  length(x) - 1L)
+        } else if (!is.symbol(x[[2L]])) {
+          throw("first argument to dim must be a symbol")
+        } else {
+          nm <- as.character(x[[2L]])
+          if (!(nm %in% names(nd))) {
+            throw("first argument to dim must be an array (%s is not)", nm)
+          } else if (nd[[nm]] == 1L) {
+            throw("dim() must not be used for 1D arrays (use length)")
+          } else if (!is_integer_like(x[[3L]])) {
+            throw("second argument to dim() must be an integer")
+          } else if (x[[3L]] < 1 || x[[3L]] > nd[[nm]]) {
+            throw("array index out of bounds, must be one of 1:%d", nd[[nm]])
+          }
+        }
+      } else {
+        lapply(x[-1L], f, throw)
+      }
+    }
+    NULL
+  }
+  make_throw <- function(line, expr) {
+    force(line)
+    force(expr)
+    function(fmt, ...) {
+      odin_error(sprintf(fmt, ...), line, expr)
+    }
+  }
+
+  if (x$lhs$type == "array") {
+    for (i in seq_along(x$expr)) {
+      f(x$expr[[i]], make_throw(x$line[[i]], x$expr[[i]]))
+    }
+  } else {
+    f(x$expr, make_throw(x$line, x$expr))
+  }
+
+  TRUE
 }
 
 odin_error <- function(msg, line, expr) {
@@ -1022,4 +1101,4 @@ SPECIAL <- c("initial", "deriv", "output", "dim")
 INDEX <- c("i", "j", "k")
 RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, "user", SPECIAL, "delay")
 RESERVED_PREFIX <- c(SPECIAL, "odin", "offset", "delay")
-VALID_ARRAY <- c("-", "+", ":", "(")
+VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")

@@ -21,7 +21,8 @@ rewrite_c <- function(expr, name_pars,
   infix <- c("+", "/", "-", "*")
   ## TODO: Need a whole set of translated functions perhaps (e.g., how
   ## sum(x) -> odin_sum(x, dim_x))
-  allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10", "sum")
+  rewrite <- c("sum", "dim", "length")
+  allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10", rewrite)
 
   ## Things that will work in R and C the same way:
   ##
@@ -47,6 +48,9 @@ rewrite_c <- function(expr, name_pars,
         str <- deparse(expr, control="digits17") # or hexNumeric
         is_index <- FALSE
       } else {
+        ## TODO: this is going to have some serious issues if we ever
+        ## want to handle true character elements as they're not going
+        ## to get quoted here.
         str <- as.character(expr)
         if (as.character(expr) %in% lookup) {
           str <- sprintf("%s->%s", name_pars, str)
@@ -147,6 +151,14 @@ rewrite_c <- function(expr, name_pars,
         }
       }
       value <- sprintf("%s %s %s", values[[1L]], nm, values[[2L]])
+    } else if (nm == "length") {
+      ## TODO: Consider replacing all other '->' bits above with
+      ## recalling f().  Make that easy to do though.  Not 100% sure
+      ## that's always worth doing though.
+      value <- f(array_dim_name(values[[1]], TRUE))$value
+    } else if (nm == "dim") {
+      tmp <- sprintf("%s_%s", array_dim_name(values[[1L]], TRUE), values[[2L]])
+      value <- f(tmp)$value
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }

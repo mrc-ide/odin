@@ -47,3 +47,11 @@ indent <- function(x, n=2) {
 strrep <- function(n, x=" ") {
   paste(rep(x, n), collapse="")
 }
+
+is_integer_like <- function(x, tol=sqrt(.Machine$double.eps)) {
+  is.integer(x) || (is.numeric(x) && abs(x - round(x)) < tol)
+}
+
+is_call <- function(expr, symbol) {
+  is.recursive(expr) && identical(expr[[1L]], symbol)
+}
