@@ -590,6 +590,8 @@ odin_parse_check_array_usage <- function(obj) {
   ##   - those references should be range-checked where possible
   is_array <- vlapply(eqs, function(x) identical(x$lhs$type, "array"))
   is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
+  is_rhs_length <- vlapply(eqs, function(x) is_call(x$rhs$value, quote(length)))
+  is_rhs_dim <- vlapply(eqs, function(x) is_call(x$rhs$value, quote(dim)))
 
   ## TODO: Compute length(arr) as a special thing and allow it to be
   ## used directly in code.  Similarly allow dim(arr, {1,2,3}), stored
@@ -608,7 +610,9 @@ odin_parse_check_array_usage <- function(obj) {
   ## out which of these are confusing (perhaps used as an argument to
   ## division).
   index_vars <- c(lapply(eqs[is_dim], function(x) x$rhs$depends$variables),
-                  lapply(eqs[is_array], function(x) x$lhs$depends$variables))
+                  lapply(eqs[is_array], function(x) x$lhs$depends$variables),
+                  names(which(is_rhs_length)),
+                  names(which(is_rhs_dim)))
   all_index_vars <- unique(unlist(index_vars))
   err <- intersect(index_vars, names(which(is_array)))
   if (length(err) > 0L) {

@@ -7,6 +7,9 @@ age_width[3] <- 365 * 10
 age_width[4] <- 365 * 15
 age_width[5] <- 365 * 20
 
+## This is not used, but if uncommented will define a new integer:
+##   nn <- length(age_width)
+
 age_rate[1:(N_age - 1)] <- 1 / age_width[i]
 age_rate[N_age] <- 0
 
@@ -19,13 +22,9 @@ den[2:N_age] <- age_rate[i - 1] * den[i - 1] / (age_rate[i] + b)
 ##   TODO: sum not yet supported
 ## den_tot <- sum(den)
 
-## TODO: consider allowing S[] but that does require being able to
-## infer the length of an array.
-##
-## TODO: Consider allowing S[1:length(den)] or S[seq_along(den)]
-initial(S[1:length(S)]) <- den[i] * (N - I0)
-initial(I[1:length(I)]) <- den[i] * I0
-initial(R[]) <- 0
+initial(S[1:N_age]) <- den[i] * (N - I0)
+initial(I[1:N_age]) <- den[i] * I0
+initial(R[1:N_age]) <- 0
 
 I0 <- user(1)
 

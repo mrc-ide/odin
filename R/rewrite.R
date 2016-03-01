@@ -40,7 +40,6 @@ rewrite_c <- function(expr, name_pars,
   ## Things that need definitions
   ## * mod(x, y)
   ## * pi (#define pi M_PI) or translate to M_PI
-
   f <- function(expr) {
     if (!is.recursive(expr)) {
       num <- is.numeric(expr)
@@ -155,9 +154,9 @@ rewrite_c <- function(expr, name_pars,
       ## TODO: Consider replacing all other '->' bits above with
       ## recalling f().  Make that easy to do though.  Not 100% sure
       ## that's always worth doing though.
-      value <- f(array_dim_name(values[[1]], TRUE))$value
+      value <- f(array_dim_name(as.character(expr[[2L]]), TRUE))$value
     } else if (nm == "dim") {
-      tmp <- sprintf("%s_%s", array_dim_name(values[[1L]], TRUE), values[[2L]])
+      tmp <- sprintf("%s_%d", array_dim_name(expr[[2L]], TRUE), expr[[3L]])
       value <- f(tmp)$value
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
