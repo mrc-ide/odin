@@ -27,12 +27,6 @@ test_that("some parse errors", {
   expect_error(odin_parse(text="dim(x) <- user()"),
                "user() only valid for non-special variables", fixed=TRUE)
 
-  expect_error(odin_parse(text="x[] <- y[i]\ny[1] <- 1"),
-               "The empty index is not currently supported")
-  expect_error(odin_parse(text="x[,] <- y[i] * z[j]"),
-               "The empty index is not currently supported")
-  expect_error(odin_parse(text="x[] <- y[i] * z[i]"),
-               "The empty index is not currently supported")
   expect_error(odin_parse(text="x[i] <- y[i]"),
                "Special index variable i may not be used on array lhs")
 

@@ -25,7 +25,7 @@ den[2:N_age] <- age_rate[i - 1] * den[i - 1] / (age_rate[i] + b)
 ## TODO: Consider allowing S[1:length(den)] or S[seq_along(den)]
 initial(S[1:length(S)]) <- den[i] * (N - I0)
 initial(I[1:length(I)]) <- den[i] * I0
-initial(R[1:length(R)]) <- 0
+initial(R[]) <- 0
 
 I0 <- user(1)
 

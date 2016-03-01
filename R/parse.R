@@ -94,9 +94,15 @@ odin_parse_lhs <- function(lhs, line, expr) {
           line, as.expression(expr))
       }
 
-      if (any(vlapply(lhs[-1], identical, quote(expr=)))) {
-        odin_error("The empty index is not currently supported",
-                   line, as.expression(expr))
+      is_empty <- vlapply(index, identical, quote(expr=))
+      if (any(is_empty)) {
+        if (length(index) == 1L) {
+          index[] <- list(bquote(1:length(.(lhs[[2L]]))))
+        } else {
+          index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
+            bquote(1:dim(.(lhs[[2L]]), .(i))))
+        }
+        lhs[-(1:2)] <- index
       }
 
       ## Valid expressions are:
