@@ -97,6 +97,9 @@ test_that("some parse errors", {
   expect_error(odin_parse(text="y <- x\nx[1] <- 1\ndim(x) <- 10"),
                "Invalid array use on rhs")
 
+  expect_error(odin_parse(text="y[] <- 0\ndim(y) <- f(p)"),
+               "Invalid dim() rhs", fixed=TRUE)
+
   ## TODO: I don't even remember what the issue is here!
   ## expect_error(
   ##   odin_parse(text="dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),

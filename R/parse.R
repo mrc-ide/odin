@@ -343,7 +343,7 @@ odin_parse_combine_arrays <- function(obj) {
   nd <- setNames(viapply(obj[is_dim], check_dim_rhs), nms_real[is_dim])
   if (any(is.na(nd))) {
     i <- which(is_dim)[is.na(nd)]
-    odin_error("Invalid dim() rhs", get_lines(i), get_exprs(i))
+    odin_error("Invalid dim() rhs", get_lines(obj[i]), get_exprs(obj[i]))
   }
   j <- which(is_dim)
   for (i in seq_along(nd)) {
