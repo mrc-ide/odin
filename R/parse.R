@@ -938,15 +938,14 @@ check_array_rhs <- function(expr, nd) {
 check_dim_rhs <- function(x) {
   if (x$rhs$type == "atomic" || is.name(x$rhs$value)) {
     1L
-  } else if (identical(x$rhs[[1]], quote(c))) {
-    stop("not yet supported...")
-    browser()
-    ok <- vlapply(as.list(x$rhs[-1L]),
+  } else if (is_call(x$rhs$value, quote(c))) {
+    ok <- vlapply(as.list(x$rhs$value[-1L]),
                   function(x) is.symbol(x) || is.atomic(x))
     if (!all(ok)) {
       NA_integer_
+    } else {
+      length(ok)
     }
-    length(x$rhs) - 1L
   } else {
     NA_integer_
   }
