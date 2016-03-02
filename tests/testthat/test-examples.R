@@ -22,13 +22,17 @@ test_that("deSolve implementations work", {
 })
 
 test_that("odin implementations work", {
-  re <- "([[:alnum:]]+)_deSolve\\.R$"
+  re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
-  test <- intersect(c("lorenz", "sir", "seir", "array"), base)
+  test <- intersect(c("lorenz", "sir", "seir", "array", "array_2d"), base)
 
   for (b in test) {
-    filename_d <- sprintf("examples/%s_deSolve.R", b)
+    if (b == "array_2d") {
+      filename_d <- "examples/array_deSolve.R"
+    } else {
+      filename_d <- sprintf("examples/%s_deSolve.R", b)
+    }
     filename_o <- sprintf("examples/%s_odin.R", b)
     ode <- if (b == "seir") deSolve::dede else deSolve::ode
 

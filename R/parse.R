@@ -75,6 +75,21 @@ odin_parse_expr <- function(i, exprs) {
        line=line)
 }
 
+odin_parse_replace_empty <- function(x) {
+  index <- as.list(x[-(1:2)])
+  is_empty <- vlapply(index, identical, quote(expr=))
+  if (any(is_empty)) {
+    if (length(index) == 1L) {
+      index[] <- list(bquote(1:length(.(x[[2L]]))))
+    } else {
+      index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
+        bquote(1:dim(.(x[[2L]]), .(i))))
+    }
+    x[-(1:2)] <- index
+  }
+  x
+}
+
 odin_parse_lhs <- function(lhs, line, expr) {
   if (is.name(lhs)) {
     ret <- list(type="symbol",
@@ -285,6 +300,10 @@ odin_parse_rhs <- function(rhs, line, expr) {
                   default=default,
                   user=TRUE)
     } else {
+      if ("sum" %in% deps$functions) {
+        rhs <- odin_parse_rewrite_sum(rhs, line, expr)
+        deps <- find_symbols(rhs)
+      }
       ret <- list(type="expression",
                   depends=deps,
                   value=rhs)
@@ -885,7 +904,7 @@ check_array_rhs <- function(expr, nd) {
     return(structure(all(vlapply(res, as.logical)), message=msg))
   }
 
-  f <- function(e) {
+  f <- function(e, is_sum=FALSE) {
     if (!is.recursive(e)) { # leaf
       if (!is.symbol(e)) { # A literal of some type
         return()
@@ -905,7 +924,9 @@ check_array_rhs <- function(expr, nd) {
           err$add("Disallowed functions used for %s in '%s': %s",
                   x, deparse_str(e), pastec(nok))
         }
-        nok <- intersect(sym$variables,  c("", nms))
+        ## This allows use of the empty symbol in sums (e.g., sum(x[, 1])).
+        ## However, it might be easier to check that elsewhere.
+        nok <- intersect(sym$variables,  c(nms, if (!is_sum) ""))
         if (length(nok) > 0L) {
           err$add("Disallowed variables used for %s in '%s': %s",
                   x, deparse_str(e), pastec(nok))
@@ -914,9 +935,10 @@ check_array_rhs <- function(expr, nd) {
         err$add("Unknown array variable %s in '%s'", x, deparse_str(e))
       }
     } else {
+      is_sum <- identical(e[[1L]], quote(sum))
       for (a in as.list(e[-1])) {
         if (!missing(a)) {
-          f(a)
+          f(a, is_sum)
         }
       }
     }
@@ -1060,6 +1082,70 @@ check_array_length_dim <- function(x, nd) {
   }
 
   TRUE
+}
+
+## The sum() calls aren't real; they are translated at this point
+## (though it could just as easily be later but it's pretty
+## straightforward to do it here) into calls that we can actually use.
+## We don't complete the rewrite here, but instead collect all the
+## appropriate arguments.  We'll do the function name rewrite (from
+## sum to one of odin_sum1, odin_sum2 or odin_sum3 in the rewrite
+## function when we tackle the minus1 from indices.
+odin_parse_rewrite_sum <- function(x, line, expr) {
+  f <- function(x, is_sum=FALSE) {
+    if (!is.recursive(x)) {
+      x
+    } else {
+      if (is_sum) {
+        if (!is_call(x, quote(`[`))) {
+          odin_error("Argument to sum must be an array index", line, expr)
+        }
+        x <- odin_parse_replace_empty(x)
+        ## NOTE: bad name for check_array_lhs_index now
+        tmp <- lapply(as.list(x[-(1:2)]), check_array_lhs_index)
+        ok <- vlapply(tmp, as.logical)
+        if (all(ok)) {
+          f <- function(x) {
+            min <- attr(x, "value_min")
+            max <- attr(x, "value_max")
+            list(if (is.null(min)) max else min, max)
+          }
+          ret <- c(list(x[[2L]]), unlist(lapply(tmp, f), FALSE))
+        } else {
+          msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"),
+                        collapse="\n")
+          odin_error(sprintf("Invalid array use in sum():\n%s", msg),
+                     line, expr)
+        }
+        ret
+      } else if (is_call(x, quote(sum))) {
+        ## TODO: I don't know that we check the variables here are
+        ## actually arrays.
+        if (length(x) != 2L) {
+          odin_error("sum() requires exactly one argument, msg", line, expr)
+        }
+        if (is.symbol(x[[2L]])) {
+          ## sum(foo)
+          ret <- call("sum", x[[2L]], 1, call("length", x[[2L]]))
+        } else {
+          ## sum(foo[1
+          args <- f(x[[2L]], TRUE)
+          n <- (length(args) - 1L) / 2L
+          if (n > 1) {
+            args <- c(args,
+                      call("dim", args[[1L]], 1),
+                      if (n > 2) call("dim", args[[1L]], 2))
+          }
+          ret <- as.call(c(list(quote(sum)), args))
+        }
+        ret
+      } else {
+        args <- lapply(as.list(x[-1L]), f, FALSE)
+        as.call(c(list(x[[1L]]), args))
+      }
+    }
+  }
+  f(x)
 }
 
 odin_error <- function(msg, line, expr) {

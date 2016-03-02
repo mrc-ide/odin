@@ -60,10 +60,36 @@ SEXP get_list_element(SEXP list, const char *name) {
   return ret;
 }
 
-double odin_sum(double *x, int len) {
+double odin_sum1(double *x, int from_i, int to_i) {
   double tot = 0.0;
-  for (int i = 0; i < len; ++i) {
+  for (int i = from_i; i < to_i; ++i) {
     tot += x[i];
+  }
+  return tot;
+}
+
+double odin_sum2(double *x, int from_i, int to_i, int from_j, int to_j, int dim_1) {
+  double tot = 0.0;
+  for (int j = from_j; j < to_j; ++j) {
+    int jj = j * dim_1;
+    for (int i = from_i; i < to_i; ++i) {
+      tot += x[i + jj];
+    }
+  }
+  return tot;
+}
+
+double odin_sum3(double *x, int from_i, int to_i, int from_j, int to_j, int from_k, int to_k, int dim_1, int dim_2) {
+  double tot = 0.0;
+  const int dim_12 = dim_1 * dim_2;
+  for (int k = from_k; k <- to_k; ++k) {
+    int kk = k * dim_12;
+    for (int j = from_j; j < to_j; ++j) {
+      int jj = j * dim_1 + kk;
+      for (int i = from_i; i < to_i; ++i) {
+        tot += x[i + jj];
+      }
+    }
   }
   return tot;
 }
@@ -79,4 +105,21 @@ void lagvalue(double t, int *idx, int dim_idx, double *state) {
     fun = (void(*)(double, int*, int, double*))R_GetCCallable("deSolve", "lagvalue");
   }
   return fun(t, idx, dim_idx, state);
+}
+
+void odin_set_dim2(SEXP target, int nr, int nc) {
+  SEXP dim = PROTECT(allocVector(INTSXP, 2));
+  INTEGER(dim)[0] = nr;
+  INTEGER(dim)[1] = nc;
+  setAttrib(target, R_DimSymbol, dim);
+  UNPROTECT(1);
+}
+
+void odin_set_dim3(SEXP target, int nr, int nc, int nz) {
+  SEXP dim = PROTECT(allocVector(INTSXP, 3));
+  INTEGER(dim)[0] = nr;
+  INTEGER(dim)[1] = nc;
+  INTEGER(dim)[2] = nz;
+  setAttrib(target, R_DimSymbol, dim);
+  UNPROTECT(1);
 }

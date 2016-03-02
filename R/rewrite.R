@@ -23,6 +23,7 @@ rewrite_c <- function(expr, name_pars,
   ## sum(x) -> odin_sum(x, dim_x))
   rewrite <- c("sum", "dim", "length")
   allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10", rewrite)
+  rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index)
 
   ## Things that will work in R and C the same way:
   ##
@@ -84,21 +85,17 @@ rewrite_c <- function(expr, name_pars,
       arr <- res[[1L]]$value
       idx <- res[-1L]
       values <- values[-1L]
-      n <- length(idx)
+      nd <- length(idx)
       is_numeric <- vlapply(idx, "[[", "numeric")
-      ## TODO: This goes through minus1 now, though that is difficult
-      ## because we really want to push the whole expression through
-      ## there but I don't have access to that expression without
-      ## reparsing.  Most cases though this will be a pretty simple
-      ## expression so might work.
       values[is_numeric] <- vcapply(idx[is_numeric], function(x)
-        as.character(as.integer(x$value_num) - 1L))
-
+        minus1(x$value_num, rewrite_recall))
       if (!all(is_numeric)) {
-        if (n > 1 && is_index) {
+        if (nd > 1 && is_index) {
           is_index <- vlapply(res[-1L], "[[", "is_index")
         }
         i <- !(is_numeric | is_index)
+        ## TODO: this needs to go through minus1 but not entirely sure
+        ## it's used yet.
         fmt <- if (n == 1L) "%s - 1" else "(%s - 1)"
         values[i] <- sprintf(fmt, values[i])
       }
@@ -113,24 +110,20 @@ rewrite_c <- function(expr, name_pars,
       ##   dim_2 is the number of columns (second dimension)
       ##   but what we really need is the product there (dim_12)
       ##   dim_3 is never used here but would be the third dimension.
-      if (n > 1L) {
-        values[-1L] <- sprintf("%s * dim_%s_%s", values[-1L], arr,
-                               c("1", "12")[seq_len(n - 1L)])
+      if (nd > 1L) {
+        r <- function(i) {
+          rewrite_recall(
+            array_dim_name(as.character(expr[[2L]]), c("", "1", "12")[[i]]))
+        }
+        values[2:nd] <- sprintf("%s * %s", values[2:nd], vcapply(2:nd, r))
         values <- paste(values, collapse=" + ")
       }
-
       value <- sprintf("%s[%s]", arr, values)
     } else if (nm == "sum") {
-      ## TODO: deal with:
-      ##   sum(A) # over all elements
-      ##   sum(A[, 1]) # sum of first column
-      ##   sum(A[i, j, 1:n]) # etc.
-      if (length(expr) == 2L && is.symbol(expr[[2L]])) {
-        value <- sprintf("odin_sum(%s, %s->dim_%s)",
-                         res[[1L]]$value, name_pars, res[[1L]]$value)
-      } else {
-        stop("Unsupported version of sum")
-      }
+      nd <- (length(expr) - 1L) / 3L
+      ii <- seq_len(nd) * 2L
+      values[ii] <- lapply(expr[ii + 1L], minus1, rewrite_recall)
+      value <- sprintf("odin_sum%d(%s)", nd, paste(values, collapse=", "))
     } else if (n == 1L && nm %in% unary) {
       value <- sprintf("%s%s", nm, values)
     } else if (n == 2L && nm %in% infix) {
@@ -154,9 +147,10 @@ rewrite_c <- function(expr, name_pars,
       ## TODO: Consider replacing all other '->' bits above with
       ## recalling f().  Make that easy to do though.  Not 100% sure
       ## that's always worth doing though.
-      value <- f(array_dim_name(as.character(expr[[2L]]), TRUE))$value
+      value <- f(array_dim_name(as.character(expr[[2L]])))$value
     } else if (nm == "dim") {
-      tmp <- sprintf("%s_%d", array_dim_name(expr[[2L]], TRUE), expr[[3L]])
+      tmp <- sprintf("%s_%d", array_dim_name(as.character(expr[[2L]])),
+                     expr[[3L]])
       value <- f(tmp)$value
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))

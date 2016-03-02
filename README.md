@@ -6,8 +6,6 @@
 
 **Warning: This project is in the early scoping stages; do not use for anything other than amusement/frustration purposes**
 
-> Ode Generation and Integration
-
 # Scope
 
 A declarative way of running ODEs at native (C) speed in R.  Implements a domain specific language based on a subset of R to a set of differential equations suitable for solving with deSolve.
@@ -43,13 +41,16 @@ Berkeley Madonna is the inspiration for the DSL that we'll build up.
 * array equation syntax
 * delay equations
 
-The compiler inspects the equations and works out which bits are run at model creation (constant for all models), initialisation (depending on initial time, conditions or on user-supplied parameters), or in derivative calculations (depending on the ODE variables or time).
+`odin` inspects the equations and works out which bits are run at model creation (constant for all models), initialisation (depending on initial time, conditions or on user-supplied parameters), or in derivative calculations (depending on the ODE variables or time).
+
+The nice thing about code generation approaches is that they never get bored.  So if the generated code has lots of boring repetitive bits, they're at least likely to be correct (compared with implementing yourself).
 
 # Special functions that will be allowed
 
-* `dim`; for getting matrix dimensions
-* a reasonably large set of mathematical constructs, including all basic R operators
+* `length` and `dim`; for getting matrix dimensions of 1 and multidimensional arrays (respectively)
+* a reasonably large set of mathematical constructs, including all basic R operators (not all implemented yet)
 * something to declare arbitrary functions available to R (for initialisation only and not for the derivatives calculations) as it's ok to wear that cost once.
+* something to declare and use arbitrary pure C functions.
 
 # Initial conditions
 

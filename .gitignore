@@ -4,3 +4,5 @@
 tests/testthat/examples/*.rds
 tests/testthat/examples/malaria_*
 issues.md
+tests/testthat/*.c
+tests/testthat/tmp*

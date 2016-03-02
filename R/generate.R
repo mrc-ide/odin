@@ -70,11 +70,19 @@ odin_generate_object <- function(base, dat) {
   self$library_fns <- collector()
   self$declarations <- collector()
 
-  self$add_element <- function(name, type, array) {
-    if (array) {
-      name_dim <- array_dim_name(name, FALSE)
+  self$add_element <- function(name, type, array=0) {
+    if (array > 0L) {
+      name_dim <- array_dim_name(name, use=FALSE)
       if (!is.null(name_dim)) {
         Recall(name_dim, "int", FALSE)
+        if (array > 1L) {
+          for (i in seq_len(array)) {
+            Recall(array_dim_name(name, i, use=FALSE), "int")
+          }
+          if (array == 3L) {
+            Recall(array_dim_name(name, "12", use=FALSE), "int")
+          }
+        }
       }
     }
     self$types$add(list(name=name, type=type, array=array))
@@ -95,13 +103,17 @@ odin_generate_loop <- function(dat, base) {
   ##
   ## TODO: support general RHS rewriting of initial(x) -> initial_x
   ## combined with parse-time checking of valid x.
-  obj$add_element(sprintf("initial_%s", TIME), "double", FALSE)
+  obj$add_element(sprintf("initial_%s", TIME), "double")
 
   ## We'll always need this.
   obj$library_fns$add("get_ds_pars")
   fns <- unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))
   if ("sum" %in% fns) {
-    obj$library_fns$add("odin_sum")
+    ## TODO: We should be more clever here, but not done yet and the
+    ## cost of this is low.
+    obj$library_fns$add("odin_sum1")
+    obj$library_fns$add("odin_sum2")
+    obj$library_fns$add("odin_sum3")
   }
   if (dat$has_delay) {
     obj$library_fns$add("lagvalue")
@@ -123,7 +135,7 @@ odin_generate_loop <- function(dat, base) {
   }
 
   if (dat$variable_order$total_is_var) {
-    obj$add_element(dat$variable_order$total_use, "int", FALSE)
+    obj$add_element(dat$variable_order$total_use, "int")
     st <- STAGES[[dat$variable_order$total_stage]]
     obj[[st]]$add("%s = %s;",
                   obj$rewrite(dat$variable_order$total_use),
@@ -133,7 +145,7 @@ odin_generate_loop <- function(dat, base) {
 
   if (dat$has_output) {
     if (dat$output_order$total_is_var) {
-      obj$add_element(dat$output_order$total_use, "int", FALSE)
+      obj$add_element(dat$output_order$total_use, "int")
       st <- STAGES[[dat$output_order$total_stage]]
       obj[[st]]$add("%s = %s;",
                     obj$rewrite(dat$output_order$total_use),
@@ -153,7 +165,7 @@ odin_generate_loop <- function(dat, base) {
   vars_len <- rep_len("1", length(dat$variable_order$is_array))
   vars_len[dat$variable_order$is_array] <-
     vcapply(dat$variable_order$order[dat$variable_order$is_array],
-            array_dim_name, TRUE)
+            array_dim_name)
   obj$vars <- data.frame(
     name=dat$variable_order$order,
     array=dat$variable_order$is_array,
@@ -165,7 +177,7 @@ odin_generate_loop <- function(dat, base) {
     output_len <- rep_len("1", length(dat$output_order$is_array))
     output_len[dat$output_order$is_array] <-
       vcapply(dat$output_order$order[dat$output_order$is_array],
-              array_dim_name, TRUE)
+              array_dim_name)
     obj$output <- data.frame(
       name=dat$output_order$order,
       array=dat$output_order$is_array,
@@ -189,22 +201,33 @@ odin_generate_dim <- function(x, obj, dat) {
   nm_s <- if (is_var) paste0("initial_", nm_t) else nm_t
   st <- STAGES[[x$stage]]
 
-  obj$add_element(nm_s, "double", TRUE)
+  obj$add_element(nm_s, "double", x$nd)
 
   if (x$nd > 1L) {
-    ## If allowed here, we'll generate:
-    ##   dim_%s_%d % (nm, seq_along(nd))
-    ##   dim_%s needs to be the product of these, and done last.
-    ##   for nd 3 dim_%s_12 as dim_%s_1 * dim_%s_2, which is used
-    ##     in matrix arithmetic
-    stop("Multidimensional arrays not yet supported") # TODO
+    obj$library_fns$add(sprintf("odin_set_dim%d", x$nd))
+
+    size <- as.list(x$rhs$value[-1L])
+    nm_i <- vcapply(seq_len(x$nd),
+                    function(i) obj$rewrite(array_dim_name(nm_t, i)))
+    for (i in seq_len(x$nd)) {
+      obj[[st]]$add("%s = %s;", nm_i[[i]], obj$rewrite(size[[i]]))
+    }
+    ## Little extra work for the 3d case.  If we were allowing
+    ## arbitrary matrices here this would be heaps more complicated
+    ## but we only need the special case here.
+    if (x$nd == 3L) {
+      obj[[st]]$add("%s = %s;",
+                    obj$rewrite(array_dim_name(nm_t, "12")),
+                    paste(nm_i[1:2], collapse=" * "))
+    }
+    obj[[st]]$add("%s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
   } else {
     obj[[st]]$add("%s = %s;", obj$rewrite(nm), obj$rewrite(x$rhs$value))
   }
 
   if (is_var) {
     nm_offset <- paste0("offset_", nm_t)
-    obj$add_element(nm_offset, "int", FALSE)
+    obj$add_element(nm_offset, "int")
     obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset),
                   obj$rewrite(dat$variable_order$offset[[nm_t]]))
   }
@@ -234,7 +257,7 @@ odin_generate_symbol <- function(x, obj, dat) {
   }
 
   if (x$stage < STAGE_TIME) {
-    obj$add_element(nm, type, FALSE)
+    obj$add_element(nm, type)
     obj[[st]]$add("%s = %s;", obj$rewrite(nm), value)
   } else if (identical(x$lhs$special, "deriv")) {
     obj[[st]]$add("%s[%s] = %s;",
@@ -368,13 +391,13 @@ odin_generate_delay <- function(x, obj, dat) {
   ## the max of those.
   st <- STAGES[STAGE_CONSTANT]
 
-  obj$add_element(delay_idx, "int", TRUE)
+  obj$add_element(delay_idx, "int", 1L)
   obj[[st]]$add("%s = %d;", obj$rewrite(delay_dim), delay_len)
   obj[[st]]$add("%s = (int*) Calloc(%s, int);",
                 obj$rewrite(delay_idx), obj$rewrite(delay_dim))
   obj$free$add("Free(%s);", obj$rewrite(delay_idx))
 
-  obj$add_element(delay_state, "double", TRUE)
+  obj$add_element(delay_state, "double", 1L)
   obj[[st]]$add("%s = (double*) Calloc(%s, double);",
                 obj$rewrite(delay_state), obj$rewrite(delay_dim))
   obj$free$add("Free(%s);", obj$rewrite(delay_state))
@@ -440,7 +463,7 @@ odin_generate_delay <- function(x, obj, dat) {
 
 ## TODO: Consider a different prefix for these as the functions really
 ## fall into two phases; global collection and output.  Below here is
-## all output and does not modify obj.
+## all output and does not modify obj, except for the library_fns one.
 odin_generate_order <- function(obj) {
   ret <- collector()
   ret$add("// Report back to R information on variable ordering")
@@ -511,13 +534,25 @@ odin_generate_contents <- function(obj) {
   for (i in seq_len(len)) {
     name <- types$name[[i]]
     type <- types$type[[i]]
-    if (types$array[[i]]) {
+    array <- types$array[[i]]
+    if (array > 0L) {
       name_dim <- array_dim_name(name)
       ret$add("  SET_VECTOR_ELT(%s, %d, allocVector(%s, %s));",
                    STATE, i - 1L, rtype[[type]], obj$rewrite(name_dim))
       ret$add("  memcpy(%s(VECTOR_ELT(%s, %d)), %s, %s * sizeof(%s));",
               raccess[[type]], STATE, i - 1L, obj$rewrite(name),
               obj$rewrite(name_dim), type)
+      ## TODO: Should add something here for multidimensional arrays
+      ## to get the dimension set, I think; but we also need a
+      ## function to do that for the output vector (and that's hard
+      ## because we don't have a nice way of accessing that yet due to
+      ## the time axis of the output).
+      if (array > 1L) {
+        ret$add("  odin_set_dim%d(VECTOR_ELT(%s, %d), %s);",
+                array, STATE, i - 1L,
+                paste(vcapply(seq_len(array), function(j)
+                  obj$rewrite(array_dim_name(name, j))), collapse=", "))
+      }
     } else {
       type <- if (type == "int") "Integer" else "Real"
       ret$add("  SET_VECTOR_ELT(%s, %d, Scalar%s(%s));",
@@ -765,9 +800,12 @@ read_library <- function() {
   list(declarations=decl, definitions=defn)
 }
 
-array_dim_name <- function(name, use=TRUE) {
-  if (grepl("^initial_", name)) {
-    name_dim <- sub("^initial_", "dim_", name)
+array_dim_name <- function(name, sub=NULL, use=TRUE) {
+  if (!is.null(sub)) {
+    name <- sprintf("%s_%s", name, sub)
+  }
+  if (grepl("^(initial|deriv)_", name)) {
+    name_dim <- sub("^(initial|deriv)_", "dim_", name)
   } else if (grepl("^delay_", name)) {
     if (use || grepl("_idx$", name)) {
       name_dim <- sprintf("dim_%s", sub("_[a-z]+$", "", name))
