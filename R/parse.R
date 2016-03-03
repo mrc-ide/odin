@@ -166,7 +166,7 @@ odin_parse_lhs <- function(lhs, line, expr) {
                   index=idx,
                   nd=nd,
                   depends=deps)
-    } else if (fun %in% SPECIAL) {
+    } else if (fun %in% SPECIAL_LHS) {
       if (length(lhs) != 2L) {
         odin_error("Invalid length special function on lhs", line, expr)
       }
@@ -222,7 +222,7 @@ odin_parse_rhs <- function(rhs, line, expr) {
     ret <- list(type="atomic", value=rhs)
   } else if (is.call(rhs) || is.name(rhs)) {
     deps <- find_symbols(rhs)
-    err <- intersect(SPECIAL, deps$functions)
+    err <- intersect(SPECIAL_LHS, deps$functions)
     if (length(err) > 0L) {
       odin_error(sprintf("Function %s is disallowed on rhs",
                          paste(unique(err), collapse=", ")), line, expr)
@@ -1197,8 +1197,8 @@ OUTPUT <- "output"
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some
 ## point.
-SPECIAL <- c("initial", "deriv", "output", "dim")
+SPECIAL_LHS <- c("initial", "deriv", "output", "dim")
 INDEX <- c("i", "j", "k")
-RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, "user", SPECIAL, "delay")
-RESERVED_PREFIX <- c(SPECIAL, "odin", "offset", "delay")
+RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, "user", SPECIAL_LHS, "delay")
+RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")
