@@ -454,9 +454,19 @@ odin_parse_find_vars <- function(obj) {
   ## order will be the same as the order they are first defined in the
   ## file (so for an array calculation this is important).
   if (!setequal(vars, vars_initial)) {
-    ## TODO: Getting a nicer error message here with the missing and
-    ## extra equations would be nice, but can wait.
-    stop("derivs() and initial() must contain same set of equations")
+    msg <- collector()
+    msg_initial <- setdiff(vars, vars_initial)
+    if (length(msg_initial) > 0L) {
+      msg$add("\tin deriv() but not initial(): %s",
+              paste(msg_vars, collapse=", "))
+    }
+    msg_vars <- setdiff(vars_initial, vars)
+    if (length(msg_vars) > 0L) {
+      msg$add("\tin initial() but not deriv(): %s",
+              paste(msg_initial, collapse=", "))
+    }
+    stop("derivs() and initial() must contain same set of equations:\n",
+         paste(msg$get(), collapse="\n"), call.=FALSE)
   }
 
   err <- nms %in% vars
