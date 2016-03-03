@@ -9,7 +9,7 @@ initial(R) <- 0
 Births <- N / 75
 b <- 1 / 75
 N <- 1e7
-I0 <- 1
-beta <- 24
+I0 <- user(1)
+beta <- user(24)
 sigma <- 12
 delta <- 1 / 5

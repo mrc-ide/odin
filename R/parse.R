@@ -546,11 +546,13 @@ odin_parse_dependencies <- function(obj, vars) {
   deps_rec <- recursive_dependencies(order, c(deps, dummy), vars)
   is_delay <- vlapply(obj, function(x) isTRUE(x$rhs$delay))
   is_output <- vlapply(obj, function(x) identical(x$lhs$special, "output"))
+  is_user <- vlapply(obj, function(x) isTRUE(x$rhs$user))
 
   ## Then, we can get the stage for these variables:
   ## TODO: allow for a second layer of user parameter here.
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[TIME] <- STAGE_TIME
+  stage[nms[is_user]] <- STAGE_USER
   stage[nms[is_delay | is_output]] <- STAGE_TIME
 
   ## In topological order, determine inherited stage (a initial/time stage
@@ -1186,19 +1188,20 @@ recursive_dependencies <- function(order, deps, vars) {
 }
 
 STAGE_CONSTANT <- 1L
-STAGE_INITIAL <- 2L
+STAGE_USER <- 2L
 STAGE_TIME <- 3L
 STAGES <- c("constant", "user", "time")
 TIME <- "t"
 STATE <- "state"
 DSTATEDT <- "dstatedt"
 OUTPUT <- "output"
+USER <- "user"
 ## TODO: None of these deal with the use of these as functions (only
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some
 ## point.
 SPECIAL_LHS <- c("initial", "deriv", "output", "dim")
 INDEX <- c("i", "j", "k")
-RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, "user", SPECIAL_LHS, "delay")
+RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay")
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")

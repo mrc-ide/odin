@@ -17,7 +17,8 @@ odin_generate <- function(dat, base="odin", dest=tempfile()) {
   ret <- list(header,
               odin_generate_struct(obj),
               declarations,
-              create=odin_generate_create(obj),
+              odin_generate_create(obj),
+              odin_generate_user(obj),
               odin_generate_finalize(obj),
               odin_generate_initial(obj),
               deriv=odin_generate_deriv(obj),
@@ -61,6 +62,7 @@ odin_generate_object <- function(base, dat) {
   ## Create, initialise, derivatives
   self$constant <- collector()
   self$initial <- collector()
+  self$user <- collector()
   self$time <- collector()
 
   self$free <- collector()
@@ -190,11 +192,6 @@ odin_generate_loop <- function(dat, base) {
 }
 
 odin_generate_dim <- function(x, obj, dat) {
-  ## TODO: put a check for this somewhere in parse.
-  if (x$stage != STAGE_CONSTANT) {
-    stop("This should never happen")
-  }
-
   nm <- x$name
   nm_t <- x$lhs$name_target
   is_var <- nm_t %in% dat$vars
@@ -202,6 +199,19 @@ odin_generate_dim <- function(x, obj, dat) {
   st <- STAGES[[x$stage]]
 
   obj$add_element(nm_s, "double", x$nd)
+
+  ## TODO: put a check for this somewhere in parse.
+  if (x$stage == STAGE_USER) {
+    stop("User-variable size arrays not currently supported")
+    ## Basically this should be enough.  It needs to go ahead of the
+    ## code added below.
+    obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm))
+    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(nm))
+    obj[["user"]]$add("  Free(%s);", obj$rewrite(nm))
+    obj[["user"]]$add("}")
+  } else if (x$stage > STAGE_USER) {
+    stop("This should never happen!")
+  }
 
   if (x$nd > 1L) {
     obj$library_fns$add(sprintf("odin_set_dim%d", x$nd))
@@ -251,7 +261,7 @@ odin_generate_symbol <- function(x, obj, dat) {
     }
     get_user <- sprintf("get_user_%s", type)
     obj$library_fns$add(get_user)
-    value <- sprintf("%s(user, \"%s\", %s)", get_user, nm, default)
+    value <- sprintf("%s(%s, \"%s\", %s)", get_user, USER, nm, default)
   } else {
     value <- obj$rewrite(x$rhs$value)
   }
@@ -620,7 +630,7 @@ odin_generate_create <- function(obj) {
   ret$add("// constant variables")
   ## See odin_generate_finalize(); we need to declare the finalizer here.
   ret$add("static void %s_finalize(SEXP %s_ptr);", obj$base, obj$base)
-  ret$add("SEXP %s_create(SEXP user) {", obj$base)
+  ret$add("SEXP %s_create(SEXP %s) {", obj$base, USER)
   ret$add("  %s *%s = (%s*) Calloc(1, %s);",
           obj$type_pars, obj$name_pars, obj$type_pars, obj$type_pars)
   ret$add(indent(obj$constant$get(), 2))
@@ -628,14 +638,36 @@ odin_generate_create <- function(obj) {
     "  SEXP %s_ptr = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
     obj$base, obj$name_pars)
   ret$add("  R_RegisterCFinalizer(%s_ptr, %s_finalize);", obj$base, obj$base)
+  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
   ret$add("  UNPROTECT(1);")
   ret$add("  return %s_ptr;", obj$base)
   ret$add("}")
   ret$get()
 }
 
+odin_generate_user <- function(obj) {
+  ret <- collector()
+  ret$add("// Set user-supplied parameter values.")
+  ret$add("SEXP %s_set_user(%s *%s, SEXP %s) {",
+          obj$base, obj$type_pars, obj$name_pars, USER)
+  user <- obj$user$get()
+  if (length(user) > 0) {
+    ret$add(indent(user, 2))
+  }
+  ret$add("  return R_NilValue;")
+  ret$add("};")
+  ret$add("// Wrapper around this for use from R.")
+  ret$add("SEXP r_%s_set_user(SEXP %s_ptr, SEXP %s) {",
+          obj$base, obj$base, USER)
+  ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+          obj$type_pars, obj$name_pars, obj$base, obj$base)
+  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
+  ret$add("  return R_NilValue;")
+  ret$add("};")
+  ret$get()
+}
+
 ## TODO: for %s_ptr, use odin_ptr (<base>_ptr) or use <obj$type_pars>_ptr?
-## TODO: this will also take a user object.
 odin_generate_initial <- function(obj) {
   ret <- collector()
   ret$add("SEXP %s_initialise(SEXP %s_ptr, SEXP %s_ptr) {",
@@ -714,11 +746,15 @@ odin_generate_library_fns <- function(obj) {
 }
 
 ## NOTE: This does violate the idea that these leave obj unmodified;
-## this adds a declaration for the get_pointer function.
+## this adds a declaration for the get_pointer function.  These
+## _always_ get added so add in the loop function perhaps?
 odin_generate_support <- function(obj) {
-  ret <- collector()
   obj$declarations$add("%s* %s_get_pointer(SEXP %s_ptr, int closed_error);",
                        obj$type_pars, obj$base, obj$base)
+  obj$declarations$add("SEXP %s_set_user(%s *%s, SEXP %s);",
+                       obj$base, obj$type_pars, obj$name_pars, USER)
+
+  ret <- collector()
   ret$add("%s* %s_get_pointer(SEXP %s_ptr, int closed_error) {",
           obj$type_pars, obj$base, obj$base)
   ret$add("  %s *%s = NULL;", obj$type_pars, obj$name_pars)
