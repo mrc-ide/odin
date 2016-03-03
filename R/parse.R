@@ -458,12 +458,12 @@ odin_parse_find_vars <- function(obj) {
     msg_initial <- setdiff(vars, vars_initial)
     if (length(msg_initial) > 0L) {
       msg$add("\tin deriv() but not initial(): %s",
-              paste(msg_vars, collapse=", "))
+              paste(msg_initial, collapse=", "))
     }
     msg_vars <- setdiff(vars_initial, vars)
     if (length(msg_vars) > 0L) {
       msg$add("\tin initial() but not deriv(): %s",
-              paste(msg_initial, collapse=", "))
+              paste(msg_vars, collapse=", "))
     }
     stop("derivs() and initial() must contain same set of equations:\n",
          paste(msg$get(), collapse="\n"), call.=FALSE)
