@@ -77,3 +77,59 @@ test_that("odin implementations work", {
     expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
   }
 })
+
+test_that("nicer interface", {
+  re <- "([[:alnum:]]+)_odin\\.R$"
+  files <- dir("examples", re)
+  base <- sub(re, "\\1", files)
+  test <- intersect(c("lorenz", "sir", "seir", "array", "array_2d"), base)
+
+  for (b in test) {
+    if (b == "array_2d") {
+      filename_d <- "examples/array_deSolve.R"
+    } else {
+      filename_d <- sprintf("examples/%s_deSolve.R", b)
+    }
+    filename_o <- sprintf("examples/%s_odin.R", b)
+
+    mod_r <- source1(filename_d)
+    t <- seq_range(mod_r$t, 300)
+    t0 <- mod_r$t[[1L]]
+
+    dat <- odin_parse(filename_o)
+    path <- odin_generate(dat, dest=tempfile(b, fileext=".c"))
+    dll <- compile(path)
+
+    mod_c <- ode_system_generator(dll)$new(NULL)
+    expect_is(mod_c, "ode_system")
+
+    expect_equal(mod_c$init, unname(mod_r$initial(t0)))
+
+    output_len <- sum(mod_c$output_order)
+
+    if (mod_c$has_delay) {
+      expect_error(mod_c$deriv(t0, mod_c$init), "not supported in delay")
+    } else {
+      deriv_c <- mod_c$deriv(t0, mod_c$init)
+      deriv_r <- mod_r$derivs(t0, mod_c$init)
+      expect_equal(deriv_c, deriv_r[[1L]], check.attributes=FALSE)
+    }
+
+    if (output_len == 0L) {
+      expect_null(attr(deriv_c, "output"))
+    } else {
+      ## The check.attributes is necessary because otherwise testthat
+      ## gives entirely meaningless error messages on attribute
+      ## differences (as it looks for differences in the values
+      ## themselves).
+      expect_equal(attr(deriv_c, "output", exact=TRUE), deriv_r[[2L]],
+                   check.attributes=FALSE)
+    }
+
+    tol <- if (b == "seir") 1e-7 else 1e-9
+
+    res_r <- run_model(mod_r, t)
+    res_c <- mod_c$run(t)
+    expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
+  }
+})
