@@ -549,7 +549,6 @@ odin_parse_dependencies <- function(obj, vars) {
   is_user <- vlapply(obj, function(x) isTRUE(x$rhs$user))
 
   ## Then, we can get the stage for these variables:
-  ## TODO: allow for a second layer of user parameter here.
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[TIME] <- STAGE_TIME
   stage[nms[is_user]] <- STAGE_USER
@@ -588,6 +587,15 @@ odin_parse_dependencies <- function(obj, vars) {
   ## real object
   order_keep <- setdiff(order, names(dummy))
 
+  user <- nms[is_user]
+
+  ## TODO: Special treatment is needed for time-dependent initial
+  ## conditions; they get special treatment and are held to max of
+  ## STAGE_USER.  However, we'll record that they are time-dependent
+  ## here.
+  is_initial <- vlapply(obj, function(x) identical(x$lhs$special, "initial"))
+  initial_stage <- max(c(STAGE_CONSTANT, stage[nms[is_initial]]))
+
   i <- match(order_keep, nms)
   obj <- obj[i]
   nms <- nms[i]
@@ -600,7 +608,9 @@ odin_parse_dependencies <- function(obj, vars) {
   }
 
   list(vars=vars,
-       eqs=obj)
+       eqs=obj,
+       user=nms[is_user],
+       initial_stage=initial_stage)
 }
 
 odin_parse_check_array_usage <- function(obj) {
