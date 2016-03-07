@@ -2,9 +2,12 @@
 ## very slightly different interfaces based on the options in info.
 ## For now this is done sub-optimally but I think it's fine for now at
 ## least.
-ode_system_generator <- function(dll, name="odin") {
+ode_system_generator <- function(dll, name=NULL) {
   ## At present this is not going to work well for constructing custom
   ## initialisers but we can get there eventually.
+  if (is.null(name)) {
+    name <- basename_no_ext(dll)
+  }
   info <- .Call(paste0(name, "_info"), PACKAGE=dll)
   R6::R6Class(
     "ode_system",
@@ -33,6 +36,7 @@ ode_system_generator <- function(dll, name="odin") {
       ## generated to take a proper argument lists derived from
       ## info$user.
       initialize=function(pars=NULL) {
+        "odin"
         self$ptr <- .Call(self$C$create, pars)
         if (self$initial_stage < STAGE_TIME) {
           self$init <- .Call(self$C$init, self$ptr, 0.0)

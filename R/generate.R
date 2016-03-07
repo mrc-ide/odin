@@ -1,5 +1,9 @@
-odin_generate <- function(dat, base="odin", dest=tempfile()) {
-  obj <- odin_generate_loop(dat, base)
+## What I don't know here is if we will always dump to a file or to a
+## directory?  It seems that specifying a directory matches more with
+## how this is likely to be run in practice.  This is likely to be
+## different when run from a package though.
+odin_generate <- function(dat, dest=tempdir()) {
+  obj <- odin_generate_loop(dat)
   ## This one is special because it fills up declarations; it miust be
   ## run first.
   support <- odin_generate_support(obj)
@@ -33,8 +37,17 @@ odin_generate <- function(dat, base="odin", dest=tempfile()) {
 
   txt <- paste(vcapply(ret, paste, collapse="\n"),
                collapse="\n\n")
-  writeLines(txt, dest)
-  dest
+
+  if (is.null(dest)) {
+    ## Here we'll return the actual contents:
+    txt
+  } else {
+    if (is_directory(dest) || !grepl(".", basename(dest), fixed=TRUE)) {
+      dest <- file.path(dest, sprintf("%s.c", obj$base))
+    }
+    writeLines(txt, dest)
+    dest
+  }
 }
 
 ## What we are going to write here is a little bit of (fairly nasty)
@@ -42,7 +55,8 @@ odin_generate <- function(dat, base="odin", dest=tempfile()) {
 ## simplest way of doing this might be to generate a small list of
 ## types that we can reference everywhere.  But that might just be
 ## more complicated than it needs to be?
-odin_generate_object <- function(base, dat) {
+odin_generate_object <- function(dat) {
+  base <- dat[["config"]][["base"]]
   self <- list(base=base)
 
   self$info <- list(base=base,
@@ -102,8 +116,8 @@ odin_generate_object <- function(base, dat) {
 
 ## TODO: Disallow '<base>_' as a name; otherwise potential for
 ## collision, so probably set that in the DSL rather than here.
-odin_generate_loop <- function(dat, base) {
-  obj <- odin_generate_object(base, dat)
+odin_generate_loop <- function(dat) {
+  obj <- odin_generate_object(dat)
 
   ## Set up initial time so we can refer to it later.  Not all models
   ## make use of this, but it seems worth adding (and doesn't take

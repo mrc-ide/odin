@@ -55,3 +55,11 @@ is_integer_like <- function(x, tol=sqrt(.Machine$double.eps)) {
 is_call <- function(expr, symbol) {
   is.recursive(expr) && identical(expr[[1L]], symbol)
 }
+
+is_directory <- function(path) {
+  file.exists(path) && file.info(path, extra_cols=FALSE)$isdir
+}
+
+basename_no_ext <- function(path) {
+  tools::file_path_sans_ext(basename(path))
+}

@@ -41,18 +41,19 @@ test_that("odin implementations work", {
     t0 <- mod$t[[1L]]
 
     dat <- odin_parse(filename_o)
-    path <- odin_generate(dat, dest=tempfile(b, fileext=".c"))
+    path <- odin_generate(dat)
     dll <- compile(path)
+    info <- odin_dll_info(basename_no_ext(dll), dll)
 
-    ptr <- .Call("odin_create", NULL, PACKAGE=dll)
+    ptr <- .Call(info[["create"]], NULL)
     expect_is(ptr, "externalptr")
 
-    init <- .Call("odin_initialise", ptr, t0, PACKAGE=dll)
+    init <- .Call(info[["init"]], ptr, t0)
     expect_equal(init, unname(mod$initial(t0)))
 
     output_len <- attr(init, "output_len")
 
-    deriv_c <- .Call("r_odin_deriv", ptr, t0, init, PACKAGE=dll)
+    deriv_c <- .Call(info[["deriv"]], ptr, t0, init)
     deriv_r <- mod$derivs(t0, init)
     expect_equal(deriv_c, deriv_r[[1L]], check.attributes=FALSE)
 
@@ -71,8 +72,8 @@ test_that("odin implementations work", {
     nout <- if (is.null(output_len)) 0L else output_len
 
     res_r <- run_model(mod, t)
-    res_c <- ode(init, t, "odin_ds_derivs", ptr,
-                 initfunc="odin_ds_initmod", dllname=dll,
+    res_c <- ode(init, t, info[["ds_deriv"]], ptr,
+                 initfunc=info[["ds_initmod"]], dllname=dll,
                  nout=nout)
     expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
   }
@@ -97,7 +98,7 @@ test_that("nicer interface", {
     t0 <- mod_r$t[[1L]]
 
     dat <- odin_parse(filename_o)
-    path <- odin_generate(dat, dest=tempfile(b, fileext=".c"))
+    path <- odin_generate(dat)
     dll <- compile(path)
 
     mod_c <- ode_system_generator(dll)$new(NULL)

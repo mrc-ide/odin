@@ -31,10 +31,11 @@ odin_parse <- function(file="", text=NULL) {
   ## step so that all the errors are reported at once within this
   ## block.  Similar approaches will apply elsewhere.
   eqs <- lapply(seq_along(exprs), odin_parse_expr, exprs)
-  ret <- list(eqs=eqs, vars=odin_parse_find_vars(eqs))
+  ret <- list(eqs=eqs,
+              vars=odin_parse_find_vars(eqs),
+              file=file)
 
-  ## Rewrite initial conditions to depend not on the variables, but on
-  ## initial conditions.
+  ret <- odin_parse_config(ret)
   ret <- odin_parse_rewrite_initial_conditions(ret)
   ret <- odin_parse_combine_arrays(ret)
   ret <- odin_parse_dependencies(ret)
@@ -311,6 +312,77 @@ odin_parse_rhs <- function(rhs, line, expr) {
     odin_error("Unhandled expression on rhs", line, expr)
   }
   ret
+}
+
+odin_parse_config <- function(obj) {
+  ## We'll test for allowed config keys here:
+  ##    base - basename
+  ##    method - this is the default only
+  ##    atol, rtol - defaults only
+  ##    [we'll accept any defaults here?]
+
+  ## If base is not given, then we'll look at the actual underlying
+  ## filename; if that is not given, use odin?
+
+  ## That will scale pretty well for packages where we'll want each
+  ## different file to have their own base.
+  is_config <- vlapply(obj$eqs, function(x) identical(x$lhs$special, "config"))
+  cfg <- obj$eqs[is_config]
+
+  ## Then, we go through and get the names of the variables.  They
+  ## must all be symbols, rather than characters, but that's enforced
+  ## earlier
+  err <- !vlapply(cfg, function(x) identical(x$rhs$type, "atomic"))
+  if (any(err)) {
+    odin_error("config() rhs must be atomic (not an expression)",
+               get_lines(cfg[err]), get_exprs(cfg[err]))
+  }
+
+  cfg <- setNames(lapply(cfg, function(x) x$rhs$value),
+                  vcapply(cfg, function(x) x$lhs$name_target))
+  ## Here, we do need to check a bunch of values, really.
+  defaults <- list(base="odin")
+  if (obj$file != "") {
+    defaults$base <- gsub("[-.]", "_", basename_no_ext(obj$file))
+  }
+
+  ## These all need support on the C side.
+  ##
+  ## Consider namespacing these here:
+  ## atol=formals(deSolve::lsoda)$atol,
+  ## rtol=formals(deSolve::lsoda)$rtol,
+  ## method="lsoda", # same as deSolve::ode
+  ## ## delay only
+  ## mxhist=10000
+  ##
+  ## Also allow renaming here (time, derivs, etc).
+
+  err <- setdiff(names(cfg), names(defaults))
+  if (length(err)) {
+    tmp <- obj$eqs[is_config][match(err, names(cfg))]
+    odin_error(sprintf("Unknown configuration options: %s",
+                       paste(err, collapse=", ")),
+               get_lines(tmp), get_exprs(tmp))
+  }
+
+  ## Now, we need to typecheck these.  This is really annoying to do!
+  char <- vlapply(defaults, is.character)
+  ok <- vlapply(cfg, is.character) == char[names(cfg)]
+  if (!all(ok)) {
+    ## TODO: better error messages (which are the wrong types?)
+    tmp <- obj$eqs[is_config][!ok]
+    odin_error(sprintf("Incorrect type (char vs numeric) for configuration: %s",
+                       paste(names(whick(!ok)), collapse=", ")),
+               get_lines(tmp), get_exprs(tmp))
+  }
+
+  obj$config <- modifyList(defaults, cfg)
+  if (!grepl("^[[:alnum:]_]+$", obj$config$base)) {
+    stop(sprintf("Invalid base value: '%s', must contain letters, numbers and underscores only", obj$config$base))
+  }
+
+  obj$eqs <- obj$eqs[!is_config]
+  obj
 }
 
 ## So the pair:
@@ -1235,7 +1307,7 @@ USER <- "user"
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some
 ## point.
-SPECIAL_LHS <- c("initial", "deriv", "output", "dim")
+SPECIAL_LHS <- c("initial", "deriv", "output", "dim", "config")
 INDEX <- c("i", "j", "k")
 RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay")
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay")
