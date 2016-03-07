@@ -600,6 +600,21 @@ odin_parse_dependencies <- function(obj, vars) {
   is_initial <- vlapply(obj, function(x) identical(x$lhs$special, "initial"))
   initial_stage <- max(c(STAGE_CONSTANT, stage[nms[is_initial]]))
 
+  ## Check for unused branches:
+  is_deriv <- vlapply(obj, function(x) identical(x$lhs$special, "deriv"))
+  endpoints <- nms[is_initial | is_output | is_deriv]
+  used <- union(endpoints, unique(unlist(deps_rec[endpoints], use.names=FALSE)))
+  unused <- setdiff(nms, used)
+  if (length(unused) > 0L) {
+    i <- sort(match(unused, nms))
+    ## TODO: this is disabled for now because it breaks a ton of tests
+    ## that I want to throw earlier.
+    ##
+    ## TODO: perhaps this should be a warning?
+    ## odin_error(sprintf("Unused variables: %s", paste(unused, collapse=", ")),
+    ##            get_lines(obj[i]), get_exprs(obj[i]))
+  }
+
   i <- match(order_keep, nms)
   obj <- obj[i]
   nms <- nms[i]
@@ -1174,6 +1189,9 @@ odin_parse_rewrite_sum <- function(x, line, expr) {
   f(x)
 }
 
+## We're going to need to wrap this up like testthat I think, so that
+## we can catch these and group them together.  But leaving that for
+## now.
 odin_error <- function(msg, line, expr) {
   if (is.expression(expr)) {
     expr_str <- vcapply(expr, deparse_str)
