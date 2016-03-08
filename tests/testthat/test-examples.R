@@ -97,11 +97,9 @@ test_that("nicer interface", {
     t <- seq_range(mod_r$t, 300)
     t0 <- mod_r$t[[1L]]
 
-    dat <- odin_parse(filename_o)
-    path <- odin_generate(dat)
-    dll <- compile(path)
-
-    mod_c <- ode_system_generator(dll)$new(NULL)
+    gen <- odin_build(filename_o, tempdir(), FALSE)
+    expect_is(gen, "R6ClassGenerator")
+    mod_c <- gen$new()
     expect_is(mod_c, "ode_system")
 
     expect_equal(mod_c$init, unname(mod_r$initial(t0)))
