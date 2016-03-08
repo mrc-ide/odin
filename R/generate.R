@@ -294,51 +294,61 @@ odin_generate_array <- function(x, obj, dat) {
   st <- STAGES[[x$stage]]
 
   if (isTRUE(x$rhs$user)) {
-    ## TODO - see issues.md: "user arrays"
-    stop("User-supplied arrays not yet supported")
-  }
+    nd <- dat$eqs[[array_dim_name(x$name)]]$nd
+    fn <- sprintf("get_user_array%d", nd)
+    obj$library_fns$add(fn)
 
-  indent <- ""
-  for (j in seq_along(x$lhs$index)) {
-    xj <- x$lhs$index[[j]]
-    is_range <- xj$is_range
-    target <- xj$extent_max
-    ## TODO: The index variables need sanitising so that no more
-    ## than one of i,j,k is allowed; things like x[i,j] = z[i + j]
-    ## are not allowed!
-    for (k in seq_along(is_range)) {
-      if (is_range[k]) {
-        obj[[st]]$add("%sfor (int %s = %s; %s < %s; ++%s) {",
-                      indent,
-                      INDEX[[k]], minus1(xj$extent_min[[k]], obj$rewrite),
-                      INDEX[[k]], obj$rewrite(xj$extent_max[[k]]),
-                      INDEX[[k]])
-        indent <- paste0("  ", indent)
-        target[[k]] <- as.symbol(INDEX[[k]])
-      } else if (INDEX[[k]] %in% x$rhs$depends$variables) {
-        ## TODO: I need to get the index rhs depends back here to
-        ## do this best (i.e., if the rhs does not depend on an
-        ## index then don't bother adding the declaration here).
-        ## As it is this will do this for *all* entries which is
-        ## not ideal.
-        if (!nzchar(indent)) {
-          obj[[st]]$add("{")
-          indent <- "  "
-        }
-        obj[[st]]$add("%sint %s = %s;", indent, INDEX[[k]],
-                      minus1(xj$extent_max[[k]], obj$rewrite))
-        target[[k]] <- as.symbol(INDEX[[k]])
-      } else {
-        target[[k]] <- xj$extent_max[[k]]
-      }
+    if (nd == 1) {
+      dn <- obj$rewrite(array_dim_name(x$name))
+    } else {
+      dn <- paste(vcapply(seq_len(nd), function(i)
+        obj$rewrite(array_dim_name(x$name, i)), USE.NAMES=FALSE), collapse=", ")
     }
-    target <- obj$rewrite(as.call(c(quote(`[`), as.symbol(nm), target)))
-    value <- obj$rewrite(x$rhs$value[[j]])
-    obj[[st]]$add("%s%s = %s;", indent, target, value)
+    obj[[st]]$add('%s(%s, "%s", %s, %s);',
+                  fn, USER, x$name, dn, obj$rewrite(x$name))
+  } else {
+    indent <- ""
+    for (j in seq_along(x$lhs$index)) {
+      xj <- x$lhs$index[[j]]
+      is_range <- xj$is_range
+      target <- xj$extent_max
+      ## TODO: The index variables need sanitising so that no more
+      ## than one of i,j,k is allowed; things like x[i,j] = z[i + j]
+      ## are not allowed!
+      for (k in seq_along(is_range)) {
+        if (is_range[k]) {
+          obj[[st]]$add("%sfor (int %s = %s; %s < %s; ++%s) {",
+                        indent,
+                        INDEX[[k]], minus1(xj$extent_min[[k]], obj$rewrite),
+                        INDEX[[k]], obj$rewrite(xj$extent_max[[k]]),
+                        INDEX[[k]])
+          indent <- paste0("  ", indent)
+          target[[k]] <- as.symbol(INDEX[[k]])
+        } else if (INDEX[[k]] %in% x$rhs$depends$variables) {
+          ## TODO: I need to get the index rhs depends back here to
+          ## do this best (i.e., if the rhs does not depend on an
+          ## index then don't bother adding the declaration here).
+          ## As it is this will do this for *all* entries which is
+          ## not ideal.
+          if (!nzchar(indent)) {
+            obj[[st]]$add("{")
+            indent <- "  "
+          }
+          obj[[st]]$add("%sint %s = %s;", indent, INDEX[[k]],
+                        minus1(xj$extent_max[[k]], obj$rewrite))
+          target[[k]] <- as.symbol(INDEX[[k]])
+        } else {
+          target[[k]] <- xj$extent_max[[k]]
+        }
+      }
+      target <- obj$rewrite(as.call(c(quote(`[`), as.symbol(nm), target)))
+      value <- obj$rewrite(x$rhs$value[[j]])
+      obj[[st]]$add("%s%s = %s;", indent, target, value)
 
-    while (nzchar(indent)) {
-      indent <- substr(indent, 3L, nchar(indent))
-      obj[[st]]$add("%s}", indent)
+      while (nzchar(indent)) {
+        indent <- substr(indent, 3L, nchar(indent))
+        obj[[st]]$add("%s}", indent)
+      }
     }
   }
 }

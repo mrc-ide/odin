@@ -21,6 +21,41 @@ double get_user_double(SEXP user, const char *name, double default_value) {
   return ret;
 }
 
+void get_user_array1(SEXP user, const char * name, double len, double *dest) {
+  SEXP el = get_list_element(user, name);
+  if (el == R_NilValue) {
+    Rf_error("Expected value for %s", name);
+  } else {
+    if (LENGTH(x) != len) {
+      Rf_error("Expected length %d value for %s", len, name);
+    }
+    el = PROTECT(coerceVector(el, REALSXP));
+    memcpy(dest, REAL(el), len * sizeof(double));
+    UNPROTECT(1);
+  }
+}
+
+// NOTE: different versions will be needed with variable size arrays,
+// because we'll need to return the memory too.
+void get_user_array2(SEXP user, const char * name, double nr, double nc, double *dest) {
+  SEXP el = get_list_element(user, name);
+  if (el == R_NilValue) {
+    Rf_error("Expected value for %s", name);
+  } else {
+    SEXP dim = getAttrib(el, R_DimSymbol);
+    if (dim == R_NilValue || LENGTH(dim) != 2) {
+      Rf_error("Expected a matrix for %s", name);
+    }
+    dim = PROTECT(coerceVector(dim, INTSXP));
+    if (INTEGER(dim)[0] != nr || INTEGER(dim)[1] != nc) {
+      Rf_error("Expected a matrix of dimensions %d x %d for %s", nr, nc, name);
+    }
+    el = PROTECT(coerceVector(el, REALSXP));
+    memcpy(dest, REAL(el), nr * nc * sizeof(double));
+    UNPROTECT(2);
+  }
+}
+
 int get_user_int(SEXP user, const char *name, int default_value) {
   int ret = default_value;
   SEXP el = get_list_element(user, name);

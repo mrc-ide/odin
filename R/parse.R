@@ -423,10 +423,14 @@ odin_parse_combine_arrays <- function(obj) {
     ok <- c("type", "name", "name_target", "index", "nd", "depends", "special")
     stopifnot(length(setdiff(unlist(lapply(
       obj[j], function(x) names(x$lhs))), ok)) == 0L)
-    ok <- c("type", "depends", "value")
+    ## If a user value is used, then we _must_ have only a single thing here.
+    ok <- c("type", "depends", "value", "user", "default")
     stopifnot(length(setdiff(unlist(lapply(
       obj[j], function(x) names(x$rhs))), ok)) == 0L)
-
+    if (length(j) > 1L && any(vlapply(obj[j], function(x) "user" %in% names(x$rhs)))) {
+      odin_error("user() may only be used on a single-line array assignment",
+                 get_lines(obj[j]), get_exprs(obj[j]))
+    }
     obj[[k]] <- x
   }
 
