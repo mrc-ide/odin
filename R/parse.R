@@ -393,9 +393,12 @@ odin_parse_config <- function(obj) {
   ok <- vlapply(cfg, is.character) == char[names(cfg)]
   if (!all(ok)) {
     ## TODO: better error messages (which are the wrong types?)
+    ##
+    ## TODO: this branch is not tested (there was a typo in which that
+    ## is not triggered anywhere)
     tmp <- obj$eqs[is_config][!ok]
     odin_error(sprintf("Incorrect type (char vs numeric) for configuration: %s",
-                       paste(names(whick(!ok)), collapse=", ")),
+                       paste(names(which(!ok)), collapse=", ")),
                get_lines(tmp), get_exprs(tmp))
   }
 

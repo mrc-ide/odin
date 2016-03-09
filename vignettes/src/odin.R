@@ -42,8 +42,8 @@ r_output(readLines(path_logistic))
 ## reference `N0`.
 
 ## **NOTE** while this _looks_ like R (and must *parse* as R) it is
-## **not actually R code.  Copying and pasting this code into an R
-## **session would throw an error
+## not actually R code.  Copying and pasting this code into an R
+## session would throw an error
 
 ## To compile this as a standalone model (not suitable for inclusion
 ## in a package) use `odin::odin`;

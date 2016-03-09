@@ -104,8 +104,6 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
   ret
 }
 
-can_compile_result <- NULL
-
 ##' Test if compilation appears possible.  This is used in some
 ##' examples, and tries compiling a trivial C program with \code{R CMD
 ##' SHLIB}.  Results are cached between runs within a session so this
@@ -116,7 +114,7 @@ can_compile_result <- NULL
 ##' @examples
 ##' can_compile()
 can_compile <- function() {
-  if (is.null(can_compile_result)) {
+  if (getOption("odin.can_compile", FALSE)) {
     tmp <- tempfile()
     dir.create(tmp)
     owd <- setwd(tmp)
@@ -129,9 +127,9 @@ can_compile <- function() {
     code <- system2(file.path(R.home(), "bin", "R"),
                     c("CMD", "SHLIB", file),
                     stdout=FALSE, stderr=FALSE)
-    can_compile_result <<- code == 0L
+    options(odin.can_compile=code == 0L)
   }
-  can_compile_result
+  getOption("odin.can.compile", FALSE)
 }
 
 ## Generate an interface.  This is a bit tricky as we want to generate
@@ -139,6 +137,7 @@ can_compile <- function() {
 ## For now this is done sub-optimally but I think it's fine for now at
 ## least.
 ode_system_generator <- function(dll, name=NULL) {
+  self <- NULL # for R CMD check
   ## At present this is not going to work well for constructing custom
   ## initialisers but we can get there eventually.
   if (is.null(name)) {
