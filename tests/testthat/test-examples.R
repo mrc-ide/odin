@@ -42,7 +42,7 @@ test_that("odin implementations work", {
 
     dat <- odin_parse(filename_o)
     path <- odin_generate(dat)
-    dll <- compile(path)
+    dll <- compile(path, verbose=FALSE)
     info <- odin_dll_info(basename_no_ext(dll), dll)
 
     ptr <- .Call(info[["create"]], NULL)
@@ -77,6 +77,9 @@ test_that("odin implementations work", {
                  nout=nout)
     expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
   }
+  ## This might be needed to trigger finalisation of all models (which
+  ## are all out of scope by now).
+  gc()
 })
 
 test_that("nicer interface", {
@@ -97,7 +100,7 @@ test_that("nicer interface", {
     t <- seq_range(mod_r$t, 300)
     t0 <- mod_r$t[[1L]]
 
-    gen <- odin_build(filename_o, tempdir(), FALSE)
+    gen <- odin(filename_o, tempdir(), verbose=FALSE)
     expect_is(gen, "R6ClassGenerator")
     mod_c <- gen$new()
     expect_is(mod_c, "ode_system")
