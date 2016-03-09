@@ -664,7 +664,10 @@ odin_generate_create <- function(obj) {
   ret$add("SEXP %s_create(SEXP %s) {", obj$base, USER)
   ret$add("  %s *%s = (%s*) Calloc(1, %s);",
           obj$type_pars, obj$name_pars, obj$type_pars, obj$type_pars)
-  ret$add(indent(obj$constant$get(), 2))
+  constant <- obj$constant$get()
+  if (length(constant) > 0L) {
+    ret$add(indent(constant, 2))
+  }
   ret$add(
     "  SEXP %s_ptr = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
     obj$base, obj$name_pars)
@@ -682,7 +685,7 @@ odin_generate_user <- function(obj) {
   ret$add("SEXP %s_set_user(%s *%s, SEXP %s) {",
           obj$base, obj$type_pars, obj$name_pars, USER)
   user <- obj$user$get()
-  if (length(user) > 0) {
+  if (length(user) > 0L) {
     ret$add(indent(user, 2))
   }
   ret$add("  return R_NilValue;")
@@ -759,8 +762,10 @@ odin_generate_deriv <- function(obj) {
             obj$output$name[obj$output$array], OUTPUT,
             obj$output$offset[obj$output$array])
   }
-
-  ret$add(indent(obj$time$get(), 2))
+  time <- obj$time$get()
+  if (length(time) > 0L) {
+    ret$add(indent(time, 2))
+  }
   ret$add("}")
   ret$get()
 }
