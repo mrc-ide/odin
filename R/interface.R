@@ -104,6 +104,8 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
   ret
 }
 
+can_compile_result <- NULL
+
 ##' Test if compilation appears possible.  This is used in some
 ##' examples, and tries compiling a trivial C program with \code{R CMD
 ##' SHLIB}.  Results are cached between runs within a session so this
@@ -113,7 +115,6 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
 ##' @export
 ##' @examples
 ##' can_compile()
-can_compile_result <- NULL
 can_compile <- function() {
   if (is.null(can_compile_result)) {
     tmp <- tempfile()
