@@ -6,3 +6,4 @@
 ^appveyor.yml$
 ^tests/testthat/examples/.*\.rds$
 ^tests/testthat/examples/malaria_.*$
+^inst/web$

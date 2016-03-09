@@ -7,3 +7,4 @@ issues.md
 tests/testthat/*.c
 tests/testthat/tmp*
 inst/doc
+inst/web
