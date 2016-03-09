@@ -10,8 +10,21 @@
 ## Note that this is one big horrific linear function until I work out
 ## where the constituent parts are.  There will be some but they're
 ## not really obvious at the moment.
-odin_parse <- function(file="", text=NULL) {
-  exprs <- parse(file=file, text=text, keep.source=TRUE)
+odin_parse <- function(x, as="file") {
+  exprs <- switch(match.arg(as, c("file", "text", "expression")),
+                  file=parse(file=x, keep.source=TRUE),
+                  text=parse(text=x, keep.source=TRUE),
+                  expression=odin_parse_expression(x))
+  ## Need to determine a base "filename" for when a basename is not
+  ## specified in the model.  This hopefully avoids the worst of
+  ## possible segfaults (but not all!)
+  file <- if (as == "file") x else basename(tempfile("odin", "."))
+
+  ## TODO: when passing in expressions, source information will not be
+  ## available generally.  It's possible that this might be relaxable
+  ## in the case of running an expression from a file though.  In
+  ## either case we'll need to do a bit of work to get the linenumbers
+  ## back, or to print the error messages sensibly without them.
 
   ## First pass is to check that all operations are assignments.  No
   ## for loops, no if/else statements.  This might be relaxed later to
@@ -46,8 +59,18 @@ odin_parse <- function(file="", text=NULL) {
   ret
 }
 
+odin_parse_expression <- function(x) {
+  if (inherits(x, "{")) {
+    x <- as.expression(as.list(x[-1L]))
+  }
+  x
+}
+
 odin_parse_expr <- function(i, exprs) {
   line <- utils::getSrcLocation(exprs[i], "line")
+  if (is.null(line)) {
+    line <- NA_integer_
+  }
   expr <- exprs[[i]]
   lhs <- odin_parse_lhs(expr[[2L]], line, expr)
   rhs <- odin_parse_rhs(expr[[3L]], line, expr)
@@ -1273,7 +1296,7 @@ odin_error <- function(msg, line, expr) {
   } else {
     expr_str <- deparse_str(expr)
   }
-  str <- sprintf("%s # (line %s)", expr_str, line)
+  str <- sprintf(ifelse(is.na(line), "%s", "%s # (line %s)"), expr_str, line)
   stop(msg, paste0("\n\t", str, collapse=""), call.=FALSE)
 }
 
