@@ -43,5 +43,10 @@ README.md: README.Rmd
 	sed -i.bak 's/[[:space:]]*$$//' $@
 	rm -f $@.bak
 
+vignettes/odin.Rmd: vignettes/src/odin.R
+	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
+vignettes: vignettes/odin.Rmd
+	${RSCRIPT} -e 'library(methods); devtools::build_vignettes()'
+
 # No real targets!
 .PHONY: all test document install vignettes build

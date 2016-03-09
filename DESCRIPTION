@@ -12,4 +12,8 @@ Imports:
     R6,
     deSolve
 Suggests:
-    testthat
+    testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 5.0.1

@@ -1,0 +1,212 @@
+---
+title: "Odin"
+author: "Rich FitzJohn"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Odin}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+``` {r setup, echo=FALSE, results="hide"}
+lang_output <- function(x, lang) {
+  cat(c(sprintf("```%s", lang), x, "```"), sep="\n")
+}
+c_output <- function(x) lang_output(x, "cc")
+r_output <- function(x) lang_output(x, "r")
+plain_output <- function(x) lang_output(x, "plain")
+knitr::opts_chunk$set(
+  fig.width=7,
+  fig.height=5)
+```
+
+# Single variable: Logistic growth
+
+We'll first start with a very simple model; logisitic growth.  We
+have one variable `N` which grows towards a carrying capacity `K`.
+The growth rate is `r` when `N` is very small (note that this
+equation can be easily solved analytically and it's only included
+here for demonstration!)
+
+``` {r }
+path_logistic <- system.file("examples/logistic.R", package="odin")
+```
+
+``` {r echo=FALSE, results="asis"}
+r_output(readLines(path_logistic))
+```
+
+The time derivatives are indicated by `deriv(N) <- `; the right
+hand side of this is the differential equation.  Initial conditions
+are always given (future versions may make them optional) and can
+be in terms of variables.  Note that the definition of declaration
+is not important; the derivative calculation references parameters
+`r` and `K` which have not been defined and the initial conditions
+reference `N0`.
+
+**NOTE** while this _looks_ like R (and must *parse* as R) it is
+**not actually R code.  Copying and pasting this code into an R
+**session would throw an error
+
+To compile this as a standalone model (not suitable for inclusion
+in a package) use `odin::odin`;
+``` {r }
+generator <- odin::odin(path_logistic, tempdir(), verbose=FALSE)
+generator
+```
+
+This returns an `R6ClassGenerator` object which in turn will
+generate an instance of the model:
+``` {r }
+mod <- generator$new()
+mod
+```
+
+This is an `ode_system` object and can be used to run the system of
+differential equations, query the internal state, and so on.  Most
+of the listed elements above do not need to be accessed ever (I
+would make them private but that incurrs a very slight performance
+cost).
+
+The initial conditions:
+``` {r }
+mod$init
+```
+
+dN/dt evaluated at the time zero, with the initial conditions:
+``` {r }
+mod$deriv(0, mod$init)
+```
+
+or with arbitrary conditions:
+``` {r }
+mod$deriv(0, 50)
+```
+
+To see the contents of all the variables, intermediates and
+parameters tracked by odin use `contents()`:
+``` {r }
+mod$contents()
+```
+
+To run the model, provide a set of times:
+``` {r }
+tt <- seq(0, 30, length.out=101)
+y <- mod$run(tt)
+plot(y, xlab="Time", ylab="N", las=1, main="")
+```
+
+While initial conditions are computed, you may pass in arbitrary
+initial conditions;
+``` {r }
+y2 <- mod$run(tt, 50)
+plot(y, xlab="Time", ylab="N", las=1, main="")
+lines(y2, col="red")
+```
+
+## Specifying parameters
+
+The above is about the simplest possible useful model I could come
+up with.  But it's not that useful because all the parameters are
+hard coded into the model.  Here's a slightly tweaked version where
+the parameters may be specified at runtime:
+``` {r }
+generator <- odin::odin({
+  deriv(N) <- r * N * (1 - N / K)
+  initial(N) <- N0
+
+  N0 <- user(1)
+  K <- user(100)
+  r <- user()
+}, tempdir(), verbose=FALSE)
+```
+
+
+when used as `user(1)` (as for `N` and `K`) it means we allow a
+user parameter called `N0` to be specified, but if omitted it has a
+default value of 1.  When used as `user()` (as for `r`) it means
+that there is no default value and `r` **must** be provided.
+
+Note this example takes the code of the model as its first
+argument.  It can also be specified as text, but the form above
+should be nicer to write than text, especially in editors with
+support for things like autocompletion.
+
+Because `r` is required, it is an error to initialise the model
+without any parameters:
+
+``` {r error=TRUE}
+generator$new()
+```
+
+**NOTE:** the interface here will change so that it will be
+possible to call the generator as `generator$new(r=1)` but that
+needs a little work.
+``` {r }
+mod <- generator$new(list(r=1))
+```
+
+The model contains the set value of r
+``` {r }
+mod$contents()$r
+```
+
+Running the model shows the effect of doubling the growth rate:
+``` {r }
+y3 <- mod$run(tt)
+plot(y, xlab="Time", ylab="N", las=1, main="")
+lines(y3, col="red")
+```
+
+Once created a model can have the parameters re-set:
+``` {r }
+mod$set_user(list(r=0.25, K=75, N0=10))
+y4 <- mod$run(tt)
+plot(y, xlab="Time", ylab="N", las=1, main="")
+lines(y3, col="red")
+lines(y4, col="blue")
+```
+
+Note that it is not (currently) an error to set unknown parameters.
+This will be fixed in a future version:
+``` {r }
+mod$set_user(list(r=1, whatever=1))
+```
+
+# More than one variable: the Lorenz attractor
+
+Once more than one variable is involved, there is a bit more
+book-keeping to take care of.
+``` {r }
+path_lorenz <- system.file("examples/lorenz.R", package="odin")
+```
+
+The Lorenz attractor is a set of coupled ODEs that displays chaotic
+behaviour.  It was found by reducing a set of equations describing
+atmospheric convection in the 1960s.  Mostly I just think it looks
+pretty.
+
+``` {r echo=FALSE, results="asis"}
+r_output(readLines(path_lorenz))
+```
+
+The system is not chaotic with all parameters.  The initial
+conditions are fairly arbitrary here as the system will settle into
+its characteristic shape from most points (though with completely
+different realisations).
+
+Building the generator, and from that a system, is the same as the
+above:
+``` {r }
+generator <- odin::odin(path_lorenz, tempdir(), verbose=FALSE)
+mod <- generator$new()
+```
+
+Because of the rapid changes that characterise this model, we'll
+take a _lot_ of samples.
+``` {r }
+tt <- seq(0, 100, length.out=20000)
+system.time(y <- mod$run(tt))
+pairs(y[, -1L], panel=lines, lwd=.2, col="#00000055")
+```
