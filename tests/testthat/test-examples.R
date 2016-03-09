@@ -105,7 +105,8 @@ test_that("nicer interface", {
     mod_c <- gen$new()
     expect_is(mod_c, "ode_system")
 
-    expect_equal(mod_c$init, unname(mod_r$initial(t0)))
+    expect_equal(mod_c$init,
+                 if (mod_c$has_delay) NULL else unname(mod_r$initial(t0)))
 
     output_len <- sum(mod_c$output_order)
 
@@ -115,17 +116,17 @@ test_that("nicer interface", {
       deriv_c <- mod_c$deriv(t0, mod_c$init)
       deriv_r <- mod_r$derivs(t0, mod_c$init)
       expect_equal(deriv_c, deriv_r[[1L]], check.attributes=FALSE)
-    }
 
-    if (output_len == 0L) {
-      expect_null(attr(deriv_c, "output"))
-    } else {
-      ## The check.attributes is necessary because otherwise testthat
-      ## gives entirely meaningless error messages on attribute
-      ## differences (as it looks for differences in the values
-      ## themselves).
-      expect_equal(attr(deriv_c, "output", exact=TRUE), deriv_r[[2L]],
-                   check.attributes=FALSE)
+      if (output_len == 0L) {
+        expect_null(attr(deriv_c, "output"))
+      } else {
+        ## The check.attributes is necessary because otherwise testthat
+        ## gives entirely meaningless error messages on attribute
+        ## differences (as it looks for differences in the values
+        ## themselves).
+        expect_equal(attr(deriv_c, "output", exact=TRUE), deriv_r[[2L]],
+                     check.attributes=FALSE)
+      }
     }
 
     tol <- if (b == "seir") 1e-7 else 1e-9
@@ -134,4 +135,5 @@ test_that("nicer interface", {
     res_c <- mod_c$run(t)
     expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
   }
+  gc()
 })

@@ -696,7 +696,8 @@ odin_parse_dependencies <- function(obj) {
   ## STAGE_USER.  However, we'll record that they are time-dependent
   ## here.
   is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
-  initial_stage <- max(c(STAGE_CONSTANT, stage[nms[is_initial]]))
+  initial_stage <- (if (any(is_delay)) STAGE_TIME
+                    else max(c(STAGE_CONSTANT, stage[nms[is_initial]])))
 
   ## Check for unused branches:
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))

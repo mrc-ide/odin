@@ -714,13 +714,18 @@ odin_generate_initial <- function(obj) {
           obj$type_pars, obj$name_pars, obj$base, obj$base)
 
   initial <- obj$initial$get()
+  if (obj$info$has_delay || length(initial) > 0L) {
+    ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
+  }
+  if (obj$info$has_delay) {
+    ret$add("  %s = %s;", obj$rewrite(sprintf("initial_%s", TIME)), TIME)
+  }
   if (length(initial) > 0L) {
     stop("This code path is untested at present.")
     ## TODO: check that we need to use time.  We'll need to go through
     ## and check the time-dependencies here (see stub in
     ## generate.R:...loop)
-    ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
-    ret$add(as.character(indent(initial, 2)))
+    ret$add(indent(initial, 2))
   }
 
   ## It's possible this bit should be factored out into a separate function?

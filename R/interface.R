@@ -174,7 +174,9 @@ ode_system_generator <- function(dll, name=NULL) {
         "odin"
         self$ptr <- .Call(self$C$create, pars)
         if (self$initial_stage < STAGE_TIME) {
-          self$init <- .Call(self$C$init, self$ptr, 0.0)
+          ## NOTE: Because we never use time in this case it's safe to
+          ## pass anything at all through here.
+          self$init <- .Call(self$C$init, self$ptr, NA_real_)
         }
         self$order <- .Call(self$C$order, self$ptr)
         self$output_order <- .Call(self$C$output_order, self$ptr)
@@ -185,7 +187,7 @@ ode_system_generator <- function(dll, name=NULL) {
         if (self$has_user) {
           .Call(self$C$set_user, self$ptr, pars)
           if (self$initial_stage == STAGE_USER) {
-            self$init <- .Call(self$C$init, self$ptr, 0)
+            self$init <- .Call(self$C$init, self$ptr, NA_real_)
           }
           ## TODO: only needs doing if we have arrays with STAGE_USER
           ## dim() calls.
@@ -209,8 +211,13 @@ ode_system_generator <- function(dll, name=NULL) {
           if (self$initial_stage < STAGE_TIME) {
             y <- self$init
           } else {
-            y <- .Call(self$C$init, self$ptr, t[[0L]])
+            y <- .Call(self$C$init, self$ptr, t[[1L]])
           }
+        } else if (self$initial_stage == STAGE_TIME) {
+          ## TODO: this is going to initialise the correct starting
+          ## time but also compute and return the y values, which we
+          ## don't need.
+          .Call(self$C$init, self$ptr, t[[1L]])
         }
 
         self$ode(y, t, self$C$ds_deriv, self$ptr,
