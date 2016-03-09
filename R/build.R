@@ -1,4 +1,4 @@
-compile <- function(filename, verbose=TRUE, load=TRUE) {
+compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE) {
   if (isTRUE(verbose)) {
     verbose <- ""
   }
@@ -7,7 +7,8 @@ compile <- function(filename, verbose=TRUE, load=TRUE) {
   on.exit(setwd(owd))
   base <- sub("\\.c$", "", basename(filename))
   ok <- system2(file.path(R.home(), "bin", "R"),
-                c("CMD", "SHLIB", basename(filename)),
+                c("CMD", "SHLIB", basename(filename),
+                  if (preclean) "--preclean"),
                 stdout=verbose, stderr=verbose)
   if (ok != 0L) {
     stop("Error compiling source")

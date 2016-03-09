@@ -512,8 +512,10 @@ odin_generate_order <- function(obj) {
   ret$add("// variable, from which offset, etc, can be worked out.")
 
   ret$add("SEXP %s_order(SEXP %s_ptr) {", obj$base, obj$base)
-  ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-          obj$type_pars, obj$name_pars, obj$base, obj$base)
+  if (any(obj$vars$array)) {
+    ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+            obj$type_pars, obj$name_pars, obj$base, obj$base)
+  }
   ret$add("  SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
           STATE, nrow(obj[["vars"]]))
   ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
@@ -539,8 +541,10 @@ odin_generate_output_order <- function(obj) {
   if (is.null(obj[["output"]])) {
     ret$add("  return R_NilValue;", STATE)
   } else {
-    ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-            obj$type_pars, obj$name_pars, obj$base, obj$base)
+    if (any(obj$output$array)) {
+      ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+              obj$type_pars, obj$name_pars, obj$base, obj$base)
+    }
     ret$add("  SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
             STATE, nrow(obj[["output"]]))
     ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
@@ -706,10 +710,18 @@ odin_generate_initial <- function(obj) {
   ret <- collector()
   ret$add("SEXP %s_initialise(SEXP %s_ptr, SEXP %s_ptr) {",
           obj$base, obj$base, TIME)
-  ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
           obj$type_pars, obj$name_pars, obj$base, obj$base)
-  ret$add(as.character(indent(obj$initial$get(), 2)))
+
+  initial <- obj$initial$get()
+  if (length(initial) > 0L) {
+    stop("This code path is untested at present.")
+    ## TODO: check that we need to use time.  We'll need to go through
+    ## and check the time-dependencies here (see stub in
+    ## generate.R:...loop)
+    ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
+    ret$add(as.character(indent(initial, 2)))
+  }
 
   ## It's possible this bit should be factored out into a separate function?
   ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, %s));",
