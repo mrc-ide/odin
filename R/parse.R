@@ -652,6 +652,7 @@ odin_parse_dependencies <- function(obj) {
   ## dependencies dependencies and so on.
   deps_rec <- recursive_dependencies(order, c(deps, dummy), vars)
   is_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
+  is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
   is_user <- vlapply(eqs, function(x) isTRUE(x$rhs$user))
 
@@ -659,7 +660,7 @@ odin_parse_dependencies <- function(obj) {
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[TIME] <- STAGE_TIME
   stage[nms[is_user]] <- STAGE_USER
-  stage[nms[is_delay | is_output]] <- STAGE_TIME
+  stage[nms[is_delay | is_output | is_deriv]] <- STAGE_TIME
 
   ## In topological order, determine inherited stage (a initial/time stage
   ## anywhere in a chain implies a initial/time stage).
