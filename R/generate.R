@@ -323,6 +323,14 @@ odin_generate_array <- function(x, obj, dat) {
                   fn, USER, x$name, dn, obj$rewrite(x$name))
   } else {
     indent <- ""
+    ## TODO: For >= 2 dimensions, consider running the indices
+    ## backwards here to be more cache friendly.  So this means
+    ## running k, then j, then i.  To do this well, store the offsets
+    ## at each loop level.  See odin_sum2 and odin_sum3 for how this
+    ## works.  I'm not really sure if this will actually make a
+    ## performance gain, but it should be simple enough to implement.
+    ## It's worth checking the code that compiler generates though
+    ## actually differs (especially with -O2 or higher).
     for (j in seq_along(x$lhs$index)) {
       xj <- x$lhs$index[[j]]
       is_range <- xj$is_range

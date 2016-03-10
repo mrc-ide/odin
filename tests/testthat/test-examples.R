@@ -134,6 +134,20 @@ test_that("nicer interface", {
     res_r <- run_model(mod_r, t)
     res_c <- mod_c$run(t)
     expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
+
+    y <- mod_c$transform_variables(res_c)
+    expect_is(y, "list")
+    expect_equal(names(y), names(mod_c$order))
+    is_array <- !vlapply(mod_c$order, is.null)
+    len <- vnapply(mod_c$order, function(x) if (is.null(x)) 1 else prod(x))
+    expect_equal(lengths(y), length(t) * len)
+    expect_true(all(viapply(y[!is_array], function(x) is.null(dim(x)))))
+
+    expect_true(all(viapply(y[!is_array], function(x) is.null(dim(x)))))
+    expect_true(all(viapply(y[is_array], function(x) !is.null(dim(x)))))
+    for (i in which(is_array)) {
+      expect_equal(dim(y[[i]]), c(length(t), mod_c$order[[i]]))
+    }
   }
   gc()
 })

@@ -165,6 +165,7 @@ ode_system_generator <- function(dll, name=NULL) {
       init=NULL,
       order=NULL,
       output_order=NULL,
+      transform_variables=NULL,
 
       ## TODO: both initialize and set_user should optionally be fully
       ## generated to take a proper argument lists derived from
@@ -177,8 +178,7 @@ ode_system_generator <- function(dll, name=NULL) {
           ## pass anything at all through here.
           self$init <- .Call(self$C$init, self$ptr, NA_real_)
         }
-        self$order <- .Call(self$C$order, self$ptr)
-        self$output_order <- .Call(self$C$output_order, self$ptr)
+        self$update_cache()
         self$ode <- if (self$has_delay) deSolve::dede else deSolve::ode
       },
 
@@ -190,12 +190,17 @@ ode_system_generator <- function(dll, name=NULL) {
           }
           ## TODO: only needs doing if we have arrays with STAGE_USER
           ## dim() calls.
-          self$order <- .Call(self$C$order, self$ptr)
-          self$output_order <- .Call(self$C$order, self$ptr)
+          self$update_cache()
         } else {
           stop("This model does not have parameters")
         }
         invisible(self$init)
+      },
+
+      update_cache=function() {
+        self$order <- .Call(self$C$order, self$ptr)
+        self$output_order <- .Call(self$C$output_order, self$ptr)
+        self$transform_variables <- make_transform_variables(self)
       },
 
       deriv=function(t, y) {
@@ -244,4 +249,67 @@ odin_dll_info <- function(name, dll) {
     ## deSolve does not support this (yet)
     ds_deriv=sprintf("%s_ds_derivs", name),
     ds_initmod=sprintf("%s_ds_initmod", name))
+}
+
+## TODO: depending on the dimensionality stage we will want to run
+## this at other times; that needs to be added to the interface bits
+## as soon as variable sized arrays are handled (I have most of the
+## ingredients for this now, I think).
+
+## The issue here is that in the case of purely scalar variables we
+## really want to return a matrix not a vector.  Matrices are heaps
+## faster dto deal with (especially row-wise access) so we should make
+## that an option I think.
+
+## At the same time, things like row-wise access of the list based
+## form is basically impossible so we should consider classing this
+## and retaining the original output so that x[, 1] on the output runs
+## through the transformation.  But for x[, 1:5] and logical indices?
+## Who knows?  This is _hard_...
+make_transform_variables <- function(x) {
+  ## Then we can work out this information about the model:
+  order <- x$order
+  n <- length(x$order)
+  len <- vnapply(order, function(x) if (is.null(x)) 1L else prod(x),
+                 USE.NAMES=FALSE)
+  i1 <- cumsum(len)
+  i0 <- c(1L, i1[-n] + 1L)
+
+  tot <- sum(len)
+  is_scalar <- vlapply(order, is.null)
+  is_array <- !is_scalar
+
+  ## We can detect time except for the cases where the output length
+  ## is one.  But we should be able to work with this by checking for
+  ## the length being equal to tot, at least for now, but this does
+  ## need dealing with.
+  function(y) {
+    if (is.matrix(y)) {
+      has_time <- ncol(y) > tot
+      ret <- setNames(vector("list", n), names(order))
+      ## Here, it might make sense to treat length1 arrays as scalars, but
+      ## that might complicarte things if there are user sized arrays in the
+      ## way that sapply breaks everything.
+      if (any(is_scalar)) {
+        ret[is_scalar] <- lapply(which(is_scalar) + has_time,
+                                 function(i) y[, i])
+      }
+      if (any(is_array)) {
+        nr <- nrow(y)
+        ret[is_array] <- lapply(which(is_array), function(i)
+          array(y[, i0[[i]]:i1[[i]] + has_time], c(nr, order[[i]])))
+      }
+    } else {
+      has_time <- length(y) > tot
+      ret <- setNames(vector("list", n), names(order))
+      if (any(is_scalar)) {
+        ret[is_scalar] <- y[which(is_scalar) + has_time]
+      }
+      if (any(is_array)) {
+        ret[is_array] <- lapply(which(is_array), function(i)
+          array(y[i0[[i]]:i1[[i]] + has_time], order[[i]]))
+      }
+    }
+    ret
+  }
 }
