@@ -84,7 +84,6 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
     } else if (file.exists(x)) {
       as <- "file"
     } else {
-      browser()
       stop("'x' looks like a file, but file does not exist")
     }
   } else {

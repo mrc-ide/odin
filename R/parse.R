@@ -846,8 +846,13 @@ odin_parse_variable_order <- function(obj) {
   is_array <- setNames(vlapply(obj$eqs[sprintf("deriv_%s", vars)],
                                function(x) x$lhs$type == "array"), vars)
 
-  ord <- rep(0, length(is_array))
-  ord[is_array] <- match(sprintf("dim_%s", vars[is_array]), names(obj$eqs))
+  ord <- rep(0L, length(is_array))
+  array <- rep(0L, length(is_array))
+  if (any(is_array)) {
+    tmp <- vcapply(vars[is_array], array_dim_name, USE.NAMES=FALSE)
+    ord[is_array] <- match(tmp, names(obj$eqs))
+    array[is_array] <- viapply(obj$eqs[tmp], "[[", "nd")
+  }
 
   vars <- vars[order(ord)]
   is_array <- is_array[vars]
@@ -884,7 +889,9 @@ odin_parse_variable_order <- function(obj) {
   total_stage <- max(stage)
 
   obj$variable_order <-
-    list(order=vars, is_array=is_array,
+    list(order=vars,
+         is_array=is_array, # may be dropped
+         array=array,
          offset=offset, offset_use=offset_use,
          offset_is_var=offset_is_var,
          total=total,

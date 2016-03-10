@@ -191,7 +191,8 @@ odin_generate_loop <- function(dat) {
             array_dim_name)
   obj$vars <- data.frame(
     name=dat$variable_order$order,
-    array=dat$variable_order$is_array,
+    is_array=dat$variable_order$is_array,
+    array=dat$variable_order$array,
     offset=vcapply(dat$variable_order$offset_use, obj$rewrite),
     length=vcapply(vars_len, obj$rewrite),
     stringsAsFactors=FALSE)
@@ -505,26 +506,51 @@ odin_generate_delay <- function(x, obj, dat) {
 ## TODO: Consider a different prefix for these as the functions really
 ## fall into two phases; global collection and output.  Below here is
 ## all output and does not modify obj, except for the library_fns one.
+
+## TODO: This aand generate_output_order do basically the same thing
+## to two different sets of variables.  It would be good to abstract
+## this away if that makes much sense because the new version is a bit
+## of a terror.
 odin_generate_order <- function(obj) {
   ret <- collector()
+  vars <- obj[["vars"]]
   ret$add("// Report back to R information on variable ordering")
   ret$add("// The reported information includes position and length of each")
   ret$add("// variable, from which offset, etc, can be worked out.")
 
   ret$add("SEXP %s_order(SEXP %s_ptr) {", obj$base, obj$base)
-  if (any(obj$vars$array)) {
+  if (any(vars$is_array)) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
             obj$type_pars, obj$name_pars, obj$base, obj$base)
+    if (max(vars$array) > 1L) {
+      ret$add("  int *tmp;")
+    }
   }
-  ret$add("  SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
-          STATE, nrow(obj[["vars"]]))
+  ret$add("  SEXP %s_len = PROTECT(allocVector(VECSXP, %d));",
+          STATE, nrow(vars))
   ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
-          STATE, nrow(obj[["vars"]]))
+          STATE, nrow(vars))
 
-  i <- seq_len(nrow(obj[["vars"]])) - 1L
-  ret$add("  INTEGER(%s_len)[%s] = %s;", STATE, i, obj[["vars"]]$length)
-  ret$add("  SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
-          STATE, i, obj[["vars"]]$name)
+  i <- seq_len(nrow(vars)) - 1L
+  for (i in seq_len(nrow(vars))) {
+    nd <- vars$array[[i]]
+    if (nd == 0L) {
+      ret$add("  SET_VECTOR_ELT(%s_len, %s, R_NilValue);", STATE, i - 1L)
+    } else if (nd == 1L) {
+      ret$add("  SET_VECTOR_ELT(%s_len, %s, ScalarInteger(%s));",
+              STATE, i - 1L, vars$length[[i]])
+    } else {
+      ret$add("  SET_VECTOR_ELT(%s_len, %s, allocVector(INTSXP, %d));",
+              STATE, i - 1L, nd)
+      ret$add("  tmp = INTEGER(VECTOR_ELT(%s_len, %s));", STATE, i - 1L)
+      for (j in seq_len(nd)) {
+        ret$add("  tmp[%d] = %s;", j - 1L,
+                obj$rewrite(array_dim_name(vars$name[[i]], j)))
+      }
+    }
+    ret$add("  SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
+            STATE, i - 1L, vars$name[[i]])
+  }
   ret$add("  setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
   ret$add("  UNPROTECT(2);")
   ret$add("  return %s_len;", STATE)
@@ -541,7 +567,7 @@ odin_generate_output_order <- function(obj) {
   if (is.null(obj[["output"]])) {
     ret$add("  return R_NilValue;", STATE)
   } else {
-    if (any(obj$output$array)) {
+    if (any(obj$output$array)) { # TODO: array > 0
       ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
               obj$type_pars, obj$name_pars, obj$base, obj$base)
     }
@@ -732,7 +758,7 @@ odin_generate_initial <- function(obj) {
   ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, %s));",
           STATE, obj$variable_size)
   copy <- character(nrow(obj[["vars"]]))
-  i <- obj[["vars"]]$array
+  i <- obj[["vars"]]$is_array
   nm_initial <- vcapply(sprintf("initial_%s", obj[["vars"]]$name), obj$rewrite)
   copy[i] <- sprintf("  memcpy(REAL(%s) + %s, %s, %s * sizeof(double));",
                      STATE, obj[["vars"]]$offset[i], nm_initial[i],
@@ -764,15 +790,15 @@ odin_generate_deriv <- function(obj) {
   ## We always need to pull variables out of the state vector, and set
   ## up pointers for array derivatives.  This happens at the beginning
   ## of the derivative calculations.
-  if (!any(vars$array)) {
+  if (!any(vars$is_array)) {
     ret$add("  double %s = %s[%s];",
-            vars$name[!vars$array], STATE, vars$offset[!vars$array])
+            vars$name[!vars$is_array], STATE, vars$offset[!vars$is_array])
   }
-  if (any(vars$array)) {
+  if (any(vars$is_array)) {
     ret$add("  double *%s = %s + %s;",
-            vars$name[vars$array], STATE, vars$offset[vars$array])
+            vars$name[vars$is_array], STATE, vars$offset[vars$is_array])
     ret$add("  double *deriv_%s = %s + %s;",
-            vars$name[vars$array], DSTATEDT, vars$offset[vars$array])
+            vars$name[vars$is_array], DSTATEDT, vars$offset[vars$is_array])
   }
   if (any(obj$output$array)) {
     ret$add("  double *output_%s = %s + %s;",
