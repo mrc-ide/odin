@@ -21,7 +21,7 @@ double get_user_double(SEXP user, const char *name, double default_value) {
   return ret;
 }
 
-void get_user_array1(SEXP user, const char * name, double len, double *dest) {
+void get_user_array1(SEXP user, const char *name, int len, double *dest) {
   SEXP el = get_list_element(user, name);
   if (el == R_NilValue) {
     Rf_error("Expected value for %s", name);
@@ -37,7 +37,7 @@ void get_user_array1(SEXP user, const char * name, double len, double *dest) {
 
 // NOTE: different versions will be needed with variable size arrays,
 // because we'll need to return the memory too.
-void get_user_array2(SEXP user, const char * name, double nr, double nc, double *dest) {
+void get_user_array2(SEXP user, const char *name, int nr, int nc, double *dest) {
   SEXP el = get_list_element(user, name);
   if (el == R_NilValue) {
     Rf_error("Expected value for %s", name);
