@@ -910,7 +910,6 @@ odin_generate_desolve <- function(obj) {
 
 odin_generate_info <- function(obj) {
   info <- obj$info
-  len <- length(info)
   ret <- collector()
   ret$add("// Report back to R some key features of the system of ODEs")
   ret$add("// These are truely constant features of the model -- not to do")
@@ -919,31 +918,51 @@ odin_generate_info <- function(obj) {
   ret$add("// length etc might vary depending on parameters used to generate")
   ret$add("// the model so we'll pull those elsewhere")
   ret$add("SEXP %s_info() {", obj$base)
-  ret$add("  SEXP ret = PROTECT(allocVector(VECSXP, %d));", len)
-  ret$add("  SEXP nms = PROTECT(allocVector(STRSXP, %d));", len)
+  ret$add("  SEXP ret = PROTECT(allocVector(VECSXP, %d));", length(info))
+  ret$add("  SEXP nms = PROTECT(allocVector(STRSXP, %d));", length(info))
   if (max(lengths(info)) > 1) {
     ret$add("  SEXP tmp;")
   }
-  for (i in seq_len(len)) {
+  for (i in seq_along(info)) {
     x <- info[[i]]
     ret$add('  SET_STRING_ELT(nms, %d, mkChar("%s"));',
             i - 1L, names(info)[[i]])
-    if (is.character(x)) {
-      if (length(x) == 0L) {
-        ret$add('  SET_VECTOR_ELT(ret, %d, R_NilValue);', i - 1L)
-      } else if (length(x) == 1L) {
+    if (length(x) == 0L) {
+      ret$add('  SET_VECTOR_ELT(ret, %d, R_NilValue);', i - 1L)
+    } else if (length(x) == 1L) {
+      if (is.character(x)) {
         ret$add('  SET_VECTOR_ELT(ret, %d, mkString("%s"));', i - 1L, x)
       } else {
-        ret$add('  tmp = PROTECT(allocVector(STRSXP, %d));', length(x))
-        ret$add('  SET_STRING_ELT(tmp, %d, mkChar("%s"));',
-                seq_along(x) - 1L, x)
-        ret$add('  SET_VECTOR_ELT(ret, %d, tmp);', i - 1L)
-        ret$add('  UNPROTECT(1);')
+        fn <- if (is.logical(x)) "ScalarLogical" else "ScalarInteger"
+        ret$add('  SET_VECTOR_ELT(ret, %d, %s(%d));',
+                i - 1L, fn, as.integer(x))
       }
     } else {
-      fn <- if (is.logical(x)) "ScalarLogical" else "ScalarInteger"
-      ret$add('  SET_VECTOR_ELT(ret, %d, %s(%d));',
-              i - 1L, fn, as.integer(x))
+      sxp <- switch(storage.mode(x),
+                    logical="LGLSXP",
+                    character="STRSXP")
+      ret$add('  tmp = PROTECT(allocVector(%s, %d));', sxp, length(x))
+      j <- seq_along(x) - 1L
+      if (is.character(x)) {
+        ret$add('  SET_STRING_ELT(tmp, %d, mkChar("%s"));', j, x)
+      } else {
+        ret$add('  INTEGER(tmp)[%d] = %d;', j, as.integer(x))
+      }
+      ret$add('  SET_VECTOR_ELT(ret, %d, tmp);', i - 1L)
+      ret$add('  UNPROTECT(1);')
+    }
+    if (length(x) > 0L && !is.null(names(x))) {
+      if (length(x) == 1L) {
+        ret$add(
+          '  setAttrib(VECTOR_ELT(ret, %d), R_NamesSymbol, mkString("%s"));',
+          i - 1L, names(x))
+      } else {
+        ret$add('  tmp = PROTECT(allocVector(STRSXP, %d));', length(x))
+        ret$add('  SET_STRING_ELT(tmp, %d, mkChar("%s"));', j, names(x))
+        ret$add('  setAttrib(VECTOR_ELT(ret, %d), R_NamesSymbol, tmp);',
+                i - 1L)
+        ret$add('  UNPROTECT(1);')
+      }
     }
   }
   ret$add("  setAttrib(ret, R_NamesSymbol, nms);")
