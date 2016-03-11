@@ -26,7 +26,7 @@ void get_user_array1(SEXP user, const char * name, double len, double *dest) {
   if (el == R_NilValue) {
     Rf_error("Expected value for %s", name);
   } else {
-    if (LENGTH(x) != len) {
+    if (LENGTH(el) != len) {
       Rf_error("Expected length %d value for %s", len, name);
     }
     el = PROTECT(coerceVector(el, REALSXP));
