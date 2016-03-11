@@ -920,7 +920,9 @@ odin_generate_info <- function(obj) {
   ret$add("SEXP %s_info() {", obj$base)
   ret$add("  SEXP ret = PROTECT(allocVector(VECSXP, %d));", length(info))
   ret$add("  SEXP nms = PROTECT(allocVector(STRSXP, %d));", length(info))
-  if (max(lengths(info)) > 1) {
+  as_vector <- vlapply(info, function(x)
+                       length(x) > 1 || (length(x) > 0 && !is.null(names(x))))
+  if (any(as_vector)) {
     ret$add("  SEXP tmp;")
   }
   for (i in seq_along(info)) {
@@ -929,7 +931,10 @@ odin_generate_info <- function(obj) {
             i - 1L, names(info)[[i]])
     if (length(x) == 0L) {
       ret$add('  SET_VECTOR_ELT(ret, %d, R_NilValue);', i - 1L)
-    } else if (length(x) == 1L) {
+    } else if (!as_vector[[i]]) {
+      ## The names length check is required to avoid a weirdness in
+      ## the R API here:
+      ## https://stat.ethz.ch/pipermail/r-devel/2014-October/070010.html
       if (is.character(x)) {
         ret$add('  SET_VECTOR_ELT(ret, %d, mkString("%s"));', i - 1L, x)
       } else {
