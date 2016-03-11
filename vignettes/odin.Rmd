@@ -46,20 +46,18 @@ is not important; the derivative calculation references parameters
 reference `N0`.
 
 **NOTE** while this _looks_ like R (and must *parse* as R) it is
-**not actually R code.  Copying and pasting this code into an R
-**session would throw an error
+not actually R code.  Copying and pasting this code into an R
+session would throw an error
 
 To compile this as a standalone model (not suitable for inclusion
 in a package) use `odin::odin`;
 ``` {r }
 generator <- odin::odin(path_logistic, tempdir(), verbose=FALSE)
-generator
 ```
 
-This returns an `R6ClassGenerator` object which in turn will
-generate an instance of the model:
+This returns a function that will generate an instance of the model:
 ``` {r }
-mod <- generator$new()
+mod <- generator()
 mod
 ```
 
@@ -122,7 +120,6 @@ generator <- odin::odin({
 }, tempdir(), verbose=FALSE)
 ```
 
-
 when used as `user(1)` (as for `N` and `K`) it means we allow a
 user parameter called `N0` to be specified, but if omitted it has a
 default value of 1.  When used as `user()` (as for `r`) it means
@@ -137,14 +134,12 @@ Because `r` is required, it is an error to initialise the model
 without any parameters:
 
 ``` {r error=TRUE}
-generator$new()
+generator()
 ```
 
-**NOTE:** the interface here will change so that it will be
-possible to call the generator as `generator$new(r=1)` but that
-needs a little work.
+Providing `r`:
 ``` {r }
-mod <- generator$new(list(r=1))
+mod <- generator(r=1)
 ```
 
 The model contains the set value of r
@@ -161,7 +156,7 @@ lines(y3, col="red")
 
 Once created a model can have the parameters re-set:
 ``` {r }
-mod$set_user(list(r=0.25, K=75, N0=10))
+mod$set_user(r=0.25, K=75, N0=10)
 y4 <- mod$run(tt)
 plot(y, xlab="Time", ylab="N", las=1, main="")
 lines(y3, col="red")
@@ -171,8 +166,11 @@ lines(y4, col="blue")
 Note that it is not (currently) an error to set unknown parameters.
 This will be fixed in a future version:
 ``` {r }
-mod$set_user(list(r=1, whatever=1))
+mod$set_user(r=1, whatever=1)
 ```
+
+*NOTE*: This is currenly broken as all user parameters need
+*providing, rather than working from the previously set parameters.
 
 # More than one variable: the Lorenz attractor
 
@@ -200,7 +198,7 @@ Building the generator, and from that a system, is the same as the
 above:
 ``` {r }
 generator <- odin::odin(path_lorenz, tempdir(), verbose=FALSE)
-mod <- generator$new()
+mod <- generator()
 ```
 
 Because of the rapid changes that characterise this model, we'll

@@ -1,3 +1,15 @@
+## NOTE: at the moment the strategy is to interrogate the underlying C
+## code as to parameters of the model and then use R's reflection to
+## build an appropritate class.  There's a bit of slightly awkward
+## argument building and this does trigger some NOTEs about use of
+## .Call in the code below (as R CMD check's static QA can't resolve
+## the symbols for not-yet-generated models).
+##
+## An alternative would be to generate the R code as well.  That
+## avoids some headaches but requires either dependencies on things
+## like whisker, more manual code generation and then sourcing the R
+## file.
+
 ##' Create an odin model from a file, text string(s) or expression.
 ##' The \code{odin_} version is a "standard evaluation" escape hatch.
 ##'
@@ -43,7 +55,7 @@
 ##' ## required because in general you don't want to have to compile the
 ##' ## model every time it is used (so the generator will go in a
 ##' ## package).
-##' mod <- exp_decay$new()
+##' mod <- exp_decay()
 ##'
 ##' ## Run the model for a series of times from 0 to 10:
 ##' t <- seq(0, 10, length.out=101)
@@ -135,6 +147,9 @@ can_compile <- function() {
 ## very slightly different interfaces based on the options in info.
 ## For now this is done sub-optimally but I think it's fine for now at
 ## least.
+##
+## TODO: Consider an option here to return either the generator or the
+## function that tries to collect the variables up and skip $new.
 ode_system_generator <- function(dll, name=NULL) {
   self <- NULL # for R CMD check
   ## At present this is not going to work well for constructing custom
@@ -143,7 +158,7 @@ ode_system_generator <- function(dll, name=NULL) {
     name <- basename_no_ext(dll)
   }
   info <- .Call(paste0(name, "_info"), PACKAGE=dll)
-  R6::R6Class(
+  cl <- R6::R6Class(
     "ode_system",
     public=list(
 
@@ -166,13 +181,14 @@ ode_system_generator <- function(dll, name=NULL) {
       order=NULL,
       output_order=NULL,
       transform_variables=NULL,
+      collect_user=NULL,
 
       ## TODO: both initialize and set_user should optionally be fully
       ## generated to take a proper argument lists derived from
       ## info$user.
-      initialize=function(pars=NULL) {
+      initialize=function(user=NULL) {
         "odin"
-        self$ptr <- .Call(self$C$create, pars)
+        self$ptr <- .Call(self$C$create, user)
         if (self$initial_stage < STAGE_TIME) {
           ## NOTE: Because we never use time in this case it's safe to
           ## pass anything at all through here.
@@ -182,9 +198,12 @@ ode_system_generator <- function(dll, name=NULL) {
         self$ode <- if (self$has_delay) deSolve::dede else deSolve::ode
       },
 
-      set_user=function(pars) {
+      ## This function is problematic because it's fairly hard to
+      ## check the arguments safely.  I want to run the arguments
+      ## through a sanitiser first.
+      set_user=function(..., user=list(...)) {
         if (self$has_user) {
-          .Call(self$C$set_user, self$ptr, pars)
+          .Call(self$C$set_user, self$ptr, user)
           if (self$initial_stage == STAGE_USER) {
             self$init <- .Call(self$C$init, self$ptr, NA_real_)
           }
@@ -233,6 +252,8 @@ ode_system_generator <- function(dll, name=NULL) {
         .Call(self$C$contents, self$ptr)
       }
     ))
+
+  make_user_collector(info$user, quote(cl$new), environment())
 }
 
 odin_dll_info <- function(name, dll) {
@@ -312,4 +333,22 @@ make_transform_variables <- function(x) {
     }
     ret
   }
+}
+
+make_user_collector <- function(user, call, env) {
+  if (is.null(user)) {
+    args <- list(bquote(.(call)(NULL)))
+  } else {
+    req <- names(user)[user]
+    opt <- names(user)[!user]
+    collect <- as.call(c(list(quote(list)),
+                         setNames(lapply(req, as.symbol), req),
+                         setNames(lapply(opt, as.symbol), opt)))
+    args <- c(setNames(rep(alist(user=), length(req)), req),
+              setNames(rep(alist(user=NULL), length(opt)), opt),
+              list(user=collect),
+              ## Body:
+              bquote(.(call)(user)))
+  }
+  as.function(args, env)
 }

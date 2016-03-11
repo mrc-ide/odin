@@ -101,8 +101,12 @@ test_that("nicer interface", {
     t0 <- mod_r$t[[1L]]
 
     gen <- odin(filename_o, tempdir(), verbose=FALSE)
-    expect_is(gen, "R6ClassGenerator")
-    mod_c <- gen$new()
+    ## NOTE: this is a bit ugly; I'm really not sure what the right
+    ## thing to do here is, but it might be to add an R6 option to
+    ## odin() that would return the class (for use with inheritence
+    ## etc) rather that the generating function here.
+    expect_is(environment(gen)$cl, "R6ClassGenerator")
+    mod_c <- gen()
     expect_is(mod_c, "ode_system")
 
     expect_equal(mod_c$init,

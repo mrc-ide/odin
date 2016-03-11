@@ -6,7 +6,7 @@ test_that("constant model", {
     deriv(y) <- 0.5
     initial(y) <- 1
   }, verbose=FALSE, dest=tempdir())
-  mod <- gen$new()
+  mod <- gen()
   expect_identical(mod$init, 1.0)
   expect_identical(mod$deriv(0.0, mod$init), 0.5)
 

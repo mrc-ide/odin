@@ -48,11 +48,9 @@ r_output(readLines(path_logistic))
 ## To compile this as a standalone model (not suitable for inclusion
 ## in a package) use `odin::odin`;
 generator <- odin::odin(path_logistic, tempdir(), verbose=FALSE)
-generator
 
-## This returns an `R6ClassGenerator` object which in turn will
-## generate an instance of the model:
-mod <- generator$new()
+## This returns a function that will generate an instance of the model:
+mod <- generator()
 mod
 
 ## This is an `ode_system` object and can be used to run the system of
@@ -100,7 +98,6 @@ generator <- odin::odin({
   r <- user()
 }, tempdir(), verbose=FALSE)
 
-
 ## when used as `user(1)` (as for `N` and `K`) it means we allow a
 ## user parameter called `N0` to be specified, but if omitted it has a
 ## default value of 1.  When used as `user()` (as for `r`) it means
@@ -115,12 +112,10 @@ generator <- odin::odin({
 ## without any parameters:
 
 ##+ error=TRUE
-generator$new()
+generator()
 
-## **NOTE:** the interface here will change so that it will be
-## possible to call the generator as `generator$new(r=1)` but that
-## needs a little work.
-mod <- generator$new(list(r=1))
+## Providing `r`:
+mod <- generator(r=1)
 
 ## The model contains the set value of r
 mod$contents()$r
@@ -131,7 +126,7 @@ plot(y, xlab="Time", ylab="N", las=1, main="")
 lines(y3, col="red")
 
 ## Once created a model can have the parameters re-set:
-mod$set_user(list(r=0.25, K=75, N0=10))
+mod$set_user(r=0.25, K=75, N0=10)
 y4 <- mod$run(tt)
 plot(y, xlab="Time", ylab="N", las=1, main="")
 lines(y3, col="red")
@@ -139,7 +134,10 @@ lines(y4, col="blue")
 
 ## Note that it is not (currently) an error to set unknown parameters.
 ## This will be fixed in a future version:
-mod$set_user(list(r=1, whatever=1))
+mod$set_user(r=1, whatever=1)
+
+## *NOTE*: This is currenly broken as all user parameters need
+## *providing, rather than working from the previously set parameters.
 
 ## # More than one variable: the Lorenz attractor
 
@@ -163,7 +161,7 @@ r_output(readLines(path_lorenz))
 ## Building the generator, and from that a system, is the same as the
 ## above:
 generator <- odin::odin(path_lorenz, tempdir(), verbose=FALSE)
-mod <- generator$new()
+mod <- generator()
 
 ## Because of the rapid changes that characterise this model, we'll
 ## take a _lot_ of samples.

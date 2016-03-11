@@ -61,7 +61,7 @@ exp_decay <- odin::odin({
 ## required because in general you don't want to have to compile the
 ## model every time it is used (so the generator will go in a
 ## package).
-mod <- exp_decay$new()
+mod <- exp_decay()
 
 ## Run the model for a series of times from 0 to 10:
 t <- seq(0, 10, length.out=101)
