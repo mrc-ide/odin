@@ -47,7 +47,7 @@ r_output(readLines(path_logistic))
 
 ## To compile this as a standalone model (not suitable for inclusion
 ## in a package) use `odin::odin`;
-generator <- odin::odin(path_logistic, tempdir(), verbose=FALSE)
+generator <- odin::odin(path_logistic, verbose=FALSE)
 
 ## This returns a function that will generate an instance of the model:
 mod <- generator()
@@ -96,7 +96,7 @@ generator <- odin::odin({
   N0 <- user(1)
   K <- user(100)
   r <- user()
-}, tempdir(), verbose=FALSE)
+}, verbose=FALSE)
 
 ## when used as `user(1)` (as for `N` and `K`) it means we allow a
 ## user parameter called `N0` to be specified, but if omitted it has a
@@ -160,7 +160,7 @@ r_output(readLines(path_lorenz))
 
 ## Building the generator, and from that a system, is the same as the
 ## above:
-generator <- odin::odin(path_lorenz, tempdir(), verbose=FALSE)
+generator <- odin::odin(path_lorenz, verbose=FALSE)
 mod <- generator()
 
 ## Because of the rapid changes that characterise this model, we'll

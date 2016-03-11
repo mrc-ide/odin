@@ -26,7 +26,7 @@
 ##'   length is greater than 1 elements will be joined with newlines)
 ##'   or an expression.
 ##' @param dest Destination \emph{directory} for generated files.  The
-##'   default is the current directory, but \code{tempdir()} is
+##'   default is the temporary directory, but \code{"."} is
 ##'   another useful value.
 ##' @param build Logical scalar indicating if we should build the
 ##'   model (i.e. compile the dll).
@@ -48,7 +48,7 @@
 ##' exp_decay <- odin::odin({
 ##'   deriv(y) <- -0.5 * y
 ##'   initial(y) <- 1
-##' }, dest=tempdir())
+##' })
 ##'
 ##' ## Generate an instance; there are no parameters here so all instances
 ##' ## are the same and this looks a bit pointless.  But this step is
@@ -69,11 +69,11 @@
 ##' path <- odin::odin({
 ##'   deriv(y) <- -0.5 * y
 ##'   initial(y) <- 1
-##' }, dest=tempdir(), build=FALSE)
+##' }, build=FALSE)
 ##'
 ##' ## Lots of code:
 ##' cat(paste0(readLines(path), "\n"))
-odin <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
+odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
   ## TODO: It might be worth adding a check for missing-ness here in
   ## order to generate a sensible error message?
   xx <- substitute(x)

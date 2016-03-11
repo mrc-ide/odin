@@ -52,7 +52,7 @@ session would throw an error
 To compile this as a standalone model (not suitable for inclusion
 in a package) use `odin::odin`;
 ``` {r }
-generator <- odin::odin(path_logistic, tempdir(), verbose=FALSE)
+generator <- odin::odin(path_logistic, verbose=FALSE)
 ```
 
 This returns a function that will generate an instance of the model:
@@ -117,7 +117,7 @@ generator <- odin::odin({
   N0 <- user(1)
   K <- user(100)
   r <- user()
-}, tempdir(), verbose=FALSE)
+}, verbose=FALSE)
 ```
 
 when used as `user(1)` (as for `N` and `K`) it means we allow a
@@ -197,7 +197,7 @@ different realisations).
 Building the generator, and from that a system, is the same as the
 above:
 ``` {r }
-generator <- odin::odin(path_lorenz, tempdir(), verbose=FALSE)
+generator <- odin::odin(path_lorenz, verbose=FALSE)
 mod <- generator()
 ```
 

@@ -5,7 +5,7 @@
 \alias{odin_}
 \title{Create an odin model}
 \usage{
-odin(x, dest = ".", build = TRUE, load = TRUE, verbose = TRUE)
+odin(x, dest = tempdir(), build = TRUE, load = TRUE, verbose = TRUE)
 
 odin_(x, dest = ".", build = TRUE, load = TRUE, verbose = TRUE)
 }
@@ -15,7 +15,7 @@ length is greater than 1 elements will be joined with newlines)
 or an expression.}
 
 \item{dest}{Destination \emph{directory} for generated files.  The
-default is the current directory, but \code{tempdir()} is
+default is the temporary directory, but \code{"."} is
 another useful value.}
 
 \item{build}{Logical scalar indicating if we should build the
@@ -54,7 +54,7 @@ if (can_compile()) { # only run this if a system is set up to compile
 exp_decay <- odin::odin({
   deriv(y) <- -0.5 * y
   initial(y) <- 1
-}, dest=tempdir())
+})
 
 ## Generate an instance; there are no parameters here so all instances
 ## are the same and this looks a bit pointless.  But this step is
@@ -75,7 +75,7 @@ plot(y, xlab="Time", ylab="y", main="", las=1)
 path <- odin::odin({
   deriv(y) <- -0.5 * y
   initial(y) <- 1
-}, dest=tempdir(), build=FALSE)
+}, build=FALSE)
 
 ## Lots of code:
 cat(paste0(readLines(path), "\\n"))

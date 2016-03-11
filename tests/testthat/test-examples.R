@@ -100,7 +100,7 @@ test_that("nicer interface", {
     t <- seq_range(mod_r$t, 300)
     t0 <- mod_r$t[[1L]]
 
-    gen <- odin(filename_o, tempdir(), verbose=FALSE)
+    gen <- odin(filename_o, verbose=FALSE)
     ## NOTE: this is a bit ugly; I'm really not sure what the right
     ## thing to do here is, but it might be to add an R6 option to
     ## odin() that would return the class (for use with inheritence
@@ -158,8 +158,8 @@ test_that("nicer interface", {
 
 test_that("user arrays", {
   ## In the first version we have constant sized arrays:
-  gen1 <- odin("examples/array_odin.R", tempdir(), verbose=FALSE)
-  gen2 <- odin("examples/array_odin_user.R", tempdir(), verbose=FALSE)
+  gen1 <- odin("examples/array_odin.R", verbose=FALSE)
+  gen2 <- odin("examples/array_odin_user.R", verbose=FALSE)
 
   mod1 <- gen1()
   age_width <- mod1$contents()$age_width
@@ -184,7 +184,7 @@ test_that("user arrays", {
   expect_equal(mod2$initial_stage, STAGE_USER)
 
   ## User *sized* arrays.
-  gen3 <- odin("examples/array_odin_user2.R", tempdir(), verbose=FALSE)
+  gen3 <- odin("examples/array_odin_user2.R", verbose=FALSE)
   mod3 <- gen3(age_width)
 
   expect_equal(mod3$dim_stage, STAGE_USER)
@@ -210,7 +210,7 @@ test_that("user arrays", {
   expect_equal(tmp1$S[, 1], tmp3$S[, 1], tolerance=1e-6)
 
   ## All in; this one is driven by a variable sized array.
-  gen4 <- odin("examples/array_odin_user3.R", tempdir(), verbose=FALSE)
+  gen4 <- odin("examples/array_odin_user3.R", verbose=FALSE)
   mod4 <- gen4(age_width)
 
   dat4 <- mod4$contents()
