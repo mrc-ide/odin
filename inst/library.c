@@ -56,6 +56,28 @@ void get_user_array2(SEXP user, const char *name, int nr, int nc, double *dest) 
   }
 }
 
+void get_user_array3(SEXP user, const char *name, int nr, int nc, int nz, double *dest) {
+  SEXP el = get_list_element(user, name);
+  if (el == R_NilValue) {
+    Rf_error("Expected value for %s", name);
+  } else {
+    SEXP dim = getAttrib(el, R_DimSymbol);
+    if (dim == R_NilValue || LENGTH(dim) != 3) {
+      Rf_error("Expected a 3d array for %s", name);
+    }
+    dim = PROTECT(coerceVector(dim, INTSXP));
+    if (INTEGER(dim)[0] != nr ||
+        INTEGER(dim)[1] != nc ||
+        INTEGER(dim)[2] != nz) {
+      Rf_error("Expected an array of dimensions [%d, %d, %d] for %s",
+               nr, nc, nz, name);
+    }
+    el = PROTECT(coerceVector(el, REALSXP));
+    memcpy(dest, REAL(el), nr * nc * nz * sizeof(double));
+    UNPROTECT(2);
+  }
+}
+
 int get_user_int(SEXP user, const char *name, int default_value) {
   int ret = default_value;
   SEXP el = get_list_element(user, name);
