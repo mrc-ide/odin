@@ -718,6 +718,11 @@ odin_parse_dependencies <- function(obj) {
     ##            get_lines(eqs[i]), get_exprs(eqs[i]))
   }
 
+  user <- setNames(!vlapply(eqs[is_user], function(x) x$rhs$default),
+                   nms[is_user])
+
+  ## NOTE: Be careful doing anything after the re-order as you will
+  ## probably make a mistake; this invalidates most variables really.
   i <- match(order_keep, nms)
   eqs <- eqs[i]
   nms <- nms[i]
@@ -730,7 +735,7 @@ odin_parse_dependencies <- function(obj) {
   }
 
   obj$eqs <- eqs
-  obj$user <- nms[is_user]
+  obj$user <- user
   obj$initial_stage <- initial_stage
   obj
 }
