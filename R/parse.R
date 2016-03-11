@@ -703,6 +703,9 @@ odin_parse_dependencies <- function(obj) {
   initial_stage <- (if (any(is_delay)) STAGE_TIME
                     else max(c(STAGE_CONSTANT, stage[nms[is_initial]])))
 
+  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
+  dim_stage <- max(c(STAGE_CONSTANT, stage[nms[is_dim]]))
+
   ## Check for unused branches:
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   endpoints <- nms[is_initial | is_output | is_deriv]
@@ -737,6 +740,7 @@ odin_parse_dependencies <- function(obj) {
   obj$eqs <- eqs
   obj$user <- user
   obj$initial_stage <- initial_stage
+  obj$dim_stage <- dim_stage
   obj
 }
 

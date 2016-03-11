@@ -155,3 +155,57 @@ test_that("nicer interface", {
   }
   gc()
 })
+
+test_that("user arrays", {
+  ## In the first version we have constant sized arrays:
+  gen1 <- odin("examples/array_odin.R", tempdir(), verbose=FALSE)
+  gen2 <- odin("examples/array_odin_user.R", tempdir(), verbose=FALSE)
+
+  mod1 <- gen1()
+  age_width <- mod1$contents()$age_width
+
+  expect_error(gen2(age_width[-1L]), "Expected length 5 value for age_width")
+  expect_error(gen2(NULL), "Expected value for age_width")
+  expect_error(gen2(numeric(0)), "Expected length 5 value for age_width")
+  expect_error(gen2(rep(age_width, 2)),
+               "Expected length 5 value for age_width")
+
+  mod2 <- gen2(age_width)
+  expect_equal(mod2$contents(), mod1$contents())
+
+  t <- seq(0, 100, length.out=101)
+  res1 <- mod1$run(t)
+  res2 <- mod2$run(t)
+  expect_equal(res1, res2)
+
+  expect_equal(mod1$dim_stage, STAGE_CONSTANT)
+  expect_equal(mod2$dim_stage, STAGE_CONSTANT)
+  expect_equal(mod1$initial_stage, STAGE_USER)
+  expect_equal(mod2$initial_stage, STAGE_USER)
+
+  ## User *sized* arrays.
+  gen3 <- odin("examples/array_odin_user2.R", tempdir(), verbose=FALSE)
+  mod3 <- gen3(age_width)
+
+  expect_equal(mod3$dim_stage, STAGE_USER)
+  expect_equal(mod3$initial_stage, STAGE_USER)
+
+  dat3 <- mod3$contents()
+  dat1 <- mod1$contents()
+  expect_true(setequal(names(dat1), names(dat3)))
+  expect_equal(dat3[names(dat1)], dat1)
+
+  ## Now, let's set some different parameters here and check enforcement:
+  age_width2 <- c(age_width, 365 * 25)
+  expect_error(gen3(age_width2), "Expected length 5 value for age_width")
+  expect_error(gen3(age_width, N_age=6L),
+               "Expected length 6 value for age_width")
+  mod3 <- gen3(age_width2, N_age=6L)
+  expect_equal(mod3$contents()$age_width, age_width2)
+  expect_equal(length(mod3$contents()$initial_R), length(age_width2))
+
+  res3 <- mod3$run(t)
+  tmp1 <- mod1$transform_variables(res1)
+  tmp3 <- mod3$transform_variables(res3)
+  expect_equal(tmp1$S[, 1], tmp3$S[, 1], tolerance=1e-6)
+})

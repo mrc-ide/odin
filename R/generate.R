@@ -63,7 +63,8 @@ odin_generate_object <- function(dat) {
                     has_delay=dat$has_delay,
                     has_output=dat$has_output,
                     user=dat$user,
-                    initial_stage=dat$initial_stage)
+                    initial_stage=dat$initial_stage,
+                    dim_stage=dat$dim_stage)
 
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)
@@ -220,16 +221,26 @@ odin_generate_dim <- function(x, obj, dat) {
   nm_s <- if (is_var) paste0("initial_", nm_t) else nm_t
   st <- STAGES[[x$stage]]
 
-  obj$add_element(nm_s, "double", x$nd)
+  if (isTRUE(x$rhs$user)) {
+    ## Here, we'll need to a little extra work; get the value, check
+    ## length, copy out integers.  But what should *really* happen is
+    ## that the entire thing becomes user.  So we have:
+    ##
+    ##   x[,,] <- user()
+    ##   dim(x) <- user()
+    ##
+    ## (probably explicit is better, because otherwise there _will_ be
+    ## crashes).  Then we search for 'x' in the user vector, get the
+    ## dimensions of it (length() for 1d, dim() for 2d), pull all the
+    ## integers out of it.
+    stop("Direct user-sized arrays not yet implemented")
+  }
 
-  ## TODO: put a check for this somewhere in parse.
+  obj$add_element(nm_s, "double", x$nd)
   if (x$stage == STAGE_USER) {
-    stop("User-variable size arrays not currently supported")
-    ## Basically this should be enough.  It needs to go ahead of the
-    ## code added below.
-    obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm))
-    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(nm))
-    obj[["user"]]$add("  Free(%s);", obj$rewrite(nm))
+    obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_s))
+    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(nm_s))
+    obj[["user"]]$add("  Free(%s);", obj$rewrite(nm_s))
     obj[["user"]]$add("}")
   } else if (x$stage > STAGE_USER) {
     stop("This should never happen!")
@@ -706,11 +717,14 @@ odin_generate_create <- function(obj) {
   if (length(constant) > 0L) {
     ret$add(indent(constant, 2))
   }
+  ## NOTE: set user variables *before* creating the pointer and
+  ## finaliser to avoid any ambiguity about user-sized arrays and the
+  ## Free calls that are implied there.
+  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
   ret$add(
     "  SEXP %s_ptr = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
     obj$base, obj$name_pars)
   ret$add("  R_RegisterCFinalizer(%s_ptr, %s_finalize);", obj$base, obj$base)
-  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
   ret$add("  UNPROTECT(1);")
   ret$add("  return %s_ptr;", obj$base)
   ret$add("}")

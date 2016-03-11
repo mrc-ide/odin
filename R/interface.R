@@ -74,6 +74,8 @@
 ##' ## Lots of code:
 ##' cat(paste0(readLines(path), "\n"))
 odin <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
+  ## TODO: It might be worth adding a check for missing-ness here in
+  ## order to generate a sensible error message?
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -171,6 +173,7 @@ ode_system_generator <- function(dll, name=NULL) {
       has_output=info$has_output,
       user=info$user,
       initial_stage=info$initial_stage,
+      dim_stage=info$dim_stage,
 
       ## More volitile:
       ptr=NULL,
@@ -207,9 +210,9 @@ ode_system_generator <- function(dll, name=NULL) {
           if (self$initial_stage == STAGE_USER) {
             self$init <- .Call(self$C$init, self$ptr, NA_real_)
           }
-          ## TODO: only needs doing if we have arrays with STAGE_USER
-          ## dim() calls.
-          self$update_cache()
+          if (self$dim_stage == STAGE_USER) {
+            self$update_cache()
+          }
         } else {
           stop("This model does not have parameters")
         }
