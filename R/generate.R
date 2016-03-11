@@ -51,7 +51,7 @@ odin_generate <- function(dat, dest=tempdir()) {
 }
 
 ## What we are going to write here is a little bit of (fairly nasty)
-## reference-style code that will help generate the inteface.  The
+## reference-style code that will help generate the interface.  The
 ## simplest way of doing this might be to generate a small list of
 ## types that we can reference everywhere.  But that might just be
 ## more complicated than it needs to be?
@@ -221,21 +221,6 @@ odin_generate_dim <- function(x, obj, dat) {
   nm_s <- if (is_var) paste0("initial_", nm_t) else nm_t
   st <- STAGES[[x$stage]]
 
-  if (isTRUE(x$rhs$user)) {
-    ## Here, we'll need to a little extra work; get the value, check
-    ## length, copy out integers.  But what should *really* happen is
-    ## that the entire thing becomes user.  So we have:
-    ##
-    ##   x[,,] <- user()
-    ##   dim(x) <- user()
-    ##
-    ## (probably explicit is better, because otherwise there _will_ be
-    ## crashes).  Then we search for 'x' in the user vector, get the
-    ## dimensions of it (length() for 1d, dim() for 2d), pull all the
-    ## integers out of it.
-    stop("Direct user-sized arrays not yet implemented")
-  }
-
   obj$add_element(nm_s, "double", x$nd)
   if (x$stage == STAGE_USER) {
     obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_s))
@@ -248,25 +233,67 @@ odin_generate_dim <- function(x, obj, dat) {
 
   if (x$nd > 1L) {
     obj$library_fns$add(sprintf("odin_set_dim%d", x$nd))
-
-    size <- as.list(x$rhs$value[-1L])
-    nm_i <- vcapply(seq_len(x$nd),
-                    function(i) obj$rewrite(array_dim_name(nm_t, i)))
-    for (i in seq_len(x$nd)) {
-      obj[[st]]$add("%s = %s;", nm_i[[i]], obj$rewrite(size[[i]]))
-    }
-    ## Little extra work for the 3d case.  If we were allowing
-    ## arbitrary matrices here this would be heaps more complicated
-    ## but we only need the special case here.
-    if (x$nd == 3L) {
-      obj[[st]]$add("%s = %s;",
-                    obj$rewrite(array_dim_name(nm_t, "12")),
-                    paste(nm_i[1:2], collapse=" * "))
-    }
-    obj[[st]]$add("%s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
-  } else {
-    obj[[st]]$add("%s = %s;", obj$rewrite(nm), obj$rewrite(x$rhs$value))
   }
+
+  if (isTRUE(x$rhs$user)) {
+    ## Here, we'll need to a little extra work; get the value, check
+    ## length, copy out integers.
+    fn <- sprintf("get_user_array_dim%d", x$nd)
+    obj$library_fns$add(fn)
+    ## We really need to do this in a scoped block I think as we need
+    ## to set a few things all at once.
+    obj[[st]]$add("{")
+
+    if (x$nd > 1L) {
+      nm_i <- vcapply(seq_len(x$nd),
+                      function(i) obj$rewrite(array_dim_name(nm_t, i)))
+    } else {
+      nm_i <- obj$rewrite(nm)
+    }
+
+    obj[[st]]$add('  double* tmp = %s(%s, "%s", %s);',
+                  fn, USER, nm_s, paste0("&", nm_i))
+    ## TODO: This duplicates the code below for computing compound
+    ## dimensions, but until I get test cases in that's probably the
+    ## simplest for now (note it differs in indent though).
+    if (x$nd > 1L) {
+      if (x$nd == 3L) {
+        obj[[st]]$add("  %s = %s;",
+                      obj$rewrite(array_dim_name(nm_t, "12")),
+                      paste(nm_i[1:2], collapse=" * "))
+      }
+      obj[[st]]$add("  %s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
+    }
+    obj[[st]]$add("  %s = (double*) Calloc(%s, double);",
+                  obj$rewrite(nm_s), obj$rewrite(nm))
+    obj[[st]]$add("  memcpy(%s, tmp, %s * sizeof(double));",
+                  obj$rewrite(nm_s), obj$rewrite(nm))
+    obj[[st]]$add("}")
+  } else {
+    if (x$nd > 1L) {
+      size <- as.list(x$rhs$value[-1L])
+      nm_i <- vcapply(seq_len(x$nd),
+                      function(i) obj$rewrite(array_dim_name(nm_t, i)))
+      for (i in seq_len(x$nd)) {
+        obj[[st]]$add("%s = %s;", nm_i[[i]], obj$rewrite(size[[i]]))
+      }
+      ## Little extra work for the 3d case.  If we were allowing
+      ## arbitrary matrices here this would be heaps more complicated
+      ## but we only need the special case here.
+      if (x$nd == 3L) {
+        obj[[st]]$add("%s = %s;",
+                      obj$rewrite(array_dim_name(nm_t, "12")),
+                      paste(nm_i[1:2], collapse=" * "))
+      }
+      obj[[st]]$add("%s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
+    } else {
+      obj[[st]]$add("%s = %s;", obj$rewrite(nm), obj$rewrite(x$rhs$value))
+    }
+    obj[[st]]$add("%s = (double*) Calloc(%s, double);",
+                  obj$rewrite(nm_s), obj$rewrite(nm))
+  }
+
+  obj$free$add("Free(%s);", obj$rewrite(nm_s))
 
   if (is_var) {
     nm_offset <- paste0("offset_", nm_t)
@@ -274,10 +301,6 @@ odin_generate_dim <- function(x, obj, dat) {
     obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset),
                   obj$rewrite(dat$variable_order$offset[[nm_t]]))
   }
-
-  obj[[st]]$add("%s = (double*) Calloc(%s, double);",
-                obj$rewrite(nm_s), obj$rewrite(nm))
-  obj$free$add("Free(%s);", obj$rewrite(nm_s))
 }
 
 odin_generate_symbol <- function(x, obj, dat) {
@@ -320,12 +343,17 @@ odin_generate_array <- function(x, obj, dat) {
   st <- STAGES[[x$stage]]
 
   if (isTRUE(x$rhs$user)) {
-    nd <- dat$eqs[[array_dim_name(x$name)]]$nd
+    dim <- dat$eqs[[array_dim_name(x$name)]]
+    if (isTRUE(dim$rhs$user)) {
+      ## All done already while establishing dim
+      return()
+    }
+    nd <- dim$nd
     fn <- sprintf("get_user_array%d", nd)
     obj$library_fns$add(fn)
 
     if (nd == 1) {
-      dn <- obj$rewrite(array_dim_name(x$name))
+      dn <- obj$rewrite(dim$name)
     } else {
       dn <- paste(vcapply(seq_len(nd), function(i)
         obj$rewrite(array_dim_name(x$name, i)), USE.NAMES=FALSE), collapse=", ")
@@ -994,7 +1022,7 @@ odin_generate_info <- function(obj) {
 ## Read a bunch of library functions.  The format here is important.
 read_library <- function() {
   d <- readLines(system.file("library.c", package="odin"))
-  re <- "^[[:alnum:]]+ ([[:alnum:]_]+)(.+) \\{$"
+  re <- "^[[:alnum:]*]+ ([[:alnum:]_]+)(.+) \\{$"
   i <- grep(re, d)
   j <- grep("^}$", d)
   stopifnot(length(i) == length(j))

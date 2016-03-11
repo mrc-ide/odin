@@ -24,8 +24,12 @@ test_that("some parse errors", {
   expect_error(odin_parse(as="text", "y <- deriv(x)"),
                "Function deriv is disallowed on rhs")
 
-  expect_error(odin_parse(as="text", "dim(x) <- user()"),
+  expect_error(odin_parse(as="text", "initial(x) <- user()"),
                "user() only valid for non-special variables", fixed=TRUE)
+  expect_error(odin_parse(as="text", "deriv(x) <- user()"),
+               "user() only valid for non-special variables", fixed=TRUE)
+  ## TODO: This gives an unhelpful error message
+  ## odin_parse(as="text", "dim(x) <- user()")
 
   expect_error(odin_parse(as="text", "x[i] <- y[i]"),
                "Special index variable i may not be used on array lhs")

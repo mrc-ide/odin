@@ -76,7 +76,8 @@ odin_parse_expr <- function(i, exprs) {
   rhs <- odin_parse_rhs(expr[[3L]], line, expr)
   deps <- join_deps(list(lhs$depends, rhs$depends))
 
-  if (isTRUE(rhs$user) && !is.null(lhs$special)) {
+  if (isTRUE(rhs$user) &&
+      !is.null(lhs$special) && !identical(lhs$special, "dim")) {
     odin_error("user() only valid for non-special variables", line, expr)
   }
   ## This might actually be too strict because it's possible that dydt
@@ -462,6 +463,29 @@ odin_parse_combine_arrays <- function(obj) {
     i <- which(is_dim)[is.na(nd)]
     odin_error("Invalid dim() rhs", get_lines(eqs[i]), get_exprs(eqs[i]))
   }
+  if (any(nd == 0L)) {
+    ## Then, check for user-driven array sizes; we'll pull nd from the
+    ## definition.
+    i <- nd == 0L
+    j <- match(nms_real[is_dim][i], nms)
+    ## First check that the underlying variable is a user-sized array.
+    err <- !vlapply(eqs[j], function(x) x$rhs$user)
+    if (any(err)) {
+      odin_error("user-specified dim() must be used with user-specified array",
+                 get_lines(eqs[j][err]), get_exprs(eqs[j][err]))
+    }
+    err <- !vlapply(eqs[j], function(x) identical(x$lhs$type, "array"))
+    if (any(err)) {
+      odin_error("user-specified dim() must be used with array",
+                 get_lines(eqs[j][err]), get_exprs(eqs[j][err]))
+    }
+
+    ## TODO: It's possible here that we'll get duplicated calls to
+    ## user; they'll probably make it through here which won't cause a
+    ## great problem but it's a bit ugly, and hard to check.
+    nd[j] <- viapply(eqs[j], function(x) x$lhs$nd)
+  }
+
   j <- which(is_dim)
   for (i in seq_along(nd)) {
     eqs[[j[[i]]]]$nd <- nd[[i]]
@@ -693,8 +717,6 @@ odin_parse_dependencies <- function(obj) {
 
   order_keep <- setdiff(order, names(dummy))
 
-  user <- nms[is_user]
-
   ## TODO: Special treatment is needed for time-dependent initial
   ## conditions; they get special treatment and are held to max of
   ## STAGE_USER.  However, we'll record that they are time-dependent
@@ -721,6 +743,8 @@ odin_parse_dependencies <- function(obj) {
     ##            get_lines(eqs[i]), get_exprs(eqs[i]))
   }
 
+  ## We need to filter the dimensions off here for user arrays:
+  is_user <- is_user & !is_dim
   user <- setNames(!vlapply(eqs[is_user], function(x) x$rhs$default),
                    nms[is_user])
 
@@ -1123,6 +1147,12 @@ check_dim_rhs <- function(x) {
     } else {
       length(ok)
     }
+  } else if (isTRUE(x$rhs$user)) {
+    if (isTRUE(x$rhs$default)) {
+      odin_error("Default in user dimension size not handled",
+                 x$line, x$expr)
+    }
+    0L
   } else {
     NA_integer_
   }

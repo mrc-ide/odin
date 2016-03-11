@@ -208,4 +208,15 @@ test_that("user arrays", {
   tmp1 <- mod1$transform_variables(res1)
   tmp3 <- mod3$transform_variables(res3)
   expect_equal(tmp1$S[, 1], tmp3$S[, 1], tolerance=1e-6)
+
+  ## All in; this one is driven by a variable sized array.
+  gen4 <- odin("examples/array_odin_user3.R", tempdir(), verbose=FALSE)
+  mod4 <- gen4(age_width)
+
+  dat4 <- mod4$contents()
+  expect_true(setequal(names(dat1), names(dat4)))
+  expect_equal(dat4[names(dat1)], dat1)
+
+  res4 <- mod4$run(t)
+  expect_equal(res4, res1)
 })

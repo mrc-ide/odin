@@ -78,6 +78,56 @@ void get_user_array3(SEXP user, const char *name, int nr, int nc, int nz, double
   }
 }
 
+double* get_user_array_dim1(SEXP user, const char *name, int *len) {
+  SEXP el = get_list_element(user, name);
+  if (el == R_NilValue) {
+    Rf_error("Expected value for %s", name);
+  } else if (isArray(el)) {
+    // this may be too strict as a length-1 dim here will fail
+    Rf_error("Expected a vector for %s", name);
+  } else if (TYPEOF(el) != REALSXP) {
+    Rf_error("Expected numeric vector for %s", name);
+  } else {
+    *len = LENGTH(el);
+  }
+  return REAL(el);
+}
+
+double* get_user_array_dim2(SEXP user, const char *name, int *nr, int *nc) {
+  SEXP el = get_list_element(user, name);
+  if (el == R_NilValue) {
+    Rf_error("Expected value for %s", name);
+  } else if (!isMatrix(el)) {
+    // this may be too strict as a length-1 dim here will fail
+    Rf_error("Expected a matrix for %s", name);
+  } else if (TYPEOF(el) != REALSXP) {
+    Rf_error("Expected numeric matrix for %s", name);
+  } else {
+    *nr = ncol(el);
+    *nc = ncol(el);
+  }
+  return REAL(el);
+}
+
+double* get_user_array_dim3(SEXP user, const char *name, int *nr, int *nc, int *nz) {
+  SEXP el = get_list_element(user, name);
+  if (el == R_NilValue) {
+    Rf_error("Expected value for %s", name);
+  } else {
+    SEXP dim = getAttrib(el, R_DimSymbol);
+    if (dim == R_NilValue || LENGTH(dim) != 3) {
+      Rf_error("Expected a 3d array for %s", name);
+    }
+    if (TYPEOF(el) != REALSXP) {
+      Rf_error("Expected numeric 3d array for %s", name);
+    }
+    *nr = INTEGER(dim)[0];
+    *nc = INTEGER(dim)[1];
+    *nz = INTEGER(dim)[2];
+  }
+  return REAL(el);
+}
+
 int get_user_int(SEXP user, const char *name, int default_value) {
   int ret = default_value;
   SEXP el = get_list_element(user, name);
