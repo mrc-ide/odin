@@ -1,6 +1,6 @@
 # odin
 
-[![Project Status: Concept - Minimal or no implementation has been done yet.](http://www.repostatus.org/badges/latest/concept.svg)](http://www.repostatus.org/#concept)
+[![Project Status: WIP - Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip)
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Odin_%28Manual_of_Mythology%29.jpg/250px-Odin_%28Manual_of_Mythology%29.jpg)
 
@@ -10,26 +10,36 @@
 
 A declarative way of running ODEs at native (C) speed in R.  Implements a domain specific language based on a subset of R to a set of differential equations suitable for solving with deSolve.
 
-For example (and because *all* ODE software seems to like using it), here is the standard Lorenz attractor model in `odin` (actual file [here](tests/testthat/examples/lorenz_odin.R)).
+For example (and because *all* ODE software seems to like using it), here is the standard Lorenz attractor model in `odin`:
 
 ```r
-## Derivatives
-deriv(y1) <- sigma * (y2 - y1)
-deriv(y2) <- R * y1 - y2 - y1 * y3
-deriv(y3) <- -b * y3 + y1 * y2
+lorenz <- odin::odin({
+  ## Derivatives
+  deriv(y1) <- sigma * (y2 - y1)
+  deriv(y2) <- R * y1 - y2 - y1 * y3
+  deriv(y3) <- -b * y3 + y1 * y2
 
-## Initial conditions
-initial(y1) <- 10.0
-initial(y2) <- 1.0
-initial(y3) <- 1.0
+  ## Initial conditions
+  initial(y1) <- 10.0
+  initial(y2) <- 1.0
+  initial(y3) <- 1.0
 
-## parameters
-sigma <- 10.0
-R     <- 28.0
-b     <-  8.0 / 3.0
+  ## parameters
+  sigma <- 10.0
+  R     <- 28.0
+  b     <-  8.0 / 3.0
+})
 ```
 
-Running this through odin generates C code that can be compiled and loaded into R (the actual functions for doing that are still under flux).  For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R).
+This generates an object that can be used to integrate the set of differential equations, by default starting at the initial conditions specified above (though custom initial conditions can be given).  The equations are translated into C, compiled, loaded, and bundled into an object.
+
+```r
+mod <- lorenz()
+t <- seq(0, 100, length.out=1000)
+y <- mod$run(t)
+```
+
+For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [vignette](https://richfitz.github.io/odin/vignettes/odin.html)
 
 # Notes on development
 
@@ -47,34 +57,22 @@ The nice thing about code generation approaches is that they never get bored.  S
 
 # Special functions that will be allowed
 
-* `length` and `dim`; for getting matrix dimensions of 1 and multidimensional arrays (respectively)
+* `length` and `dim`; for getting matrix dimensions of 1 and multidimensional arrays (respectively) [done]
 * a reasonably large set of mathematical constructs, including all basic R operators (not all implemented yet)
 * something to declare arbitrary functions available to R (for initialisation only and not for the derivatives calculations) as it's ok to wear that cost once.
 * something to declare and use arbitrary pure C functions.
 
 # Initial conditions
 
-In contrast to deSolve, models produced by `odin` will compute their own initial conditions.  This is because it is usually convenient to specify initial conditions in terms of parameters shared with the dynamic parts of the model.  Support for user-specified (i.e. non-compiled) parameters is available via the function `user`, which currently only accepts scalars.
+In contrast to deSolve, models produced by `odin` will compute their own initial conditions.  This is because it can be convenient to specify initial conditions in terms of parameters shared with the dynamic parts of the model.  Support for user-specified (i.e. non-compiled) parameters is available via the function `user`, which currently only accepts scalars.
 
-# deSolve compatibility
+# User parameters
 
-This package is designed to solve large sets of differential equations where it is not necessarily feasible or convenient to manually construct the state vector.  As such, an additional "initialisation" step will be needed in addition to the deSolve calls.  In a returned model, the initialisation function *must* be called before integration.
+Typically, ODEs form a part of a larger bit of machinery (e.g., inference in a ML or Bayesian framework) where they will be repeatedly evaluated at a series of parameters.  `odin` allows for "user" parameters, which may include defaults.  Some support is provided for accepting arrays (1, 2 and 3 dimensional) as user parameters too.
 
-An alternative approach would be to include the initial state in the "parameters" object.  That would probably do an OK job of initialising while staying a bit closer to the deSolve interface; it also guarantees that the delay functions will always get access to the values.
+# Generating package code
 
-# Development plan
-
-* Scope the core features we want to support:
-  - R'ish DSL
-  - delay differential equations
-  - generation of initial conditions from parameters
-  - compilation to C code
-  - array indexing for equations
-* Construct a roughly working version with a bunch of test cases
-  - implemted in BM, and output saved to CSV files
-  - implemented naively in R for deSolve; speed is not an issue here
-  - implemented with our DSL
-  for each of the test cases we'd check that the generated model compiles and gives the same output.  The BM to R checks will be done but really simple.
+Currently the approach is focussed on generating code at to be used within one session, but soon the package will have helpers to generate code for a package.
 
 # Limitations
 
@@ -87,3 +85,11 @@ The code generated by `odin` may not make sense, may not compile and may crash R
 Because this is very new, it is quite possible that the code that is generated will not correspond to your model.  You are advised to read the generated code and to test your model thoroughly before assuming it is doing the right thing.  The generated code is designed to be straightforward to read, leaving any really funky optimisation to the compiler.
 
 Because this relies on code generation, and the approach is partly textual, some oddities will appear in the generated code (things like `n + 0`).  Over time I'll remove the most egregious of these.  It's probable that there will be some unused variables, and unused elements in the parameters struct.
+
+# Installation
+
+```r
+devtools::install_github("richfitz/odin")
+```
+
+You will need a working compiler.  `odin::can_compile()` will check if it is able to compile things.
