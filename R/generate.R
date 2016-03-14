@@ -308,22 +308,25 @@ odin_generate_symbol <- function(x, obj, dat) {
   type <- if (nm %in% dat$index_vars) "int" else "double"
   st <- STAGES[[x$stage]]
 
+  if (x$stage < STAGE_TIME) {
+    obj$add_element(nm, type)
+  }
+
   if (isTRUE(x$rhs$user)) {
-    ## TODO: Is it checked somewhere that none of these end up in TIME?
     if (isTRUE(x$rhs$default)) {
       default <- obj$rewrite(x$rhs$value)
     } else {
       default <- if (type == "int") "NA_INTEGER" else "NA_REAL"
     }
+    obj$constant$add("%s = %s;", obj$rewrite(nm), default)
     get_user <- sprintf("get_user_%s", type)
     obj$library_fns$add(get_user)
-    value <- sprintf("%s(%s, \"%s\", %s)", get_user, USER, nm, default)
+    value <- sprintf("%s(%s, \"%s\", %s)", get_user, USER, nm, obj$rewrite(nm))
   } else {
     value <- obj$rewrite(x$rhs$value)
   }
 
   if (x$stage < STAGE_TIME) {
-    obj$add_element(nm, type)
     obj[[st]]$add("%s = %s;", obj$rewrite(nm), value)
   } else if (identical(x$lhs$special, "deriv")) {
     obj[[st]]$add("%s[%s] = %s;",

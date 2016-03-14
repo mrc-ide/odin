@@ -134,10 +134,7 @@ lines(y4, col="blue")
 
 ## Note that it is not (currently) an error to set unknown parameters.
 ## This will be fixed in a future version:
-mod$set_user(r=1, whatever=1)
-
-## *NOTE*: This is currenly broken as all user parameters need
-## *providing, rather than working from the previously set parameters.
+mod$set_user(whatever=1)
 
 ## # More than one variable: the Lorenz attractor
 

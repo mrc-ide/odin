@@ -5,7 +5,7 @@ test_that("constant model", {
   gen <- odin::odin({
     deriv(y) <- 0.5
     initial(y) <- 1
-  }, verbose=FALSE, dest=tempdir())
+  }, verbose=FALSE)
   mod <- gen()
   expect_identical(mod$init, 1.0)
   expect_identical(mod$deriv(0.0, mod$init), 0.5)
@@ -13,4 +13,46 @@ test_that("constant model", {
   tt <- seq(0, 10, length.out=11)
   yy <- mod$run(tt)
   expect_equal(yy[, 2L], seq(1.0, length.out=length(tt), by=0.5))
+})
+
+test_that("user variables", {
+  gen <- odin::odin({
+    deriv(N) <- r * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- user(1)
+    K <- user(100)
+    r <- user()
+  }, verbose=FALSE)
+
+  ## Two different errors when r is not provided:
+  expect_error(gen(), 'argument "r" is missing')
+  expect_error(gen(NA_real_), "Expected value for r")
+
+  mod <- gen(pi)
+  dat <- mod$contents()
+  expect_equal(dat$r, pi)
+  expect_equal(dat$N0, 1.0)
+  expect_equal(dat$K, 100.0)
+
+  ## This should be a noop:
+  mod$set_user()
+  dat <- mod$contents()
+  expect_equal(dat$r, pi)
+  expect_equal(dat$N0, 1.0)
+  expect_equal(dat$K, 100.0)
+
+  ## Now, try setting one of these:
+  ## TODO:
+  ##   mod$set_user(list(N0=5))
+  ## gives the entirely unuseful error message:
+  ##   STRING_ELT() can only be applied to a 'character vector', not a 'NULL'
+  mod$set_user(N0=5)
+  dat <- mod$contents()
+  expect_equal(dat$r, pi)
+  expect_equal(dat$N0, 5.0)
+  expect_equal(dat$K, 100.0)
+
+  ## Don't reset to default on subsequent set:
+  mod$set_user()
+  expect_equal(mod$contents()$N0, 5.0)
 })
