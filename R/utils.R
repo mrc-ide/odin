@@ -63,3 +63,7 @@ is_directory <- function(path) {
 basename_no_ext <- function(path) {
   tools::file_path_sans_ext(basename(path))
 }
+
+`%||%` <- function(x, y) {
+  if (is.null(x)) y else x
+}

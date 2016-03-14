@@ -518,10 +518,11 @@ odin_parse_combine_arrays <- function(obj) {
     x$line <- viapply(eqs[j], "[[", "line")
 
     nd_x <- tryCatch(nd[[nms_real[[x$name]]]],
-                     error=function(e)
+                     error=function(e) {
                        odin_error(
-                         sprintf("No dim() call found for %s", x$name),
-                         x$line, as.expression(x$expr)))
+                         sprintf("No dim() call found for %s - used in:",
+                                 x$lhs$name_target %||% x$name),
+                         x$line, as.expression(x$expr))})
 
     err <- viapply(eqs[j], function(x) x[["lhs"]][["nd"]]) != nd_x
     if (any(err)) {
