@@ -483,7 +483,7 @@ odin_parse_combine_arrays <- function(obj) {
     ## TODO: It's possible here that we'll get duplicated calls to
     ## user; they'll probably make it through here which won't cause a
     ## great problem but it's a bit ugly, and hard to check.
-    nd[j] <- viapply(eqs[j], function(x) x$lhs$nd)
+    nd[i] <- viapply(eqs[j], function(x) x$lhs$nd)
   }
 
   j <- which(is_dim)
