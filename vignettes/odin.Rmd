@@ -205,3 +205,60 @@ tt <- seq(0, 100, length.out=20000)
 system.time(y <- mod$run(tt))
 pairs(y[, -1L], panel=lines, lwd=.2, col="#00000055")
 ```
+
+# Delay models
+
+Models with lags and delays represent a challenge in solving and
+representing the system see [this wikipedia
+article](https://en.wikipedia.org/wiki/Delay_differential_equation)
+for some of the issues.  In the general case this gives a set of
+partial differential equations, which are much harder to solve
+generally than ordinary differential equations.
+
+Like Berkeley Madonna, `odin` allows solving equations with lags,
+using the machinery available in `deSolve`.  One can specify a lag
+in a state variable or an expression.  The lag times can also be
+variables.
+
+**NOTE** the current version supports only scalar delays; delays
+that involve arrays are not currently handled, but will be soon.
+``` {r }
+gen <- odin::odin({
+  ylag <- delay(y, tau)
+  initial(y) <- 0.5
+  deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
+  tau <- user(10)
+  output(ylag) <- ylag
+})
+dde <- gen()
+```
+
+The first line here
+
+```r
+ylag <- delay(y, tau)
+```
+
+Specifies the delay; it says that `ylag` should be equal to `y`
+from `tau` ago.  Or; `ylag(t) = y(t - tau)`.
+
+`delay` expressions must be the only expressions on the rhs of an
+assignment.  The first argument can be a single variable (like
+here) or it can be an expression.
+
+Running the model will automatically use the `deSolve::dede`
+function.
+``` {r }
+t <- seq(0, 300, length.out=301)
+y1 <- dde$run(t)
+plot(y1, ylab = "y", mfrow=c(1, 2), which=1)
+plot(y1[, -1L], xlab="y", ylab = "ylag", mfrow=NULL, type="l")
+```
+
+Increasing the lag time creates much more complicated trajectories:
+``` {r }
+dde$set_user(tau=20)
+y2 <- dde$run(t)
+plot(y2, ylab = "y", mfrow=c(1, 2), which=1)
+plot(y2[, -1L], xlab="y", ylab = "ylag", mfrow=NULL, type="l")
+```
