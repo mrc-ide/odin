@@ -237,13 +237,13 @@ ode_system_generator <- function(dll, name=NULL) {
           if (self$initial_stage < STAGE_TIME) {
             y <- self$init
           } else {
-            y <- .Call(self$C$init, self$ptr, t[[1L]])
+            y <- .Call(self$C$init, self$ptr, as.numeric(t[[1L]]))
           }
         } else if (self$initial_stage == STAGE_TIME) {
           ## TODO: this is going to initialise the correct starting
           ## time but also compute and return the y values, which we
           ## don't need.
-          .Call(self$C$init, self$ptr, t[[1L]])
+          .Call(self$C$init, self$ptr, as.numeric(t[[1L]]))
         }
 
         self$ode(y, t, self$C$ds_deriv, self$ptr,

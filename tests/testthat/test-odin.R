@@ -56,3 +56,29 @@ test_that("user variables", {
   mod$set_user()
   expect_equal(mod$contents()$N0, 5.0)
 })
+
+test_that("non-numeric time", {
+  ## Only an issue for delay models or models with time-dependent
+  ## initial conditions.
+  gen <- odin::odin({
+    ylag <- delay(y, 10)
+    initial(y) <- 0.5
+    deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
+  }, verbose=FALSE)
+  mod <- gen()
+  t <- as.integer(0:10)
+  expect_silent(mod$run(t))
+})
+
+test_that("non-numeric user", {
+  gen <- odin::odin({
+    deriv(N) <- r * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- user(1)
+    K <- user(100)
+    r <- user()
+  }, verbose=FALSE)
+  mod <- gen(1L)
+  expect_is(mod$contents()$r, "numeric")
+  expect_identical(mod$contents()$r, 1.0)
+})
