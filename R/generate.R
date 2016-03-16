@@ -343,7 +343,6 @@ odin_generate_symbol <- function(x, obj, dat) {
 }
 
 odin_generate_array <- function(x, obj, dat) {
-  nm <- x$name
   st <- STAGES[[x$stage]]
 
   if (isTRUE(x$rhs$user)) {
@@ -365,58 +364,64 @@ odin_generate_array <- function(x, obj, dat) {
     obj[[st]]$add('%s(%s, "%s", %s, %s);',
                   fn, USER, x$name, dn, obj$rewrite(x$name))
   } else {
-    indent <- ""
-    ## TODO: For >= 2 dimensions, consider running the indices
-    ## backwards here to be more cache friendly.  So this means
-    ## running k, then j, then i.  To do this well, store the offsets
-    ## at each loop level.  See odin_sum2 and odin_sum3 for how this
-    ## works.  I'm not really sure if this will actually make a
-    ## performance gain, but it should be simple enough to implement.
-    ## It's worth checking the code that compiler generates though
-    ## actually differs (especially with -O2 or higher).
-    for (j in seq_along(x$lhs$index)) {
-      xj <- x$lhs$index[[j]]
-      is_range <- xj$is_range
-      target <- xj$extent_max
-      ## TODO: The index variables need sanitising so that no more
-      ## than one of i,j,k is allowed; things like x[i,j] = z[i + j]
-      ## are not allowed!
-      for (k in seq_along(is_range)) {
-        if (is_range[k]) {
-          obj[[st]]$add("%sfor (int %s = %s; %s < %s; ++%s) {",
-                        indent,
-                        INDEX[[k]], minus1(xj$extent_min[[k]], obj$rewrite),
-                        INDEX[[k]], obj$rewrite(xj$extent_max[[k]]),
-                        INDEX[[k]])
-          indent <- paste0("  ", indent)
-          target[[k]] <- as.symbol(INDEX[[k]])
-        } else if (INDEX[[k]] %in% x$rhs$depends$variables) {
-          ## TODO: I need to get the index rhs depends back here to
-          ## do this best (i.e., if the rhs does not depend on an
-          ## index then don't bother adding the declaration here).
-          ## As it is this will do this for *all* entries which is
-          ## not ideal.
-          if (!nzchar(indent)) {
-            obj[[st]]$add("{")
-            indent <- "  "
-          }
-          obj[[st]]$add("%sint %s = %s;", indent, INDEX[[k]],
-                        minus1(xj$extent_max[[k]], obj$rewrite))
-          target[[k]] <- as.symbol(INDEX[[k]])
-        } else {
-          target[[k]] <- xj$extent_max[[k]]
-        }
-      }
-      target <- obj$rewrite(as.call(c(quote(`[`), as.symbol(nm), target)))
-      value <- obj$rewrite(x$rhs$value[[j]])
-      obj[[st]]$add("%s%s = %s;", indent, target, value)
+    obj[[st]]$add(odin_generate_array_expr(x, obj))
+  }
+}
 
-      while (nzchar(indent)) {
-        indent <- substr(indent, 3L, nchar(indent))
-        obj[[st]]$add("%s}", indent)
+odin_generate_array_expr <- function(x, obj) {
+  ret <- collector()
+  indent <- ""
+  ## TODO: For >= 2 dimensions, consider running the indices
+  ## backwards here to be more cache friendly.  So this means
+  ## running k, then j, then i.  To do this well, store the offsets
+  ## at each loop level.  See odin_sum2 and odin_sum3 for how this
+  ## works.  I'm not really sure if this will actually make a
+  ## performance gain, but it should be simple enough to implement.
+  ## It's worth checking the code that compiler generates though
+  ## actually differs (especially with -O2 or higher).
+  for (j in seq_along(x$lhs$index)) {
+    xj <- x$lhs$index[[j]]
+    is_range <- xj$is_range
+    target <- xj$extent_max
+    ## TODO: The index variables need sanitising so that no more
+    ## than one of i,j,k is allowed; things like x[i,j] = z[i + j]
+    ## are not allowed!
+    for (k in seq_along(is_range)) {
+      if (is_range[k]) {
+        ret$add("%sfor (int %s = %s; %s < %s; ++%s) {",
+                indent,
+                INDEX[[k]], minus1(xj$extent_min[[k]], obj$rewrite),
+                INDEX[[k]], obj$rewrite(xj$extent_max[[k]]),
+                INDEX[[k]])
+        indent <- paste0("  ", indent)
+        target[[k]] <- as.symbol(INDEX[[k]])
+      } else if (INDEX[[k]] %in% x$rhs$depends$variables) {
+        ## TODO: I need to get the index rhs depends back here to
+        ## do this best (i.e., if the rhs does not depend on an
+        ## index then don't bother adding the declaration here).
+        ## As it is this will do this for *all* entries which is
+        ## not ideal.
+        if (!nzchar(indent)) {
+          ret$add("{")
+          indent <- "  "
+        }
+        ret$add("%sint %s = %s;", indent, INDEX[[k]],
+                minus1(xj$extent_max[[k]], obj$rewrite))
+        target[[k]] <- as.symbol(INDEX[[k]])
+      } else {
+        target[[k]] <- xj$extent_max[[k]]
       }
     }
+    target <- obj$rewrite(as.call(c(quote(`[`), as.symbol(x$name), target)))
+    value <- obj$rewrite(x$rhs$value[[j]])
+    ret$add("%s%s = %s;", indent, target, value)
+
+    while (nzchar(indent)) {
+      indent <- substr(indent, 3L, nchar(indent))
+      ret$add("%s}", indent)
+    }
   }
+  ret$get()
 }
 
 ## TODO: I think I have some duplication here in both the variable
