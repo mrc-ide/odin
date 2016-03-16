@@ -478,8 +478,8 @@ odin_generate_delay <- function(x, obj, dat) {
   ## 2, 3) or name things after the variables that are being delayed
   ## (delay_1_idx vs delay_lag_inf_idx, delay_1_state vs
   ## delay_lag_inf_state).  I think that the latter is probably nicer.
-  delay_idx <- sprintf("delay_%s_idx", x$name)
-  delay_state <- sprintf("delay_%s_%s", x$name, STATE)
+  delay_idx <- sprintf("delay_%s_%s", INDEX[[1L]], x$name)
+  delay_state <- sprintf("delay_%s_%s", STATE, x$name)
   delay_dim <- array_dim_name(delay_idx)
   delay_time <- sprintf("delay_%s", TIME)
 
@@ -1107,8 +1107,12 @@ array_dim_name <- function(name, sub=NULL, use=TRUE) {
   if (grepl("^(initial|deriv)_", name)) {
     name_dim <- sub("^(initial|deriv)_", "dim_", name)
   } else if (grepl("^delay_", name)) {
-    if (use || grepl("_idx$", name)) {
-      name_dim <- sprintf("dim_%s", sub("_[a-z]+$", "", name))
+    re <- "^delay_([^_]+)_(.*)$"
+    type <- sub(re, "\\1", name)
+    if (type == INDEX[[1L]] || (use && type == STATE)) {
+      name_dim <- sub(re, "dim_delay_\\2", name)
+    } else if (use) {
+      name_dim <- sub("^delay_", "dim_", name)
     } else {
       name_dim <- NULL
     }
