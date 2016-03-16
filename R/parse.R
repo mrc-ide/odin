@@ -325,6 +325,11 @@ odin_parse_rhs <- function(rhs, line, expr) {
                   user=TRUE)
     } else {
       if ("sum" %in% deps$functions) {
+        ## TODO: It would be so much nicer if by the time this rolls
+        ## around we could have already determined the number of
+        ## dimensions that a sum has.  We'll pick that up later in the
+        ## checks I think but the error is going to be confusing
+        ## because it will be a rewritten statement.
         rhs <- odin_parse_rewrite_sum(rhs, line, expr)
         deps <- find_symbols(rhs)
       }
@@ -1312,7 +1317,9 @@ odin_parse_rewrite_sum <- function(x, line, expr) {
         ## TODO: I don't know that we check the variables here are
         ## actually arrays.
         if (length(x) != 2L) {
-          odin_error("sum() requires exactly one argument, msg", line, expr)
+          odin_error(
+            sprintf("sum() requires exactly one argument (recieved %d)",
+                    length(x) - 1L), line, expr)
         }
         if (is.symbol(x[[2L]])) {
           ## sum(foo)
