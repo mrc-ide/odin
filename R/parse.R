@@ -862,12 +862,8 @@ odin_parse_check_array_usage <- function(obj) {
     any(x$depends$variables %in% names(which(is_array))) ||
     any(x$depends$functions %in% "["))
   for (i in which(uses_array)) {
-    ok <- check_array_rhs(eqs[[i]]$rhs$value, nd)
-    if (!ok) {
-      msg <- paste0("\t\t", attr(ok, "message"), collapse="\n")
-      odin_error(sprintf("Invalid array use on rhs:\n%s", msg),
-                 eqs[[i]]$line, as.expression(eqs[[i]]$expr))
-    }
+    check_array_rhs(eqs[[i]]$rhs$value, nd, eqs[[i]]$line,
+                    as.expression(eqs[[i]]$expr))
   }
 
   obj$index_vars <- all_index_vars
@@ -1081,64 +1077,88 @@ odin_parse_output <- function(obj) {
   obj
 }
 
-## I feel like I'm going to end up with a lot of these floating
-## around; perhaps there's some nicer way of doing it...
-##
-## TODO: Need to pass through here information about the rangedness of
-## the lhs and filter i, j, k by that.
-check_array_rhs <- function(expr, nd) {
-  if (is.list(expr)) {
-    res <- lapply(expr, check_array_rhs, nd)
-    msg <- as.character(unlist(lapply(res, attr, "message", exact=TRUE)))
-    return(structure(all(vlapply(res, as.logical)), message=msg))
+check_array_rhs <- function(rhs, nd, line, expr) {
+  if (is.list(rhs)) {
+    for (i in seq_along(rhs)) {
+      check_array_rhs(rhs[[i]], nd, line[[i]], expr[[i]])
+    }
+  }
+  nms <- names(nd)
+  throw <- function(...) {
+    odin_error(sprintf(...), line, expr)
   }
 
-  f <- function(e, is_sum=FALSE) {
+  f <- function(e, special) {
     if (!is.recursive(e)) { # leaf
       if (!is.symbol(e)) { # A literal of some type
         return()
-      } else if (deparse(e) %in% nms) {
-        err$add(sprintf("Found %s on rhs", deparse(e)))
+      } else if (is.null(special) && deparse(e) %in% nms) {
+        throw("Array '%s' used without array index", deparse(e))
       }
-    } else if (identical(e[[1L]], quote(`[`))) {
-      x <- deparse(e[[2L]])
-      ijk <- as.list(e[-(1:2)])
-      if (x %in% nms) {
-        if (length(ijk) != nd[[x]]) {
-          err$add("Incorrect dimensionality for %s in '%s'", x, deparse_str(e))
+    } else if (is.symbol(e[[1L]])) {
+      f_nm <- as.character(e[[1L]])
+      if (identical(f_nm, "[")) {
+        x <- deparse(e[[2L]])
+        if (!is.null(special)) {
+          throw(
+            "Within special function %s, array %s must be used without '['",
+            special, x)
         }
-        sym <- find_symbols(ijk)
-        nok <- setdiff(sym$functions, VALID_ARRAY)
-        if (length(nok) > 0L) {
-          err$add("Disallowed functions used for %s in '%s': %s",
+        ijk <- as.list(e[-(1:2)])
+        if (x %in% nms) {
+          if (length(ijk) != nd[[x]]) {
+            throw(
+              "Incorrect dimensionality for %s in '%s' (expected %d)",
+              x, deparse_str(e), nd[[x]])
+          }
+          sym <- find_symbols(ijk)
+          nok <- setdiff(sym$functions, VALID_ARRAY)
+          if (length(nok) > 0L) {
+            throw(
+              "Disallowed functions used for %s in '%s': %s",
+              x, deparse_str(e), pastec(nok))
+          }
+          nok <- intersect(sym$variables, nms)
+          if (length(nok) > 0L) {
+            throw("Disallowed variables used for %s in '%s': %s",
                   x, deparse_str(e), pastec(nok))
-        }
-        ## This allows use of the empty symbol in sums (e.g., sum(x[, 1])).
-        ## However, it might be easier to check that elsewhere.
-        nok <- intersect(sym$variables,  c(nms, if (!is_sum) ""))
-        if (length(nok) > 0L) {
-          err$add("Disallowed variables used for %s in '%s': %s",
-                  x, deparse_str(e), pastec(nok))
+          }
+          if ("" %in% sym$variables) {
+            throw("Empty array index not allowed on rhs")
+          }
+        } else {
+          throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
       } else {
-        err$add("Unknown array variable %s in '%s'", x, deparse_str(e))
-      }
-    } else {
-      is_sum <- identical(e[[1L]], quote(sum))
-      for (a in as.list(e[-1])) {
-        if (!missing(a)) {
-          f(a, is_sum)
+        if (f_nm %in% c("sum", "length", "dim")) {
+          special <- f_nm
+          if (length(e) < 2L) {
+            throw("Special function %s requires at least 1 argument", special)
+          } else {
+            if (!(deparse(e[[2L]]) %in% nms)) {
+              throw("Special function %s requires array as first argument",
+                    special)
+              ## Don't proceed any further at this point, as we can
+              ## hit generated code, especially when the function is
+              ## 'sum' as by this point it has been expanded by
+              ## rewrite_sum.
+              return()
+            }
+          }
+        } else {
+          special <- NULL
+        }
+        for (a in as.list(e[-1])) {
+          if (!missing(a)) {
+            f(a, special)
+          }
         }
       }
     }
   }
 
-  nms <- names(nd)
-  err <- collector()
-  f(expr)
-  x <- unique(err$get())
-  ok <- length(x) == 0L
-  if (ok) TRUE else structure(FALSE, message=x)
+  f(rhs, NULL)
+  invisible(NULL) # never return anything at all.
 }
 
 check_dim_rhs <- function(x) {

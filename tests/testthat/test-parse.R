@@ -99,7 +99,7 @@ test_that("some parse errors", {
                "user() call must not reference variables", fixed=TRUE)
 
   expect_error(odin_parse(as="text", "y <- x\nx[1] <- 1\ndim(x) <- 10"),
-               "Invalid array use on rhs")
+               "Array 'x' used without array index")
 
   expect_error(odin_parse(as="text", "y[] <- 0\ndim(y) <- f(p)"),
                "Invalid dim() rhs", fixed=TRUE)
@@ -122,16 +122,32 @@ test_that("some parse errors", {
 })
 
 test_that("RHS array checking", {
+  ## Dummy args:
+  line <- 1
+  expr <- quote(x)
+
   ## This needs expanding as I find more corner cases
-  expect_true(check_array_rhs(quote(a + b[1]), c(b=1)))
-  expect_false(check_array_rhs(quote(a + b[1]), c(b=2)))
-  expect_false(check_array_rhs(quote(a + b[1,2,3]), c(b=2)))
-  expect_true(check_array_rhs(quote(a + b[1,2,3]), c(b=3)))
-  expect_false(check_array_rhs(quote(a + b[f(1)]), c(b=1)))
-  expect_false(check_array_rhs(quote(b), c(b=1)))
-  expect_true(check_array_rhs(quote(a), c(b=1)))
-  expect_false(check_array_rhs(quote(a[b[1]]), c(a=1, b=1)))
-  expect_false(check_array_rhs(quote(a[]), c(a=1)))
+  expect_null(check_array_rhs(quote(a + b[1]), c(b=1), line, expr))
+  expect_error(check_array_rhs(quote(a + b[1]), c(b=2), line, expr),
+               "Incorrect dimensionality for b")
+  expect_error(check_array_rhs(quote(a + b[1,2,3]), c(b=2), line, expr),
+               "Incorrect dimensionality for b")
+  expect_null(check_array_rhs(quote(a + b[1,2,3]), c(b=3), line, expr))
+  expect_error(check_array_rhs(quote(a + b[f(1)]), c(b=1), line, expr),
+               "Disallowed functions used for b")
+  expect_error(check_array_rhs(quote(b), c(b=1), line, expr),
+               "Array 'b' used without array index")
+  expect_null(check_array_rhs(quote(a), c(b=1), line, expr))
+  ## Would be nicer to detect the nested indexing.
+  expect_error(check_array_rhs(quote(a[b[1]]), c(a=1, b=1), line, expr),
+               "Disallowed functions used for a in")
+  expect_error(check_array_rhs(quote(a[]), c(a=1), line, expr),
+               "Empty array index not allowed on rhs")
+
+  rhs <- odin_parse_rewrite_sum(quote(sum(a)))
+  expect_null(check_array_rhs(rhs, c(a=1), line, expr))
+  expect_error(check_array_rhs(rhs, c(b=1), line, expr),
+               "Special function sum requires array as first argument")
 })
 
 test_that("lhs array checking", {
