@@ -67,3 +67,7 @@ basename_no_ext <- function(path) {
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
 }
+
+substitute_ <- function(expr, env) {
+  eval(substitute(substitute(y, env), list(y=expr)))
+}

@@ -664,6 +664,28 @@ odin_parse_dependencies <- function(obj) {
   vars <- obj$vars
   nms <- vcapply(eqs, "[[", "name")
   exclude <- c("", INDEX, TIME)
+
+  ## Array delay variables need to delay on the dimensions of their
+  ## "present" array, so that the order of initialisation is always
+  ## correct.  In practice I don't think this is a big deal because
+  ## array sizing is not time dependent.  However, this resolves a
+  ## difficulty in determining the total array size of the delay
+  ## bookkeeping indices.
+  is_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
+  is_array <- setNames(vlapply(eqs, function(x) identical(x$lhs$type, "array")),
+                       nms)
+  if (any(is_delay)) {
+    for (i in which(is_delay)) {
+      j <- is_array[setdiff(eqs[[i]]$rhs$depends_delay$variables,
+                            c(obj$vars, INDEX))]
+      if (any(j)) {
+        eqs[[i]]$rhs$depends$variables <-
+                 union(eqs[[i]]$rhs$depends$variables,
+                       vcapply(names(j[j]), array_dim_name, USE.NAMES=FALSE))
+      }
+    }
+  }
+
   deps <- lapply(eqs, function(el) setdiff(el$depends$variables, exclude))
   names(deps) <- nms
 
@@ -708,9 +730,8 @@ odin_parse_dependencies <- function(obj) {
   ## filter out any non-time-dependent things.
   if (any(is_delay)) {
     f <- function(x) {
-      tmp <- x$rhs$depends_delay$variables
-      deps <- deps_rec[tmp]
-      deps <- unique(c(tmp, unlist(deps, use.names=FALSE)))
+      tmp <- setdiff(x$rhs$depends_delay$variables, INDEX)
+      deps <- unique(c(tmp, unlist(deps_rec[tmp], use.names=FALSE)))
       deps <- setdiff(deps[stage[deps] == STAGE_TIME], TIME)
       deps[order(match(deps, order))]
     }

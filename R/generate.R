@@ -490,11 +490,6 @@ odin_generate_delay <- function(x, obj, dat) {
   ## with an accumulating variable as we'll need to get lengths here
   ## anyway.
 
-  ## NOTE: If using arrays it's possible that the size will vary.
-  ##
-  ## TODO: If that's the case then this needs to be done very
-  ## carefully; we must come _after_ the arrays have been declared in
-  ## the order (so add a few more dependencies in parse).
   st <- STAGES[if (any(x$delay$is_array)) dat$dim_stage else STAGE_CONSTANT]
 
   obj$add_element(delay_idx, "int", 1L)
