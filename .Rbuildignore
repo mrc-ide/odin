@@ -5,10 +5,13 @@
 ^.travis.yml$
 ^appveyor.yml$
 ^tests/testthat/examples/.*\.rds$
+^tests/testthat/.*\.o
+^tests/testthat/.*\.so$
 ^tests/testthat/examples/malaria_.*$
 ^inst/web$
 ^odin_.*\.tar.gz$
 ^odin\.Rcheck$
 ^ignore$
 ^notes\.md$
+^issues\.md$
 ^update_web\.sh$
