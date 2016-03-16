@@ -419,29 +419,31 @@ odin_generate_array <- function(x, obj, dat) {
   }
 }
 
+## TODO: I think I have some duplication here in both the variable
+## ordering and the output ordering (computing offsets and the like).
+## Here I'm hoping to make the simplifying assumption that the number
+## of array variables stored is smallish so we can afford to manually
+## do calculations on them.
 odin_generate_delay <- function(x, obj, dat) {
-  ## TODO: This can be relaxed soon, just requires more
-  ## book-keeping, and a bunch of testing.
-  if (any(dat$variable_order$is_array[x$delay$extract])) {
-    stop("Delay arrays not supported")
-  }
+  delay_len <- length(x$delay$extract)
+  delay_is_array <- x$delay$is_array
+  ## This one is nasty:
   dep_is_array <- vcapply(dat$eqs[c(x$name, x$delay$order)],
                           function(x) x$lhs$type) == "array"
-  if (any(dep_is_array)) {
-    stop("Delay dependency arrays not supported")
+
+  delay_size <- vcapply(x$delay$size, obj$rewrite)
+  ## Need to compute total array size here, with the 3 options of all
+  ## array, no array or some array:
+  if (all(delay_is_array)) {
+    delay_size_tot <- paste(delay_size, collapse=" + ")
+  } else if (any(delay_is_array)) {
+    delay_size_tot <-
+      paste(c(sum(!delay_is_array), delay_size[delay_is_array]),
+            collapse=" + ")
+  } else {
+    delay_size_tot <- delay_len
   }
 
-  ## TODO: delay_i_len varies if there are arrays; it becomes a new
-  ## variable with a stage equal to the max of all the array sizes
-  ## used.  This is a lot like the situation with computing 'dim'.
-  ##
-  ## we'll be looking for
-  ##   tmp <- names(which(dat$variable_order$is_array[delay_i$extract]))
-  ##   paste(array_dim_name(tmp), collapse=" + ")
-  ## added onto
-  ##   length(delay_i$extract) -
-  ##     sum(dat$variable_order$is_array[delay_i$extract])
-  ##
   ## NOTE: There's some duplication here in terms of the size of
   ## various arrays.  That helps with some assumptions about how
   ## the array allocations and copying works.  It's possible that
@@ -459,16 +461,22 @@ odin_generate_delay <- function(x, obj, dat) {
   ##
   ## TODO: The Calloc/Free calls here could move into contents if
   ## it took a stage argument.
-  delay_len <- length(x$delay$extract)
+  ##
+  ## TODO: The Calloc/Free calls here are in danger of being incorrect
+  ## here with user-sized array input.  I think that this just
+  ## requires nailing the stage correctly, but there are some unusual
+  ## dependencies for delay things (and we need to delay on the size
+  ## for all given variables which is not currently supported
+  ## properly)
 
   ## The options for naming are to use a series of indices (e.g., 1,
   ## 2, 3) or name things after the variables that are being delayed
   ## (delay_1_idx vs delay_lag_inf_idx, delay_1_state vs
   ## delay_lag_inf_state).  I think that the latter is probably nicer.
   delay_idx <- sprintf("delay_%s_idx", x$name)
-  delay_state <- sprintf("delay_%s_state", x$name)
+  delay_state <- sprintf("delay_%s_%s", x$name, STATE)
   delay_dim <- array_dim_name(delay_idx)
-  delay_time <- "delay_time"
+  delay_time <- sprintf("delay_%s", TIME)
 
   ## If there are any arrays here we'll need to organise offsets.
   ## Rather than store the full offset vector I'll do this one by hand
@@ -477,63 +485,104 @@ odin_generate_delay <- function(x, obj, dat) {
   ## with an accumulating variable as we'll need to get lengths here
   ## anyway.
 
-  ## TODO: If using arrays it's possible that the size will vary.  If
-  ## that's the case then this needs to be done very carefully; we
-  ## must come _after_ the arrays have been declared in the order (so
-  ## add a few more dependencies in parse) and the stage needs to be
-  ## the max of those.
-  st <- STAGES[STAGE_CONSTANT]
+  ## NOTE: If using arrays it's possible that the size will vary.
+  ##
+  ## TODO: If that's the case then this needs to be done very
+  ## carefully; we must come _after_ the arrays have been declared in
+  ## the order (so add a few more dependencies in parse).
+  st <- STAGES[if (any(x$delay$is_array)) dat$dim_stage else STAGE_CONSTANT]
 
   obj$add_element(delay_idx, "int", 1L)
-  obj[[st]]$add("%s = %d;", obj$rewrite(delay_dim), delay_len)
+  obj$add_element(delay_state, "double", 1L)
+
+  obj[[st]]$add("%s = %s;", obj$rewrite(delay_dim), delay_size_tot)
+  if (st == "user") { ## NOTE: duplicated from odin_generate_dim()
+    obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_idx))
+    obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_state))
+    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(delay_idx))
+    obj[["user"]]$add("  Free(%s);", obj$rewrite(delay_idx))
+    obj[["user"]]$add("}")
+    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(delay_state))
+    obj[["user"]]$add("  Free(%s);", obj$rewrite(delay_state))
+    obj[["user"]]$add("}")
+  }
   obj[[st]]$add("%s = (int*) Calloc(%s, int);",
                 obj$rewrite(delay_idx), obj$rewrite(delay_dim))
-  obj$free$add("Free(%s);", obj$rewrite(delay_idx))
-
-  obj$add_element(delay_state, "double", 1L)
   obj[[st]]$add("%s = (double*) Calloc(%s, double);",
                 obj$rewrite(delay_state), obj$rewrite(delay_dim))
+  obj$free$add("Free(%s);", obj$rewrite(delay_idx))
   obj$free$add("Free(%s);", obj$rewrite(delay_state))
 
-  ## TODO: This needs more work for the array case because we pull
-  ## whole arrays out.  So there will be loops in here.
-  delay_offset <- dat$variable_order$offset_use[x$delay$extract]
-  obj[[st]]$add("%s[%d] = %s;",
-                obj$rewrite(delay_idx), seq_along(delay_offset) - 1L,
-                vcapply(delay_offset, obj$rewrite))
+  ## Fill in the instructions for deSolve as to which variables we
+  ## need delays for.  This is pretty hairy in the case of variables
+  ## because we need to work across two sets of offsets that don't
+  ## necessarily match up.  Note that the non-array things go in here
+  ## before the array things.
+  delay_var_offset <- dat$variable_order$offset_use[x$delay$extract]
+  for (i in seq_along(delay_var_offset)) {
+    if (x$delay$is_array[[i]]) {
+      obj[[st]]$add("for (int i = 0, j = %s, k = %s; i < %s; ++i, ++j, ++k) {",
+                    obj$rewrite(x$delay$offset[[i]]),
+                    obj$rewrite(delay_var_offset[[i]]),
+                    obj$rewrite(array_dim_name(x$delay$extract[[i]])))
+      obj[[st]]$add("  %s[j] = k;", obj$rewrite(delay_idx))
+      obj[[st]]$add("}")
+    } else {
+      obj[[st]]$add("%s[%d] = %s;", obj$rewrite(delay_idx), i - 1L,
+                    obj$rewrite(delay_var_offset[[i]]))
+    }
+  }
 
-  ## Next, prepare output variables so we can push them up out of
-  ## scope (TODO: for arrays, this would be '*%s = %s', name,
-  ## rewrite(name)).
+  ## Next, prepare output variables so we can push them up out of scope:
   st <- STAGES[STAGE_TIME]
-  obj[[st]]$add("double %s;", x$name)
+  if (x$lhs$type == "array") {
+    obj[[st]]$add("double *%s = %s;", x$name, obj$rewrite(x$name))
+  } else {
+    obj[[st]]$add("double %s;", x$name)
+  }
   obj[[st]]$add("{")
 
   ## 4. Pull things out of the lag value, but only if time is past
   ## where the lag is OK to work with.  That's going to look like:
-  ## TODO: when working with arrays, some of these are *<x>.
   obj[[st]]$add("  double %s;",
-                paste(x$delay$extract, collapse=", "))
+                paste0(ifelse(x$delay$is_array, "*", ""),
+                       x$delay$extract, collapse=", "))
+
+  ## Next, we need to compute offsets.  This is annoying because it
+  ## duplicates code elsewhere, but life goes on.  I'm running this
+  ## one a bit differently though, in the hope that not too many
+  f <- function(i) {
+    if (identical(x$delay$offset[[i]], 0L) && x$delay$is_array[[i]]) {
+      obj$rewrite(delay_state)
+    } else {
+      fmt <- if (x$delay$is_array[[i]]) "%s + %s" else "%s[%s]"
+      sprintf(fmt, obj$rewrite(delay_state), obj$rewrite(x$delay$offset[[i]]))
+    }
+  }
+  delay_access <- vcapply(seq_along(x$delay$offset), f)
+  ## TODO: Here, we need, for the array case, to swap out the
+  ## delay_state in place of the last array.  If I do that always it's
+  ## less checking, actually.  This will always be of the form X +
+  ## dim(X) so that's nice.
+  if (length(delay_access) > 2L) stop("This is not right yet")
 
   ## TODO: if time is used in the time calculation it will need
   ## rewriting.
-  obj[[st]]$add("  const double delay_%s = %s - %s;",
-                TIME, TIME, obj$rewrite(x$delay$time))
-  obj[[st]]$add("  if (delay_%s <= %s) {",
-                TIME, obj$rewrite(sprintf("initial_%s", TIME)))
+  obj[[st]]$add("  const double %s = %s - %s;",
+                delay_time, TIME, obj$rewrite(x$delay$time))
+  obj[[st]]$add("  if (%s <= %s) {",
+                delay_time, obj$rewrite(sprintf("initial_%s", TIME)))
   obj[[st]]$add("    %s = %s;",
                 x$delay$extract,
                 vcapply(sprintf("initial_%s", x$delay$extract),
                         obj$rewrite, USE.NAMES=FALSE))
   obj[[st]]$add("  } else {")
-  obj[[st]]$add("    lagvalue(delay_%s, %s, %s, %s);",
-                TIME,
+  obj[[st]]$add("    lagvalue(%s, %s, %s, %s);",
+                delay_time,
                 obj$rewrite(delay_idx),
                 obj$rewrite(delay_dim),
                 obj$rewrite(delay_state))
-  obj[[st]]$add("    %s = %s[%d];",
-                x$delay$extract, obj$rewrite(delay_state),
-                seq_along(x$delay$extract) - 1L)
+  obj[[st]]$add("    %s = %s;", x$delay$extract, delay_access)
   obj[[st]]$add("  }")
 
   ## Then we'll organise that whenever we hit a variable that is used
@@ -547,10 +596,18 @@ odin_generate_delay <- function(x, obj, dat) {
   ## temporary holding pen.  For the symbol case it's so easy that we
   ## can largely ignore it I think.
   for (nm in x$delay$order) {
-    obj[[st]]$add("  double %s = %s;", nm,
-                  obj$rewrite(dat$eqs[[nm]]$rhs$value))
+    if (dep_is_array[[nm]]) {
+      stop("Not yet implemented...")
+    } else {
+      obj[[st]]$add("  double %s = %s;", nm,
+                    obj$rewrite(dat$eqs[[nm]]$rhs$value))
+    }
   }
-  obj[[st]]$add("  %s = %s;", x$name, obj$rewrite(x$rhs$value_expr))
+  if (x$lhs$type == "array") {
+    stop("Not yet implemented...")
+  } else {
+    obj[[st]]$add("  %s = %s;", x$name, obj$rewrite(x$rhs$value_expr))
+  }
   obj[[st]]$add("}")
 }
 

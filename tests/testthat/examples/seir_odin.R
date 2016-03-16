@@ -21,7 +21,7 @@ surv <- exp(-b * lat_hum)
 ## during that time
 lag_inf <- delay(new_inf  *  surv, lat_hum)
 
-deriv(S) <- Births - b * S - beta * S * I / N+delta * R
+deriv(S) <- Births - b * S - new_inf + delta * R
 deriv(E) <- new_inf - lag_inf - b * E
 deriv(I) <- lag_inf  - (b + sigma) * I
 deriv(R) <- sigma * I - b * R - delta * R

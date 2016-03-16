@@ -87,10 +87,6 @@ odin_parse_expr <- function(i, exprs) {
     odin_error("delay() only valid for non-special variables", line, expr)
   }
 
-  if (isTRUE(rhs$delay) && lhs$type == "array") {
-    odin_error("delay() not yet supported for array variables")
-  }
-
   list(name=lhs$name,
        lhs=lhs,
        rhs=rhs,
@@ -548,17 +544,26 @@ odin_parse_combine_arrays <- function(obj) {
     ## NOTE: mixed type specials are dealt with elsewhere.  By this I
     ## mean that a variable is more than one of initial(), deriv(),
     ## output() and plain.
+    used_lhs <- unlist(lapply(eqs[j], function(x) names(x$lhs)))
     ok <- c("type", "name", "name_target", "index", "nd", "depends", "special")
-    stopifnot(length(setdiff(unlist(lapply(
-      eqs[j], function(x) names(x$lhs))), ok)) == 0L)
-    ## If a user value is used, then we _must_ have only a single thing here.
-    ok <- c("type", "depends", "value", "user", "default")
-    stopifnot(length(setdiff(unlist(lapply(
-      eqs[j], function(x) names(x$rhs))), ok)) == 0L)
-    if (length(j) > 1L && any(vlapply(eqs[j], function(x)
-      "user" %in% names(x$rhs)))) {
-      odin_error("user() may only be used on a single-line array assignment",
-                 get_lines(eqs[j]), get_exprs(eqs[j]))
+    stopifnot(length(setdiff(used_lhs, ok)) == 0L)
+
+    used_rhs <- unlist(lapply(eqs[j], function(x) names(x$rhs)))
+    if ("delay" %in% used_rhs) {
+      if (length(j) > 1L) {
+        odin_error("delay() may only be used on a single-line array assignment",
+                   get_lines(eqs[j]), get_exprs(eqs[j]))
+      }
+    } else if ("user" %in% used_rhs) {
+      if (length(j) > 1L) {
+        odin_error("user() may only be used on a single-line array assignment",
+                   get_lines(eqs[j]), get_exprs(eqs[j]))
+      }
+    } else {
+      ## If a delay or a user value is used, then we _must_ have only a
+      ## single thing here.  So we'll check these separately.
+      ok <- c("type", "depends", "value", "user", "default")
+      stopifnot(length(setdiff(used_rhs, ok)) == 0L)
     }
     eqs[[k]] <- x
   }
@@ -979,6 +984,8 @@ odin_parse_delay <- function(obj) {
     return(obj)
   }
 
+  vars <- obj$variable_order
+
   for (idx in seq_along(is_delay)) {
     i <- is_delay[[idx]]
     x <- obj$eqs[[i]]
@@ -994,10 +1001,33 @@ odin_parse_delay <- function(obj) {
       odin_error("delay times may not reference index variables (yet)",
                  x$line, x$expr)
     }
+
+    extract <- intersect(obj$vars, deps) # retains ordering
+    len <- length(extract)
+    is_array <- obj$variable_order$is_array[extract]
+    size <- vector("list", len)
+    offset <- vector("list", len)
+    for (j in seq_len(len)) {
+      if (!is_array[[j]]) {
+        size[[j]] <- 1L
+        offset[[j]] <- j - 1L
+      } else {
+        size[[j]] <- array_dim_name(extract[[j]])
+        if (j == 1L || !is_array[[j - 1L]]) {
+          offset[[j]] <- j - 1L
+        } else {
+          offset[[j]] <- size[[j - 1L]]
+        }
+      }
+    }
+
     obj$eqs[[i]]$delay <- list(idx=idx,
                                time=time,
-                               extract=intersect(obj$vars, deps),
-                               order=intersect(names(obj$eqs), deps))
+                               extract=extract,
+                               order=intersect(names(obj$eqs), deps),
+                               is_array=is_array,
+                               size=size,
+                               offset=offset)
   }
 
   obj
