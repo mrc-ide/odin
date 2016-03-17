@@ -1,7 +1,5 @@
-## What I don't know here is if we will always dump to a file or to a
-## directory?  It seems that specifying a directory matches more with
-## how this is likely to be run in practice.  This is likely to be
-## different when run from a package though.
+## Welcome to the sausage factory!
+
 odin_generate <- function(dat, dest=tempdir()) {
   obj <- odin_generate_loop(dat)
   ## This one is special because it fills up declarations; it miust be
@@ -433,8 +431,7 @@ odin_generate_delay <- function(x, obj, dat) {
   delay_len <- length(x$delay$extract)
   delay_is_array <- x$delay$is_array
   ## This one is nasty:
-  dep_is_array <- vcapply(dat$eqs[c(x$name, x$delay$order)],
-                          function(x) x$lhs$type) == "array"
+  dep_is_array <- x$delay$dep_is_array
 
   delay_size <- vcapply(x$delay$size, obj$rewrite)
   ## Need to compute total array size here, with the 3 options of all
@@ -489,7 +486,6 @@ odin_generate_delay <- function(x, obj, dat) {
   ## will require a good test.  It's possible that this can be done
   ## with an accumulating variable as we'll need to get lengths here
   ## anyway.
-
   st <- STAGES[if (any(x$delay$is_array)) dat$dim_stage else STAGE_CONSTANT]
 
   obj$add_element(delay_idx, "int", 1L)
@@ -512,6 +508,23 @@ odin_generate_delay <- function(x, obj, dat) {
                 obj$rewrite(delay_state), obj$rewrite(delay_dim))
   obj$free$add("Free(%s);", obj$rewrite(delay_idx))
   obj$free$add("Free(%s);", obj$rewrite(delay_state))
+
+  if (length(dat$delay_arrays) > 0L) {
+    size <- vcapply(names(dat$delay_arrays), array_dim_name)
+    for (i in seq_along(dat$delay_arrays)) {
+      nm <- dat$delay_arrays[[i]]
+      size <- array_dim_name(names(dat$delay_arrays)[[i]])
+      obj$add_element(nm, "double", 1L)
+      if (st == "user") { ## NOTE: duplicated from odin_generate_dim()
+        obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm))
+        obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(nm))
+        obj[["user"]]$add("  Free(%s);", obj$rewrite(nm))
+        obj[["user"]]$add("}")
+      }
+      obj[[st]]$add("%s = (double*) Calloc(%s, double);",
+                    obj$rewrite(nm), obj$rewrite(size))
+    }
+  }
 
   ## Fill in the instructions for deSolve as to which variables we
   ## need delays for.  This is pretty hairy in the case of variables
@@ -595,18 +608,39 @@ odin_generate_delay <- function(x, obj, dat) {
   ## odin_generate_symbol because we'd want to dump them into a
   ## temporary holding pen.  For the symbol case it's so easy that we
   ## can largely ignore it I think.
-  for (nm in x$delay$order) {
+
+  if (length(dat$delay_arrays) > 0L) {
+    subs <- lapply(dat$delay_arrays, as.name)
+    tr <- function(x) {
+      if (x$name %in% names(subs)) {
+        x$name <- dat$delay_arrays[[x$name]]
+      }
+      if (isTRUE(x$rhs$delay)) {
+        ## This one is the actual target (last step in the process).
+        x$rhs$value <- list(substitute_(x$rhs$value_expr, subs))
+      } else {
+        ## This one is an array used to generate the target.
+        x$rhs$value <- lapply(x$rhs$value, substitute_, subs)
+      }
+      x
+    }
+  } else {
+    tr <- identity
+  }
+
+  ## Here, identify and rewrite the arrays from the equation.
+  for (nm in x$delay$deps) {
     if (dep_is_array[[nm]]) {
-      stop("Not yet implemented...")
+      obj[[st]]$add(indent(odin_generate_array_expr(tr(dat$eqs[[nm]]), obj), 2))
     } else {
-      obj[[st]]$add("  double %s = %s;", nm,
-                    obj$rewrite(dat$eqs[[nm]]$rhs$value))
+      obj[[st]]$add("  double %s = %s;",
+                    nm, obj$rewrite(tr(dat$eqs[[nm]])$rhs$value))
     }
   }
   if (x$lhs$type == "array") {
-    stop("Not yet implemented...")
+    obj[[st]]$add(indent(odin_generate_array_expr(tr(x), obj), 2))
   } else {
-    obj[[st]]$add("  %s = %s;", x$name, obj$rewrite(x$rhs$value_expr))
+    obj[[st]]$add("  %s = %s;", x$name, obj$rewrite(tr(x)$rhs$value_expr))
   }
   obj[[st]]$add("}")
 }

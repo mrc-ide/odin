@@ -252,3 +252,13 @@ test_that("lv", {
   expect_equal(names(y), "y")
   expect_equal(dim(y$y), c(length(t), 4))
 })
+
+## Just test that this compiles and runs for now, until I get a
+## separate implementation to verify it's doing the right thing.
+test_that("delay array", {
+  gen <- odin("examples/seir_array_odin.R", verbose=FALSE)
+  mod <- gen()
+  t <- seq(0, 300, length.out=101)
+  y <- mod$run(t)
+  expect_equal(dim(y), c(length(t), 23)) # 1 + 4 * 5 + 2
+})

@@ -729,15 +729,19 @@ odin_parse_dependencies <- function(obj) {
   ## time-dependent variables correctly within each delay block and to
   ## filter out any non-time-dependent things.
   if (any(is_delay)) {
+    delay_arrays <- collector()
     f <- function(x) {
       tmp <- setdiff(x$rhs$depends_delay$variables, INDEX)
       deps <- unique(c(tmp, unlist(deps_rec[tmp], use.names=FALSE)))
       deps <- setdiff(deps[stage[deps] == STAGE_TIME], TIME)
+      delay_arrays$add(intersect(names(which(is_array)), deps))
       deps[order(match(deps, order))]
     }
     for (i in which(is_delay)) {
       eqs[[i]]$rhs$order_delay <- f(eqs[[i]])
     }
+    obj$delay_arrays <- setNames(sprintf("delay_%s", delay_arrays$get()),
+                                 delay_arrays$get())
   }
 
   ## Adjust the order so that it's by stage first, and then the order.
@@ -1042,10 +1046,14 @@ odin_parse_delay <- function(obj) {
       }
     }
 
+    deps <- setdiff(deps, obj$vars)
+    dep_is_array <- vcapply(obj$eqs[deps], function(x) x$lhs$type) == "array"
+
     obj$eqs[[i]]$delay <- list(idx=idx,
                                time=time,
                                extract=extract,
-                               order=intersect(names(obj$eqs), deps),
+                               deps=deps,
+                               dep_is_array=dep_is_array,
                                is_array=is_array,
                                size=size,
                                offset=offset)

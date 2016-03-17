@@ -98,7 +98,7 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
     } else if (file.exists(x)) {
       as <- "file"
     } else {
-      stop("'x' looks like a file, but file does not exist")
+      stop("'x' looks like a filename, but file does not exist")
     }
   } else {
     stop("Invalid type for 'x'")
