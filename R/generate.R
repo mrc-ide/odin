@@ -251,8 +251,9 @@ odin_generate_dim <- function(x, obj, dat) {
       nm_i <- obj$rewrite(nm)
     }
 
+    ## TODO "tmp" -> STATE?
     obj[[st]]$add('  double* tmp = %s(%s, "%s", %s);',
-                  fn, USER, nm_s, paste0("&", nm_i))
+                  fn, USER, nm_s, paste0("&", nm_i, collapse=", "))
     ## TODO: This duplicates the code below for computing compound
     ## dimensions, but until I get test cases in that's probably the
     ## simplest for now (note it differs in indent though).

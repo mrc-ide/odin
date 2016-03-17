@@ -121,8 +121,8 @@ rewrite_c <- function(expr, name_pars,
       value <- sprintf("%s[%s]", arr, values)
     } else if (nm == "sum") {
       nd <- (length(expr) - 1L) / 3L
-      ii <- seq_len(nd) * 2L
-      values[ii] <- lapply(expr[ii + 1L], minus1, rewrite_recall)
+      ii <- seq_len(nd * 2L) + 1L
+      values[ii] <- vcapply(as.list(expr[ii + 1L]), minus1, rewrite_recall)
       value <- sprintf("odin_sum%d(%s)", nd, paste(values, collapse=", "))
     } else if (n == 1L && nm %in% unary) {
       value <- sprintf("%s%s", nm, values)
@@ -170,6 +170,8 @@ minus1 <- function(expr, rewrite) {
     sprintf("%d", expr - 1L)
   } else if (is.character(expr)) {
     sprintf("%s - 1", expr)
+  } else if (any(INDEX %in% find_symbols(expr)$variables)) {
+    rewrite(expr)
   } else if (is.recursive(expr) && identical(expr[[1L]], quote(`-`))) {
     if (is.numeric(expr[[3L]])) {
       expr[[3L]] <- expr[[3L]] + 1L
