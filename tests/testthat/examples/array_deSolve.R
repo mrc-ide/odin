@@ -30,19 +30,8 @@ age <- function() {
     ret
   }
 
-  derivs=function(t, y, .) {
-    ## Conditionals for the first case are going to be super important.  I think I should be able to write:
-    ##
-    ##   deriv(S[1]) = ...
-    ##   deriv(S[2..N_age]) = ...
-    ##
-    ## and it might also be worth using R's S[-1] syntax there too.  That would compile out to formula such as
-    ##
-    ##   rhs[0] = ...;
-    ##   for (int i = 1; i < N_age; ++i) ...;
-    ##
-    ## It might be cool to allow if/else on the rhs too, but compile that out.
-    y <- matrix(y, N_age, 3)
+  derivs <- function(t, y, .) {
+    y <- matrix(y, N_age, 3L)
     S <- y[, 1L]
     I <- y[, 2L]
     R <- y[, 3L]
@@ -50,11 +39,11 @@ age <- function() {
     dIdt <- numeric(N_age)
     dRdt <- numeric(N_age)
     I_tot <- sum(I)
-    dSdt[[1]] <- - beta * S[[1]] * I_tot/N + delta * R[[1]] - b * S[[1]] + (Births - age_rate[[1]] * S[[1]])
+    dSdt[[1L]] <- - beta * S[[1L]] * I_tot/N + delta * R[[1L]] - b * S[[1L]] + (Births - age_rate[[1L]] * S[[1L]])
     dSdt[-1L] <- - beta * S[-1L] * I_tot/N + delta * R[-1L] - b * S[-1L] + (age_rate[-N_age] * S[-N_age] - age_rate[-1L] * S[-1L])
-    dIdt[[1]] <-  beta * S[[1]] * I_tot/N  - (b+sigma) * I[[1]]   + (- age_rate[[1]] * I[[1]])
+    dIdt[[1L]] <-  beta * S[[1L]] * I_tot/N  - (b+sigma) * I[[1L]]   + (- age_rate[[1L]] * I[[1L]])
     dIdt[-1L] <-  beta * S[-1L] * I_tot/N  - (b+sigma) * I[-1L]   + (age_rate[-N_age] * I[-N_age] - age_rate[-1L] * I[-1L])
-    dRdt[[1]] <-  sigma * I[[1]] - b * R[[1]]-delta * R[[1]] + (- age_rate[[1]] * R[[1]])
+    dRdt[[1L]] <-  sigma * I[[1L]] - b * R[[1L]]-delta * R[[1L]] + (- age_rate[[1L]] * R[[1L]])
     dRdt[-1L] <-  sigma * I[-1L] - b * R[-1L]-delta * R[-1L] + (age_rate[-N_age] * R[-N_age] - age_rate[-1L] * R[-1L])
     N_tot <- sum(S + I + R)
     prev <- I_tot / N_tot * 100

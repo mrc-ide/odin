@@ -220,3 +220,35 @@ test_that("user arrays", {
   res4 <- mod4$run(t)
   expect_equal(res4, res1)
 })
+
+test_that("lv", {
+  pars <- list(r=c(1.00, 0.72, 1.53, 1.27),
+               a=rbind(c(1.00, 1.09, 1.52, 0.00),
+                       c(0.00, 1.00, 0.44, 1.36),
+                       c(2.33, 0.00, 1.00, 0.47),
+                       c(1.21, 0.51, 0.35, 1.00)),
+               y0=c(0.3013, 0.4586, 0.1307, 0.3557))
+  mod_r <- source1("examples/lv4_deSolve.R")
+  invisible(mod_r$initial(pars=pars))
+  gen <- odin("examples/lv4_odin.R", verbose=FALSE)
+  mod_c <- gen(user=pars)
+
+  t <- seq_range(mod_r$t, 10000)
+  t0 <- mod_r$t[[1L]]
+
+  expect_is(mod_c, "ode_system")
+  expect_equal(mod_c$init, pars$y0)
+
+  deriv_c <- mod_c$deriv(t0, mod_c$init)
+  deriv_r <- mod_r$derivs(t0, mod_c$init)
+  expect_equal(deriv_c, deriv_r[[1L]])
+
+  res_r <- run_model(mod_r, t, pars)
+  res_c <- mod_c$run(t)
+
+  expect_equal(res_c, res_r, check.attributes=FALSE)
+  y <- mod_c$transform_variables(res_c)
+  expect_is(y, "list")
+  expect_equal(names(y), "y")
+  expect_equal(dim(y$y), c(length(t), 4))
+})
