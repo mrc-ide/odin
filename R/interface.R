@@ -233,20 +233,25 @@ ode_system_generator <- function(dll, name=NULL) {
         .Call(self$C$deriv, self$ptr, t, y)
       },
 
+      initial=function(t0) {
+        if (self$initial_stage < STAGE_TIME) {
+          self$init
+        } else {
+          ## TODO: is length checked before dereferencing in C?
+          .Call(self$C$init, self$ptr, as.numeric(t0))
+        }
+      },
+
       run=function(t, y=NULL, ...) {
         if (is.null(y)) {
-          if (self$initial_stage < STAGE_TIME) {
-            y <- self$init
-          } else {
-            y <- .Call(self$C$init, self$ptr, as.numeric(t[[1L]]))
-          }
+          y <- self$initial(t[[1L]])
         } else if (self$initial_stage == STAGE_TIME) {
           ## TODO: this is going to initialise the correct starting
           ## time but also compute and return the y values, which we
-          ## don't need.
+          ## don't need.  Would be nicer to have a set_time target we
+          ## can hit.
           .Call(self$C$init, self$ptr, as.numeric(t[[1L]]))
         }
-
         self$ode(y, t, self$C$ds_deriv, self$ptr,
                  initfunc=self$C$ds_initmod, dllname=self$dll,
                  nout=sum(self$output_order), ...)

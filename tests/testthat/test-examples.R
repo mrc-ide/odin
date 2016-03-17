@@ -1,5 +1,7 @@
 context("examples")
 
+ODIN_TO_TEST <- c("lorenz", "sir", "seir", "array", "array_2d", "seir_array")
+
 test_that("deSolve implementations work", {
   re <- "([[:alnum:]]+)_bm\\.txt$"
   files <- dir("examples", re)
@@ -25,7 +27,7 @@ test_that("odin implementations work", {
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
-  test <- intersect(c("lorenz", "sir", "seir", "array", "array_2d"), base)
+  test <- intersect(ODIN_TO_TEST, base)
 
   for (b in test) {
     if (b == "array_2d") {
@@ -68,7 +70,7 @@ test_that("odin implementations work", {
                    check.attributes=FALSE)
     }
 
-    tol <- if (b == "seir") 1e-7 else 1e-9
+    tol <- switch(b, seir=1e-7, seir_array=6e-7, 1e-9)
     nout <- if (is.null(output_len)) 0L else output_len
 
     res_r <- run_model(mod, t)
@@ -86,7 +88,7 @@ test_that("nicer interface", {
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
-  test <- intersect(c("lorenz", "sir", "seir", "array", "array_2d"), base)
+  test <- intersect(ODIN_TO_TEST, base)
 
   for (b in test) {
     if (b == "array_2d") {
@@ -111,6 +113,7 @@ test_that("nicer interface", {
 
     expect_equal(mod_c$init,
                  if (mod_c$has_delay) NULL else unname(mod_r$initial(t0)))
+    expect_equal(mod_c$initial(t0), unname(mod_r$initial(t0)))
 
     output_len <- sum(mod_c$output_order)
 
@@ -133,7 +136,7 @@ test_that("nicer interface", {
       }
     }
 
-    tol <- if (b == "seir") 1e-7 else 1e-9
+    tol <- switch(b, seir=1e-7, seir_array=6e-7, 1e-9)
 
     res_r <- run_model(mod_r, t)
     res_c <- mod_c$run(t)
@@ -251,14 +254,4 @@ test_that("lv", {
   expect_is(y, "list")
   expect_equal(names(y), "y")
   expect_equal(dim(y$y), c(length(t), 4))
-})
-
-## Just test that this compiles and runs for now, until I get a
-## separate implementation to verify it's doing the right thing.
-test_that("delay array", {
-  gen <- odin("examples/seir_array_odin.R", verbose=FALSE)
-  mod <- gen()
-  t <- seq(0, 300, length.out=101)
-  y <- mod$run(t)
-  expect_equal(dim(y), c(length(t), 23)) # 1 + 4 * 5 + 2
 })

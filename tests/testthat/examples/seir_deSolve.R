@@ -40,7 +40,7 @@ seir <- function() {
     I_lag <- lag(t, lat_hum, 3L)
     lag_inf <- S_lag * I_lag * beta * surv / N
 
-    dS <- Births  - b * S -  beta * S * I / N  +  delta * R
+    dS <- Births  - b * S - new_inf + delta * R
     dE <- new_inf - lag_inf - b * E
     dI <- lag_inf - (b + sigma) * I
     dR <- sigma * I - b * R - delta * R
