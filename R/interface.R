@@ -125,9 +125,10 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
 ##' @return A logical scalar
 ##' @export
 ##' @examples
-##' can_compile()
+##' can_compile() # will take ~0.1s the first time
+##' can_compile() # should be basically instantaneous
 can_compile <- function() {
-  if (getOption("odin.can_compile", FALSE)) {
+  if (is.null(getOption("odin.can_compile"))) {
     tmp <- tempfile()
     dir.create(tmp)
     owd <- setwd(tmp)
@@ -142,7 +143,7 @@ can_compile <- function() {
                     stdout=FALSE, stderr=FALSE)
     options(odin.can_compile=code == 0L)
   }
-  getOption("odin.can.compile", FALSE)
+  getOption("odin.can_compile", FALSE)
 }
 
 ## Generate an interface.  This is a bit tricky as we want to generate

@@ -16,6 +16,7 @@ SHLIB}.  Results are cached between runs within a session so this
 should be fast to rely on.
 }
 \examples{
-can_compile()
+can_compile() # will take ~0.1s the first time
+can_compile() # should be basically instantaneous
 }
 
