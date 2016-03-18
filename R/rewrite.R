@@ -18,11 +18,15 @@ rewrite_c <- function(expr, name_pars,
                       lookup=character(0), index=character(0)) {
   tr <- c("^"="pow")
   unary <- c("+", "-")
-  infix <- c("+", "/", "-", "*")
+  infix <- c("+", "/", "-", "*",
+             ">", "<", ">=", "<=", "==", "!=")
   ## TODO: Need a whole set of translated functions perhaps (e.g., how
   ## sum(x) -> odin_sum(x, dim_x))
-  rewrite <- c("sum", "dim", "length")
-  allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10", rewrite)
+  ## TODO: %/% -> ((int) a / (int) b)
+  ## TODO: %% -> a % b
+  rewrite <- c("sum", "dim", "length", "if")
+  allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10",
+               rewrite)
   rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index)
 
   ## Things that will work in R and C the same way:
@@ -152,6 +156,15 @@ rewrite_c <- function(expr, name_pars,
       tmp <- sprintf("%s_%d", array_dim_name(as.character(expr[[2L]])),
                      expr[[3L]])
       value <- f(tmp)$value
+    } else if (nm == "if") {
+      ## TODO: This might not work correctly for _nested_
+      ## conditionals.  I should try that out to check.  According to
+      ## cppreference, the bit between ? and : is parsed as if
+      ## parenthesised.  It might be simpler to agressively
+      ## parenthesise this, but it's probably not that necessary as
+      ## complex expressions will have been through R's parser with
+      ## similar precendence rules already.
+      value <- sprintf("%s ? %s : %s", values[[1L]], values[[2L]], values[[3L]])
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }

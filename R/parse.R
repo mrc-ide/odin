@@ -333,6 +333,10 @@ odin_parse_rhs <- function(rhs, line, expr) {
                   depends=deps,
                   value=rhs)
     }
+    ## NOTE: _not_ exclusive conditions
+    if ("if" %in% deps$functions) {
+      odin_parse_check_if(rhs, line, expr)
+    }
   } else {
     odin_error("Unhandled expression on rhs", line, expr)
   }
@@ -1423,6 +1427,27 @@ odin_parse_rewrite_sum <- function(x, line, expr) {
     }
   }
   f(x)
+}
+
+odin_parse_check_if <- function(rhs, line, expr) {
+  ## Rules:
+  ##   - all conditionals must have an else branch
+  throw <- function(...) {
+    odin_error(sprintf(...), line, expr)
+  }
+  f <- function(x) {
+    if (is_call(x, quote(`if`))) {
+      if (length(x) != 4L) {
+        throw("All if statements must have an else clause")
+      } else {
+        lapply(as.list(x[-1L]), f)
+      }
+    } else if (is.recursive(x)) {
+      lapply(as.list(x), f)
+    }
+    invisible(NULL)
+  }
+  f(rhs)
 }
 
 ## We're going to need to wrap this up like testthat I think, so that

@@ -214,3 +214,17 @@ test_that("sum rewriting", {
   expect_identical(odin_parse_rewrite_sum(quote(sum(a) + sum(b))),
                    quote(sum(a, 1, length(a)) + sum(b, 1, length(b))))
 })
+
+test_that("conditinals need else clause", {
+  line <- 1
+  expr <- quote(x)
+  expect_silent(odin_parse_check_if(quote(if (foo) 1 else 2), line, expr))
+  expect_error(odin_parse_check_if(quote(if (foo) 1), line, expr),
+               "All if statements must have an else clause")
+
+  ## Compound:
+  expect_silent(odin_parse_check_if(quote(1 + (if (foo) 1 else 2) + bar),
+                                    line, expr))
+  expect_error(odin_parse_check_if(quote(1 + (if (foo) 1) + bar), line, expr),
+               "All if statements must have an else clause")
+})

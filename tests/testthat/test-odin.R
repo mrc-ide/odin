@@ -82,3 +82,17 @@ test_that("non-numeric user", {
   expect_is(mod$contents()$r, "numeric")
   expect_identical(mod$contents()$r, 1.0)
 })
+
+test_that("conditionals", {
+  gen <- odin::odin({
+    deriv(x) <- if (x > 2) 0 else 0.5
+    initial(x) <- 0
+  }, verbose=FALSE)
+
+  ## Hey ho it works:
+  mod <- gen()
+  t <- seq(0, 5, length.out=101)
+  y <- mod$run(t)
+
+  expect_equal(y[, 2], ifelse(t < 4, t * 0.5, 2.0), tolerance=1e-5)
+})
