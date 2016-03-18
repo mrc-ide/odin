@@ -222,9 +222,7 @@ odin_generate_dim <- function(x, obj, dat) {
   obj$add_element(nm_s, "double", x$nd)
   if (x$stage == STAGE_USER) {
     obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_s))
-    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(nm_s))
-    obj[["user"]]$add("  Free(%s);", obj$rewrite(nm_s))
-    obj[["user"]]$add("}")
+    obj[["user"]]$add("Free(%s);", obj$rewrite(nm_s))
   } else if (x$stage > STAGE_USER) {
     stop("This should never happen!")
   }
@@ -495,12 +493,8 @@ odin_generate_delay <- function(x, obj, dat) {
   if (st == "user") { ## NOTE: duplicated from odin_generate_dim()
     obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_idx))
     obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_state))
-    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(delay_idx))
-    obj[["user"]]$add("  Free(%s);", obj$rewrite(delay_idx))
-    obj[["user"]]$add("}")
-    obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(delay_state))
-    obj[["user"]]$add("  Free(%s);", obj$rewrite(delay_state))
-    obj[["user"]]$add("}")
+    obj[["user"]]$add("Free(%s);", obj$rewrite(delay_idx))
+    obj[["user"]]$add("Free(%s);", obj$rewrite(delay_state))
   }
   obj[[st]]$add("%s = (int*) Calloc(%s, int);",
                 obj$rewrite(delay_idx), obj$rewrite(delay_dim))
@@ -517,9 +511,7 @@ odin_generate_delay <- function(x, obj, dat) {
       obj$add_element(nm, "double", 1L)
       if (st == "user") { ## NOTE: duplicated from odin_generate_dim()
         obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm))
-        obj[["user"]]$add("if (%s != NULL) {", obj$rewrite(nm))
-        obj[["user"]]$add("  Free(%s);", obj$rewrite(nm))
-        obj[["user"]]$add("}")
+        obj[["user"]]$add("Free(%s);", obj$rewrite(nm))
       }
       obj[[st]]$add("%s = (double*) Calloc(%s, double);",
                     obj$rewrite(nm), obj$rewrite(size))
@@ -840,14 +832,15 @@ odin_generate_create <- function(obj) {
   if (length(constant) > 0L) {
     ret$add(indent(constant, 2))
   }
-  ## NOTE: set user variables *before* creating the pointer and
-  ## finaliser to avoid any ambiguity about user-sized arrays and the
-  ## Free calls that are implied there.
-  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
   ret$add(
     "  SEXP %s_ptr = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
     obj$base, obj$name_pars)
   ret$add("  R_RegisterCFinalizer(%s_ptr, %s_finalize);", obj$base, obj$base)
+  ## NOTE: set user variables *after* creating the pointer and
+  ## finaliser to avoid any memory leak in the case of set_user
+  ## failing (as it throws on failure so the Free's would never
+  ## happen.
+  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
   ret$add("  UNPROTECT(1);")
   ret$add("  return %s_ptr;", obj$base)
   ret$add("}")
