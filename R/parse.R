@@ -888,8 +888,7 @@ odin_parse_check_array_usage <- function(obj) {
     function(x) any(c("dim", "length") %in% x$lhs$depends$functions) ||
                 any(c("dim", "length") %in% x$depends$functions))
 
-  ## I think this is the right usage here:
-  ok <- vlapply(obj$eqs[is_array][to_check], check_array_length_dim, nd)
+  vlapply(obj$eqs[is_array][to_check], check_array_length_dim, nd)
 
   ## How do we determine that these are not used as floats anywhere?
   ## The actual variables are already filtered out.
@@ -1012,8 +1011,6 @@ odin_parse_delay <- function(obj) {
   if (!obj$has_delay) {
     return(obj)
   }
-
-  vars <- obj$variable_order
 
   for (idx in seq_along(is_delay)) {
     i <- is_delay[[idx]]

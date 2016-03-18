@@ -24,7 +24,7 @@ rewrite_c <- function(expr, name_pars,
   ## sum(x) -> odin_sum(x, dim_x))
   ## TODO: %/% -> ((int) a / (int) b)
   ## TODO: %% -> a % b
-  rewrite <- c("sum", "dim", "length", "if")
+  rewrite <- c("sum", "dim", "length", "if", "abs")
   allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10",
                rewrite)
   rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index)
@@ -165,6 +165,11 @@ rewrite_c <- function(expr, name_pars,
       ## complex expressions will have been through R's parser with
       ## similar precendence rules already.
       value <- sprintf("%s ? %s : %s", values[[1L]], values[[2L]], values[[3L]])
+    } else if (nm == "abs") {
+      if (length(values) != 1L) {
+        error("invalid input to abs") # TODO: check elsewhere
+      }
+      value <- sprintf("fabs(%s)", values)
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }
