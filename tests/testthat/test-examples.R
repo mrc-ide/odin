@@ -222,6 +222,19 @@ test_that("user arrays", {
 
   res4 <- mod4$run(t)
   expect_equal(res4, res1)
+
+  ## Ideally, these tests will be run with gctorture on, as there is
+  ## some nasty memory management going on behind the scenes that
+  ## needs to work correctly.  Howeever, it runs _very_ slowly with
+  ## this on, and it does seem to work correctly at the moment.
+  ##
+  ##   prev <- gctorture(TRUE)
+  ##   on.exit(gctorture(prev))
+  mod4$set_user(age_width=age_width2)
+  dat4.2 <- mod4$contents()
+  expect_equal(dat4.2$age_width, age_width2)
+  res4.2 <- mod4$run(t)
+  expect_equal(res4.2, res3)
 })
 
 test_that("lv", {
