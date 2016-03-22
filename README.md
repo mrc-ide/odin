@@ -4,11 +4,26 @@
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Odin_%28Manual_of_Mythology%29.jpg/250px-Odin_%28Manual_of_Mythology%29.jpg)
 
+`odin` implements a high-level language for describing and implementing ordinary differential equations in R.  It provides a "domain specific language" (DSL) which _looks_ like R but is compiled directly to C.  The actual solution of the differential equations is done with the deSolve package, giving access to the excellent Livermore solvers (`lsoda`, `lsode`, etc).
+
 **Warning: This project is in the early scoping stages; do not use for anything other than amusement/frustration purposes**
 
-# Scope
+# Background
 
-A declarative way of running ODEs at native (C) speed in R.  Implements a domain specific language based on a subset of R to a set of differential equations suitable for solving with deSolve.
+The "deSolve" package for R is the de-facto way of solving differential equations in R; it provides excellent solvers and has remained stable for over a decade.  However, users must implement equations in R and suffer a large speed cost, or implement their equations in C which is (depending on the complexity of the system) either routine and a bit boring, or complicated and error prone.  This translation can be especially complicated with delay differential equations, or with models where the variables are more naturally stored as variable sized arrays.
+
+# Overview
+
+This package aims to provide a high level domain specific language (DSL) that allows specifying ODEs with the simplicity of R, but immediately compiling out to C, so that the system runs at native speed.
+
+* The DSL is _declarative_ reflecting the mathematical nature of the equations (typically ODEs are simple mathematical relationships, so the order should not matter).
+* It includes support for equations that involve vectors, matrices and 3d arrays, including a high-level array indexing notation that removes the need for looping.
+* Delay equations are supported, including when the delayed quantities are expressions of variables.
+* The equations are analysed before compilation so that parts that do not depend on time are not included in the final derivative calculations.
+* Supports user-supplied parameters for any part of the system.
+
+
+`odin` works using code generation; the nice thing about this approach is that it never gets bored.  So if the generated code has lots of boring repetitive bits, they're at least likely to be correct (compared with implementing yourself).
 
 For example (and because *all* ODE software seems to like using it), here is the standard Lorenz attractor model in `odin`:
 
@@ -50,10 +65,6 @@ Berkeley Madonna is the inspiration for the DSL that we'll build up.
 * declarative interface
 * array equation syntax
 * delay equations
-
-`odin` inspects the equations and works out which bits are run at model creation (constant for all models), initialisation (depending on initial time, conditions or on user-supplied parameters), or in derivative calculations (depending on the ODE variables or time).
-
-The nice thing about code generation approaches is that they never get bored.  So if the generated code has lots of boring repetitive bits, they're at least likely to be correct (compared with implementing yourself).
 
 # Special functions that will be allowed
 
