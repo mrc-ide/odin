@@ -96,3 +96,18 @@ test_that("conditionals", {
 
   expect_equal(y[, 2], ifelse(t < 4, t * 0.5, 2.0), tolerance=1e-5)
 })
+
+test_that("time dependent", {
+  gen <- odin::odin({
+    y1 <- sin(t)
+    deriv(y2) <- y1
+    initial(y2) <- -1
+    output(y1) <- y1
+  }, verbose=FALSE)
+
+  mod <- gen()
+  t <- seq(0, 2 * pi, length.out=101)
+  y <- mod$run(t, atol=1e-8, rtol=1e-8)
+  expect_identical(y[, 3L], sin(t))
+  expect_equal(y[, 2L], cos(t + pi), tolerance=1e-6)
+})

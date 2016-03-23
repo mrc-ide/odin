@@ -667,7 +667,7 @@ odin_parse_dependencies <- function(obj) {
   eqs <- obj$eqs
   vars <- obj$vars
   nms <- vcapply(eqs, "[[", "name")
-  exclude <- c("", INDEX, TIME)
+  exclude <- c("", INDEX)
 
   ## Array delay variables need to delay on the dimensions of their
   ## "present" array, so that the order of initialisation is always
@@ -693,7 +693,7 @@ odin_parse_dependencies <- function(obj) {
   deps <- lapply(eqs, function(el) setdiff(el$depends$variables, exclude))
   names(deps) <- nms
 
-  msg <- lapply(deps, setdiff, c(nms, vars))
+  msg <- lapply(deps, setdiff, c(nms, vars, TIME))
   i <- lengths(msg) > 0L
   if (any(i)) {
     odin_error(sprintf("Unknown variables %s",
