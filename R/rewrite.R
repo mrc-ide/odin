@@ -24,7 +24,7 @@ rewrite_c <- function(expr, name_pars,
   ## sum(x) -> odin_sum(x, dim_x))
   ## TODO: %/% -> ((int) a / (int) b)
   ## TODO: %% -> a % b
-  rewrite <- c("sum", "dim", "length", "if", "abs")
+  rewrite <- c("sum", "dim", "length", "if", "abs", "%%")
   allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10",
                rewrite)
   rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index)
@@ -170,6 +170,8 @@ rewrite_c <- function(expr, name_pars,
         error("invalid input to abs") # TODO: check elsewhere
       }
       value <- sprintf("fabs(%s)", values)
+    } else if (nm == "%%") {
+      value <- sprintf("fmod(%s, %s)", values[[1L]], values[[2L]])
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }
