@@ -111,3 +111,20 @@ test_that("time dependent", {
   expect_identical(y[, 3L], sin(t))
   expect_equal(y[, 2L], cos(t + pi), tolerance=1e-6)
 })
+
+test_that("user c", {
+  ## The config(include) interface will probably change because it's
+  ## pretty nasty.
+  gen <- odin({
+    config(include) <- "user_fns.c"
+    z <- squarepulse(t, 1, 2)
+    deriv(y) <- z
+    initial(y) <- 0
+  }, verbose=TRUE)
+
+  mod <- gen()
+  t <- seq(0, 3, length.out=301)
+  y <- mod$run(t)
+
+  plot(t, y[,2])
+})

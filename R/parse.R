@@ -210,6 +210,7 @@ odin_parse_lhs <- function(lhs, line, expr) {
       odin_error(sprintf("Unhandled expression %s on lhs", fun), line, expr)
     }
   } else { # things like atomic will raise here: 1 <- 2
+    ## TODO: config("foo") fails here -- should it?
     odin_error("Invalid left hand side", line, expr)
   }
 
@@ -367,10 +368,10 @@ odin_parse_config <- function(obj) {
                get_lines(cfg[err]), get_exprs(cfg[err]))
   }
 
-  cfg <- setNames(lapply(cfg, function(x) x$rhs$value),
+  dat <- setNames(lapply(cfg, function(x) x$rhs$value),
                   vcapply(cfg, function(x) x$lhs$name_target))
   ## Here, we do need to check a bunch of values, really.
-  defaults <- list(base="odin")
+  defaults <- list(base="odin", include=character(0))
   if (obj$file != "") {
     defaults$base <- gsub("[-.]", "_", basename_no_ext(obj$file))
   }
@@ -386,9 +387,9 @@ odin_parse_config <- function(obj) {
   ##
   ## Also allow renaming here (time, derivs, etc).
 
-  err <- setdiff(names(cfg), names(defaults))
+  err <- setdiff(names(dat), names(defaults))
   if (length(err)) {
-    tmp <- obj$eqs[is_config][match(err, names(cfg))]
+    tmp <- obj$eqs[is_config][match(err, names(dat))]
     odin_error(sprintf("Unknown configuration options: %s",
                        paste(err, collapse=", ")),
                get_lines(tmp), get_exprs(tmp))
@@ -396,7 +397,7 @@ odin_parse_config <- function(obj) {
 
   ## Now, we need to typecheck these.  This is really annoying to do!
   char <- vlapply(defaults, is.character)
-  ok <- vlapply(cfg, is.character) == char[names(cfg)]
+  ok <- vlapply(dat, is.character) == char[names(dat)]
   if (!all(ok)) {
     ## TODO: better error messages (which are the wrong types?)
     ##
@@ -408,7 +409,27 @@ odin_parse_config <- function(obj) {
                get_lines(tmp), get_exprs(tmp))
   }
 
-  obj$config <- modifyList(defaults, cfg)
+  i <- names(dat) == "include"
+  if (any(i)) {
+    read <- function(j) {
+      tryCatch(read_user_c(dat[[j]]),
+               error=function(e)
+                 odin_error(paste("Could not read include file:", e$message),
+                            obj$eqs[is_config][i][[j]]$line,
+                            obj$eqs[is_config][i][[j]]$expr))
+    }
+    res <- lapply(which(i), read)
+    res <- list(declarations=unlist(lapply(res, "[[", "declarations")),
+                definitions=unlist(lapply(res, "[[", "definitions")))
+    if (any(duplicated(res$declarations))) {
+      ## TODO: could be nicer
+      stop("Duplicate declarations while reading includes")
+    }
+    dat <- dat[-i]
+    dat$include <- res
+  }
+
+  obj$config <- modifyList(defaults, dat)
   if (!grepl("^[[:alnum:]_]+$", obj$config$base)) {
     stop(sprintf("Invalid base value: '%s', must contain letters, numbers and underscores only", obj$config$base))
   }

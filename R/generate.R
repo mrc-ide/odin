@@ -70,11 +70,6 @@ odin_generate_object <- function(dat) {
   ## This is the set of variables we know to be *ours*.
   lookup <- collector()
 
-  ## Rewrite based on that.
-  self$rewrite <- function(x) {
-    rewrite_c(x, self$name_pars, lookup$get(), INDEX)
-  }
-
   ## Type information will generate a bunch of extra things, so
   ## process that later for simplicity:
   self$types <- collector_list()
@@ -110,6 +105,13 @@ odin_generate_object <- function(dat) {
     self$types$add(list(name=name, type=type, array=array))
     lookup$add(name)
   }
+
+  ## Rewrite based on that.
+  custom <- names(dat$config$include$declarations)
+  self$rewrite <- function(x) {
+    rewrite_c(x, self$name_pars, lookup$get(), INDEX, custom)
+  }
+
   self
 }
 
@@ -140,6 +142,8 @@ odin_generate_loop <- function(dat) {
   if (dat$has_delay) {
     obj$library_fns$add("lagvalue")
   }
+
+  obj$custom <- dat$config$include
 
   nms <- names(dat$eqs)
   for (x in dat$eqs) {
@@ -954,14 +958,16 @@ odin_generate_deriv <- function(obj) {
 }
 
 odin_generate_library_fns <- function(obj) {
-  dat <- read_library()
+  dat <- read_user_c(system.file("library.c", package="odin"))
   fns <- obj$library_fns$get()
   if (any(grepl("^get_user_", fns))) {
     fns <- c(fns, "get_list_element")
   }
   fns <- unique(fns)
-  list(declarations=unname(dat$declarations[fns]),
-       definitions=unname(dat$definitions[fns]))
+  list(declarations=c(unname(dat$declarations[fns]),
+                      unname(obj$custom$declarations)),
+       definitions=c(unname(dat$definitions[fns]),
+                     unname(obj$custom$definitions)))
 }
 
 ## NOTE: This does violate the idea that these leave obj unmodified;
@@ -1110,12 +1116,19 @@ odin_generate_info <- function(obj) {
 }
 
 ## Read a bunch of library functions.  The format here is important.
-read_library <- function() {
-  d <- readLines(system.file("library.c", package="odin"))
+##
+## This could be relaxed soon, though doing it correctly will require
+## things like a proper C parser.  A more sensible route forward would
+## be to allow, in addition, arbitrary functions to be listed with the
+## inclusion of a header file.
+read_user_c <- function(filename) {
+  d <- readLines(filename)
   re <- "^[[:alnum:]*]+ ([[:alnum:]_]+)(.+) \\{$"
   i <- grep(re, d)
   j <- grep("^}$", d)
-  stopifnot(length(i) == length(j))
+  if (length(i) != length(j)) {
+    stop("Parse error for ", filename)
+  }
 
   name <- sub(re, "\\1", d[i])
   decl <- setNames(sub(" \\{$", ";", d[i]), name)

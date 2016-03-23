@@ -15,7 +15,8 @@
 ## sum
 ## sin &c
 rewrite_c <- function(expr, name_pars,
-                      lookup=character(0), index=character(0)) {
+                      lookup=character(0), index=character(0),
+                      custom=character(0)) {
   tr <- c("^"="pow")
   unary <- c("+", "-")
   infix <- c("+", "/", "-", "*",
@@ -29,8 +30,8 @@ rewrite_c <- function(expr, name_pars,
                "pow", "exp", "log", "log2", "log10", "sqrt",
                "cos", "sin", "tan", "acos", "asin", "atan",
                "cosh", "sinh", "tanh", "acosh", "asinh", "atanh",
-               rewrite)
-  rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index)
+               rewrite, custom)
+  rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index, custom)
 
   ## Things that will work in R and C the same way:
   ##
@@ -74,7 +75,7 @@ rewrite_c <- function(expr, name_pars,
       nm <- tr[[nm]]
     }
     if (!(nm %in% allowed)) {
-      stop(sprintf("Unsupported function %s", nm))
+      stop(sprintf("Unsupported function '%s'", nm))
     }
 
     res <- lapply(as.list(expr[-1L]), f)
