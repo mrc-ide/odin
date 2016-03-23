@@ -192,6 +192,7 @@ odin_generate_loop <- function(dat) {
     name=dat$variable_order$order,
     is_array=dat$variable_order$is_array,
     array=dat$variable_order$array,
+    used=dat$variable_order$used,
     offset=vcapply(dat$variable_order$offset_use, obj$rewrite),
     length=vcapply(vars_len, obj$rewrite),
     stringsAsFactors=FALSE)
@@ -919,6 +920,7 @@ odin_generate_initial <- function(obj) {
 ## returns void and takes a pointer.
 odin_generate_deriv <- function(obj) {
   vars <- obj[["vars"]]
+  vars <- vars[vars$used, ]
   ret <- collector()
 
   ret$add(

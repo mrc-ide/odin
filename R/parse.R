@@ -957,11 +957,17 @@ odin_parse_variable_order <- function(obj) {
   total_use <- if (total_is_var) "dim" else total
   total_stage <- max(stage)
 
+  ## Check whether variables are actually used in the time equations:
+  used <- vars %in% unlist(lapply(obj$eqs, function(x)
+    if (x$stage == STAGE_TIME) x$depends$variables), use.names=FALSE)
+
   obj$variable_order <-
     list(order=vars,
-         is_array=is_array, # may be dropped
+         is_array=is_array, # may be dropped in favour of (array > 0)
+         used=used,
          array=array,
-         offset=offset, offset_use=offset_use,
+         offset=offset,
+         offset_use=offset_use,
          offset_is_var=offset_is_var,
          total=total,
          total_is_var=total_is_var,
