@@ -7,8 +7,6 @@
 ##    - %/% to (int) x / (int) y
 ## we really need type information to do the divisions correctly.
 ##
-## TODO: log(x, base) needs translating to a general log call
-##
 ## TODO: do the checking for validity elsewhere, whcih means
 ## publishing that here perhaps
 ##
@@ -25,29 +23,19 @@ rewrite_c <- function(expr, name_pars,
   ## sum(x) -> odin_sum(x, dim_x))
   ## TODO: %/% -> ((int) a / (int) b)
   ## TODO: %% -> a % b
-  rewrite <- c("sum", "dim", "length", "if", "abs", "%%")
+  rewrite <- c("sum", "dim", "length", "if", "abs", "%%", "log")
   allowed <- c("(", "[", infix,
-               "pow", "exp", "log", "log2", "log10", "sqrt",
+               "pow", "exp", "log2", "log10", "sqrt",
                "cos", "sin", "tan", "acos", "asin", "atan",
                "cosh", "sinh", "tanh", "acosh", "asinh", "atanh",
                rewrite, custom)
   rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index, custom)
 
-  ## Things that will work in R and C the same way:
-  ##
-  ## * exp, log [single arg], log2, log10
-  ## * sqrt
-  ##
-  ## Things that need a little translation
-  ## * log (2 arg) as log(a, b) -> log(a) / log(b)
+  ## Possibly:
   ##
   ## * gamma -> gammafn
   ## * lgamma -> lgammafn
-  ##
-  ## But rather than do this, drive this from functions available in R.
 
-  ## Things that need definitions
-  ## * mod(x, y)
   ## * pi (#define pi M_PI) or translate to M_PI
   f <- function(expr) {
     if (!is.recursive(expr)) {
@@ -171,11 +159,19 @@ rewrite_c <- function(expr, name_pars,
       value <- sprintf("%s ? %s : %s", values[[1L]], values[[2L]], values[[3L]])
     } else if (nm == "abs") {
       if (length(values) != 1L) {
-        error("invalid input to abs") # TODO: check elsewhere
+        stop("invalid input to abs") # TODO: check elsewhere
       }
       value <- sprintf("fabs(%s)", values)
     } else if (nm == "%%") {
       value <- sprintf("fmod(%s, %s)", values[[1L]], values[[2L]])
+    } else if (nm == "log") {
+      if (length(values) == 1L) {
+        value <- sprintf("log(%s)", values[[1L]])
+      } else if (length(values) == 2L) {
+        value <- sprintf("log(%s) / log(%s)", values[[1L]], values[[2L]])
+      } else {
+        stop("invalid input to log") # TODO: check elsewhere
+      }
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }
