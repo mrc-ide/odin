@@ -25,17 +25,20 @@ rewrite_c <- function(expr, name_pars,
   ## TODO: %/% -> ((int) a / (int) b)
   ## TODO: %% -> a % b
   rewrite <- c("sum", "dim", "length", "if", "abs", "%%")
-  allowed <- c("(", "[", infix, "pow", "exp", "log", "log2", "log10",
+  allowed <- c("(", "[", infix,
+               "pow", "exp", "log", "log2", "log10", "sqrt",
+               "cos", "sin", "tan", "acos", "asin", "atan",
+               "cosh", "sinh", "tanh", "acosh", "asinh", "atanh",
                rewrite)
   rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index)
 
   ## Things that will work in R and C the same way:
   ##
-  ## * cos, sin, tan, acos, asin, atan, cosh, sinh, tanh, acosh, asinh, atanh
-  ## * exp, log10, log [single arg version]
+  ## * exp, log [single arg], log2, log10
   ## * sqrt
   ##
   ## Things that need a little translation
+  ## * log (2 arg) as log(a, b) -> log(a) / log(b)
   ##
   ## * gamma -> gammafn
   ## * lgamma -> lgammafn
