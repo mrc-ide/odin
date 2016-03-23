@@ -118,13 +118,18 @@ test_that("user c", {
   gen <- odin({
     config(include) <- "user_fns.c"
     z <- squarepulse(t, 1, 2)
+    output(z) <- z
     deriv(y) <- z
     initial(y) <- 0
-  }, verbose=TRUE)
+  }, verbose=FALSE)
 
   mod <- gen()
   t <- seq(0, 3, length.out=301)
   y <- mod$run(t)
 
-  plot(t, y[,2])
+  expect_equal(y[, 3L], as.numeric(t >= 1 & t < 2))
+  cmp <- -1 + t
+  cmp[t < 1] <- 0
+  cmp[t > 2] <- 1
+  expect_equal(y[, 2L], cmp, tolerance=1e-5)
 })

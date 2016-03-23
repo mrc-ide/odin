@@ -434,6 +434,10 @@ odin_parse_config <- function(obj) {
     stop(sprintf("Invalid base value: '%s', must contain letters, numbers and underscores only", obj$config$base))
   }
 
+  if (length(obj$config$include) == 0L) {
+    obj$config$include <- NULL
+  }
+
   obj$eqs <- obj$eqs[!is_config]
   obj
 }
