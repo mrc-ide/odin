@@ -185,7 +185,6 @@ ode_system_generator <- function(dll, name=NULL) {
       order=NULL,
       output_order=NULL,
       transform_variables=NULL,
-      collect_user=NULL,
 
       ## TODO: both initialize and set_user should optionally be fully
       ## generated to take a proper argument lists derived from
