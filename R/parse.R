@@ -37,7 +37,7 @@ odin_parse <- function(x, as="file") {
   }
   err <- which(!vlapply(exprs, is_assignment))
   if (length(err) > 0L) {
-    odin_error("Every line must contain an assignment", err, exprs)
+    odin_error("Every line must contain an assignment", err, exprs[err])
   }
 
   ## TODO: This will eventually run with some sort of error collection
