@@ -133,3 +133,28 @@ test_that("user c", {
   cmp[t > 2] <- 1
   expect_equal(y[, 2L], cmp, tolerance=1e-5)
 })
+
+test_that("time dependent initial conditions", {
+  ## This works OK except that I've generated
+  gen <- odin::odin({
+    y1 <- cos(t)
+    y2 <- y1 * (1 + t)
+    deriv(y3) <- y2
+    initial(y3) <- y2
+    output(y1) <- y1
+    output(y2) <- y2
+  }, verbose=FALSE)
+
+  mod <- gen()
+
+  ## Initial conditions get through here:
+  expect_equal(mod$initial(0), 1, check.attributes=FALSE)
+  expect_equal(mod$initial(1), cos(1) * 2,
+               check.attributes=FALSE)
+
+  t <- seq(0, 4 * pi, length.out=101)
+  y <- mod$run(t, atol=1e-8, rtol=1e-8)
+  expect_equal(as.vector(y[1, 2]), 1.0)
+  ## TODO: Compute analytic expectation and compare here.
+  expect_equal(as.vector(y[length(t), 2]), 1.0, tolerance=1e-7)
+})

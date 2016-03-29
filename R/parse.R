@@ -739,6 +739,7 @@ odin_parse_dependencies <- function(obj) {
   deps_rec <- recursive_dependencies(order, c(deps, dummy), vars)
   is_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
+  is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
   is_user <- vlapply(eqs, function(x) isTRUE(x$rhs$user))
 
@@ -747,6 +748,11 @@ odin_parse_dependencies <- function(obj) {
   stage[TIME] <- STAGE_TIME
   stage[nms[is_user]] <- STAGE_USER
   stage[nms[is_delay | is_output | is_deriv]] <- STAGE_TIME
+
+  ## OK, this is potentially quite nasty for initial values that
+  ## depend on time, on delay equations, etc, because it requires
+  ## pulling a whole extra set of calculations out like we do for the
+  ## delays.
 
   ## In topological order, determine inherited stage (a initial/time stage
   ## anywhere in a chain implies a initial/time stage).
@@ -762,6 +768,7 @@ odin_parse_dependencies <- function(obj) {
     f <- function(x) {
       tmp <- setdiff(x$rhs$depends_delay$variables, INDEX)
       deps <- unique(c(tmp, unlist(deps_rec[tmp], use.names=FALSE)))
+      ## TODO: may need to filter INDEX here too?
       deps <- setdiff(deps[stage[deps] == STAGE_TIME], TIME)
       delay_arrays$add(intersect(names(which(is_array)), deps))
       deps[order(match(deps, order))]
@@ -771,6 +778,14 @@ odin_parse_dependencies <- function(obj) {
     }
     obj$delay_arrays <- setNames(sprintf("delay_%s", delay_arrays$get()),
                                  delay_arrays$get())
+  }
+
+  if (any(stage[nms[is_initial]] == STAGE_TIME)) {
+    ## NOTE: The intersect() here ensures correct ordering.
+    initial_t <- names(which(stage[nms[is_initial]] == STAGE_TIME))
+    tmp <- unique(unlist(deps_rec[initial_t], use.names=FALSE))
+    tmp <- intersect(order, setdiff(tmp[stage[tmp] == STAGE_TIME], TIME))
+    obj$initial_t_deps <- tmp
   }
 
   ## Adjust the order so that it's by stage first, and then the order.

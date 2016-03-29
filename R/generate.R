@@ -74,12 +74,12 @@ odin_generate_object <- function(dat) {
   ## process that later for simplicity:
   self$types <- collector_list()
 
-  ## Create, initialise, derivatives
+  ## The major stages:
   self$constant <- collector()
-  self$initial <- collector()
   self$user <- collector()
   self$time <- collector()
 
+  self$initial <- collector()
   self$free <- collector()
 
   ## Keep track of which library functions we need.  I'll keep those
@@ -158,6 +158,32 @@ odin_generate_loop <- function(dat) {
     } else {
       stop("Unhandled type")
     }
+  }
+
+  if (length(dat$initial_t_deps)) {
+    ## All of the elements here are _time_ dependent, which changes
+    ## things a little.
+    initial_deps <- collector()
+    for (x in dat$eqs[dat$initial_t_deps]) {
+      if (identical(x$lhs$special, "dim")) {
+        stop("dim use in initial should never happen (bug?)")
+      } else if (isTRUE(x$rhs$delay)) {
+        ## This one should be pretty easy as by definition we can't
+        ## have accumulated any delays yet.  So we should be using the
+        ## non-delay branch which is the easier branch.
+        stop("delay use in initial not handled")
+      } else if (x$lhs$type == "symbol") {
+        odin_generate_symbol(x, obj, dat, initial_deps)
+      } else if (x$lhs$type == "array") {
+        initial_deps$add(odin_generate_array_expr(x, obj))
+      } else {
+        stop("Unhandled type")
+      }
+    }
+    ## NOTE: This is a bit ugly, but I really need to process things
+    ## in this order, and that is most simply dealt with by a prepend
+    ## here.
+    obj$initial$prepend(initial_deps$get())
   }
 
   if (dat$variable_order$total_is_var) {
@@ -305,13 +331,15 @@ odin_generate_dim <- function(x, obj, dat) {
   }
 }
 
-odin_generate_symbol <- function(x, obj, dat) {
+odin_generate_symbol <- function(x, obj, dat, target=NULL) {
   nm <- x$name
   type <- if (nm %in% dat$index_vars) "int" else "double"
-  st <- STAGES[[x$stage]]
-
-  if (x$stage < STAGE_TIME) {
-    obj$add_element(nm, type)
+  is_initial <- identical(x$lhs$special, "initial")
+  if (is.null(target)) {
+    target <- obj[[if (is_initial) "initial" else STAGES[[x$stage]]]]
+    if (x$stage < STAGE_TIME || is_initial) {
+      obj$add_element(nm, type)
+    }
   }
 
   if (isTRUE(x$rhs$user)) {
@@ -328,18 +356,18 @@ odin_generate_symbol <- function(x, obj, dat) {
     value <- obj$rewrite(x$rhs$value)
   }
 
-  if (x$stage < STAGE_TIME) {
-    obj[[st]]$add("%s = %s;", obj$rewrite(nm), value)
+  if (x$stage < STAGE_TIME || is_initial) {
+    target$add("%s = %s;", obj$rewrite(nm), value)
   } else if (identical(x$lhs$special, "deriv")) {
-    obj[[st]]$add("%s[%s] = %s;",
-                  DSTATEDT,
-                  dat$variable_order$offset_use[[x$lhs$name_target]],
-                  value)
+    target$add("%s[%s] = %s;",
+               DSTATEDT,
+               dat$variable_order$offset_use[[x$lhs$name_target]],
+               value)
   } else if (identical(x$lhs$special, "output")) {
-    obj[[st]]$add("%s[%s] = %s;",
-                  OUTPUT, dat$output_order$offset_use[[nm]], value)
+    target$add("%s[%s] = %s;",
+               OUTPUT, dat$output_order$offset_use[[nm]], value)
   } else {
-    obj[[st]]$add("%s %s = %s;", type, nm, value)
+    target$add("%s %s = %s;", type, nm, value)
   }
 }
 
@@ -890,10 +918,6 @@ odin_generate_initial <- function(obj) {
     ret$add("  %s = %s;", obj$rewrite(sprintf("initial_%s", TIME)), TIME)
   }
   if (length(initial) > 0L) {
-    stop("This code path is untested at present.")
-    ## TODO: check that we need to use time.  We'll need to go through
-    ## and check the time-dependencies here (see stub in
-    ## generate.R:...loop)
     ret$add(indent(initial, 2))
   }
 
