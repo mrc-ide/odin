@@ -672,7 +672,6 @@ odin_parse_rewrite_initial_conditions <- function(obj) {
     rewrite_expression <- function(expr, env) {
       eval(substitute(substitute(y, env), list(y = expr)))
     }
-    warning("This is untested", immediate.=TRUE)
     subs <- setNames(sprintf("initial_%s", vars), vars)
     env <- as.environment(lapply(subs, as.name))
     f <- function(x) {

@@ -160,11 +160,13 @@ odin_generate_loop <- function(dat) {
     }
   }
 
-  if (length(dat$initial_t_deps)) {
+  initial_t_deps <- dat$initial_t_deps
+  if (length(initial_t_deps)) {
     ## All of the elements here are _time_ dependent, which changes
     ## things a little.
     initial_deps <- collector()
-    for (x in dat$eqs[dat$initial_t_deps]) {
+
+    for (x in dat$eqs[initial_t_deps]) {
       if (identical(x$lhs$special, "dim")) {
         stop("dim use in initial should never happen (bug?)")
       } else if (isTRUE(x$rhs$delay)) {
