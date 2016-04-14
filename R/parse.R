@@ -554,7 +554,7 @@ odin_parse_combine_arrays <- function(obj) {
       odin_error(
         sprintf("Array dimensionality is not consistent (expected %d %s)",
                 nd_x, ngettext(nd_x, "index", "indices")),
-        get_lines(eqs[err]), get_exprs(eqs[err]))
+        get_lines(eqs[j]), get_exprs(eqs[j]))
     }
 
     ## TODO: some of the lhs depends stuff will not matter so much now.
