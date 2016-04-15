@@ -583,9 +583,7 @@ odin_generate_delay <- function(x, obj, dat) {
 
   ## Next, prepare output variables so we can push them up out of scope:
   st <- STAGES[STAGE_TIME]
-  if (x$lhs$type == "array") {
-    obj[[st]]$add("double *%s = %s;", x$name, obj$rewrite(x$name))
-  } else {
+  if (x$lhs$type == "symbol") {
     obj[[st]]$add("double %s;", x$name)
   }
   obj[[st]]$add("{")
