@@ -145,6 +145,15 @@ odin_generate_loop <- function(dat) {
 
   obj$custom <- dat$config$include
 
+  ## Need to do this out here, rather than in the main loop because
+  ## otherwise when there is more than one delay variable they would
+  ## be added multiple times!
+  if (length(dat$delay_arrays) > 0L) {
+    for (nm in dat$delay_arrays) {
+      obj$add_element(nm, "double", 1L)
+    }
+  }
+
   nms <- names(dat$eqs)
   for (x in dat$eqs) {
     if (identical(x$lhs$special, "dim")) {
@@ -543,7 +552,6 @@ odin_generate_delay <- function(x, obj, dat) {
     for (i in seq_along(dat$delay_arrays)) {
       nm <- dat$delay_arrays[[i]]
       size <- array_dim_name(names(dat$delay_arrays)[[i]])
-      obj$add_element(nm, "double", 1L)
       if (st == "user") { ## NOTE: duplicated from odin_generate_dim()
         obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm))
         obj[["user"]]$add("Free(%s);", obj$rewrite(nm))

@@ -778,8 +778,8 @@ odin_parse_dependencies <- function(obj) {
     for (i in which(is_delay)) {
       eqs[[i]]$rhs$order_delay <- f(eqs[[i]])
     }
-    obj$delay_arrays <- setNames(sprintf("delay_%s", delay_arrays$get()),
-                                 delay_arrays$get())
+    tmp <- unique(delay_arrays$get())
+    obj$delay_arrays <- setNames(sprintf("delay_%s", tmp), tmp)
   }
 
   if (any(stage[nms[is_initial]] == STAGE_TIME)) {
