@@ -767,8 +767,11 @@ odin_parse_dependencies <- function(obj) {
     f <- function(x) {
       tmp <- setdiff(x$rhs$depends_delay$variables, INDEX)
       deps <- unique(c(tmp, unlist(deps_rec[tmp], use.names=FALSE)))
-      ## TODO: may need to filter INDEX here too?
-      deps <- setdiff(deps[stage[deps] == STAGE_TIME], TIME)
+      ## NOTE: We have to exclude delayed values from the dependencies
+      ## here, even though they are time dependent (*different* sort
+      ## of time dependence...)
+      deps <- setdiff(deps[stage[deps] == STAGE_TIME],
+                      c(TIME, nms[is_delay]))
       delay_arrays$add(intersect(names(which(is_array)), deps))
       deps[order(match(deps, order))]
     }
