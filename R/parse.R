@@ -906,13 +906,13 @@ odin_parse_check_array_usage <- function(obj) {
   }
 
   ## Number of dimensions for each variable array variable.
-  nd <- setNames(viapply(eqs[is_array], function(x)
-    x$lhs$nd), names(which(is_array)))
-  nd <- c(nd,
-          ## TODO: This should only be done for variables that are
-          ## arrays!  But I don't know how I check that!  Probably
-          ## look for initial values?
-          setNames(nd[sprintf("deriv_%s", obj$vars)], obj$vars))
+  nd <- setNames(viapply(eqs[is_array], function(x) x$lhs$nd),
+                 names(which(is_array)))
+
+  ## TODO: this is a hack; we should have array-ness of vars sorted
+  ## before here.
+  i <- match(intersect(names(nd), sprintf("deriv_%s", obj$vars)), names(nd))
+  names(nd)[i] <- sub("^deriv_", "", names(nd)[i])
 
   ## need to check all length and dim calls here.  Basically we're
   ## looking for length() to be used with calls on nd==1 arrays and
