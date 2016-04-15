@@ -901,6 +901,9 @@ odin_parse_check_array_usage <- function(obj) {
                get_lines(eqs[i]), get_exprs(eqs[i]))
   }
 
+  ## TODO: There are actually times where this might make sense,
+  ## especially when applied in a conditional.  Now that array size is
+  ## static(ish) this should be OK...
   if (TIME %in% all_index_vars) {
     i <- which(is_array)[vlapply(eqs[is_array], function(x)
       any(TIME %in% x$lhs$depends$variables))]
@@ -936,10 +939,16 @@ odin_parse_check_array_usage <- function(obj) {
   ## The actual variables are already filtered out.
   uses_array <- vlapply(eqs, function(x)
     any(x$depends$variables %in% names(which(is_array))) ||
-    any(x$depends$functions %in% "["))
-  for (i in which(uses_array)) {
-    check_array_rhs(eqs[[i]]$rhs$value, nd, eqs[[i]]$line,
-                    as.expression(eqs[[i]]$expr))
+    any(x$depends$functions %in% "[") ||
+    any(x$rhs$depends_delay$variables %in% names(which(is_array))) ||
+    any(x$rhs$depends_delay$functions %in% "["))
+  for (eq in eqs[uses_array]) {
+    if (isTRUE(eq$rhs$delay)) {
+      check_array_rhs(eq$rhs$value_expr, nd, eq$line, as.expression(eq$expr))
+      check_array_rhs(eq$rhs$value_time, nd, eq$line, as.expression(eq$expr))
+    } else {
+      check_array_rhs(eq$rhs$value, nd, eq$line, as.expression(eq$expr))
+    }
   }
 
   obj$index_vars <- all_index_vars
