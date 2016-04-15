@@ -590,24 +590,30 @@ odin_generate_delay <- function(x, obj, dat) {
 
   ## Next, we need to compute offsets.  This is annoying because it
   ## duplicates code elsewhere, but life goes on.  I'm running this
-  ## one a bit differently though, in the hope that not too many
+  ## one a bit differently though, in the hope that not too many ways.
+  ##
+  ## Here, we need, for the array case, to swap out the delay_state in
+  ## place of the last array.  If I do that always it's less checking,
+  ## actually.  This will always be of the form X + dim(X) so that's
+  ## nice.
   f <- function(i) {
     if (identical(x$delay$offset[[i]], 0L) && x$delay$is_array[[i]]) {
       obj$rewrite(delay_state)
     } else {
       fmt <- if (x$delay$is_array[[i]]) "%s + %s" else "%s[%s]"
-      sprintf(fmt, obj$rewrite(delay_state), obj$rewrite(x$delay$offset[[i]]))
+      if (i > 1L && x$delay$is_array[[i - 1L]]) {
+        base <- x$delay$extract[[i - 1L]]
+      } else {
+        base <- obj$rewrite(delay_state)
+      }
+      sprintf(fmt, base, obj$rewrite(x$delay$offset[[i]]))
     }
   }
   delay_access <- vcapply(seq_along(x$delay$offset), f)
-  ## TODO: Here, we need, for the array case, to swap out the
-  ## delay_state in place of the last array.  If I do that always it's
-  ## less checking, actually.  This will always be of the form X +
-  ## dim(X) so that's nice.
-  if (length(delay_access) > 2L) stop("This is not right yet")
 
   ## TODO: if time is used in the time calculation it will need
-  ## rewriting.
+  ## rewriting.  But I believe that parse prohibits that in the
+  ## meantime.
   obj[[st]]$add("  const double %s = %s - %s;",
                 delay_time, TIME, obj$rewrite(x$delay$time))
   obj[[st]]$add("  if (%s <= %s) {",
@@ -628,14 +634,6 @@ odin_generate_delay <- function(x, obj, dat) {
   ## Then we'll organise that whenever we hit a variable that is used
   ## in a delay statement we'll add it in here in the appropriate
   ## order.
-
-  ## TODO: this will need a little more work for the array case; by
-  ## then we'll really need the rhs writing stuff factored out.
-  ## Getting that correct is going to require tweaks to things like
-  ## odin_generate_symbol because we'd want to dump them into a
-  ## temporary holding pen.  For the symbol case it's so easy that we
-  ## can largely ignore it I think.
-
   if (length(dat$delay_arrays) > 0L) {
     subs <- lapply(dat$delay_arrays, as.name)
     tr <- function(x) {
