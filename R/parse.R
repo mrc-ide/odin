@@ -958,7 +958,7 @@ odin_parse_variable_order <- function(obj) {
                                function(x) x$lhs$type == "array"), vars)
 
   ord <- rep(0L, length(is_array))
-  array <- rep(0L, length(is_array))
+  array <- setNames(rep(0L, length(is_array)), vars)
   if (any(is_array)) {
     tmp <- vcapply(vars[is_array], array_dim_name, USE.NAMES=FALSE)
     ord[is_array] <- match(tmp, names(obj$eqs))
@@ -967,6 +967,7 @@ odin_parse_variable_order <- function(obj) {
 
   vars <- vars[order(ord)]
   is_array <- is_array[vars]
+  array <- array[vars]
 
   stage <- rep(STAGE_CONSTANT, length(is_array))
   stage[is_array] <- viapply(obj$eqs[sprintf("dim_%s", vars[is_array])],
@@ -1002,6 +1003,7 @@ odin_parse_variable_order <- function(obj) {
   ## Check whether variables are actually used in the time equations:
   used <- vars %in% unlist(lapply(obj$eqs, function(x)
     if (x$stage == STAGE_TIME) x$depends$variables), use.names=FALSE)
+  names(used) <- vars
 
   obj$variable_order <-
     list(order=vars,

@@ -684,7 +684,6 @@ odin_generate_order <- function(obj) {
   ret$add("// Report back to R information on variable ordering")
   ret$add("// The reported information includes position and length of each")
   ret$add("// variable, from which offset, etc, can be worked out.")
-
   ret$add("SEXP %s_order(SEXP %s_ptr) {", obj$base, obj$base)
   if (any(vars$is_array)) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
@@ -698,7 +697,6 @@ odin_generate_order <- function(obj) {
   ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
           STATE, nrow(vars))
 
-  i <- seq_len(nrow(vars)) - 1L
   for (i in seq_len(nrow(vars))) {
     nd <- vars$array[[i]]
     if (nd == 0L) {
