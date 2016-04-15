@@ -964,7 +964,7 @@ odin_generate_deriv <- function(obj) {
   ## We always need to pull variables out of the state vector, and set
   ## up pointers for array derivatives.  This happens at the beginning
   ## of the derivative calculations.
-  if (!any(vars$is_array)) {
+  if (any(!vars$is_array)) {
     ret$add("  double %s = %s[%s];",
             vars$name[!vars$is_array], STATE, vars$offset[!vars$is_array])
   }
