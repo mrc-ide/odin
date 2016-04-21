@@ -110,7 +110,7 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
   if (build) {
     dll <- compile(path, verbose, load)
     if (load) {
-      ret <- ode_system_generator(dll)
+      ret <- ode_system_generator(dll, dat$config$base)
     }
   }
 
@@ -153,6 +153,11 @@ can_compile <- function() {
 ##
 ## TODO: Consider an option here to return either the generator or the
 ## function that tries to collect the variables up and skip $new.
+##
+## TODO: Do we also want something that will act as "destroy" and
+## unload the DLL and void all the pointers?  That requires that we
+## keep a pointer cache here, but that's easy enough.  We can register
+## this for eventual garbage collection too, so that's nice.
 ode_system_generator <- function(dll, name=NULL) {
   self <- NULL # for R CMD check
   ## At present this is not going to work well for constructing custom
