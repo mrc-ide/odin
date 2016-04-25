@@ -1086,10 +1086,14 @@ odin_parse_delay <- function(obj) {
       odin_error("delay times may not reference index variables (yet)",
                  x$line, x$expr)
     }
+    ## TODO: check for delay through the recursive deps for delay vars...
 
-    extract <- intersect(obj$vars, deps) # retains ordering
+    ## Here, it's really important to pull these out with the scalars
+    ## first, then the arrays.
+    vars_is_array <- obj$variable_order$is_array
+    extract <- intersect(names(vars_is_array), deps) # retains ordering
+    is_array <- vars_is_array[extract]
     len <- length(extract)
-    is_array <- obj$variable_order$is_array[extract]
     size <- vector("list", len)
     offset <- vector("list", len)
     for (j in seq_len(len)) {
@@ -1105,8 +1109,9 @@ odin_parse_delay <- function(obj) {
         }
       }
     }
+    names(size) <- names(offset) <- extract
 
-    deps <- setdiff(deps, obj$vars)
+    deps <- setdiff(deps, extract)
     dep_is_array <- vcapply(obj$eqs[deps], function(x) x$lhs$type) == "array"
 
     obj$eqs[[i]]$delay <- list(idx=idx,

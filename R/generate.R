@@ -500,9 +500,6 @@ odin_generate_delay <- function(x, obj, dat) {
   ## up all varaibles (and most of the time we won't be interested
   ## in all).
   ##
-  ## TODO: Consider in the case of a single delay dropping the _1
-  ## and going with delay_idx, etc.
-  ##
   ## TODO: The Calloc/Free calls here could move into contents if
   ## it took a stage argument.
   ##
@@ -548,7 +545,6 @@ odin_generate_delay <- function(x, obj, dat) {
   obj$free$add("Free(%s);", obj$rewrite(delay_state))
 
   if (length(dat$delay_arrays) > 0L) {
-    size <- vcapply(names(dat$delay_arrays), array_dim_name)
     for (i in seq_along(dat$delay_arrays)) {
       nm <- dat$delay_arrays[[i]]
       size <- array_dim_name(names(dat$delay_arrays)[[i]])
