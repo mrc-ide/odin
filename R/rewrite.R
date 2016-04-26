@@ -149,14 +149,13 @@ rewrite_c <- function(expr, name_pars,
                      expr[[3L]])
       value <- f(tmp)$value
     } else if (nm == "if") {
-      ## TODO: This might not work correctly for _nested_
-      ## conditionals.  I should try that out to check.  According to
-      ## cppreference, the bit between ? and : is parsed as if
-      ## parenthesised.  It might be simpler to agressively
-      ## parenthesise this, but it's probably not that necessary as
-      ## complex expressions will have been through R's parser with
-      ## similar precendence rules already.
-      value <- sprintf("%s ? %s : %s", values[[1L]], values[[2L]], values[[3L]])
+      ## NOTE: The ternary operator has very low precendence, so I'm
+      ## going to agressively parenthesise it.  This is strictly not
+      ## needed when this expression is the only element of `expr` but
+      ## that's hard to detect so we'll tolerate a few additional
+      ## parens for now.
+      value <- sprintf("(%s ? %s : %s)",
+                       values[[1L]], values[[2L]], values[[3L]])
     } else if (nm == "abs") {
       if (length(values) != 1L) {
         stop("invalid input to abs") # TODO: check elsewhere

@@ -937,11 +937,13 @@ odin_parse_check_array_usage <- function(obj) {
 
   ## How do we determine that these are not used as floats anywhere?
   ## The actual variables are already filtered out.
+  arrays <- unique(sub("^(deriv|initial)_", "", names(which(is_array))))
   uses_array <- vlapply(eqs, function(x)
-    any(x$depends$variables %in% names(which(is_array))) ||
+    any(x$depends$variables %in% arrays) ||
     any(x$depends$functions %in% "[") ||
-    any(x$rhs$depends_delay$variables %in% names(which(is_array))) ||
+    any(x$rhs$depends_delay$variables %in% arrays) ||
     any(x$rhs$depends_delay$functions %in% "["))
+
   for (eq in eqs[uses_array]) {
     if (isTRUE(eq$rhs$delay)) {
       check_array_rhs(eq$rhs$value_expr, nd, eq$line, as.expression(eq$expr))
