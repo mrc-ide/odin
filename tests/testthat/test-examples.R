@@ -144,16 +144,23 @@ test_that("nicer interface", {
 
     y <- mod_c$transform_variables(res_c)
     expect_is(y, "list")
-    expect_equal(names(y), names(mod_c$order))
-    is_array <- !vlapply(mod_c$order, is.null)
-    len <- vnapply(mod_c$order, function(x) if (is.null(x)) 1 else prod(x))
+
+    if (mod_c$has_output) {
+      order <- c(mod_c$order, mod_c$output_order)
+    } else {
+      order <- mod_c$order
+    }
+    expect_equal(names(y), c(names(order)))
+    is_array <- !vlapply(order, is.null)
+    len <- vnapply(order, function(x) if (is.null(x)) 1 else prod(x))
+
     expect_equal(lengths(y), length(t) * len)
     expect_true(all(viapply(y[!is_array], function(x) is.null(dim(x)))))
 
     expect_true(all(viapply(y[!is_array], function(x) is.null(dim(x)))))
     expect_true(all(viapply(y[is_array], function(x) !is.null(dim(x)))))
     for (i in which(is_array)) {
-      expect_equal(dim(y[[i]]), c(length(t), mod_c$order[[i]]))
+      expect_equal(dim(y[[i]]), c(length(t), order[[i]]))
     }
   }
   gc()

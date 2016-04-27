@@ -301,29 +301,42 @@ odin_dll_info <- function(name, dll) {
 ## through the transformation.  But for x[, 1:5] and logical indices?
 ## Who knows?  This is _hard_...
 make_transform_variables <- function(x) {
-  ## Then we can work out this information about the model:
-  order <- x$order
-  n <- length(x$order)
-  len <- vnapply(order, function(x) if (is.null(x)) 1L else prod(x),
-                 USE.NAMES=FALSE)
+  ord <- c(x$order, x$output_order)
+  j <- seq_along(x$order)
+  n <- length(ord)
+  len <- vnapply(ord, function(x) if (is.null(x)) 1L else prod(x),
+                   USE.NAMES=FALSE)
   i1 <- cumsum(len)
   i0 <- c(1L, i1[-n] + 1L)
-
   tot <- sum(len)
-  is_scalar <- vlapply(order, is.null)
-  is_array <- !is_scalar
+  is_scalar <- vlapply(ord, is.null)
+  nms <- names(ord)
+
+  tot_vars <- sum(len)
+  n_vars <- length(x$order)
 
   ## We can detect time except for the cases where the output length
   ## is one.  But we should be able to work with this by checking for
   ## the length being equal to tot, at least for now, but this does
   ## need dealing with.
+
+  ## But with deSolve output, the output variables are always included
+  ## -- it's only in the case where the derivatives are being
+  ## calculated (where the output is an attribute) that we care
+  ## otherwise.  In that case there is no time variable either.
   function(y) {
     if (is.matrix(y)) {
+      has_output <- ncol(y) > tot_vars
       has_time <- ncol(y) > tot
-      ret <- setNames(vector("list", n), names(order))
-      ## Here, it might make sense to treat length1 arrays as scalars, but
-      ## that might complicarte things if there are user sized arrays in the
-      ## way that sapply breaks everything.
+      j <- if (has_output) seq_len(n) else seq_len(n_vars)
+
+      is_scalar <- is_scalar[j]
+      is_array <- !is_scalar
+      ret <- setNames(vector("list", n), nms[j])
+
+      ## Here, it might make sense to treat length1 arrays as scalars,
+      ## but that might complicate things in the way that sapply does.
+      ## Probably length1 arrays should be kept as arrays...
       if (any(is_scalar)) {
         ret[is_scalar] <- lapply(which(is_scalar) + has_time,
                                  function(i) y[, i])
@@ -331,17 +344,23 @@ make_transform_variables <- function(x) {
       if (any(is_array)) {
         nr <- nrow(y)
         ret[is_array] <- lapply(which(is_array), function(i)
-          array(y[, i0[[i]]:i1[[i]] + has_time], c(nr, order[[i]])))
+          array(y[, i0[[i]]:i1[[i]] + has_time], c(nr, ord[[i]])))
       }
     } else {
+      has_output <- length(y) > tot_vars
       has_time <- length(y) > tot
-      ret <- setNames(vector("list", n), names(order))
+      j <- if (has_output) seq_len(n) else seq_len(n_vars)
+
+      is_scalar <- is_scalar[j]
+      is_array <- !is_scalar
+      ret <- setNames(vector("list", n), nms[j])
+
       if (any(is_scalar)) {
         ret[is_scalar] <- y[which(is_scalar) + has_time]
       }
       if (any(is_array)) {
         ret[is_array] <- lapply(which(is_array), function(i)
-          array(y[i0[[i]]:i1[[i]] + has_time], order[[i]]))
+          array(y[i0[[i]]:i1[[i]] + has_time], ord[[i]]))
       }
     }
     ret
