@@ -563,19 +563,21 @@ odin_generate_delay <- function(x, obj, dat) {
   ## necessarily match up.  Note that the non-array things go in here
   ## before the array things.
   delay_var_offset <- dat$variable_order$offset_use[x$delay$extract]
+  obj[[st]]$add("{")
+  obj[[st]]$add("  int j = 0;")
   for (i in seq_along(delay_var_offset)) {
     if (x$delay$is_array[[i]]) {
-      obj[[st]]$add("for (int i = 0, j = %s, k = %s; i < %s; ++i, ++j, ++k) {",
-                    obj$rewrite(x$delay$offset[[i]]),
+      obj[[st]]$add("  for (int i = 0, k = %s; i < %s; ++i) {",
                     obj$rewrite(delay_var_offset[[i]]),
                     obj$rewrite(array_dim_name(x$delay$extract[[i]])))
-      obj[[st]]$add("  %s[j] = k;", obj$rewrite(delay_idx))
-      obj[[st]]$add("}")
+      obj[[st]]$add("    %s[j++] = k++;", obj$rewrite(delay_idx))
+      obj[[st]]$add("  }")
     } else {
-      obj[[st]]$add("%s[%d] = %s;", obj$rewrite(delay_idx), i - 1L,
+      obj[[st]]$add("  %s[j++] = %s;", obj$rewrite(delay_idx),
                     obj$rewrite(delay_var_offset[[i]]))
     }
   }
+  obj[[st]]$add("}")
 
   ## Next, prepare output variables so we can push them up out of scope:
   st <- STAGES[STAGE_TIME]
