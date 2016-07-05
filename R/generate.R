@@ -815,15 +815,14 @@ odin_generate_contents <- function(obj) {
 
 odin_generate_struct <- function(obj) {
   types <- obj$types
-  type <- sprintf("%s_pars", obj$base)
   ret <- collector()
   ret$add("// Collect together all the parameters and transient memory")
   ret$add("// required to run the model in a struct.")
-  ret$add("typedef struct %s {", type)
+  ret$add("typedef struct %s {", obj$type_pars)
   ret$add("  %s %s%s;", types$type, ifelse(types$array, "*", ""), types$name)
-  ret$add("} %s;", type)
+  ret$add("} %s;", obj$type_pars)
   ret$add("// Global variable set on initmod, as per deSolve design")
-  ret$add("static %s *%s;", type, obj$name_pars)
+  ret$add("static %s *%s;", obj$type_pars, obj$name_pars)
   ret$get()
 }
 
@@ -1054,6 +1053,8 @@ odin_generate_deriv_r <- function(obj) {
 odin_generate_desolve <- function(obj) {
   ret <- collector()
   ret$add("// deSolve interface")
+  ret$add("// Global variable set on initmod, as per deSolve design")
+  ret$add("static %s *%s;", obj$type_pars, obj$name_pars)
   ret$add("void %s_ds_initmod(void(* odeparms) (int *, double *)) {",
           obj$base)
   ## TODO: this might change to something that uses the static trick
