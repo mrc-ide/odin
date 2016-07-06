@@ -12,8 +12,12 @@ Imports:
     R6,
     deSolve
 Suggests:
-    testthat,
+    dde,
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat
+Remotes:
+  richfitz/ring,
+  richfitz/dde
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1

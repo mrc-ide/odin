@@ -213,11 +213,20 @@ double odin_sum3(double *x, int from_i, int to_i, int from_j, int to_j, int from
   return tot;
 }
 
-void lagvalue(double t, int *idx, int dim_idx, double *state) {
+void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
   typedef void (*lagvalue_type)(double, int*, int, double*);
   static lagvalue_type fun = NULL;
   if (fun == NULL) {
     fun = (lagvalue_type)R_GetCCallable("deSolve", "lagvalue");
+  }
+  return fun(t, idx, dim_idx, state);
+}
+
+void lagvalue_dde(double t, size_t *idx, size_t dim_idx, double *state) {
+  typedef void (*lagvalue_type)(double, size_t*, size_t, double*);
+  static lagvalue_type fun = NULL;
+  if (fun == NULL) {
+    fun = (lagvalue_type)R_GetCCallable("dde", "ylag_vec");
   }
   return fun(t, idx, dim_idx, state);
 }

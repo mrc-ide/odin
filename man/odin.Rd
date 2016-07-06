@@ -5,9 +5,11 @@
 \alias{odin_}
 \title{Create an odin model}
 \usage{
-odin(x, dest = tempdir(), build = TRUE, load = TRUE, verbose = TRUE)
+odin(x, dest = tempdir(), build = TRUE, load = TRUE, verbose = TRUE,
+  dde = FALSE)
 
-odin_(x, dest = ".", build = TRUE, load = TRUE, verbose = TRUE)
+odin_(x, dest = ".", build = TRUE, load = TRUE, verbose = TRUE,
+  dde = FALSE)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -28,6 +30,16 @@ and an \code{ode_generator} object returned.  Only used if
 \item{verbose}{Logical scalar indicating if the compilation should
 be verbose.  In future versions this may also make the
 parse/generate step be verbose too.}
+
+\item{dde}{Use the \code{dde} package to solve the system (rather
+than \code{deSolve}).  Future versions may allow this always to
+be enabled, but for now this requires tweaking the generated
+code to a point where one must decide at compile time what to
+use (which is very unfortunate).  \code{dde} implements only the
+Dormand-Prince 5th order dense output solver, with a delay
+equation solver that may perform better than the solvers in
+deSolve.  For non-delay equations, \code{deSolve} is very likely
+to outperform the simple solver implemented.}
 }
 \value{
 If \code{load} is \code{TRUE}, an \code{ode_generator}

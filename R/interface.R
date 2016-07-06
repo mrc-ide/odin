@@ -36,6 +36,15 @@
 ##' @param verbose Logical scalar indicating if the compilation should
 ##'   be verbose.  In future versions this may also make the
 ##'   parse/generate step be verbose too.
+##' @param dde Use the \code{dde} package to solve the system (rather
+##'   than \code{deSolve}).  Future versions may allow this always to
+##'   be enabled, but for now this requires tweaking the generated
+##'   code to a point where one must decide at compile time what to
+##'   use (which is very unfortunate).  \code{dde} implements only the
+##'   Dormand-Prince 5th order dense output solver, with a delay
+##'   equation solver that may perform better than the solvers in
+##'   deSolve.  For non-delay equations, \code{deSolve} is very likely
+##'   to outperform the simple solver implemented.
 ##' @return If \code{load} is \code{TRUE}, an \code{ode_generator}
 ##'   object, otherwise the filename of the generated C file.
 ##' @author Rich FitzJohn
@@ -73,19 +82,21 @@
 ##'
 ##' ## Lots of code:
 ##' cat(paste0(readLines(path), "\n"))
-odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
+odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE,
+                 dde=FALSE) {
   ## TODO: It might be worth adding a check for missing-ness here in
   ## order to generate a sensible error message?
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
   }
-  odin_(xx, dest, build, load, verbose)
+  odin_(xx, dest, build, load, verbose, dde)
 }
 
 ##' @export
 ##' @rdname odin
-odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
+odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE,
+                  dde=FALSE) {
   if (is.language(x)) {
     as <- "expression"
   } else if (is.character(x)) {
@@ -105,6 +116,15 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
   }
 
   dat <- odin_parse(x, as)
+  ## in theory, when this is TRUE:
+  ##   (dde && !dat$has_delay && !dat$has_output)
+  ## we can create two interfaces that are compatible with everything.
+  ## But I don't know how useful that will actually be.
+  ##
+  ## TODO: Perhaps dde should be in the config section of the odin
+  ## script?  Little else is done there though, and the whole
+  ## interface bit is up for grabs later.
+  dat$use_dde <- dde
   path <- odin_generate(dat, dest)
   ret <- path
   if (build) {
@@ -177,6 +197,7 @@ ode_system_generator <- function(dll, name=NULL) {
       has_delay=info$has_delay,
       has_user=length(info$user) > 0L,
       has_output=info$has_output,
+      use_dde=info$use_dde,
       user=info$user,
       initial_stage=info$initial_stage,
       dim_stage=info$dim_stage,
@@ -195,7 +216,6 @@ ode_system_generator <- function(dll, name=NULL) {
       ## generated to take a proper argument lists derived from
       ## info$user.
       initialize=function(user=NULL) {
-        "odin"
         self$ptr <- .Call(self$C$create, user)
         if (self$initial_stage < STAGE_TIME) {
           ## NOTE: Because we never use time in this case it's safe to
@@ -203,7 +223,14 @@ ode_system_generator <- function(dll, name=NULL) {
           self$init <- .Call(self$C$init, self$ptr, NA_real_)
         }
         self$update_cache()
-        self$ode <- if (self$has_delay) deSolve::dede else deSolve::ode
+        if (self$use_dde) {
+          loadNamespace("dde")
+          self$ode <- dde::dopri5
+        } else if (self$has_delay) {
+          self$ode <- deSolve::dede
+        } else {
+          self$ode <- deSolve::ode
+        }
       },
 
       ## This function is problematic because it's fairly hard to
@@ -256,9 +283,22 @@ ode_system_generator <- function(dll, name=NULL) {
           ## can hit.
           .Call(self$C$init, self$ptr, as.numeric(t[[1L]]))
         }
-        self$ode(y, t, self$C$ds_deriv, self$ptr,
-                 initfunc=self$C$ds_initmod, dllname=self$dll,
-                 nout=sum(self$output_order), ...)
+        if (self$use_dde) {
+          ## TODO: this doesn't allow for n_history to be tweaked by
+          ## the calling function, which would be useful if we want to
+          ## exploit the history.  That also requires passing in
+          ## keep_history=TRUE.
+          n_history <- if (self$has_delay) 1000L else 0L
+          self$ode(y, t, self$C$dde_deriv, self$ptr,
+                   dllname=self$dll, n_out=sum(self$output_order),
+                   n_history=n_history, keep_history=FALSE,
+                   parms_are_real=FALSE, by_column=TRUE,
+                   ...)
+        } else {
+          self$ode(y, t, self$C$ds_deriv, self$ptr,
+                   initfunc=self$C$ds_initmod, dllname=self$dll,
+                   nout=sum(self$output_order), ...)
+        }
       },
 
       contents=function() {
@@ -282,7 +322,8 @@ odin_dll_info <- function(name, dll) {
     output_order=getNativeSymbolInfo(sprintf("%s_output_order", name), dll),
     ## deSolve does not support this (yet)
     ds_deriv=sprintf("%s_ds_derivs", name),
-    ds_initmod=sprintf("%s_ds_initmod", name))
+    ds_initmod=sprintf("%s_ds_initmod", name),
+    dde_deriv=sprintf("%s_dde_derivs", name))
 }
 
 ## TODO: depending on the dimensionality stage we will want to run
