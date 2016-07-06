@@ -222,11 +222,11 @@ void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
   return fun(t, idx, dim_idx, state);
 }
 
-void lagvalue_dde(double t, size_t *idx, size_t dim_idx, double *state) {
-  typedef void (*lagvalue_type)(double, size_t*, size_t, double*);
+void lagvalue_dde(double t, int *idx, size_t dim_idx, double *state) {
+  typedef void (*lagvalue_type)(double, int*, size_t, double*);
   static lagvalue_type fun = NULL;
   if (fun == NULL) {
-    fun = (lagvalue_type)R_GetCCallable("dde", "ylag_vec");
+    fun = (lagvalue_type)R_GetCCallable("dde", "ylag_vec_int");
   }
   return fun(t, idx, dim_idx, state);
 }

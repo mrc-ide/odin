@@ -637,7 +637,7 @@ odin_generate_delay <- function(x, obj, dat) {
   ## TODO: This could be done on a switch in the parameters; that
   ## would enable dde and deSolve to exist side-by-side.
   obj[[st]]$add("    lagvalue_%s(%s, %s, %s, %s);",
-                if (obj$use_dde) "dde" else "ds",
+                if (dat$use_dde) "dde" else "ds",
                 delay_time,
                 obj$rewrite(delay_idx),
                 obj$rewrite(delay_dim),
