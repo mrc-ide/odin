@@ -989,7 +989,10 @@ odin_generate_deriv <- function(obj) {
   ret$add(
     "void %s_deriv(%s *%s, double %s, double *%s, double *%s, double *%s) {",
     obj$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
-  ret$add(indent(odin_generate_vars(obj), 2))
+  v <- odin_generate_vars(obj)
+  if (length(v) > 0L) {
+    ret$add(indent(v, 2))
+  }
   if (any(vars$is_array)) {
     ret$add("  double *deriv_%s = %s + %s;",
             vars$name[vars$is_array], DSTATEDT, vars$offset[vars$is_array])
@@ -1027,7 +1030,10 @@ odin_generate_output <- function(obj) {
   ## Here we unpack:
 
   ## 1. variables that we need to use
-  ret$add(indent(odin_generate_vars(obj, TRUE), 2))
+  v <- odin_generate_vars(obj, TRUE)
+  if (length(v) > 0L) {
+    ret$add(indent(v, 2))
+  }
 
   ## 2. dependent calculations
   time <- obj$time$get()
