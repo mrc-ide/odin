@@ -23,7 +23,7 @@ rewrite_c <- function(expr, name_pars,
   ## sum(x) -> odin_sum(x, dim_x))
   ## TODO: %/% -> ((int) a / (int) b)
   ## TODO: %% -> a % b
-  rewrite <- c("sum", "dim", "length", "if", "abs", "%%", "log")
+  rewrite <- c("sum", "dim", "length", "if", "abs", "%%", "log", "min", "max")
   allowed <- c("(", "[", infix,
                "pow", "exp", "log2", "log10", "sqrt",
                "cos", "sin", "tan", "acos", "asin", "atan",
@@ -171,6 +171,12 @@ rewrite_c <- function(expr, name_pars,
       } else {
         stop("invalid input to log") # TODO: check elsewhere
       }
+    } else if (nm %in% c("min", "max")) {
+      if (length(values) < 2L) {
+        stop(sprintf("Invalid input to %s; expected at least two arguments",
+                     nm))
+      }
+      value <- generate_nary(paste0("f", nm), values)
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }
@@ -211,5 +217,15 @@ minus1 <- function(expr, rewrite) {
     rewrite(expr)
   } else {
     sprintf("%s - 1", rewrite(expr))
+  }
+}
+
+generate_nary <- function(name, args) {
+  if (length(args) == 1L) {
+    sprintf("%s(%s)", name, args[[1L]])
+  } else if (length(args) == 2L) {
+    sprintf("%s(%s, %s)", name, args[[1L]], args[[2L]])
+  } else {
+    sprintf("%s(%s, %s)", name, args[[1L]], generate_nary(name, args[-1L]))
   }
 }

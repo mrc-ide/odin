@@ -25,6 +25,27 @@ collector <- function(init=character(0)) {
        get=function() res)
 }
 
+## We'll use this in the main loop.  This could quite happily get out
+## of whack.
+collector_named <- function(required=FALSE) {
+  data <- collector()
+  names <- collector()
+  list(
+    add=function(..., name="") {
+      n <- max(lengths(list(...)))
+      nms <- rep_len(name, n)
+      if (required && !all(nzchar(nms))) {
+        stop("required names are missing")
+      }
+      names$add(nms)
+      data$add(...)
+    },
+    get=function() {
+      setNames(data$get(), names$get())
+    }
+  )
+}
+
 collector_list <- function(init=list()) {
   res <- init
   list(add=function(x) res <<- c(res, list(x)),

@@ -116,21 +116,12 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE,
   }
 
   dat <- odin_parse(x, as)
-  ## in theory, when this is TRUE:
-  ##   (dde && !dat$has_delay && !dat$has_output)
-  ## we can create two interfaces that are compatible with everything.
-  ## But I don't know how useful that will actually be.
-  ##
-  ## TODO: Perhaps dde should be in the config section of the odin
-  ## script?  Little else is done there though, and the whole
-  ## interface bit is up for grabs later.
-  dat$use_dde <- dde
   path <- odin_generate(dat, dest)
   ret <- path
   if (build) {
     dll <- compile(path, verbose, load)
     if (load) {
-      ret <- ode_system_generator(dll, dat$config$base)
+      ret <- ode_system_generator(dll, dat$config$base, dde)
     }
   }
 
@@ -178,7 +169,7 @@ can_compile <- function() {
 ## unload the DLL and void all the pointers?  That requires that we
 ## keep a pointer cache here, but that's easy enough.  We can register
 ## this for eventual garbage collection too, so that's nice.
-ode_system_generator <- function(dll, name=NULL) {
+ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
   self <- NULL # for R CMD check
   ## At present this is not going to work well for constructing custom
   ## initialisers but we can get there eventually.
@@ -186,6 +177,7 @@ ode_system_generator <- function(dll, name=NULL) {
     name <- basename_no_ext(dll)
   }
   info <- .Call(paste0(name, "_info"), PACKAGE=dll)
+  ## TODO: check that dde is a non-missing logical scalar
   cl <- R6::R6Class(
     "ode_system",
     public=list(
@@ -197,7 +189,7 @@ ode_system_generator <- function(dll, name=NULL) {
       has_delay=info$has_delay,
       has_user=length(info$user) > 0L,
       has_output=info$has_output,
-      use_dde=info$use_dde,
+      use_dde=dde,
       user=info$user,
       initial_stage=info$initial_stage,
       dim_stage=info$dim_stage,
@@ -216,7 +208,7 @@ ode_system_generator <- function(dll, name=NULL) {
       ## generated to take a proper argument lists derived from
       ## info$user.
       initialize=function(user=NULL) {
-        self$ptr <- .Call(self$C$create, user)
+        self$ptr <- .Call(self$C$create, user, self$use_dde)
         if (self$initial_stage < STAGE_TIME) {
           ## NOTE: Because we never use time in this case it's safe to
           ## pass anything at all through here.
@@ -289,11 +281,15 @@ ode_system_generator <- function(dll, name=NULL) {
           ## exploit the history.  That also requires passing in
           ## keep_history=TRUE.
           n_history <- if (self$has_delay) 1000L else 0L
-          self$ode(y, t, self$C$dde_deriv, self$ptr,
-                   dllname=self$dll, n_out=sum(self$output_order),
-                   n_history=n_history, keep_history=FALSE,
-                   parms_are_real=FALSE, by_column=TRUE,
-                   ...)
+          ## NOTE: This is a bit shit, but does the job for now:
+          n_out <- sum(self$output_order)
+          output <- if (n_out > 0L) self$C$dde_output else NULL
+          ret <- self$ode(y, t, self$C$dde_deriv, self$ptr,
+                          dllname=self$dll, n_out=n_out, output=output,
+                          n_history=n_history, keep_history=FALSE,
+                          parms_are_real=FALSE, by_column=TRUE,
+                          ...)
+          cbind(t[-1L], ret, attr(ret, "output"), deparse.level=0)
         } else {
           self$ode(y, t, self$C$ds_deriv, self$ptr,
                    initfunc=self$C$ds_initmod, dllname=self$dll,
@@ -323,7 +319,8 @@ odin_dll_info <- function(name, dll) {
     ## deSolve does not support this (yet)
     ds_deriv=sprintf("%s_ds_derivs", name),
     ds_initmod=sprintf("%s_ds_initmod", name),
-    dde_deriv=sprintf("%s_dde_derivs", name))
+    dde_deriv=sprintf("%s_dde_derivs", name),
+    dde_output=sprintf("%s_dde_output", name))
 }
 
 ## TODO: depending on the dimensionality stage we will want to run

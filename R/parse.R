@@ -728,8 +728,10 @@ odin_parse_dependencies <- function(obj) {
   ## For the derivative calculations the variables come in with no
   ## dependencies because they are provided by the integrator, but
   ## we'll add an implicit time dependency.
+  time_implicit <- paste0(TIME, "<implicit>")
   dummy <- c(list(t=character(0)),
-             setNames(rep(list(TIME), length(vars)), vars))
+             setNames(list(character(0)), time_implicit),
+             setNames(rep(list(time_implicit), length(vars)), vars))
   order <- topological_order(c(deps, dummy))
 
   ## Then, we work out the recursive dependencies; this is the entire
@@ -744,7 +746,7 @@ odin_parse_dependencies <- function(obj) {
 
   ## Then, we can get the stage for these variables:
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
-  stage[TIME] <- STAGE_TIME
+  stage[c(TIME, time_implicit)] <- STAGE_TIME
   stage[nms[is_user]] <- STAGE_USER
   stage[nms[is_delay | is_output | is_deriv]] <- STAGE_TIME
 
@@ -771,7 +773,7 @@ odin_parse_dependencies <- function(obj) {
       ## here, even though they are time dependent (*different* sort
       ## of time dependence...)
       deps <- setdiff(deps[stage[deps] == STAGE_TIME],
-                      c(TIME, nms[is_delay]))
+                      c(TIME, time_implicit, nms[is_delay]))
       delay_arrays$add(intersect(names(which(is_array)), deps))
       deps[order(match(deps, order))]
     }
@@ -798,6 +800,38 @@ odin_parse_dependencies <- function(obj) {
   order <- order[i]
 
   order_keep <- setdiff(order, names(dummy))
+
+  ## Then, we compute two subgraphs (for dde) in the case where there
+  ## are output variables.  We'd actually only want to get the output
+  ## variables that are time dependent I think, but that really should
+  ## be all of them.
+
+  if (any(is_output)) {
+    ## OK, what I need to find out here is:
+    ##
+    ##   * what is the full set of dependencies, including variables,
+    ##     that are used in computing the output variables.
+    ##
+    ##   * what is *only* used in computing output variables
+    ##
+    ## This may change later...
+    nms_output <- nms[is_output]
+    used_output <-
+      setdiff(unique(c(unlist(deps_rec[nms_output], use.names=FALSE),
+                       nms_output)),
+              c(TIME, time_implicit))
+    used_output <- c(setdiff(used_output, order_keep),
+                     intersect(order_keep, used_output))
+    nms_deriv <- nms[is_deriv]
+    used_deriv <- unique(c(unlist(deps_rec[nms_deriv], use.names=FALSE),
+                           nms_deriv))
+    order_deriv <- intersect(order_keep, used_deriv)
+    only_output <- setdiff(used_output, used_deriv)
+    output_info <- list(used=used_output, only=only_output, deriv=used_deriv)
+    stage[only_output] <- STAGE_OUTPUT
+  } else {
+    output_info <- NULL
+  }
 
   ## TODO: Special treatment is needed for time-dependent initial
   ## conditions; they get special treatment and are held to max of
@@ -843,10 +877,21 @@ odin_parse_dependencies <- function(obj) {
     eqs[[i]]$stage <- stage[[i]]
   }
 
+  ## TODO: The other thing that is needed through here is going to be
+  ## information about _exactly_ which variables need unpacking from
+  ## the structs; there will be models where time is never
+  ## _explicitly_ used (the lorenz attractor is one such model).
+  ## There will be models where some variables have derivatives
+  ## computed but the value of the variable is never referenced in the
+  ## calculations and there will be (in the dde/output case) variables
+  ## that don't need unpacking.  I think that if I change the dummy
+  ## 't' variable to be '<time>' and use that for detecting stage but
+  ## look out for an explicit time variable that would be preferable.
   obj$eqs <- eqs
   obj$user <- user
   obj$initial_stage <- initial_stage
   obj$dim_stage <- dim_stage
+  obj$output_info <- output_info
   obj
 }
 
@@ -1546,7 +1591,8 @@ recursive_dependencies <- function(order, deps, vars) {
 STAGE_CONSTANT <- 1L
 STAGE_USER <- 2L
 STAGE_TIME <- 3L
-STAGES <- c("constant", "user", "time")
+STAGE_OUTPUT <- 4L
+STAGES <- c("constant", "user", "time", "output")
 TIME <- "t"
 STATE <- "state"
 DSTATEDT <- "dstatedt"
