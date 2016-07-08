@@ -207,7 +207,10 @@ ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
       ## TODO: both initialize and set_user should optionally be fully
       ## generated to take a proper argument lists derived from
       ## info$user.
-      initialize=function(user=NULL) {
+      initialize=function(user=NULL, dde=NULL) {
+        if (!is.null(dde)) {
+          self$use_dde <- dde
+        }
         self$ptr <- .Call(self$C$create, user, self$use_dde)
         if (self$initial_stage < STAGE_TIME) {
           ## NOTE: Because we never use time in this case it's safe to
@@ -287,9 +290,11 @@ ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
           ret <- self$ode(y, t, self$C$dde_deriv, self$ptr,
                           dllname=self$dll, n_out=n_out, output=output,
                           n_history=n_history, keep_history=FALSE,
-                          parms_are_real=FALSE, by_column=TRUE,
+                          parms_are_real=FALSE,
+                          ## Try and preserve some compatibility with deSolve:
+                          by_column=TRUE, keep_initial=TRUE,
                           ...)
-          cbind(t[-1L], ret, attr(ret, "output"), deparse.level=0)
+          cbind(t, ret, attr(ret, "output"), deparse.level=0)
         } else {
           self$ode(y, t, self$C$ds_deriv, self$ptr,
                    initfunc=self$C$ds_initmod, dllname=self$dll,
@@ -302,7 +307,7 @@ ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
       }
     ))
 
-  make_user_collector(info$user, quote(cl$new), environment())
+  make_user_collector(info$user, quote(cl$new), environment(), dde)
 }
 
 odin_dll_info <- function(name, dll) {
@@ -405,9 +410,10 @@ make_transform_variables <- function(x) {
   }
 }
 
-make_user_collector <- function(user, call, env) {
+make_user_collector <- function(user, call, env, dde) {
   if (is.null(user)) {
-    args <- list(bquote(.(call)(NULL)))
+    args <- c(list(dde=dde),
+              bquote(.(call)(NULL, dde)))
   } else {
     req <- names(user)[user]
     opt <- names(user)[!user]
@@ -416,9 +422,9 @@ make_user_collector <- function(user, call, env) {
                          setNames(lapply(opt, as.symbol), opt)))
     args <- c(setNames(rep(alist(user=), length(req)), req),
               setNames(rep(alist(user=NULL), length(opt)), opt),
-              list(user=collect),
+              list(user=collect, dde=dde),
               ## Body:
-              bquote(.(call)(user)))
+              bquote(.(call)(user, dde)))
   }
   as.function(args, env)
 }
