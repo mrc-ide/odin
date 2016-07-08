@@ -262,6 +262,7 @@ odin_generate_loop <- function(dat) {
       length=vcapply(output_len, obj$rewrite),
       stringsAsFactors=FALSE)
     ## This is a bit shit, but should do for now.
+    ## TODO: filter this by stage time, though this is effectively done later.
     obj$output_exprs <- setdiff(dat$output_info$used,
                                 c(obj$vars$name, rownames(obj$output_tmp)))
 
@@ -1030,7 +1031,7 @@ odin_generate_output <- function(obj) {
 
   ## 2. dependent calculations
   time <- obj$time$get()
-  time <- time[names(time) %in% obj$output_used]
+  time <- time[names(time) %in% obj$output_exprs]
   if (length(time) > 0L) {
     ret$add(time)
   }

@@ -1,7 +1,5 @@
 context("examples")
 
-ODIN_TO_TEST <- c("lorenz", "sir", "seir", "array", "array_2d", "seir_array")
-
 test_that("deSolve implementations work", {
   re <- "([[:alnum:]]+)_bm\\.txt$"
   files <- dir("examples", re)
@@ -23,68 +21,7 @@ test_that("deSolve implementations work", {
   }
 })
 
-test_that("odin implementations work", {
-  re <- "([[:alnum:]]+)_odin\\.R$"
-  files <- dir("examples", re)
-  base <- sub(re, "\\1", files)
-  test <- intersect(ODIN_TO_TEST, base)
-
-  for (b in test) {
-    if (b == "array_2d") {
-      filename_d <- "examples/array_deSolve.R"
-    } else {
-      filename_d <- sprintf("examples/%s_deSolve.R", b)
-    }
-    filename_o <- sprintf("examples/%s_odin.R", b)
-    ode <- if (b == "seir") deSolve::dede else deSolve::ode
-
-    mod <- source1(filename_d)
-    t <- seq_range(mod$t, 300)
-    t0 <- mod$t[[1L]]
-
-    dat <- odin_parse(filename_o)
-    path <- odin_generate(dat)
-    dll <- compile(path, verbose=FALSE)
-    info <- odin_dll_info(basename_no_ext(dll), dll)
-
-    ptr <- .Call(info[["create"]], NULL)
-    expect_is(ptr, "externalptr")
-
-    init <- .Call(info[["init"]], ptr, t0)
-    expect_equal(init, unname(mod$initial(t0)))
-
-    output_len <- attr(init, "output_len")
-
-    deriv_c <- .Call(info[["deriv"]], ptr, t0, init)
-    deriv_r <- mod$derivs(t0, init)
-    expect_equal(deriv_c, deriv_r[[1L]], check.attributes=FALSE)
-
-    if (is.null(output_len)) {
-      expect_null(attr(deriv_c, "output"))
-    } else {
-      ## The check.attributes is necessary because otherwise testthat
-      ## gives entirely meaningless error messages on attribute
-      ## differences (as it looks for differences in the values
-      ## themselves).
-      expect_equal(attr(deriv_c, "output", exact=TRUE), deriv_r[[2L]],
-                   check.attributes=FALSE)
-    }
-
-    tol <- switch(b, seir=1e-7, seir_array=6e-7, 1e-9)
-    nout <- if (is.null(output_len)) 0L else output_len
-
-    res_r <- run_model(mod, t)
-    res_c <- ode(init, t, info[["ds_deriv"]], ptr,
-                 initfunc=info[["ds_initmod"]], dllname=dll,
-                 nout=nout)
-    expect_equal(res_c, res_r, check.attributes=FALSE, tolerance=tol)
-  }
-  ## This might be needed to trigger finalisation of all models (which
-  ## are all out of scope by now).
-  gc()
-})
-
-test_that("nicer interface", {
+test_that("basic interface", {
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
@@ -163,6 +100,8 @@ test_that("nicer interface", {
       expect_equal(dim(y[[i]]), c(length(t), order[[i]]))
     }
   }
+  ## This might be needed to trigger finalisation of all models (which
+  ## are all out of scope by now).
   gc()
 })
 
@@ -274,4 +213,54 @@ test_that("lv", {
   expect_is(y, "list")
   expect_equal(names(y), "y")
   expect_equal(dim(y$y), c(length(t), 4))
+})
+
+test_that("dde", {
+  skip_if_not_installed("dde")
+
+  re <- "([[:alnum:]]+)_odin\\.R$"
+  files <- dir("examples", re)
+  base <- sub(re, "\\1", files)
+  test <- intersect(ODIN_TO_TEST, base)
+
+  for (b in test) {
+    if (b == "array_2d") {
+      filename_d <- "examples/array_deSolve.R"
+    } else {
+      filename_d <- sprintf("examples/%s_deSolve.R", b)
+    }
+    filename_o <- sprintf("examples/%s_odin.R", b)
+
+    mod_r <- source1(filename_d)
+    t <- seq_range(mod_r$t, 300)
+    t0 <- mod_r$t[[1L]]
+
+    gen <- odin(filename_o, verbose=FALSE)
+    mod_ds <- gen()
+    mod_dde <- gen(dde=TRUE)
+
+    ## Looks good:
+    expect_false(mod_ds$use_dde)
+    expect_true(mod_dde$use_dde)
+
+    ## Correct function found:
+    expect_equal(environmentName(environment(mod_ds$ode)), "deSolve")
+    expect_equal(mod_dde$ode, dde::dopri5)
+
+    ## Let's go.
+    res_ds <- mod_ds$run(t)
+    res_dde <- mod_dde$run(t)
+
+    dimnames(res_ds) <- NULL
+    attr(res_ds, "istate") <- NULL
+    attr(res_ds, "rstate") <- NULL
+    attr(res_ds, "type") <- NULL
+    class(res_ds) <- "matrix"
+
+    ## The tolerances here are going to be not spectacular for some of
+    ## the models, because Lorenz is chaotic...
+    tol <- switch(b, lorenz=1e-3, seir=1e-5, seir_array=6e-5,
+                  array=1e-5, array_2d=1e-5, 1e-6)
+    expect_equal(res_ds, res_dde, tolerance=tol)
+  }
 })

@@ -1,3 +1,6 @@
+## Update these as more models are added.
+ODIN_TO_TEST <- c("lorenz", "sir", "seir", "array", "array_2d", "seir_array")
+
 source1 <- function(filename) {
   x <- source(filename, local=TRUE)
   if (!is.function(x$value)) {
