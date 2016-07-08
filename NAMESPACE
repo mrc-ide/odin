@@ -3,3 +3,6 @@
 export(can_compile)
 export(odin)
 export(odin_)
+importFrom(stats,na.omit)
+importFrom(stats,setNames)
+importFrom(utils,modifyList)

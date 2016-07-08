@@ -1,3 +1,5 @@
+##' @importFrom stats na.omit setNames
+##' @importFrom utils modifyList
 vlapply <- function(X, FUN, ...) {
   vapply(X, FUN, logical(1), ...)
 }
@@ -92,3 +94,5 @@ basename_no_ext <- function(path) {
 substitute_ <- function(expr, env) {
   eval(substitute(substitute(y, env), list(y=expr)))
 }
+
+self <- NULL

@@ -7,6 +7,8 @@
 ^tests/testthat/examples/.*\.rds$
 ^tests/testthat/.*\.o
 ^tests/testthat/.*\.so$
+^inst/.*\.o
+^inst/.*\.so$
 ^tests/testthat/examples/malaria_.*$
 ^inst/web$
 ^odin_.*\.tar.gz$
