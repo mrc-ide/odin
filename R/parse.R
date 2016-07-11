@@ -825,8 +825,17 @@ odin_parse_dependencies <- function(obj) {
     nms_deriv <- nms[is_deriv]
     used_deriv <- unique(c(unlist(deps_rec[nms_deriv], use.names=FALSE),
                            nms_deriv))
-    order_deriv <- intersect(order_keep, used_deriv)
-    only_output <- setdiff(used_output, used_deriv)
+
+    if (any(is_delay)) {
+      used_delay <-
+        unique(unlist(lapply(eqs[is_delay], function(x) x$rhs$order_delay)))
+    } else {
+      used_delay <- character(0)
+    }
+
+    only_output <- setdiff(used_output, c(used_deriv, used_delay))
+    only_output <- intersect(only_output, names(stage[stage == STAGE_TIME]))
+
     output_info <- list(used=used_output, only=only_output, deriv=used_deriv)
     stage[only_output] <- STAGE_OUTPUT
   } else {
