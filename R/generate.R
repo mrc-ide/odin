@@ -1039,7 +1039,7 @@ odin_generate_output <- function(obj) {
   time <- obj$time$get()
   time <- time[names(time) %in% obj$output_exprs]
   if (length(time) > 0L) {
-    ret$add(time)
+    ret$add(indent(time, 2))
   }
 
   ## 3. the actual output calculations:
