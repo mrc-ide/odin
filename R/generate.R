@@ -570,14 +570,14 @@ odin_generate_delay <- function(x, obj, dat) {
 
   if (length(dat$delay_arrays) > 0L) {
     for (i in seq_along(dat$delay_arrays)) {
-      nm <- dat$delay_arrays[[i]]
+      nm_arr <- dat$delay_arrays[[i]]
       size <- array_dim_name(names(dat$delay_arrays)[[i]])
       if (st == "user") { ## NOTE: duplicated from odin_generate_dim()
-        obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm))
-        obj[["user"]]$add("Free(%s);", obj$rewrite(nm))
+        obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_arr))
+        obj[["user"]]$add("Free(%s);", obj$rewrite(nm_arr))
       }
       obj[[st]]$add("%s = (double*) Calloc(%s, double);",
-                    obj$rewrite(nm), obj$rewrite(size), name=nm)
+                    obj$rewrite(nm_arr), obj$rewrite(size), name=nm)
     }
   }
 
