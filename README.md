@@ -97,6 +97,52 @@ Because this is very new, it is quite possible that the code that is generated w
 
 Because this relies on code generation, and the approach is partly textual, some oddities will appear in the generated code (things like `n + 0`).  Over time I'll remove the most egregious of these.  It's probable that there will be some unused variables, and unused elements in the parameters struct.
 
+# Background
+
+Apparently not many people know that `deSolve` can use target functions written in C rather than just in R.  This is described in detail in the excellent "compiledCode" vignette (`vignette("compiledCode")` or [online](https://cran.r-project.org/web/packages/deSolve/vignettes/compiledCode.pdf).
+
+While the `deSolve` authors are bearish on the benefits of this, I have often seen performance improvements of over 100x.  Where an ODE is being used in application where it is called repeatedly (e.g., an optimisation or MCMC) the cost of rewriting the system pays itself back.
+
+For simple systems the rewriting is essentially mechanical.  The lorenz attractor could be implemented in R as:
+
+```r
+lorenz <- function(t, y, parms) {
+  sigma <- parms[1]
+  R <- parms[2]
+  b <- parms[3]
+  y1 <- y[1]
+  y2 <- y[2]
+  y3 <- y[3]
+  list(c(sigma * (y2 - y1),
+         R * y1 - y2 - y1 * y3,
+         -b * y3 + y1 * y2))
+}
+```
+
+and in C as
+
+```c
+void initmod(void (* odeparms)(int *, double *)) {
+  int N=3;
+  odeparms(&N, parms);
+}
+void lorenz(int *n, double *t, double *y, double *dydt, double *yout, int *ip) {
+  double sigma = parms[0];
+  double R = parms[1];
+  double b = parms[2];
+  double y1 = y[0];
+  double y2 = y[2];
+  double y3 = y[3];
+  dydt[0] = sigma * (y2 - y1);
+  dydt[1] = R * y1 - y2 - y1 * y3;
+  dydt[2] = -b * y3 + y1 * y2;
+}
+```
+
+The connection between the two languages should be fairly obvious.  As systems get more complicated much of the difficulty of writing the systems in C becomes the tedium of book keeping as parameters and state vectors are unpacked, rather than any deep programming challenges.  Modifying large systems is a particular challenge as technical debt can accrue quickly.
+
+The core job of `odin` is to simplify this transition so that models can be both developed and solved rapidly.
+
 # Installation
 
 ```r
