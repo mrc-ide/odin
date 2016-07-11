@@ -1604,6 +1604,6 @@ USER <- "user"
 ## point.
 SPECIAL_LHS <- c("initial", "deriv", "output", "dim", "config")
 INDEX <- c("i", "j", "k")
-RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay")
+RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")
