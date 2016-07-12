@@ -948,7 +948,9 @@ odin_generate_initial <- function(obj) {
 
   initial <- obj$initial$get()
   if (obj$info$has_delay || length(initial) > 0L) {
-    ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
+    if (obj$info$initial_stage >= STAGE_TIME) {
+      ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
+    }
   }
   if (obj$info$has_delay) {
     ret$add("  %s = %s;", obj$rewrite(sprintf("initial_%s", TIME)), TIME)
