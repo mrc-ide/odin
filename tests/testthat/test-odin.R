@@ -191,3 +191,35 @@ test_that("time dependent initial conditions depending on vars", {
   expect_equal(mod$initial(0), c(1, 2, 3))
   expect_equal(mod$initial(1), c(1, 1 + exp(-1), 2 + exp(-1)))
 })
+
+## This test case kindly contributed by @blackedder in #14
+test_that("unused variable in output", {
+  gen <- odin::odin({
+    initial(S) <- N - I0
+    initial(E1) <- 0
+    initial(E2) <- 0
+    initial(I1) <- I0
+    initial(I2) <- 0
+    initial(R) <- 0
+
+    N <- 1e7
+    I0 <- 1
+
+    lambda <- 0.00001 * (I1 + I2)
+    gamma1 <- 2.5
+    gamma2 <- 1.1
+
+    deriv(S) <- -lambda * S
+    deriv(E1) <- lambda * S - gamma1 * E1
+    deriv(E2) <- gamma1 * (E1 - E2)
+    deriv(I1) <- gamma1 * E2  - gamma2 * I1
+    deriv(I2) <- gamma2 * (I1 - I2)
+    deriv(R) <- gamma2 * I2
+
+    output(tot) <- S + E1 + E2 + I1 + I2 + R
+  }, verbose=TRUE)
+  mod <- gen()
+  expect_is(mod, "ode_system")
+  t <- seq(0, 10, length.out = 100)
+  expect_error(mod$run(t), NA)
+})

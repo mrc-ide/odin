@@ -1067,7 +1067,7 @@ odin_parse_variable_order <- function(obj) {
 
   ## Check whether variables are actually used in the time equations:
   used <- vars %in% unlist(lapply(obj$eqs, function(x)
-    if (x$stage == STAGE_TIME) x$depends$variables), use.names=FALSE)
+    if (x$stage >= STAGE_TIME) x$depends$variables), use.names=FALSE)
   names(used) <- vars
 
   obj$variable_order <-
