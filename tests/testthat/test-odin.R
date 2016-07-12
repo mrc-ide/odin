@@ -112,6 +112,33 @@ test_that("conditionals, precendence", {
 })
 
 test_that("time dependent", {
+  ## A time dependent initial condition:
+  gen_t <- odin::odin({
+    deriv(N) <- r * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- sqrt(t) + 1
+    K <- 100
+    r <- 0.5
+  }, verbose=FALSE)
+
+  ## The same model, but taking N0 as a user parameter.
+  gen_cmp <- odin::odin({
+    deriv(N) <- r * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- user()
+    K <- 100
+    r <- 0.5
+  }, verbose=FALSE)
+
+  mod_t <- gen_t()
+  t0 <- seq(0,  10, length.out = 101)
+  t1 <- seq(10, 10, length.out = 101)
+
+  expect_equal(mod_t$run(t0), gen_cmp(sqrt(t0[[1]]) + 1)$run(t0))
+  expect_equal(mod_t$run(t1), gen_cmp(sqrt(t1[[1]]) + 1)$run(t1))
+})
+
+test_that("time dependent initial conditions", {
   gen <- odin::odin({
     y1 <- sin(t)
     deriv(y2) <- y1
