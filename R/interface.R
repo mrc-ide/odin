@@ -21,6 +21,18 @@
 ##' goes out of scope and is later garbage collected.  I'll tighten
 ##' this up in future versions, but for now this is an issue.
 ##'
+##' @section Delay equations with dde:
+##'
+##' When generating a model one must chose between using the
+##' \code{dde} package to solve the system or the default
+##' \code{deSolve}.  Future versions may allow this to switch when
+##' using \code{run}, but for now this requires tweaking the generated
+##' code to a point where one must decide at generation.  \code{dde}
+##' implements only the Dormand-Prince 5th order dense output solver,
+##' with a delay equation solver that may perform better than the
+##' solvers in deSolve.  For non-delay equations, \code{deSolve} is
+##' very likely to outperform the simple solver implemented.
+##'
 ##' @title Create an odin model
 ##' @param x Either the name of a file to read, a text string (if
 ##'   length is greater than 1 elements will be joined with newlines)
@@ -36,15 +48,6 @@
 ##' @param verbose Logical scalar indicating if the compilation should
 ##'   be verbose.  In future versions this may also make the
 ##'   parse/generate step be verbose too.
-##' @param dde Use the \code{dde} package to solve the system (rather
-##'   than \code{deSolve}).  Future versions may allow this always to
-##'   be enabled, but for now this requires tweaking the generated
-##'   code to a point where one must decide at compile time what to
-##'   use (which is very unfortunate).  \code{dde} implements only the
-##'   Dormand-Prince 5th order dense output solver, with a delay
-##'   equation solver that may perform better than the solvers in
-##'   deSolve.  For non-delay equations, \code{deSolve} is very likely
-##'   to outperform the simple solver implemented.
 ##' @return If \code{load} is \code{TRUE}, an \code{ode_generator}
 ##'   object, otherwise the filename of the generated C file.
 ##' @author Rich FitzJohn
@@ -82,21 +85,19 @@
 ##'
 ##' ## Lots of code:
 ##' cat(paste0(readLines(path), "\n"))
-odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE,
-                 dde=FALSE) {
+odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
   ## TODO: It might be worth adding a check for missing-ness here in
   ## order to generate a sensible error message?
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
   }
-  odin_(xx, dest, build, load, verbose, dde)
+  odin_(xx, dest, build, load, verbose)
 }
 
 ##' @export
 ##' @rdname odin
-odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE,
-                  dde=FALSE) {
+odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
   if (is.language(x)) {
     as <- "expression"
   } else if (is.character(x)) {
@@ -121,7 +122,7 @@ odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE,
   if (build) {
     dll <- compile(path, verbose, load)
     if (load) {
-      ret <- ode_system_generator(dll, dat$config$base, dde)
+      ret <- ode_system_generator(dll, dat$config$base)
     }
   }
 
@@ -169,7 +170,7 @@ can_compile <- function() {
 ## unload the DLL and void all the pointers?  That requires that we
 ## keep a pointer cache here, but that's easy enough.  We can register
 ## this for eventual garbage collection too, so that's nice.
-ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
+ode_system_generator <- function(dll, name=NULL) {
   self <- NULL # for R CMD check
   ## At present this is not going to work well for constructing custom
   ## initialisers but we can get there eventually.
@@ -177,7 +178,6 @@ ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
     name <- basename_no_ext(dll)
   }
   info <- .Call(paste0(name, "_info"), PACKAGE=dll)
-  ## TODO: check that dde is a non-missing logical scalar
   cl <- R6::R6Class(
     "ode_system",
     public=list(
@@ -189,7 +189,8 @@ ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
       has_delay=info$has_delay,
       has_user=length(info$user) > 0L,
       has_output=info$has_output,
-      use_dde=dde,
+      ## TODO: make this configurable as info$use_dde
+      use_dde=FALSE,
       user=info$user,
       initial_stage=info$initial_stage,
       dim_stage=info$dim_stage,
@@ -207,10 +208,9 @@ ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
       ## TODO: both initialize and set_user should optionally be fully
       ## generated to take a proper argument lists derived from
       ## info$user.
-      initialize=function(user=NULL, dde=NULL) {
-        if (!is.null(dde)) {
-          self$use_dde <- dde
-        }
+      initialize=function(user=NULL, dde=FALSE) {
+        ## TODO: check that dde is a non-missing logical scalar
+        self$use_dde <- dde
         self$ptr <- .Call(self$C$create, user, self$use_dde)
         if (self$initial_stage < STAGE_TIME) {
           ## NOTE: Because we never use time in this case it's safe to
@@ -307,7 +307,7 @@ ode_system_generator <- function(dll, name=NULL, dde=FALSE) {
       }
     ))
 
-  make_user_collector(info$user, quote(cl$new), environment(), dde)
+  make_user_collector(info$user, quote(cl$new), environment(), FALSE)
 }
 
 odin_dll_info <- function(name, dll) {

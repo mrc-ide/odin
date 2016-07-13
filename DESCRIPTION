@@ -17,7 +17,7 @@ Suggests:
     rmarkdown,
     testthat
 Remotes:
-  richfitz/ring,
-  richfitz/dde
+    richfitz/ring,
+    richfitz/dde
 VignetteBuilder: knitr
 RoxygenNote: 5.0.1

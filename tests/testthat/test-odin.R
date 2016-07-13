@@ -244,7 +244,7 @@ test_that("unused variable in output", {
     deriv(R) <- gamma2 * I2
 
     output(tot) <- S + E1 + E2 + I1 + I2 + R
-  }, verbose=TRUE)
+  }, verbose=FALSE)
   mod <- gen()
   expect_is(mod, "ode_system")
   t <- seq(0, 10, length.out = 100)
