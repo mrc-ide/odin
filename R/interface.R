@@ -170,6 +170,15 @@ can_compile <- function() {
 ## unload the DLL and void all the pointers?  That requires that we
 ## keep a pointer cache here, but that's easy enough.  We can register
 ## this for eventual garbage collection too, so that's nice.
+
+##' Generate an ODE interface from an odin shared library.  This is
+##' used internally when generating packages, and should not be used
+##' by end users.
+##' @title Generate ODE system
+##' @param dll Name of the shared library (with no extension)
+##' @param name Name of the model within the shared library
+##' @keywords internal
+##' @export
 ode_system_generator <- function(dll, name=NULL) {
   self <- NULL # for R CMD check
   ## At present this is not going to work well for constructing custom
