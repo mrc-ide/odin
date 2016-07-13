@@ -262,3 +262,77 @@ y2 <- dde$run(t)
 plot(y2, ylab = "y", mfrow=c(1, 2), which=1)
 plot(y2[, -1L], xlab="y", ylab = "ylag", mfrow=NULL, type="l")
 ```
+
+# Arrays
+
+Much of the above, especially the non-delay equations, can be
+expressed easily in deSolve.  Even where the target functions are
+written in R they will tend to be fast enough to solve (unless
+strongly nonlinear) so that the gains for writing out in C become
+small.  `odin` was really designed for cases where the variables
+involved are _arrays_, used here to mean vectors, matrices or 3d
+matrices.
+
+There are quite a few restrictions on how arrays are used, how
+indexing works, etc.  Some of the current implementation requires
+creation ofintermediate variables to make everything work (and
+naming things is one of the [two hard problems in computer
+science](https://www.quora.com/Why-is-naming-things-hard-in-computer-science-and-how-can-it-can-be-made-easier).
+Hopefully in future versions some of these restrictions can be
+relaxed, so [file issues](https://github.com/richfitz/odin/issues)
+if you find yourself writing boilerplate code that could be
+replaced by more intelligent generation.
+
+## Generalised Lotka-Volterra model
+
+This example comes from the [wikipedia
+page](https://en.wikipedia.org/wiki/Competitive_Lotka%E2%80%93Volterra_equations#4-dimensional_example),
+in turn from [Vano et al
+2006](http://sprott.physics.wisc.edu/pubs/paper288.pdf).  This
+model has four nonlinear differential equations that have chaotic
+behaviour in fairly low dimension.
+``` {r }
+gen <- odin::odin({
+  deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))
+  initial(y[]) <- y0[i]
+
+  y0[] <- user()
+  r[] <- user()
+  a[,] <- user()
+  ay[,] <- a[i, j] * y[j]
+
+  dim(r) <- user()
+  n_spp <- length(r)
+
+  dim(y) <- n_spp
+  dim(y0) <- n_spp
+  dim(a) <- c(n_spp, n_spp)
+  dim(ay) <- c(n_spp, n_spp)
+
+  config(base) <- "lv4"
+})
+```
+
+These are the parameters from the wikipedia article, with `y0` being
+close to the (unstable) equilibrium.
+``` {r }
+pars <- list(r=c(1.00, 0.72, 1.53, 1.27),
+             a=rbind(c(1.00, 1.09, 1.52, 0.00),
+                     c(0.00, 1.00, 0.44, 1.36),
+                     c(2.33, 0.00, 1.00, 0.47),
+                     c(1.21, 0.51, 0.35, 1.00)),
+             y0=c(0.3013, 0.4586, 0.1307, 0.3557))
+```
+
+Note that we pass in `r` as a matrix, from which the number of
+species is determined.  The competitive matrix `a` is passed
+through as a matrix -- both dimensions must be the same as the
+length of `r` (you can't just pass in a vector and hope it gets
+unpacked in the right order).
+``` {r }
+mod <- gen(user=pars)
+
+t <- seq(0, 2000, length.out=10001)
+y <- mod$run(t)
+pairs(y[, -1], panel=lines, col="#00000055", lwd=0.2)
+```
