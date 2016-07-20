@@ -284,3 +284,82 @@ mod <- gen(user=pars)
 t <- seq(0, 2000, length.out=10001)
 y <- mod$run(t)
 pairs(y[, -1], panel=lines, col="#00000055", lwd=0.2)
+
+## # Interpolating functions
+
+## It may be useful to have functions that are driven by user data in
+## your model.  To allow this, odin allows interpolating functions of
+## a few different types;
+##
+## * step functions: constant piecewise functions, perhaps suitable
+##   for modelling shifts in regime, binary on/off switches, etc.
+## * linear interpolation: between a set of points use a linear
+##   interpolating function.
+## * cubic spline functions: what most people probably think of when
+##   thinking interpolating function; creates a smooth function that
+##   is twice differentiable (and smooth enough for most purposes).
+##
+## Every interpolating function takes as its first argument a vector
+## of times.  If you're using step or linear interpolating functions
+## it is important that you include these times within times that the
+## integrator passes through because otherwise the integrator may
+## struggle needlessly with the discontinuities in the function or its
+## derivatives (NOTE: future versions may handle this automatically,
+## and this will not work at all with `dde` which does not yet support
+## stopping at critical times).
+##
+## The second argument of each interpolating function is a vector,
+## matrix or array of values for the target function.  The
+## dimensionality (rank) of the structure must be one greater than the
+## rhs.  So if you want a classic 1d function, you'd write:
+##
+## ```r
+## z <- interpolate(t, y)
+## t[] <- user()
+## y[] <- user()
+## dim(t) <- user()
+## dim(y) <- length(t)
+## ```
+##
+## and `z` will be a scalar double, and `t` and `y` are both vectors
+## with lengths that must match.  The check for matching is done at
+## runtime (when the model is initialised) so you can always just
+## leave the dimensions as `user()`.  Future versions may allow
+## autogeneration of the boilerplate here, but for now you must
+## specify the four lines required to initialise `t` and `y`.
+##
+## Note that `time` cannot be used as
+## the first argument because it's a reserved variable!
+##
+## If you want to interpolate a *vector* of `y` values over time, then
+## you'd write:
+##
+## ```r
+## z[] <- interpolate(t, y)
+## dim(z) <- 4
+## t[] <- user()
+## y[,] <- user()
+## dim(t) <- user()
+## dim(y) <- c(length(t), length(z))
+## ```
+##
+## In this case, `z` is a vector (here length 4), so `y` must be a
+## matrix with `length(t)` rows and 4 columns.  This does not do
+## anything clever - the interpolation happens for each of the four
+## variables independently.
+##
+## If you want to drive the size of this off of `y` then specify:
+##
+## ```r
+## dim(z) <- ncol(y)
+## dim(z) <- user()
+## # (other entries same as above)
+## ```
+##
+## in which case the size of `z` is determined from the number of
+## columns of `y`.
+##
+## By default, `odin` assumes you want do do cubic interpolation, but
+## you can alter that with the third argument.  Specify `0` to
+## indicate constant interpolation and `1` to indicate linear
+## interpolation.

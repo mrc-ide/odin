@@ -48,6 +48,10 @@ odin_parse <- function(x, as="file") {
               vars=odin_parse_find_vars(eqs),
               file=file)
 
+  ## This one comes very early, but that's because we have to drop off
+  ## a bunch of variables, and some of these require a fair bit of
+  ## further rewriting.
+  ret <- odin_parse_process_interpolate(ret)
   ret <- odin_parse_config(ret)
   ret <- odin_parse_rewrite_initial_conditions(ret)
   ret <- odin_parse_combine_arrays(ret)
@@ -328,6 +332,10 @@ odin_parse_rhs <- function(rhs, line, expr) {
         ## checks I think but the error is going to be confusing
         ## because it will be a rewritten statement.
         rhs <- odin_parse_rewrite_sum(rhs, line, expr)
+        deps <- find_symbols(rhs)
+      }
+      if ("interpolate" %in% deps$functions) {
+        rhs <- odin_parse_rewrite_interpolate(rhs, line, expr)
         deps <- find_symbols(rhs)
       }
       ret <- list(type="expression",
@@ -805,7 +813,6 @@ odin_parse_dependencies <- function(obj) {
   ## are output variables.  We'd actually only want to get the output
   ## variables that are time dependent I think, but that really should
   ## be all of them.
-
   if (any(is_output)) {
     ## OK, what I need to find out here is:
     ##
@@ -1544,6 +1551,76 @@ odin_parse_rewrite_sum <- function(x, line, expr) {
     }
   }
   f(x)
+}
+
+odin_parse_rewrite_interpolate <- function(x, line, expr) {
+  if (!is_call(x, quote(interpolate))) {
+    stop("interpolate can only be used as a top level expression")
+  }
+  nargs <- length(x) - 1L
+  if (nargs == 3L) {
+    order <- x[[4L]]
+    ## TODO: Support CONSTANT, LINEAR, CUBIC, etc here, rather than
+    ## relying on numbers?  But that requires getting more bits
+    ## supported anyway.
+    if (!(is.numeric(order) && order == 0)) {
+      odin_error("Only zero order (constant piecewise) interpolation supported",
+                 line, expr)
+    }
+  } else if (nargs == 2L) {
+    x[[4L]] <- 3L
+    odin_error("Only zero order (constant piecewise) interpolation supported",
+               line, expr)
+  } else {
+    odin_error(sprintf("2 or 3 arguments expected, recieved %d", nargs),
+               line, expr)
+  }
+
+  if (!(is.symbol(x[[2L]]) && is.symbol(x[[3L]]))) {
+    odin_error("all arguments must be symbols", line, expr)
+  }
+
+  x
+}
+
+odin_parse_process_interpolate <- function(obj) {
+  i <- vlapply(obj$eqs, function(x) "interpolate" %in% x$depends$functions)
+  if (any(i)) {
+    nms <- vcapply(obj$eqs, function(x) x$name)
+
+    ## Here, we need to go through and inspect all the variables that
+    ## are used in interpolation.  The way this works is we're going
+    ## add one rank to the input, require a few sizes here and there.
+    ## It's going to be a blast!
+    ##
+    ## The two variables will be declared as _user_ stage variables.
+    f <- function(e) {
+      expr <- e$rhs$value
+      rank <- if (e$lhs$type == "symbol") 0L else e$lhs$nd
+
+      ## Already checked that 't' and 'y' are symbols...
+      g <- function(sym, rank) {
+        nm <- as.character(sym)
+        j <- match(nm, nms)
+        if (is.na(j)) {
+          odin_error(sprintf("Interpolation variable %s not found", nm),
+                     e$line, e$expr)
+        }
+        target <- obj$eqs[[j]]
+        if (target$lhs$type != "array" || target$lhs$nd != rank) {
+          type <- if (rank == 1L) "vector" else paste(rank, "dimensional array")
+          odin_error(sprintf("Expected %s to be a %s", nm, type),
+                     e$line, e$expr)
+        }
+      }
+      g(expr[[2]], 1L)
+      g(expr[[3]], rank + 1L)
+    }
+
+    ## Called for side effect only:
+    lapply(obj$eqs[i], f)
+  }
+  obj
 }
 
 odin_parse_check_if <- function(rhs, line, expr) {
