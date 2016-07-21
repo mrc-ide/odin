@@ -9,14 +9,16 @@
 // stacking this is that 'y' will be structured so that all the
 // elements will be in the right place in time (so y1[t0], y2[t0],
 // y1[t1], y2[t1] and so on).
-interpolate_0_data * interpolate_0_data_alloc(size_t n, double *x, double *y) {
+interpolate_0_data * interpolate_0_data_alloc(size_t n, size_t ny,
+                                              double *x, double *y) {
   interpolate_0_data * ret = Calloc(1, interpolate_0_data);
   ret->n = n;
+  ret->ny = ny;
   ret->i = 0;
   ret->x = (double*) Calloc(n, double);
-  ret->y = (double*) Calloc(n, double);
+  ret->y = (double*) Calloc(n * ny, double);
   memcpy(ret->x, x, sizeof(double) * n);
-  memcpy(ret->y, y, sizeof(double) * n);
+  memcpy(ret->y, y, sizeof(double) * n * ny);
   return ret;
 }
 
@@ -38,7 +40,8 @@ int interpolate_0_data_run(double x, interpolate_0_data* obj, double *y) {
     return -1;
   }
   obj->i = i; // save last lookup
-  y[0] = obj->y[i];
+  double *y0 = obj->y + i * obj->ny;
+  memcpy(y, y0, obj->ny * sizeof(double));
   return 0;
 }
 
@@ -60,11 +63,13 @@ int interpolate_1_data_run(double x, interpolate_0_data* obj, double *y) {
   double x0 = obj->x[i], x1 = obj->x[i + 1];
   double dx = x1 - x0;
 
-  double *y0 = obj->y + i;
-  double *y1 = y0 + 1; // allowed -- might need last case special?
-  double m = (*y1 - *y0) / dx;
+  double *y0 = obj->y + i * obj->ny;
+  double *y1 = y0 + obj->ny; // allowed -- might need last case special?
 
-  y[0] = *y0 + m * dx;
+  for (size_t j = 0; j < obj->ny; ++j, ++y0, ++y1) {
+    double m = (*y1 - *y0) / dx;
+    y[j] = *y0 + m * dx;
+  }
 
   return 0;
 }
