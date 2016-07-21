@@ -2,13 +2,10 @@
 #include <R.h> // memory and error management
 
 // TODO: Do we need to copy here?  If I use this from R the copy will
-// be needed because otherwise the pointers must hang.
-//
-// TODO: support increased dimensionality of 'y', including some
-// statement about the orientation of 'y'.  The obvious way of
-// stacking this is that 'y' will be structured so that all the
-// elements will be in the right place in time (so y1[t0], y2[t0],
-// y1[t1], y2[t1] and so on).
+// be needed because otherwise the pointers need care.  But for the
+// purposes of odin, we could use the same memory.  It might be worth
+// a copy flag here, but that's only a memory optimisation not a CPU
+// one.
 interpolate_0_data * interpolate_0_data_alloc(size_t n, size_t ny,
                                               double *x, double *y) {
   interpolate_0_data * ret = Calloc(1, interpolate_0_data);
@@ -59,16 +56,16 @@ int interpolate_1_data_run(double x, interpolate_0_data* obj, double *y) {
   // Here we need to compute some things.
   //
   // TODO: deal with the case where i+1 is out of bounds; in that
-  // case, it must be the case that x0 is equal to x.
+  // case, it must be the case that x0 is equal to x.  This affects y1
+  // in the same way.
   double x0 = obj->x[i], x1 = obj->x[i + 1];
-  double dx = x1 - x0;
+  double scal = (x - x0) / (x1 - x0);
 
   double *y0 = obj->y + i * obj->ny;
-  double *y1 = y0 + obj->ny; // allowed -- might need last case special?
+  double *y1 = y0 + obj->ny;
 
-  for (size_t j = 0; j < obj->ny; ++j, ++y0, ++y1) {
-    double m = (*y1 - *y0) / dx;
-    y[j] = *y0 + m * dx;
+  for (size_t j = 0; j < obj->ny; ++j) {
+    y[j] = y0[j] + (y1[j] - y0[j]) * scal;
   }
 
   return 0;
