@@ -37,9 +37,13 @@ int interpolate_0_run(double x, interpolate_0_data* obj, double *y) {
   // In theory we might be able to handle this, but it's simpler to
   // forbid it I think.  In odin we'll do a check that the
   // interpolation times span the entire range of integration times.
-  if (i < 0 || i == (int)obj->n) { // off the lhs or rhs
-    y[0] = NA_REAL;
+  if (i < 0) {
+    for (size_t j = 0; j < obj->ny; ++j) {
+      y[j] = NA_REAL;
+    }
     return -1;
+  } else if (i == (int) obj->n) { // off the rhs
+    i = obj->n - 1;
   }
   obj->i = i; // save last lookup
   double *y0 = obj->y + i * obj->ny;
@@ -78,7 +82,7 @@ int interpolate_1_run(double x, interpolate_0_data* obj, double *y) {
 
 int interpolate_search(double target, size_t i, size_t n, double *x) {
   int i0 = (int)i, i1 = (int)i, inc = 1;
-  if (x[i] < target) { // advance up until we hit the top
+  if (x[i] <= target) { // advance up until we hit the top
     if (i0 == (int)n - 1) { // guess is already *at* the top.
       return n;
     }
