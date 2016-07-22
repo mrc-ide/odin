@@ -5,9 +5,13 @@
 // be needed because otherwise the pointers need care.  But for the
 // purposes of odin, we could use the same memory.  It might be worth
 // a copy flag here, but that's only a memory optimisation not a CPU
-// one.
-interpolate_0_data * interpolate_0_data_alloc(size_t n, size_t ny,
-                                              double *x, double *y) {
+// one.  Hold off dealing with any of this until the spline bits are
+// done here; they're a bit nastier, but should not be all that
+// terrible to get right -- but because they take more space it's not
+// clear that there will be a bit advantage in not copying here
+// (storing the knots etc).
+interpolate_0_data * interpolate_0_alloc(size_t n, size_t ny,
+                                         double *x, double *y) {
   interpolate_0_data * ret = Calloc(1, interpolate_0_data);
   ret->n = n;
   ret->ny = ny;
@@ -19,16 +23,17 @@ interpolate_0_data * interpolate_0_data_alloc(size_t n, size_t ny,
   return ret;
 }
 
-void interpolate_0_data_free(interpolate_0_data* obj) {
-  Free(obj->x);
-  Free(obj->y);
-  Free(obj);
+void interpolate_0_free(interpolate_0_data* obj) {
+  if (obj) {
+    Free(obj->x);
+    Free(obj->y);
+    Free(obj);
+  }
 }
 
-int interpolate_0_data_run(double x, interpolate_0_data* obj, double *y) {
+int interpolate_0_run(double x, interpolate_0_data* obj, double *y) {
   // Do a hunt/bisect search here
-  // TODO: starting from 0 here this is a bit broken at the moment (see test)
-  int i = search(x, 0, obj->n, obj->x);
+  int i = interpolate_search(x, obj->i, obj->n, obj->x);
   // In theory we might be able to handle this, but it's simpler to
   // forbid it I think.  In odin we'll do a check that the
   // interpolation times span the entire range of integration times.
@@ -42,8 +47,8 @@ int interpolate_0_data_run(double x, interpolate_0_data* obj, double *y) {
   return 0;
 }
 
-int interpolate_1_data_run(double x, interpolate_0_data* obj, double *y) {
-  int i = search(x, 0, obj->n, obj->x);
+int interpolate_1_run(double x, interpolate_0_data* obj, double *y) {
+  int i = interpolate_search(x, obj->i, obj->n, obj->x);
   // In theory we might be able to handle this, but it's simpler to
   // forbid it I think.  In odin we'll do a check that the
   // interpolation times span the entire range of integration times.
@@ -71,7 +76,7 @@ int interpolate_1_data_run(double x, interpolate_0_data* obj, double *y) {
   return 0;
 }
 
-int search(double target, size_t i, size_t n, double *x) {
+int interpolate_search(double target, size_t i, size_t n, double *x) {
   int i0 = (int)i, i1 = (int)i, inc = 1;
   if (x[i] < target) { // advance up until we hit the top
     if (i0 == (int)n - 1) { // guess is already *at* the top.
@@ -92,7 +97,7 @@ int search(double target, size_t i, size_t n, double *x) {
       return -1;
     }
     i0 = i0 - 1;
-    while (x[i1] > target) {
+    while (x[i0] > target) {
       i1 = i0;
       inc *= 2;
       if (i0 < inc) {

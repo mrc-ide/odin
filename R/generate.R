@@ -20,6 +20,7 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   ## collected:
   ret <- list(if (!package) odin_header(),
               if (!package) odin_includes(),
+              if (!package) odin_interpolate_types(obj$info$has_interpolate),
               odin_generate_struct(obj),
               obj$declarations$get(),
               library_fns$declarations,
@@ -69,6 +70,12 @@ odin_includes <- function() {
     "#include <R_ext/Rdynload.h>")
 }
 
+odin_interpolate_types <- function(include) {
+  if (include) {
+    readLines(system.file("interpolate_types.h", package="odin"))
+  }
+}
+
 ## What we are going to write here is a little bit of (fairly nasty)
 ## reference-style code that will help generate the interface.  The
 ## simplest way of doing this might be to generate a small list of
@@ -81,6 +88,7 @@ odin_generate_object <- function(dat) {
   self$info <- list(base=base,
                     has_delay=dat$has_delay,
                     has_output=dat$has_output,
+                    has_interpolate=dat$has_interpolate,
                     user=dat$user,
                     initial_stage=dat$initial_stage,
                     dim_stage=dat$dim_stage)
@@ -104,12 +112,14 @@ odin_generate_object <- function(dat) {
   self$initial <- collector()
   self$free <- collector()
 
+  self$interpolate <- collector()
+
   ## Keep track of which library functions we need.  I'll keep those
   ## elsewhere and select them based on name.
   self$library_fns <- collector()
   self$declarations <- collector()
 
-  self$add_element <- function(name, type, array=0) {
+  self$add_element <- function(name, type, array=0, interpolate=FALSE) {
     if (array > 0L) {
       name_dim <- array_dim_name(name, use=FALSE)
       if (!is.null(name_dim)) {
@@ -124,7 +134,11 @@ odin_generate_object <- function(dat) {
         }
       }
     }
-    self$types$add(list(name=name, type=type, array=array))
+    if (interpolate) {
+      type <- sprintf("%s_data", type)
+    }
+    self$types$add(list(name=name, type=type,
+                        array=array, interpolate=interpolate))
     lookup$add(name)
   }
 
@@ -133,6 +147,8 @@ odin_generate_object <- function(dat) {
   self$rewrite <- function(x) {
     rewrite_c(x, self$name_pars, lookup$get(), INDEX, custom)
   }
+
+  self$lookup <- lookup
 
   self
 }
@@ -182,6 +198,8 @@ odin_generate_loop <- function(dat) {
   for (x in dat$eqs) {
     if (identical(x$lhs$special, "dim")) {
       odin_generate_dim(x, obj, dat)
+    } else if (isTRUE(x$rhs$interpolate)) {
+      odin_generate_interpolate(x, obj, dat)
     } else if (isTRUE(x$rhs$delay)) {
       odin_generate_delay(x, obj, dat)
     } else if (x$lhs$type == "symbol") {
@@ -262,6 +280,10 @@ odin_generate_loop <- function(dat) {
     length=vcapply(vars_len, obj$rewrite),
     stringsAsFactors=FALSE)
 
+  ## TODO: this section here is really crap.  It needs to roll into
+  ## the parsing bits because it's really a parse step.  I'll try and
+  ## move that across shortly, and then think about rationalising it a
+  ## bit.
   if (dat$has_output) {
     obj$vars$used_output <- obj$vars$name %in% dat$output_info$used
     output_len <- rep_len("1", length(dat$output_order$is_array))
@@ -723,6 +745,69 @@ odin_generate_delay <- function(x, obj, dat) {
   obj[[st]]$add("}", name=nm)
 }
 
+odin_generate_interpolate <- function(x, obj, dat) {
+  nm <- x$name
+  ## TODO: check that we're not in index_vars during parse?
+  stopifnot(!(nm %in% dat$index_vars))
+
+  type <- x$lhs$type
+
+  if (type == "symbol") {
+    obj$add_element(nm, "double")
+    nd <- 0L
+    ny <- 1L
+  } else {
+    message("needs some work here")
+    browser()
+    obj[[st]]$add(odin_generate_array_expr(x, obj), name=nm)
+    dim <- dat$eqs[[array_dim_name(x$name)]]
+    nd <- x$rhs$nd
+    ny <- obj$rewrite(array_dim_name(x$name))
+  }
+  nt <- obj$rewrite(array_dim_name(as.character(x$rhs$value[[2]])))
+
+  if (nd == 3) {
+    stop("not yet supported")
+  }
+
+  interpolation_order <- x$rhs$value[[4]]
+  if (interpolation_order > 0) {
+    stop("not yet supported")
+  }
+  interpolation_type <- "interpolate_0" # TODO: order > 1
+
+  obj$library_fns$add("odin_interpolate_check")
+  obj$library_fns$add("odin_%s_create", interpolation_type)
+
+  dest <- interpolate_name(nm)
+  obj$add_element(dest, interpolation_type, interpolate=TRUE)
+
+  ## TODO: need to check that the dimensions of the arrays are OK.
+  ## That's actually not totally straightforward.  It goes in the user
+  ## bit right here before free/alloc though.
+  ##
+  ## TODO: Right before running (so init stage) we need to check that
+  ## the times span appropriately.
+  ##
+  ## TODO: At some point we'll need to specify some critical values so
+  ## that the integrator doesn't struggle with things having to change
+  ## radically.
+  obj$user$add('%s_free(%s);', interpolation_type, obj$rewrite(dest))
+  obj$user$add('%s = %s_alloc(%s, %s, %s, %s);',
+               obj$rewrite(dest), interpolation_type, nt, ny,
+               obj$rewrite(x$rhs$value[[2]]), obj$rewrite(x$rhs$value[[3]]))
+
+  ## TODO: These are going to do tricky things with time when delayed.
+  ## TODO: don't have error handling done here yet - it's not totally
+  ## clear what we should do.  The safest thing is going to be to
+  ## throw an error and just bail.  After that the next best thing to
+  ## do is not go further than the end?
+  target <- sprintf(if (type == "array") "%s" else "&(%s)", obj$rewrite(nm))
+  obj$time$add("%s_run(%s, %s, %s);",
+               interpolation_type, TIME, obj$rewrite(dest), target,
+               name=nm)
+}
+
 ## TODO: Consider a different prefix for these as the functions really
 ## fall into two phases; global collection and output.  Below here is
 ## all output and does not modify obj, except for the library_fns one.
@@ -820,7 +905,12 @@ odin_generate_contents <- function(obj) {
           obj$type_pars, obj$name_pars, obj$base, obj$base)
   ret$add("  SEXP %s = PROTECT(allocVector(VECSXP, %d));",
           STATE, len)
+
   for (i in seq_len(len)) {
+    if (types$interpolate[[i]]) {
+      ## Can't do anything with these.
+      next
+    }
     name <- types$name[[i]]
     type <- types$type[[i]]
     array <- types$array[[i]]
@@ -868,7 +958,8 @@ odin_generate_struct <- function(obj) {
   ret$add("// Collect together all the parameters and transient memory")
   ret$add("// required to run the model in a struct.")
   ret$add("typedef struct %s {", obj$type_pars)
-  ret$add("  %s %s%s;", types$type, ifelse(types$array, "*", ""), types$name)
+  ptr <- types$array | types$interpolate
+  ret$add("  %s %s%s;", types$type, ifelse(ptr, "*", ""), types$name)
   ret$add("} %s;", obj$type_pars)
   ret$get()
 }
@@ -1070,10 +1161,31 @@ odin_generate_library_fns <- function(obj) {
     fns <- c(fns, "get_list_element")
   }
   fns <- unique(fns)
-  list(declarations=c(unname(dat$declarations[fns]),
-                      unname(obj$custom$declarations)),
-       definitions=c(unname(dat$definitions[fns]),
-                     unname(obj$custom$definitions)))
+  ret <- list(declarations=c(unname(dat$declarations[fns]),
+                             unname(obj$custom$declarations)),
+              definitions=c(unname(dat$definitions[fns]),
+                            unname(obj$custom$definitions)))
+  ## NOTE: For now, the interpolation functions are just slurped in
+  ## here.  This should do approximately the right thing for both
+  ## standalone code and for packages.  But it's not pretty.  I might
+  ## move to a more formal linking (e.g., getCcallable) approach but
+  ## that considerably complicates compilation and may come with a
+  ## slight performance cost too.
+  if (obj$info$has_interpolate) {
+    ret$declarations <- c(
+      ret$declarations,
+      readLines(system.file("interpolate_defns.h", package="odin")))
+    str <- readLines(system.file("interpolate.c", package="odin"))
+    ## This is error prone but tests should catch it.  We mostly need
+    ## not to include "interpolate.h" here.
+    i <- grep("^(//|#include|$)", str, perl=TRUE)
+    j <- seq_len(max(which(i == seq_along(i))))
+    if (length(j) > 0L) {
+      str <- str[-j]
+    }
+    ret$definitions <- c(ret$definitions, str)
+  }
+  ret
 }
 
 ## NOTE: This does violate the idea that these leave obj unmodified;
@@ -1259,7 +1371,7 @@ odin_generate_info <- function(obj) {
 ## inclusion of a header file.
 read_user_c <- function(filename) {
   d <- readLines(filename)
-  re <- "^[[:alnum:]*]+ ([[:alnum:]_]+)(.+) \\{$"
+  re <- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)\\s*\\{$"
   i <- grep(re, d)
   j <- grep("^}$", d)
   if (length(i) != length(j)) {
@@ -1293,6 +1405,10 @@ array_dim_name <- function(name, sub=NULL, use=TRUE) {
     name_dim <- sprintf("dim_%s", name)
   }
   name_dim
+}
+
+interpolate_name <- function(name) {
+  paste0("interpolate_", name)
 }
 
 ## TODO: make this work for the output variables with an additional

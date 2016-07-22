@@ -751,12 +751,13 @@ odin_parse_dependencies <- function(obj) {
   is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
   is_user <- vlapply(eqs, function(x) isTRUE(x$rhs$user))
+  is_interpolate <- vlapply(eqs, function(x) isTRUE(x$rhs$interpolate))
 
   ## Then, we can get the stage for these variables:
   stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
   stage[c(TIME, time_implicit)] <- STAGE_TIME
   stage[nms[is_user]] <- STAGE_USER
-  stage[nms[is_delay | is_output | is_deriv]] <- STAGE_TIME
+  stage[nms[is_delay | is_output | is_deriv | is_interpolate]] <- STAGE_TIME
 
   ## OK, this is potentially quite nasty for initial values that
   ## depend on time, on delay equations, etc, because it requires
@@ -1318,7 +1319,7 @@ check_array_rhs <- function(rhs, nd, line, expr) {
           throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
       } else {
-        if (f_nm %in% c("sum", "length", "dim")) {
+        if (f_nm %in% c("sum", "length", "dim", "interpolate")) {
           special <- f_nm
           if (length(e) < 2L) {
             throw("Special function %s requires at least 1 argument", special)
@@ -1584,42 +1585,49 @@ odin_parse_rewrite_interpolate <- function(x, line, expr) {
 }
 
 odin_parse_process_interpolate <- function(obj) {
-  i <- vlapply(obj$eqs, function(x) "interpolate" %in% x$depends$functions)
-  if (any(i)) {
-    nms <- vcapply(obj$eqs, function(x) x$name)
-
-    ## Here, we need to go through and inspect all the variables that
-    ## are used in interpolation.  The way this works is we're going
-    ## add one rank to the input, require a few sizes here and there.
-    ## It's going to be a blast!
-    ##
-    ## The two variables will be declared as _user_ stage variables.
-    f <- function(e) {
-      expr <- e$rhs$value
-      rank <- if (e$lhs$type == "symbol") 0L else e$lhs$nd
-
-      ## Already checked that 't' and 'y' are symbols...
-      g <- function(sym, rank) {
-        nm <- as.character(sym)
-        j <- match(nm, nms)
-        if (is.na(j)) {
-          odin_error(sprintf("Interpolation variable %s not found", nm),
-                     e$line, e$expr)
-        }
-        target <- obj$eqs[[j]]
-        if (target$lhs$type != "array" || target$lhs$nd != rank) {
-          type <- if (rank == 1L) "vector" else paste(rank, "dimensional array")
-          odin_error(sprintf("Expected %s to be a %s", nm, type),
-                     e$line, e$expr)
-        }
-      }
-      g(expr[[2]], 1L)
-      g(expr[[3]], rank + 1L)
-    }
-
-    ## Called for side effect only:
-    lapply(obj$eqs[i], f)
+  ## TODO: make this more like delay where we do isTRUE(x$rhs$interpolate)
+  is_interpolate <-
+    vlapply(obj$eqs, function(x) "interpolate" %in% x$depends$functions)
+  obj$has_interpolate <- length(is_interpolate) > 0L
+  if (!obj$has_interpolate) {
+    return(obj)
   }
+
+  nms <- vcapply(obj$eqs, function(x) x$name)
+
+  ## Here, we need to go through and inspect all the variables that
+  ## are used in interpolation.  The way this works is we're going
+  ## add one rank to the input, require a few sizes here and there.
+  ## It's going to be a blast!
+  ##
+  ## The two variables will be declared as _user_ stage variables.
+  f <- function(e) {
+    expr <- e$rhs$value
+    rank <- if (e$lhs$type == "symbol") 0L else e$lhs$nd
+
+    ## Already checked that 't' and 'y' are symbols...
+    g <- function(sym, rank) {
+      nm <- as.character(sym)
+      j <- match(nm, nms)
+      if (is.na(j)) {
+        odin_error(sprintf("Interpolation variable %s not found", nm),
+                   e$line, e$expr)
+      }
+      target <- obj$eqs[[j]]
+      if (target$lhs$type != "array" || target$lhs$nd != rank) {
+        type <- if (rank == 1L) "vector" else paste(rank, "dimensional array")
+        odin_error(sprintf("Expected %s to be a %s", nm, type),
+                   e$line, e$expr)
+      }
+    }
+    g(expr[[2]], 1L)
+    g(expr[[3]], rank + 1L)
+    e$rhs$interpolate <- TRUE
+    e
+  }
+
+  obj$eqs[is_interpolate] <- lapply(obj$eqs[is_interpolate], f)
+
   obj
 }
 
@@ -1691,5 +1699,5 @@ USER <- "user"
 SPECIAL_LHS <- c("initial", "deriv", "output", "dim", "config")
 INDEX <- c("i", "j", "k")
 RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
-RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay")
+RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")

@@ -10,14 +10,6 @@ test_that("constant", {
 
   for (order in c(0L, 1L)) {
     rtype <- if (order == 0L) "constant" else "linear"
-    ## OK, this is caught up with the book-keeping; I've not got the
-    ## interpolation quite right.  It looks (worryingly) like I've got
-    ## this incorrect so that someties the interpolation works
-    ## incorrectly when starting from the previous point.  There's a
-    ## chance that whatever the bug is there affects the ring buffer too
-    ## (though there we do the search in a slightly weirder way).  But
-    ## worth tracking down for sure (needs to be done on the linux
-    ## machine because of lldb/gdb issues).
     res_c <- .Call("test_interpolate0", x, y, xout, order)
     res_r <- approx(x, y, xout, rtype)$y
     expect_identical(res_c, res_r)
@@ -45,7 +37,7 @@ test_that("constant", {
   skip("not implemented")
 
   gen <- odin({
-    deriv(y) <- pulse(t)
+    deriv(y) <- pulse
     initial(y) <- 0
     ##
     pulse <- interpolate(tp, zp, 0)
@@ -54,6 +46,7 @@ test_that("constant", {
     zp[] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
-  })
+    config(base) <- "constant"
+  }, ".")
 
 })

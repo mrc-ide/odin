@@ -314,11 +314,11 @@ pairs(y[, -1], panel=lines, col="#00000055", lwd=0.2)
 ## rhs.  So if you want a classic 1d function, you'd write:
 ##
 ## ```r
-## z <- interpolate(t, y)
-## t[] <- user()
+## z <- interpolate(tt, y)
+## tt[] <- user()
 ## y[] <- user()
-## dim(t) <- user()
-## dim(y) <- length(t)
+## dim(tt) <- user()
+## dim(y) <- length(tt)
 ## ```
 ##
 ## and `z` will be a scalar double, and `t` and `y` are both vectors
@@ -328,19 +328,19 @@ pairs(y[, -1], panel=lines, col="#00000055", lwd=0.2)
 ## autogeneration of the boilerplate here, but for now you must
 ## specify the four lines required to initialise `t` and `y`.
 ##
-## Note that `time` cannot be used as
+## Note that `t` cannot be used as
 ## the first argument because it's a reserved variable!
 ##
 ## If you want to interpolate a *vector* of `y` values over time, then
 ## you'd write:
 ##
 ## ```r
-## z[] <- interpolate(t, y)
+## z[] <- interpolate(tt, y)
 ## dim(z) <- 4
-## t[] <- user()
+## tt[] <- user()
 ## y[,] <- user()
-## dim(t) <- user()
-## dim(y) <- c(length(t), length(z))
+## dim(tt) <- user()
+## dim(y) <- c(length(tt), length(z))
 ## ```
 ##
 ## In this case, `z` is a vector (here length 4), so `y` must be a
