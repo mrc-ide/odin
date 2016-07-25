@@ -48,24 +48,24 @@ test_that("constant", {
     dim(zp) <- user()
     output(p) <- pulse
     config(base) <- "constant"
-  }, ".", verbose=FALSE)
+  }, ".", verbose=TRUE)
 
   ## NOTE: when doing the checks for spanning, the only thing that
   ## matters for constant interpolation is that the *minimum* time
-  ## matches.
+  ## matches.  The minimum match should be that t[1] is not *smaller*
+  ## than the smallest interpolation time (equality being OK).
   ##
   ## TODO: I want this to work with tp[1] = 0 but that requires some
   ## tweakery with the interpolation functions;
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
-  mod <- gen(tp=tp, zp=zp)
-  tt <- seq(0, 3, length.out=301)
-  ## OK, so this doesn't work, but it also doesn't crash either.  All
-  ## I see is NA values at every point which suggests that the
-  ## interpolants have not been correctly initialised.
-  ##
-  ## The interpolation bits are done correctly; perhaps this is a
-  ## staging/dependency issue?
-  yy <- mod$run(tt)
+  expect_error(gen(tp=tp, zp=zp[1:2]), "Expected zp to have length 3")
+  expect_error(gen(tp=tp, zp=rep(zp, 2)), "Expected zp to have length 3")
 
+  mod <- gen(tp=tp, zp=zp)
+
+  tt <- seq(0, 3, length.out=301)
+  yy <- mod$run(tt)
+  zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
+  expect_equal(yy[, 2], zz, tolerance=1e-5)
 })

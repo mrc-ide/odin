@@ -765,6 +765,8 @@ odin_generate_interpolate <- function(x, obj, dat) {
     ny <- obj$rewrite(array_dim_name(x$name))
   }
   nt <- obj$rewrite(array_dim_name(as.character(x$rhs$value[[2]])))
+  int_x <- as.character(x$rhs$value[[2L]])
+  int_y <- as.character(x$rhs$value[[3L]])
 
   if (nd == 3) {
     stop("not yet supported")
@@ -777,10 +779,18 @@ odin_generate_interpolate <- function(x, obj, dat) {
   interpolation_type <- "interpolate_0" # TODO: order > 1
 
   obj$library_fns$add("odin_interpolate_check")
-  obj$library_fns$add("odin_%s_create", interpolation_type)
 
   dest <- interpolate_name(nm)
   obj$add_element(dest, interpolation_type, interpolate=TRUE)
+
+  ## TODO: throughout here; consider looking at the actual definitions
+  ## as it may be possible to determine that the conditional will
+  ## always be true.  The compiler should sort that out for us though.
+  for (i in if (nd == 0L) 0L else seq_len(nd + 1) + 1) {
+    obj$user$add('odin_interpolate_check(%s, %s, %d, "%s", "%s");',
+                 obj$rewrite(array_dim_name(int_x)),
+                 obj$rewrite(array_dim_name(int_y)), i, int_y, nm)
+  }
 
   ## TODO: need to check that the dimensions of the arrays are OK.
   ## That's actually not totally straightforward.  It goes in the user
@@ -795,7 +805,7 @@ odin_generate_interpolate <- function(x, obj, dat) {
   obj$user$add('%s_free(%s);', interpolation_type, obj$rewrite(dest))
   obj$user$add('%s = %s_alloc(%s, %s, %s, %s);',
                obj$rewrite(dest), interpolation_type, nt, ny,
-               obj$rewrite(x$rhs$value[[2]]), obj$rewrite(x$rhs$value[[3]]))
+               obj$rewrite(int_x), obj$rewrite(int_y))
 
   ## TODO: These are going to do tricky things with time when delayed.
   ## TODO: don't have error handling done here yet - it's not totally

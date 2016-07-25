@@ -248,35 +248,16 @@ void odin_set_dim3(SEXP target, int nr, int nc, int nz) {
   UNPROTECT(1);
 }
 
-// TODO: These checks need to move into the user variable checking.
-// But I'm not sure when it's best to do it so I'm goig to punt on it
-// for now.
-void odin_interpolate_check(SEXP rx, SEXP ry, size_t dim_target[3], const char * name) {
-  // The first part of this comes out as a general check function once
-  // we get spline support.
-  SEXP dim = getAttrib(ry, R_DimSymbol);
-  size_t nx = (size_t) length(rx);
-  if (dim == R_NilValue) { // vector
-    if (length(ry) != length(rx)) {
-      Rf_error("Expected 'x' and 'y' lengths to be equal for %s", name);
-    }
-  } else {
-    size_t nd = (size_t) length(dim);
-    int *d = INTEGER(dim);
-    for (size_t i = 0; i < nd; ++i) {
-      size_t expected = i == nd - 1 ? nx : (size_t) dim_target[i];
-      if (d[i] != expected) {
-        Rf_error("Expected dimension %d of 'y' to have %d elements for %s",
-                 i + 1, expected, name);
-      }
+void odin_interpolate_check(size_t nx, size_t ny, size_t i, const char *name_arg, const char *name_target) {
+  if (nx != ny) {
+    if (i == 0) {
+      // vector case
+      Rf_error("Expected %s to have length %d (for %s)",
+               name_arg, nx, name_target);
+    } else {
+      // array case
+      Rf_error("Expected dimension %d of %s to have size %d (for %s)",
+               i, name_arg, nx, name_target);
     }
   }
-}
-
-interpolate_0_data* odin_interpolate_0_create(SEXP rx, SEXP ry, size_t d1, size_t d2, size_t d3, const char * name) {
-  size_t dim_target[3] = {d1, d2, d3};
-  odin_interpolate_check(rx, ry, dim_target, name);
-  size_t nx = (size_t) length(rx);
-  size_t ny = ((size_t) length(ry)) / nx;
-  return interpolate_0_alloc(nx, ny, REAL(rx), REAL(ry));
 }
