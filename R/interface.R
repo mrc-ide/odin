@@ -198,11 +198,13 @@ ode_system_generator <- function(dll, name=NULL) {
       has_delay=info$has_delay,
       has_user=length(info$user) > 0L,
       has_output=info$has_output,
+      has_interpolate=info$has_interpolate,
       ## TODO: make this configurable as info$use_dde
       use_dde=FALSE,
       user=info$user,
       initial_stage=info$initial_stage,
       dim_stage=info$dim_stage,
+      interpolate_t=NULL,
 
       ## More volitile:
       ptr=NULL,
@@ -246,9 +248,7 @@ ode_system_generator <- function(dll, name=NULL) {
           if (self$initial_stage == STAGE_USER) {
             self$init <- .Call(self$C$init, self$ptr, NA_real_)
           }
-          if (self$dim_stage == STAGE_USER) {
-            self$update_cache()
-          }
+          self$dim_stage == STAGE_USER
         } else {
           stop("This model does not have parameters")
         }
@@ -259,6 +259,9 @@ ode_system_generator <- function(dll, name=NULL) {
         self$order <- .Call(self$C$order, self$ptr)
         self$output_order <- .Call(self$C$output_order, self$ptr)
         self$transform_variables <- make_transform_variables(self)
+        if (self$has_interpolate) {
+          self$interpolate_t <- .Call(self$C$interpolate_t, self$ptr)
+        }
       },
 
       deriv=function(t, y) {
@@ -278,14 +281,26 @@ ode_system_generator <- function(dll, name=NULL) {
       },
 
       run=function(t, y=NULL, ...) {
+        t0 <- t[[1L]]
         if (is.null(y)) {
-          y <- self$initial(t[[1L]])
+          y <- self$initial(t0)
         } else if (self$initial_stage == STAGE_TIME) {
           ## TODO: this is going to initialise the correct starting
           ## time but also compute and return the y values, which we
           ## don't need.  Would be nicer to have a set_time target we
           ## can hit.
-          .Call(self$C$init, self$ptr, as.numeric(t[[1L]]))
+          .Call(self$C$init, self$ptr, as.numeric(t0))
+        }
+        if (self$has_interpolate) {
+          r <- self$interpolate_t
+          if (t0 < r[[1L]]) {
+            stop("Integration times do not span interpolation range; min: ",
+                 r[[1L]])
+          }
+          if (!is.na(r[[2L]]) && t[[length(t)]] > r[[2L]]) {
+            stop("Integration times do not span interpolation range; max: ",
+                 r[[2L]])
+          }
         }
         if (self$use_dde) {
           ## TODO: this doesn't allow for n_history to be tweaked by
@@ -330,6 +345,7 @@ odin_dll_info <- function(name, dll) {
     contents=getNativeSymbolInfo(sprintf("%s_contents", name), dll),
     order=getNativeSymbolInfo(sprintf("%s_order", name), dll),
     output_order=getNativeSymbolInfo(sprintf("%s_output_order", name), dll),
+    interpolate_t=getNativeSymbolInfo(sprintf("%s_interpolate_t", name), dll),
     ## deSolve does not support this (yet)
     ds_deriv=sprintf("%s_ds_derivs", name),
     ds_initmod=sprintf("%s_ds_initmod", name),

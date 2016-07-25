@@ -34,8 +34,6 @@ test_that("constant", {
 })
 
 test_that("constant", {
-  skip("not implemented")
-
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -47,8 +45,7 @@ test_that("constant", {
     dim(tp) <- user()
     dim(zp) <- user()
     output(p) <- pulse
-    config(base) <- "constant"
-  }, ".", verbose=TRUE)
+  }, verbose=FALSE)
 
   ## NOTE: when doing the checks for spanning, the only thing that
   ## matters for constant interpolation is that the *minimum* time
@@ -57,6 +54,11 @@ test_that("constant", {
   ##
   ## TODO: I want this to work with tp[1] = 0 but that requires some
   ## tweakery with the interpolation functions;
+  ##
+  ## TODO: need to check that at least 2 times are provided for each
+  ## variable used as an interpolation variable.  Could do that in the
+  ## interpolation creation itself but that will give obscure error
+  ## messages.
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
   expect_error(gen(tp=tp, zp=zp[1:2]), "Expected zp to have length 3")
@@ -65,6 +67,9 @@ test_that("constant", {
   mod <- gen(tp=tp, zp=zp)
 
   tt <- seq(0, 3, length.out=301)
+  expect_error(mod$run(tt - 0.1),
+               "Integration times do not span interpolation")
+
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   expect_equal(yy[, 2], zz, tolerance=1e-5)

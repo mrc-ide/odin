@@ -1588,7 +1588,7 @@ odin_parse_process_interpolate <- function(obj) {
   ## TODO: make this more like delay where we do isTRUE(x$rhs$interpolate)
   is_interpolate <-
     vlapply(obj$eqs, function(x) "interpolate" %in% x$depends$functions)
-  obj$has_interpolate <- length(is_interpolate) > 0L
+  obj$has_interpolate <- any(is_interpolate)
   if (!obj$has_interpolate) {
     return(obj)
   }

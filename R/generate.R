@@ -34,6 +34,7 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               odin_generate_order(obj),
               odin_generate_output_order(obj),
               odin_generate_output(obj),
+              odin_generate_interpolate_t(obj),
               odin_generate_desolve(obj),
               odin_generate_dde(obj),
               odin_generate_info(obj),
@@ -112,7 +113,7 @@ odin_generate_object <- function(dat) {
   self$initial <- collector()
   self$free <- collector()
 
-  self$interpolate <- collector()
+  self$interpolate <- collector_list()
 
   ## Keep track of which library functions we need.  I'll keep those
   ## elsewhere and select them based on name.
@@ -199,7 +200,7 @@ odin_generate_loop <- function(dat) {
     if (identical(x$lhs$special, "dim")) {
       odin_generate_dim(x, obj, dat)
     } else if (isTRUE(x$rhs$interpolate)) {
-      odin_generate_interpolate(x, obj, dat)
+      odin_generate_interpolate_expr(x, obj, dat)
     } else if (isTRUE(x$rhs$delay)) {
       odin_generate_delay(x, obj, dat)
     } else if (x$lhs$type == "symbol") {
@@ -745,7 +746,7 @@ odin_generate_delay <- function(x, obj, dat) {
   obj[[st]]$add("}", name=nm)
 }
 
-odin_generate_interpolate <- function(x, obj, dat) {
+odin_generate_interpolate_expr <- function(x, obj, dat) {
   nm <- x$name
   ## TODO: check that we're not in index_vars during parse?
   stopifnot(!(nm %in% dat$index_vars))
@@ -773,11 +774,12 @@ odin_generate_interpolate <- function(x, obj, dat) {
   }
 
   interpolation_order <- x$rhs$value[[4]]
-  if (interpolation_order > 0) {
+  if (interpolation_order > 1) {
     stop("not yet supported")
   }
   interpolation_type <- "interpolate_0" # TODO: order > 1
 
+  obj$interpolate$add(list(interpolation_order=interpolation_order, t=int_x))
   obj$library_fns$add("odin_interpolate_check")
 
   dest <- interpolate_name(nm)
@@ -816,6 +818,43 @@ odin_generate_interpolate <- function(x, obj, dat) {
   obj$time$add("%s_run(%s, %s, %s);",
                interpolation_type, TIME, obj$rewrite(dest), target,
                name=nm)
+}
+
+odin_generate_interpolate_t <- function(obj) {
+  ret <- collector()
+  ret$add("// Report back to R information about interpolating functions")
+  ret$add("SEXP %s_interpolate_t(SEXP %s_ptr) {", obj$base, obj$base)
+  if (obj$info$has_interpolate) {
+    ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+            obj$type_pars, obj$name_pars, obj$base, obj$base)
+    dat <- unique(obj$interpolate$get())
+    dat_i <- vnapply(dat, "[[", "interpolation_order")
+    dat_t <- vcapply(dat, "[[", "t")
+    dat <- sort(tapply(dat_i, dat_t, max), decreasing=TRUE)
+    ret$add("  SEXP ret = PROTECT(allocVector(REALSXP, 2));")
+    ret$add("  double *r = REAL(ret);")
+    v <- names(dat)[[1L]]
+    ret$add("  r[0] = %s[0];", obj$rewrite(v))
+    if (dat[[v]] > 0L) {
+      ret$add("  r[1] = %s[%s - 1];",
+              obj$rewrite(v), obj$rewrite(array_dim_name(v)))
+    } else {
+      ret$add("  r[1] = NA_REAL;")
+    }
+    for (v in names(dat)[-1]) {
+      ret$add("  r[0] = min(r[0], %s[0]);", obj$rewrite(v))
+      if (dat[[v]] > 0) {
+        ret$add("  r[1] = max(r[1], %s[%s - 1]);",
+                obj$rewrite(v), obj$rewrite(array_dim_name(v)))
+      }
+    }
+    ret$add("  UNPROTECT(1);")
+    ret$add("  return ret;")
+  } else {
+    ret$add("  return R_NilValue;")
+  }
+  ret$add("}")
+  ret$get()
 }
 
 ## TODO: Consider a different prefix for these as the functions really
