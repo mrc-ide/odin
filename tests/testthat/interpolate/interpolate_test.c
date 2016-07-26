@@ -3,25 +3,29 @@
 
 SEXP test_interpolate0(SEXP x, SEXP y, SEXP xout, SEXP order) {
   size_t n = (size_t)length(x), m = (size_t)length(xout);
-  // NOTE: assumes transposed.
-  size_t ny = isMatrix(y) ? nrows(y) : 1;
+  size_t ny = isMatrix(y) ? ncols(y) : 1;
   interpolate_0_data *obj = interpolate_0_alloc(n, ny, REAL(x), REAL(y));
   SEXP ret;
 
   if (isMatrix(y)) {
-    ret = PROTECT(allocMatrix(REALSXP, ny, length(xout)));
+    ret = PROTECT(allocMatrix(REALSXP, length(xout), ny));
   } else {
     ret = PROTECT(allocVector(REALSXP, length(xout)));
   }
-  if (INTEGER(order)[0] == 0) {
-    for (size_t i = 0; i < m; ++i) {
-      interpolate_0_run(REAL(xout)[i], obj, REAL(ret) + i * ny);
+
+  double *tmp = (double*) R_alloc(ny, sizeof(double));
+  double *yout = REAL(ret);
+  for (size_t i = 0; i < m; ++i) {
+    if (INTEGER(order)[0] == 0) {
+      interpolate_0_run(REAL(xout)[i], obj, tmp);
+    } else {
+      interpolate_1_run(REAL(xout)[i], obj, tmp);
     }
-  } else {
-    for (size_t i = 0; i < m; ++i) {
-      interpolate_1_run(REAL(xout)[i], obj, REAL(ret) + i * ny);
+    for (size_t j = 0; j < ny; ++j) {
+      yout[i + j * m] = tmp[j];
     }
   }
+
   interpolate_0_free(obj);
   UNPROTECT(1);
   return ret;

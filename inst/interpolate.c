@@ -46,8 +46,10 @@ int interpolate_0_run(double x, interpolate_0_data* obj, double *y) {
     i = obj->n - 1;
   }
   obj->i = i; // save last lookup
-  double *y0 = obj->y + i * obj->ny;
-  memcpy(y, y0, obj->ny * sizeof(double));
+  double *y0 = obj->y + i;
+  for (size_t j = 0; j < obj->ny; ++j, y0 += obj->n) {
+    y[j] = *y0;
+  }
   return 0;
 }
 
@@ -70,11 +72,11 @@ int interpolate_1_run(double x, interpolate_0_data* obj, double *y) {
   double x0 = obj->x[i], x1 = obj->x[i + 1];
   double scal = (x - x0) / (x1 - x0);
 
-  double *y0 = obj->y + i * obj->ny;
-  double *y1 = y0 + obj->ny;
+  double *y0 = obj->y + i;
+  double *y1 = y0 + 1;
 
-  for (size_t j = 0; j < obj->ny; ++j) {
-    y[j] = y0[j] + (y1[j] - y0[j]) * scal;
+  for (size_t j = 0; j < obj->ny; ++j, y0 += obj->n, y1 += obj->n) {
+    y[j] = *y0 + (*y1 - *y0) * scal;
   }
 
   return 0;
