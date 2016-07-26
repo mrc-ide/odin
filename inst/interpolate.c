@@ -10,30 +10,38 @@
 // terrible to get right -- but because they take more space it's not
 // clear that there will be a bit advantage in not copying here
 // (storing the knots etc).
-interpolate_0_data * interpolate_0_alloc(size_t n, size_t ny,
-                                         double *x, double *y) {
-  interpolate_0_data * ret = Calloc(1, interpolate_0_data);
+interpolate_data * interpolate_alloc(size_t type,
+                                     size_t n, size_t ny,
+                                     double *x, double *y) {
+  interpolate_data * ret = Calloc(1, interpolate_data);
+  ret->type = type;
   ret->n = n;
   ret->ny = ny;
   ret->i = 0;
   ret->x = (double*) Calloc(n, double);
   ret->y = (double*) Calloc(n * ny, double);
+  ret->k = NULL;
   memcpy(ret->x, x, sizeof(double) * n);
   memcpy(ret->y, y, sizeof(double) * n * ny);
   return ret;
 }
 
-void interpolate_0_free(interpolate_0_data* obj) {
+void interpolate_free(interpolate_data* obj) {
   if (obj) {
     Free(obj->x);
     Free(obj->y);
+    Free(obj->k);
     Free(obj);
   }
 }
 
-int interpolate_0_run(double x, interpolate_0_data* obj, double *y) {
+//int interpolate_run(double x, interpolate_data *obj, double *y) {
+//  // do a switch here...
+//}
+
+int interpolate_0_run(double x, interpolate_data *obj, double *y) {
   // Do a hunt/bisect search here
-  int i = interpolate_search(x, obj->i, obj->n, obj->x);
+  int i = interpolate_search(x, obj);
   // In theory we might be able to handle this, but it's simpler to
   // forbid it I think.  In odin we'll do a check that the
   // interpolation times span the entire range of integration times.
@@ -45,7 +53,7 @@ int interpolate_0_run(double x, interpolate_0_data* obj, double *y) {
   } else if (i == (int) obj->n) { // off the rhs
     i = obj->n - 1;
   }
-  obj->i = i; // save last lookup
+
   double *y0 = obj->y + i;
   for (size_t j = 0; j < obj->ny; ++j, y0 += obj->n) {
     y[j] = *y0;
@@ -53,8 +61,8 @@ int interpolate_0_run(double x, interpolate_0_data* obj, double *y) {
   return 0;
 }
 
-int interpolate_1_run(double x, interpolate_0_data* obj, double *y) {
-  int i = interpolate_search(x, obj->i, obj->n, obj->x);
+int interpolate_1_run(double x, interpolate_data* obj, double *y) {
+  int i = interpolate_search(x, obj);
   // In theory we might be able to handle this, but it's simpler to
   // forbid it I think.  In odin we'll do a check that the
   // interpolation times span the entire range of integration times.
@@ -62,7 +70,6 @@ int interpolate_1_run(double x, interpolate_0_data* obj, double *y) {
     y[0] = NA_REAL;
     return -1;
   }
-  obj->i = i; // save last lookup
 
   // Here we need to compute some things.
   //
@@ -82,9 +89,12 @@ int interpolate_1_run(double x, interpolate_0_data* obj, double *y) {
   return 0;
 }
 
-int interpolate_search(double target, size_t i, size_t n, double *x) {
-  int i0 = (int)i, i1 = (int)i, inc = 1;
-  if (x[i] <= target) { // advance up until we hit the top
+int interpolate_search(double target, interpolate_data *obj) {
+  int i0 = (int)obj->i, i1 = (int)obj->i, inc = 1;
+  size_t n = obj->n;
+  double *x = obj->x;
+
+  if (x[i0] <= target) { // advance up until we hit the top
     if (i0 == (int)n - 1) { // guess is already *at* the top.
       return n;
     }
@@ -118,6 +128,7 @@ int interpolate_search(double target, size_t i, size_t n, double *x) {
   // why.  It's possible that this only needs doing on one of the
   // early exits from the above loops.
   if (i1 - i0 == 1 && x[i1] < target) {
+    obj->i = (size_t)i1;
     return i1;
   }
 
@@ -130,5 +141,6 @@ int interpolate_search(double target, size_t i, size_t n, double *x) {
     }
   }
 
+  obj->i = (size_t)i0;
   return i0;
 }
