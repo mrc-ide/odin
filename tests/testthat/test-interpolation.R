@@ -12,7 +12,7 @@ test_that("constant endpoints", {
   expect_identical(.Call("test_interpolate", x, x, x + eps, 0L), x)
 })
 
-test_that("constant", {
+test_that("interpolation", {
   interpolate_prepare()
 
   set.seed(1)

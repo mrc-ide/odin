@@ -120,7 +120,7 @@ odin_generate_object <- function(dat) {
   self$library_fns <- collector()
   self$declarations <- collector()
 
-  self$add_element <- function(name, type, array=0, interpolate=FALSE) {
+  self$add_element <- function(name, type, array=0) {
     if (array > 0L) {
       name_dim <- array_dim_name(name, use=FALSE)
       if (!is.null(name_dim)) {
@@ -135,9 +135,7 @@ odin_generate_object <- function(dat) {
         }
       }
     }
-    if (interpolate) {
-      type <- sprintf("%s_data", type)
-    }
+    interpolate <- type == "interpolate_data"
     self$types$add(list(name=name, type=type,
                         array=array, interpolate=interpolate))
     lookup$add(name)
@@ -773,17 +771,12 @@ odin_generate_interpolate_expr <- function(x, obj, dat) {
     stop("not yet supported")
   }
 
-  interpolation_order <- x$rhs$value[[4]]
-  if (interpolation_order > 1) {
-    stop("not yet supported")
-  }
-  interpolation_type <- "interpolate_0" # TODO: order > 1
-
-  obj$interpolate$add(list(interpolation_order=interpolation_order, t=int_x))
+  interpolation_type <- x$rhs$value[[4]]
+  obj$interpolate$add(list(interpolation_type=interpolation_type, t=int_x))
   obj$library_fns$add("odin_interpolate_check")
 
   dest <- interpolate_name(nm)
-  obj$add_element(dest, interpolation_type, interpolate=TRUE)
+  obj$add_element(dest, "interpolate_data")
 
   ## TODO: throughout here; consider looking at the actual definitions
   ## as it may be possible to determine that the conditional will
@@ -804,8 +797,8 @@ odin_generate_interpolate_expr <- function(x, obj, dat) {
   ## TODO: At some point we'll need to specify some critical values so
   ## that the integrator doesn't struggle with things having to change
   ## radically.
-  obj$user$add('%s_free(%s);', interpolation_type, obj$rewrite(dest))
-  obj$user$add('%s = %s_alloc(%s, %s, %s, %s);',
+  obj$user$add('interpolate_free(%s);', obj$rewrite(dest))
+  obj$user$add('%s = interpolate_alloc(%d, %s, %s, %s, %s);',
                obj$rewrite(dest), interpolation_type, nt, ny,
                obj$rewrite(int_x), obj$rewrite(int_y))
 
@@ -815,7 +808,7 @@ odin_generate_interpolate_expr <- function(x, obj, dat) {
   ## throw an error and just bail.  After that the next best thing to
   ## do is not go further than the end?
   target <- sprintf(if (type == "array") "%s" else "&(%s)", obj$rewrite(nm))
-  obj$time$add("%s_run(%s, %s, %s);",
+  obj$time$add("interpolate_%s_run(%s, %s, %s);",
                interpolation_type, TIME, obj$rewrite(dest), target,
                name=nm)
 }
@@ -828,7 +821,7 @@ odin_generate_interpolate_t <- function(obj) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
             obj$type_pars, obj$name_pars, obj$base, obj$base)
     dat <- unique(obj$interpolate$get())
-    dat_i <- vnapply(dat, "[[", "interpolation_order")
+    dat_i <- vnapply(dat, "[[", "interpolation_type")
     dat_t <- vcapply(dat, "[[", "t")
     dat <- sort(tapply(dat_i, dat_t, max), decreasing=TRUE)
     ret$add("  SEXP ret = PROTECT(allocVector(REALSXP, 2));")

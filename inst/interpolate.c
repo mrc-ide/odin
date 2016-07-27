@@ -73,7 +73,7 @@ int interpolate_0_run(double x, interpolate_data *obj, double *y) {
   // NOTE: In the R function 'approx' there is an argument 'f' that
   // deals with the 'ties' case more gracefully.  This is like the
   // default f=0, omitting this becomes like the option f=1.
-  if (i != obj->n - 1 && obj->x[i + 1] == x) {
+  if (i != (int)obj->n - 1 && obj->x[i + 1] == x) {
     ++i;
   }
 
