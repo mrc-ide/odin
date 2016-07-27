@@ -113,7 +113,6 @@ test_that("constant array", {
     dim(zp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-    config(base) <- "ic2"
   }, verbose=FALSE)
 
   tp <- c(0, 1, 2)
@@ -137,4 +136,52 @@ test_that("constant array", {
   zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
   expect_equal(yy[, 2], zz1, tolerance=1e-5)
   expect_equal(yy[, 3], zz2, tolerance=1e-5)
+})
+
+test_that("constant 3d array", {
+  gen <- odin({
+    deriv(y[,]) <- pulse[i,j]
+    initial(y[,]) <- 0
+    ##
+    pulse[,] <- interpolate(tp, zp, 0)
+    ##
+    tp[] <- user()
+    zp[,,] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    dim(pulse) <- c(2, 2)
+    dim(y) <- c(2, 2)
+    config(base) <- "ic2"
+  }, verbose=FALSE)
+
+  ## This is really challenging to even build the 'z' matrix here.
+  ## When we go up one more dimension the user is going to enter a
+  ## world of pain
+  tp <- c(0, 1, 2)
+  zp <- array(c(c(0, 1, 0),
+                c(0, 2, 0),
+                c(0, 3, 0),
+                c(0, 4, 0)), c(length(tp), 2, 2))
+  stopifnot(isTRUE(all.equal(zp[1,,], matrix(0, 2, 2))))
+  stopifnot(isTRUE(all.equal(zp[2,,], cbind(1:2, 3:4))))
+  stopifnot(isTRUE(all.equal(zp[3,,], matrix(0, 2, 2))))
+
+  ## Three dimensions to check here:
+  expect_error(gen(tp=tp, zp=zp[1:2, , ]), "zp to have size 3")
+  expect_error(gen(tp=tp, zp=zp[c(1:3, 1:3), , ]), "zp to have size 3")
+  expect_error(gen(tp=tp, zp=zp[, 1, , drop=FALSE]), "zp to have size 2")
+  expect_error(gen(tp=tp, zp=zp[, c(1:2, 1), ]), "zp to have size 2")
+  expect_error(gen(tp=tp, zp=zp[, , 1, drop=FALSE]), "zp to have size 2")
+  expect_error(gen(tp=tp, zp=zp[, , c(1:2, 1)]), "zp to have size 2")
+
+  mod <- gen(tp=tp, zp=zp)
+
+  tt <- seq(0, 3, length.out=301)
+  expect_error(mod$run(tt - 0.1),
+               "Integration times do not span interpolation")
+
+  yy <- mod$run(tt)
+  cmp <- sapply(1:4, function(i)
+    ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
+  expect_equal(unname(yy[, -1]), cmp, tolerance=1e-5)
 })
