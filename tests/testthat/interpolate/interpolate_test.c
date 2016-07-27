@@ -20,8 +20,12 @@ SEXP test_interpolate(SEXP x, SEXP y, SEXP xout, SEXP type) {
   for (size_t i = 0; i < m; ++i) {
     if (obj->type == 0) {
       interpolate_0_run(REAL(xout)[i], obj, tmp);
-    } else {
+    } else if (obj->type == 1) {
       interpolate_1_run(REAL(xout)[i], obj, tmp);
+    } else if (obj->type == 2) {
+      interpolate_2_run(REAL(xout)[i], obj, tmp);
+    } else {
+      Rf_error("Invalid interpolation type");
     }
     for (size_t j = 0; j < ny; ++j) {
       yout[i + j * m] = tmp[j];
