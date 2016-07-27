@@ -1560,16 +1560,18 @@ odin_parse_rewrite_interpolate <- function(x, line, expr) {
   }
   nargs <- length(x) - 1L
   if (nargs == 3L) {
-    order <- x[[4L]]
+    type <- x[[4L]]
     ## TODO: Support CONSTANT, LINEAR, CUBIC, etc here, rather than
     ## relying on numbers?  But that requires getting more bits
     ## supported anyway.
-    if (!(is.numeric(order) && order == 0)) {
-      odin_error("Only zero order (constant piecewise) interpolation supported",
-                 line, expr)
+    if (!is.numeric(type)) {
+      odin_error("Interpolation type must be an integer value")
+    }
+    if (!(type %in% c(0, 1, 2))) {
+      odin_error("Interpolation type must be 1, 2 or 3", line, expr)
     }
   } else if (nargs == 2L) {
-    x[[4L]] <- 3L
+    x[[4L]] <- 2L
     odin_error("Only zero order (constant piecewise) interpolation supported",
                line, expr)
   } else {

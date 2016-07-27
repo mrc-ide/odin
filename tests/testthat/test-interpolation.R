@@ -185,3 +185,55 @@ test_that("constant 3d array", {
     ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
   expect_equal(unname(yy[, -1]), cmp, tolerance=1e-5)
 })
+
+test_that("linear", {
+  gen <- odin({
+    deriv(y) <- pulse
+    initial(y) <- 0
+    ##
+    pulse <- interpolate(tp, zp, 1)
+    ##
+    tp[] <- user()
+    zp[] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+  }, verbose=FALSE)
+
+  tp <- c(0, 1, 2)
+  zp <- c(0, 1, 0)
+  mod <- gen(tp=tp, zp=zp)
+
+  tt <- seq(0, 2, length.out=101)
+  yy <- mod$run(tt, tcrit=2)
+
+  f <- approxfun(tp, zp, "linear")
+  target <- function(t, x, .) list(f(t))
+  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit=2)
+  expect_equal(yy[, 2], cmp[, 2])
+})
+
+test_that("spline", {
+  gen <- odin({
+    deriv(y) <- pulse
+    initial(y) <- 0
+    ##
+    pulse <- interpolate(tp, zp, 2)
+    ##
+    tp[] <- user()
+    zp[] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+  }, verbose=FALSE)
+
+  tp <- seq(0, pi, length.out=31)
+  zp <- sin(tp)
+  mod <- gen(tp=tp, zp=zp)
+
+  tt <- seq(0, pi, length.out=101)
+  yy <- mod$run(tt, tcrit=tt[length(tt)])
+
+  f <- splinefun(tp, zp, "natural")
+  target <- function(t, x, .) list(f(t))
+  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit=tt[length(tt)])
+  expect_equal(yy[, 2], cmp[, 2])
+})
