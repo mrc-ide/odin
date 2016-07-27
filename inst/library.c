@@ -248,6 +248,9 @@ void odin_set_dim3(SEXP target, int nr, int nc, int nz) {
   UNPROTECT(1);
 }
 
+// check here, given information on the type, that we have at least 1
+// point for type 0, 2 for type 1, and 3 for type 2.  That should work
+// pretty happily.
 void odin_interpolate_check(size_t nx, size_t ny, size_t i, const char *name_arg, const char *name_target) {
   if (nx != ny) {
     if (i == 0) {

@@ -82,7 +82,8 @@ test_that("constant", {
   ## TODO: need to check that at least 2 times are provided for each
   ## variable used as an interpolation variable.  Could do that in the
   ## interpolation creation itself but that will give obscure error
-  ## messages.
+  ## messages.  Probably best to do this in the user stage as there's
+  ## already some checking there.
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
   expect_error(gen(tp=tp, zp=zp[1:2]), "Expected zp to have length 3")
@@ -97,4 +98,43 @@ test_that("constant", {
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   expect_equal(yy[, 2], zz, tolerance=1e-5)
+})
+
+test_that("constant array", {
+  gen <- odin({
+    deriv(y[]) <- pulse[i]
+    initial(y[]) <- 0
+    ##
+    pulse[] <- interpolate(tp, zp, 0)
+    ##
+    tp[] <- user()
+    zp[,] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    dim(pulse) <- 2
+    dim(y) <- 2
+    config(base) <- "ic2"
+  }, verbose=FALSE)
+
+  tp <- c(0, 1, 2)
+  zp <- cbind(c(0, 1, 0),
+              c(0, 2, 0))
+  ## Two dimensions to check here:
+  expect_error(gen(tp=tp, zp=zp[1:2, ]), "zp to have size 3")
+  expect_error(gen(tp=tp, zp=zp[c(1:3, 1:3), ]), "zp to have size 3")
+  expect_error(gen(tp=tp, zp=zp[, 1, drop=FALSE]), "zp to have size 2")
+  expect_error(gen(tp=tp, zp=zp[, c(1:2, 1)]), "zp to have size 2")
+
+  mod <- gen(tp=tp, zp=zp)
+
+  tt <- seq(0, 3, length.out=301)
+  expect_error(mod$run(tt - 0.1),
+               "Integration times do not span interpolation")
+
+  yy <- mod$run(tt)
+  matplot(tt, yy[, -1], type="l")
+  zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
+  zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
+  expect_equal(yy[, 2], zz1, tolerance=1e-5)
+  expect_equal(yy[, 3], zz2, tolerance=1e-5)
 })

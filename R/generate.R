@@ -755,36 +755,53 @@ odin_generate_interpolate_expr <- function(x, obj, dat) {
     obj$add_element(nm, "double")
     nd <- 0L
     ny <- 1L
+    expr <- x$rhs$value
   } else {
-    message("needs some work here")
-    browser()
-    obj[[st]]$add(odin_generate_array_expr(x, obj), name=nm)
-    dim <- dat$eqs[[array_dim_name(x$name)]]
-    nd <- x$rhs$nd
-    ny <- obj$rewrite(array_dim_name(x$name))
+    nd <- x$lhs$nd
+    ny <- obj$rewrite(array_dim_name(nm))
+    expr <- x$rhs$value[[1L]]
+    ## NOTE: not adding the element, e.g. with:
+    ##   obj$add_element(nm, "double", nd)
+    ## because that was done by the dim call.
   }
-  nt <- obj$rewrite(array_dim_name(as.character(x$rhs$value[[2]])))
-  int_x <- as.character(x$rhs$value[[2L]])
-  int_y <- as.character(x$rhs$value[[3L]])
+  ## TODO: I should probably do all this during interpolation parse.
+  int_x <- as.character(expr[[2L]])
+  int_y <- as.character(expr[[3L]])
+  interpolation_type <- expr[[4L]]
+  nt <- obj$rewrite(array_dim_name(int_x))
+  dest <- interpolate_name(nm)
 
+  ## This requires some serious work because it requires that the user
+  ## supplied 'y' is *four* dimensional.  It can probably be treated
+  ## somewhat specially though, but I fear it will make a mess of
+  ## various checks.
   if (nd == 3) {
     stop("not yet supported")
   }
 
-  interpolation_type <- x$rhs$value[[4]]
   obj$interpolate$add(list(interpolation_type=interpolation_type, t=int_x))
   obj$library_fns$add("odin_interpolate_check")
-
-  dest <- interpolate_name(nm)
   obj$add_element(dest, "interpolate_data")
 
   ## TODO: throughout here; consider looking at the actual definitions
   ## as it may be possible to determine that the conditional will
-  ## always be true.  The compiler should sort that out for us though.
-  for (i in if (nd == 0L) 0L else seq_len(nd + 1) + 1) {
-    obj$user$add('odin_interpolate_check(%s, %s, %d, "%s", "%s");',
+  ## always be true.  The compiler should sort that out for us though,
+  ## though it may give warnings.
+  if (nd == 0L) {
+    obj$user$add('odin_interpolate_check(%s, %s, 0, "%s", "%s");',
                  obj$rewrite(array_dim_name(int_x)),
-                 obj$rewrite(array_dim_name(int_y)), i, int_y, nm)
+                 obj$rewrite(array_dim_name(int_y)), int_y, nm)
+  } else {
+    for (i in seq_len(nd + 1)) {
+      if (i == 1L) {
+        dim_target <- array_dim_name(int_x)
+      } else {
+        dim_target <- array_dim_name(nm, if (nd == 1) NULL else i - 1)
+      }
+      obj$user$add('odin_interpolate_check(%s, %s, %d, "%s", "%s");',
+                   obj$rewrite(dim_target),
+                   obj$rewrite(array_dim_name(int_y, i)), i, int_y, nm)
+    }
   }
 
   ## TODO: need to check that the dimensions of the arrays are OK.

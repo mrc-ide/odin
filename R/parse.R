@@ -599,7 +599,7 @@ odin_parse_combine_arrays <- function(obj) {
     } else {
       ## If a delay or a user value is used, then we _must_ have only a
       ## single thing here.  So we'll check these separately.
-      ok <- c("type", "depends", "value", "user", "default")
+      ok <- c("type", "depends", "value", "user", "default", "interpolate")
       stopifnot(length(setdiff(used_rhs, ok)) == 0L)
     }
     eqs[[k]] <- x
