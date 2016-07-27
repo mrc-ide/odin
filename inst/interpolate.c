@@ -67,6 +67,15 @@ int interpolate_0_run(double x, interpolate_data *obj, double *y) {
   } else if (i == (int) obj->n) { // off the rhs
     i = obj->n - 1;
   }
+  // TODO: In general, I wonder if this should be dealt with in interpolate
+  // search?
+  //
+  // NOTE: In the R function 'approx' there is an argument 'f' that
+  // deals with the 'ties' case more gracefully.  This is like the
+  // default f=0, omitting this becomes like the option f=1.
+  if (i != obj->n - 1 && obj->x[i + 1] == x) {
+    ++i;
+  }
 
   double *y0 = obj->y + i;
   for (size_t j = 0; j < obj->ny; ++j, y0 += obj->n) {

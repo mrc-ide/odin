@@ -1,5 +1,17 @@
 context("interpolation")
 
+test_that("constant endpoints", {
+  interpolate_prepare()
+  set.seed(1)
+  x <- as.numeric(0:5)
+  eps <- 1e-8
+
+  expect_identical(approx(x, x, x, "constant")$y, x)
+  expect_identical(approx(x, x, x + eps, "constant", rule=2)$y, x)
+  expect_identical(.Call("test_interpolate", x, x, x, 0L), x)
+  expect_identical(.Call("test_interpolate", x, x, x + eps, 0L), x)
+})
+
 test_that("constant", {
   interpolate_prepare()
 
