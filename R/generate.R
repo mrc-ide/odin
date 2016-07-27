@@ -1216,7 +1216,7 @@ odin_generate_library_fns <- function(obj) {
   if (obj$info$has_interpolate) {
     ret$declarations <- c(
       ret$declarations,
-      readLines(system.file("interpolate_defns.h", package="odin")))
+      readLines(system.file("interpolate_decls.h", package="odin")))
     str <- readLines(system.file("interpolate.c", package="odin"))
     ## This is error prone but tests should catch it.  We mostly need
     ## not to include "interpolate.h" here.
