@@ -179,18 +179,7 @@ rewrite_c <- function(expr, name_pars,
       }
       value <- generate_nary(paste0("f", nm), values)
     } else if (nm == "interpolate") {
-      ## TODO: now we're at the point where we're basically good to
-      ## go.  *But* the values here aren't actually the correct ones.
-      ## We need to pass a struct that we'll arrange to build during
-      ## model *initialisation*.  That will look essentially the same
-      ## for all of these and will be a bit like:
-      ##
-      ## TODO: Get the rhs name into the expression.  Hacking it in is
-      ## fine.
-      type <- c("constant", "linear", "cubic")[[expr[[4]] + 1L]]
-      browser()
-      value <- sprintf("odin_interpolate_%s_eval(%s, %s)",
-                       type, TIME, rhs_name)
+      stop("This is a bug in odin")
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }
