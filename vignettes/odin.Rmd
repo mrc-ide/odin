@@ -336,3 +336,214 @@ t <- seq(0, 2000, length.out=10001)
 y <- mod$run(t)
 pairs(y[, -1], panel=lines, col="#00000055", lwd=0.2)
 ```
+
+# Interpolating functions
+
+It may be useful to have functions that are driven by user data in
+your model.  To allow this, odin allows interpolating functions of
+a few different types;
+
+* step functions: constant piecewise functions, perhaps suitable
+  for modelling shifts in regime, binary on/off switches, etc.
+* linear interpolation: between a set of points use a linear
+  interpolating function.
+* cubic spline functions: what most people probably think of when
+  thinking interpolating function; creates a smooth function that
+  is twice differentiable (and smooth enough for most purposes).
+  In contrast with the splines R uses with `spline()`, these use
+  the *natural spline* end conditions, and are equal to `spline(t,
+  y, method="natural")`.
+
+The `interpolate` takes as its first argument a vector of times.
+If you're using constant or linear interpolating functions it is
+important that you include these times within times that the
+integrator passes through because otherwise the integrator may
+struggle needlessly with the discontinuities in the function or its
+derivatives (NOTE: future versions may handle this automatically,
+and this will not work at all with `dde` which does not yet support
+stopping at critical times).
+
+The second argument of each interpolating function is a vector,
+matrix or array of values for the target function.  The
+dimensionality (rank) of the structure must be one greater than the
+rhs.  So if you want a classic 1d function, you'd write:
+
+```r
+z <- interpolate(tt, y)
+tt[] <- user()
+y[] <- user()
+dim(tt) <- user()
+dim(y) <- length(tt)
+```
+
+and `z` will be a scalar double, and `t` and `y` are both vectors
+with lengths that must match.  The check for matching is done at
+runtime (when the model is initialised) so you can always just
+leave the dimensions as `user()`.  Future versions may allow
+autogeneration of the boilerplate here, but for now you must
+specify the four lines required to initialise `t` and `y`.
+
+Note that `t` cannot be used as
+the first argument because it's a reserved variable!
+
+If you want to interpolate a *vector* of `y` values over time, then
+you'd write:
+
+```r
+z[] <- interpolate(tt, y)
+dim(z) <- 4
+tt[] <- user()
+y[,] <- user()
+dim(tt) <- user()
+dim(y) <- c(length(tt), length(z))
+```
+
+In this case, `z` is a vector (here length 4), so `y` must be a
+matrix with `length(t)` rows and 4 columns.  This does not do
+anything clever - the interpolation happens for each of the four
+variables independently.
+
+If you want to drive the size of this off of `y` then specify:
+
+```r
+dim(z) <- ncol(y)
+dim(z) <- user()
+# (other entries same as above)
+```
+
+in which case the size of `z` is determined from the number of
+columns of `y`.
+
+By default, `odin` assumes you want do do cubic interpolation, but
+you can alter that with the third argument.  Specify `"constant"`
+to indicate constant interpolation and `"linear"` to indicate
+linear interpolation.
+
+All modes of interpolation uses a fast lookup (bisection search
+that remembers where it started from on the last lookup) to try and
+make interpolation as fast as possible.  Performance should be
+*O(log(n))* in the number of points used to create the
+interpolating function, so the penalty for using many points in
+your interpolation should be low.
+
+No care is taken about making sure that the integration stops at
+painful parts of your interpolating function.  So, especially for
+the constant interpolation, be sure to include the switch points in
+the time vector (currently this will not work for `dde` which never
+stops at a specified point except for the start and end point).
+Future versions, especially once events are handled, may do this
+automatically.
+
+As an example, here is the flux model from the deSolve compiledCode
+vignette (see `vignette("compiledCode")`, section 6).
+
+The model here is:
+
+dC/dt = flux(t) - k * C
+``` {r }
+flux_model <- odin::odin({
+  deriv(C) <- flux - kk * C
+  initial(C) <- C0
+  flux <- interpolate(flux_t, flux_y, "linear")
+  C0 <- user()
+  kk <- user()
+  output(deposition) <- kk * C
+  ## Fair bit of boilerplate here that may be removed in future
+  ## versions:
+  flux_t[] <- user()
+  flux_y[] <- user()
+  dim(flux_t) <- user()
+  dim(flux_y) <- user()
+})
+```
+
+Here we arrange for the components of the interpolating function to
+be passed through as user vectors, which is the only way of
+specifying these models at present.  The interpolation type, here
+"linear", is hard coded and cannot be changed at runtime.
+``` {r }
+flux_t <- c(1, 11, 21, 41, 73, 83, 93, 103, 113, 123, 133, 143, 153,
+            163, 173, 183, 194, 204, 214, 224, 234, 244, 254, 264,
+            274, 284, 294, 304, 315, 325, 335, 345, 355, 365)
+flux_y <- c(0.654, 0.167, 0.06, 0.07, 0.277, 0.186, 0.14, 0.255, 0.231,
+            0.309, 1.127, 1.923, 1.091, 1.001, 1.691, 1.404, 1.226, 0.767,
+            0.893, 0.737, 0.772, 0.726, 0.624, 0.439, 0.168, 0.28, 0.202,
+            0.193, 0.286, 0.599, 1.889, 0.996, 0.681, 1.135)
+plot(flux_t, flux_y, type="l", ylab="Flux", xlab="Time")
+```
+
+Following the deSolve vignette, the initial conditions are derived
+from the parameters and the flux over time:
+``` {r }
+k <- 0.01
+C0 <- mean(approx(flux_t, flux_y, xout=1:365)$y) / k
+```
+
+Initialise the model:
+``` {r }
+mod <- flux_model(kk=k, C0=C0, flux_t=flux_t, flux_y)
+```
+
+And run over one year:
+``` {r }
+t <- seq(1, 365)
+y <- mod$run(t, tcrit=365)
+```
+
+The output in all its glory:
+``` {r }
+plot(flux_t, flux_y, type="l", col="red", ylab="Flux & deposition")
+lines(t, y[, 3], col="blue")
+```
+
+Alternatively, we could have used constant or spline interpolation.
+This (at least at present) requires re-specifying and recompiling
+the entire model.  So, for a constant model:
+``` {r }
+flux_model_c <- odin::odin({
+  deriv(C) <- flux - kk * C
+  initial(C) <- C0
+  flux <- interpolate(flux_t, flux_y, "constant")
+  C0 <- user()
+  kk <- user()
+  output(flux) <- flux
+  output(deposition) <- kk * C
+  ## Fair bit of boilerplate here that may be removed in future
+  ## versions:
+  flux_t[] <- user()
+  flux_y[] <- user()
+  dim(flux_t) <- user()
+  dim(flux_y) <- user()
+})
+
+mod_c <- flux_model_c(kk=k, C0=C0, flux_t=flux_t, flux_y)
+y_c <- mod_c$run(t, tcrit=365)
+
+mod_c$output_order
+plot(t, y_c[, 3], type="s", col="red", ylab="Flux & deposition")
+lines(t, y_c[, 4], col="blue")
+```
+
+Or with cubic splines:
+``` {r }
+flux_model_s <- odin::odin({
+  deriv(C) <- flux - kk * C
+  initial(C) <- C0
+  flux <- interpolate(flux_t, flux_y, "spline")
+  C0 <- user()
+  kk <- user()
+  output(flux) <- flux
+  output(deposition) <- kk * C
+  ## Fair bit of boilerplate here that may be removed in future
+  ## versions:
+  flux_t[] <- user()
+  flux_y[] <- user()
+  dim(flux_t) <- user()
+  dim(flux_y) <- user()
+})
+
+mod_s <- flux_model_s(kk=k, C0=C0, flux_t=flux_t, flux_y)
+y_s <- mod_s$run(t, tcrit=365)
+plot(t, y_s[, 3], type="l", col="red", ylab="Flux & deposition")
+lines(t, y_s[, 4], col="blue")
+```
