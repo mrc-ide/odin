@@ -10,7 +10,7 @@
 // terrible to get right -- but because they take more space it's not
 // clear that there will be a bit advantage in not copying here
 // (storing the knots etc).
-interpolate_data * interpolate_alloc(size_t type,
+interpolate_data * interpolate_alloc(interpolate_type type,
                                      size_t n, size_t ny,
                                      double *x, double *y) {
   interpolate_data * ret = Calloc(1, interpolate_data);
@@ -24,7 +24,7 @@ interpolate_data * interpolate_alloc(size_t type,
   memcpy(ret->x, x, sizeof(double) * n);
   memcpy(ret->y, y, sizeof(double) * n * ny);
 
-  if (type == 2) {
+  if (type == SPLINE) {
     ret->k = (double*) Calloc(n * ny, double);
     // Some transient space for the A matrix:
     double **A = (double**)R_alloc(n, sizeof(double*));
