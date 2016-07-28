@@ -53,7 +53,7 @@ void interpolate_free(interpolate_data* obj) {
 //}
 
 // Constant
-int interpolate_0_run(double x, interpolate_data *obj, double *y) {
+int interpolate_constant_run(double x, interpolate_data *obj, double *y) {
   // Do a hunt/bisect search here
   int i = interpolate_search(x, obj);
   // In theory we might be able to handle this, but it's simpler to
@@ -85,7 +85,7 @@ int interpolate_0_run(double x, interpolate_data *obj, double *y) {
 }
 
 // Linear
-int interpolate_1_run(double x, interpolate_data* obj, double *y) {
+int interpolate_linear_run(double x, interpolate_data* obj, double *y) {
   int i = interpolate_search(x, obj);
   // In theory we might be able to handle this, but it's simpler to
   // forbid it I think.  In odin we'll do a check that the
@@ -114,7 +114,7 @@ int interpolate_1_run(double x, interpolate_data* obj, double *y) {
 }
 
 // Spline
-int interpolate_2_run(double x, interpolate_data* obj, double *y) {
+int interpolate_spline_run(double x, interpolate_data* obj, double *y) {
   int i = interpolate_search(x, obj);
   if (i < 0 || i == (int)obj->n) { // off the lhs or rhs
     y[0] = NA_REAL;

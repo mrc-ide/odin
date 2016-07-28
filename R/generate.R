@@ -793,8 +793,8 @@ odin_generate_interpolate_expr <- function(x, obj, dat) {
   ## that the integrator doesn't struggle with things having to change
   ## radically.
   obj$user$add('interpolate_free(%s);', obj$rewrite(dest))
-  obj$user$add('%s = interpolate_alloc(%d, %s, %s, %s, %s);',
-               obj$rewrite(dest), interpolation_type,
+  obj$user$add('%s = interpolate_alloc(%s, %s, %s, %s, %s);',
+               obj$rewrite(dest), toupper(interpolation_type),
                obj$rewrite(nt), obj$rewrite(n_target),
                obj$rewrite(nm_t), obj$rewrite(nm_y))
 
@@ -819,22 +819,23 @@ odin_generate_interpolate_t <- function(obj) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
             obj$type_pars, obj$name_pars, obj$base, obj$base)
     dat <- unique(obj$interpolate$get())
-    dat_i <- vnapply(dat, "[[", "interpolation_type")
-    dat_t <- vcapply(dat, "[[", "t")
-    dat <- sort(tapply(dat_i, dat_t, max), decreasing=TRUE)
+    dat_type <- vcapply(dat, "[[", "interpolation_type")
+    dat_time <- vcapply(dat, "[[", "t")
+    tmp <- sort(tapply(dat_type != "constant", dat_time, any), decreasing=TRUE)
+
     ret$add("  SEXP ret = PROTECT(allocVector(REALSXP, 2));")
     ret$add("  double *r = REAL(ret);")
-    v <- names(dat)[[1L]]
+    v <- names(tmp)[[1L]]
     ret$add("  r[0] = %s[0];", obj$rewrite(v))
-    if (dat[[v]] > 0L) {
+    if (tmp[[v]] > 0L) {
       ret$add("  r[1] = %s[%s - 1];",
               obj$rewrite(v), obj$rewrite(array_dim_name(v)))
     } else {
       ret$add("  r[1] = NA_REAL;")
     }
-    for (v in names(dat)[-1]) {
+    for (v in names(tmp)[-1]) {
       ret$add("  r[0] = min(r[0], %s[0]);", obj$rewrite(v))
-      if (dat[[v]] > 0) {
+      if (tmp[[v]] > 0) {
         ret$add("  r[1] = max(r[1], %s[%s - 1]);",
                 obj$rewrite(v), obj$rewrite(array_dim_name(v)))
       }

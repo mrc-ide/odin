@@ -1561,19 +1561,18 @@ odin_parse_rewrite_interpolate <- function(x, line, expr) {
   nargs <- length(x) - 1L
   if (nargs == 3L) {
     type <- x[[4L]]
-    ## TODO: Support CONSTANT, LINEAR, CUBIC, etc here, rather than
-    ## relying on numbers?  But that requires getting more bits
-    ## supported anyway.
-    if (!is.numeric(type)) {
-      odin_error("Interpolation type must be an integer value")
+    if (!is.character(type)) {
+      odin_error("Expected a string constant for interpolation type",
+                 line, expr)
     }
-    if (!(type %in% c(0, 1, 2))) {
-      odin_error("Interpolation type must be 1, 2 or 3", line, expr)
+    if (!(type %in% interpolation_types())) {
+      odin_error(sprintf(
+        "Invalid interpolation type; must be one: of %s",
+        paste(interpolation_types(), collapse=", ")),
+        line, expr)
     }
   } else if (nargs == 2L) {
-    x[[4L]] <- 2L
-    odin_error("Only zero order (constant piecewise) interpolation supported",
-               line, expr)
+    x[[4L]] <- "spline"
   } else {
     odin_error(sprintf("2 or 3 arguments expected, recieved %d", nargs),
                line, expr)
@@ -1702,6 +1701,10 @@ recursive_dependencies <- function(order, deps, vars) {
       c(j, unique(as.character(unlist(deps_rec[j], use.names=FALSE))))
   }
   deps_rec
+}
+
+interpolation_types <- function() {
+  c("constant", "linear", "spline")
 }
 
 STAGE_CONSTANT <- 1L

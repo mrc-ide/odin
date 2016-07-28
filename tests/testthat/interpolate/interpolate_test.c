@@ -18,14 +18,16 @@ SEXP test_interpolate(SEXP x, SEXP y, SEXP xout, SEXP type) {
   double *tmp = (double*) R_alloc(ny, sizeof(double));
   double *yout = REAL(ret);
   for (size_t i = 0; i < m; ++i) {
-    if (obj->type == 0) {
-      interpolate_0_run(REAL(xout)[i], obj, tmp);
-    } else if (obj->type == 1) {
-      interpolate_1_run(REAL(xout)[i], obj, tmp);
-    } else if (obj->type == 2) {
-      interpolate_2_run(REAL(xout)[i], obj, tmp);
-    } else {
-      Rf_error("Invalid interpolation type");
+    switch(obj->type) {
+    case CONSTANT:
+      interpolate_constant_run(REAL(xout)[i], obj, tmp);
+      break;
+    case LINEAR:
+      interpolate_linear_run(REAL(xout)[i], obj, tmp);
+      break;
+    case SPLINE:
+      interpolate_spline_run(REAL(xout)[i], obj, tmp);
+      break;
     }
     for (size_t j = 0; j < ny; ++j) {
       yout[i + j * m] = tmp[j];

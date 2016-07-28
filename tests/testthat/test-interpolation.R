@@ -62,7 +62,7 @@ test_that("constant", {
     deriv(y) <- pulse
     initial(y) <- 0
     ##
-    pulse <- interpolate(tp, zp, 0)
+    pulse <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
     zp[] <- user()
@@ -105,7 +105,7 @@ test_that("constant array", {
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
     ##
-    pulse[] <- interpolate(tp, zp, 0)
+    pulse[] <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
     zp[,] <- user()
@@ -142,7 +142,7 @@ test_that("constant 3d array", {
     deriv(y[,]) <- pulse[i,j]
     initial(y[,]) <- 0
     ##
-    pulse[,] <- interpolate(tp, zp, 0)
+    pulse[,] <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
     zp[,,] <- user()
@@ -190,7 +190,7 @@ test_that("linear", {
     deriv(y) <- pulse
     initial(y) <- 0
     ##
-    pulse <- interpolate(tp, zp, 1)
+    pulse <- interpolate(tp, zp, "linear")
     ##
     tp[] <- user()
     zp[] <- user()
@@ -216,7 +216,7 @@ test_that("spline", {
     deriv(y) <- pulse
     initial(y) <- 0
     ##
-    pulse <- interpolate(tp, zp, 2)
+    pulse <- interpolate(tp, zp, "spline")
     ##
     tp[] <- user()
     zp[] <- user()
