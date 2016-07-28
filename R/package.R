@@ -35,9 +35,6 @@
 ##' @param filenames A character vector of filenames containing odin
 ##'   sources.  Alternatively, all .R files within the directory
 ##'   \code{inst/odin} will be used.
-##' @param single_file Create a single file containing all models (the
-##'   default).  Set this to \code{FALSE} to create a series of files
-##'   all starting with \code{odin_}.
 ##' @export
 odin_generate_package <- function(path_package, filenames=NULL,
                                   single_file=TRUE) {
@@ -61,12 +58,28 @@ odin_generate_package <- function(path_package, filenames=NULL,
 
   dat <- lapply(filenames, function(f)
     odin_generate(odin_parse(f, "file"), package=TRUE))
+
+  library_fns <- combine_library(dat)
   code <- vcapply(dat, "[[", "code")
   base <- vcapply(dat, "[[", "base")
+  info <- lapply(dat, "[[", "info")
+  struct <- lapply(dat, "[[", "struct")
 
-  defn <- unique(unlist(lapply(dat, function(x) x$library_fns$definitions)))
-
+  ## This is pretty tricky because the order here matters a lot
+  ## (mostly because I never did a good job of forward declaring the
+  ## struct.  The model struct needs to be defined after the
+  ## interpolation struct.
+  has_interpolate <- any(vlapply(info, "[[", "has_interpolate"))
   header <- c(odin_header(), odin_includes())
+
+  if (has_interpolate) {
+    interpolate <- odin_interpolate_support()
+    header <- c(header, "\n", interpolate$types)
+    library_fns$declarations <-
+      c(library_fns$declarations, "\n", interpolate$declarations)
+    library_fns$definitions <-
+      c(library_fns$definitions, "\n", interpolate$definitions)
+  }
 
   dir.create(file.path(path_package, "R"), FALSE)
   dir.create(file.path(path_package, "src"), FALSE)
@@ -76,11 +89,19 @@ odin_generate_package <- function(path_package, filenames=NULL,
   }
 
   if (single_file) {
-    writel(c(header, "\n", code, "\n", defn), "odin.c")
+    struct[-1] <- lapply(struct[-1], function(x) x[!grepl("^//", x)])
+    writel(c(header, "\n",
+             unlist(struct), "\n",
+             library_fns$declarations, "\n",
+             code, "\n",
+             library_fns$definitions), "odin.c")
   } else {
+    writel(c(header, "\n", library_fns$definitions), "odin.c")
     for (i in seq_along(filenames)) {
-      writel(c(header, "\n", code[[i]]), sprintf("odin_%s.c", base[[i]]))
-      writel(c(header, "\n", defn), "odin.c")
+      writel(c(header, "\n",
+               struct[[i]], "\n",
+               library_fns$declarations, "\n",
+               code[[i]]), sprintf("odin_%s.c", base[[i]]))
     }
   }
 
@@ -89,4 +110,12 @@ odin_generate_package <- function(path_package, filenames=NULL,
     base, base)
   writeLines(c(sub("^//", "##", odin_header()), r_code),
              file.path(path_package, "R", "odin.R"))
+}
+
+combine_library <- function(dat) {
+  decl <- unlist(lapply(dat, function(x) x$library_fns$declarations))
+  keep <- !duplicated(decl)
+  decl <- decl[keep]
+  defn <- unlist(lapply(dat, function(x) x$library_fns$definitions))[keep]
+  list(declarations=decl, definitions=defn)
 }

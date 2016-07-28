@@ -1,0 +1,9 @@
+Package: %s
+Title: Example Odin Models
+Version: 0.1.0
+Description: Example Odin models.
+Depends: R (>= 3.2.3)
+License: CC0
+Author: Rich FitzJohn
+Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
+Imports: odin
