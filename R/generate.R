@@ -746,40 +746,16 @@ odin_generate_delay <- function(x, obj, dat) {
 
 odin_generate_interpolate_expr <- function(x, obj, dat) {
   nm <- x$name
-  ## TODO: check that we're not in index_vars during parse?
-  stopifnot(!(nm %in% dat$index_vars))
+  id <- x$rhs[["interpolate_data"]]
+  nd <- id[["nd"]]
+  ny <- id[["ny"]]
+  nt <- id[["nt"]]
+  nm_t <- id[["t"]]
+  nm_y <- id[["y"]]
+  interpolation_type <- id[["type"]]
+  dest <- id[["name"]]
 
-  type <- x$lhs$type
-
-  if (type == "symbol") {
-    obj$add_element(nm, "double")
-    nd <- 0L
-    ny <- 1L
-    expr <- x$rhs$value
-  } else {
-    nd <- x$lhs$nd
-    ny <- obj$rewrite(array_dim_name(nm))
-    expr <- x$rhs$value[[1L]]
-    ## NOTE: not adding the element, e.g. with:
-    ##   obj$add_element(nm, "double", nd)
-    ## because that was done by the dim call.
-  }
-  ## TODO: I should probably do all this during interpolation parse.
-  int_x <- as.character(expr[[2L]])
-  int_y <- as.character(expr[[3L]])
-  interpolation_type <- expr[[4L]]
-  nt <- obj$rewrite(array_dim_name(int_x))
-  dest <- interpolate_name(nm)
-
-  ## This requires some serious work because it requires that the user
-  ## supplied 'y' is *four* dimensional.  It can probably be treated
-  ## somewhat specially though, but I fear it will make a mess of
-  ## various checks.
-  if (nd == 3) {
-    stop("not yet supported")
-  }
-
-  obj$interpolate$add(list(interpolation_type=interpolation_type, t=int_x))
+  obj$interpolate$add(list(interpolation_type=interpolation_type, t=nm_t))
   obj$library_fns$add("odin_interpolate_check")
   obj$add_element(dest, "interpolate_data")
 
@@ -788,19 +764,21 @@ odin_generate_interpolate_expr <- function(x, obj, dat) {
   ## always be true.  The compiler should sort that out for us though,
   ## though it may give warnings.
   if (nd == 0L) {
+    obj$add_element(nm, "double")
     obj$user$add('odin_interpolate_check(%s, %s, 0, "%s", "%s");',
-                 obj$rewrite(array_dim_name(int_x)),
-                 obj$rewrite(array_dim_name(int_y)), int_y, nm)
+                 obj$rewrite(nt), obj$rewrite(array_dim_name(nm_y)), nm_y, nm)
+    n_target <- 1L
   } else {
+    n_target <- array_dim_name(nm)
     for (i in seq_len(nd + 1)) {
       if (i == 1L) {
-        dim_target <- array_dim_name(int_x)
+        dim_target <- array_dim_name(nm_t)
       } else {
         dim_target <- array_dim_name(nm, if (nd == 1) NULL else i - 1)
       }
       obj$user$add('odin_interpolate_check(%s, %s, %d, "%s", "%s");',
                    obj$rewrite(dim_target),
-                   obj$rewrite(array_dim_name(int_y, i)), i, int_y, nm)
+                   obj$rewrite(array_dim_name(nm_y, i)), i, nm_y, nm)
     }
   }
 
@@ -816,15 +794,18 @@ odin_generate_interpolate_expr <- function(x, obj, dat) {
   ## radically.
   obj$user$add('interpolate_free(%s);', obj$rewrite(dest))
   obj$user$add('%s = interpolate_alloc(%d, %s, %s, %s, %s);',
-               obj$rewrite(dest), interpolation_type, nt, ny,
-               obj$rewrite(int_x), obj$rewrite(int_y))
+               obj$rewrite(dest), interpolation_type,
+               obj$rewrite(nt), obj$rewrite(n_target),
+               obj$rewrite(nm_t), obj$rewrite(nm_y))
 
   ## TODO: These are going to do tricky things with time when delayed.
+  ##
   ## TODO: don't have error handling done here yet - it's not totally
   ## clear what we should do.  The safest thing is going to be to
   ## throw an error and just bail.  After that the next best thing to
   ## do is not go further than the end?
-  target <- sprintf(if (type == "array") "%s" else "&(%s)", obj$rewrite(nm))
+  target <- sprintf(if (x$lhs$type == "array") "%s" else "&(%s)",
+                    obj$rewrite(nm))
   obj$time$add("interpolate_%s_run(%s, %s, %s);",
                interpolation_type, TIME, obj$rewrite(dest), target,
                name=nm)
@@ -1464,10 +1445,6 @@ array_dim_name <- function(name, sub=NULL, use=TRUE) {
     name_dim <- sprintf("dim_%s", name)
   }
   name_dim
-}
-
-interpolate_name <- function(name) {
-  paste0("interpolate_", name)
 }
 
 ## TODO: make this work for the output variables with an additional

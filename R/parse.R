@@ -48,9 +48,8 @@ odin_parse <- function(x, as="file") {
               vars=odin_parse_find_vars(eqs),
               file=file)
 
-  ## This one comes very early, but that's because we have to drop off
-  ## a bunch of variables, and some of these require a fair bit of
-  ## further rewriting.
+  ## The order here does matter, but it's not documented which depends
+  ## on which yet.
   ret <- odin_parse_process_interpolate(ret)
   ret <- odin_parse_config(ret)
   ret <- odin_parse_rewrite_initial_conditions(ret)
@@ -599,7 +598,8 @@ odin_parse_combine_arrays <- function(obj) {
     } else {
       ## If a delay or a user value is used, then we _must_ have only a
       ## single thing here.  So we'll check these separately.
-      ok <- c("type", "depends", "value", "user", "default", "interpolate")
+      ok <- c("type", "depends", "value", "user", "default",
+              "interpolate", "interpolate_data")
       stopifnot(length(setdiff(used_rhs, ok)) == 0L)
     }
     eqs[[k]] <- x
@@ -1579,8 +1579,11 @@ odin_parse_rewrite_interpolate <- function(x, line, expr) {
                line, expr)
   }
 
-  if (!(is.symbol(x[[2L]]) && is.symbol(x[[3L]]))) {
-    odin_error("all arguments must be symbols", line, expr)
+  if (!is.symbol(x[[2L]])) {
+    odin_error("interpolation time argument must be a symbol", line, expr)
+  }
+  if (!is.symbol(x[[3L]])) {
+    odin_error("interpolation target argument must be a symbol", line, expr)
   }
 
   x
@@ -1621,9 +1624,26 @@ odin_parse_process_interpolate <- function(obj) {
         odin_error(sprintf("Expected %s to be a %s", nm, type),
                    e$line, e$expr)
       }
+      ## This requires some serious work because it requires that the user
+      ## supplied 'y' is *four* dimensional.  It can probably be treated
+      ## somewhat specially though, but I fear it will make a mess of
+      ## various checks.
+      if (rank > 3) {
+        odin_error("interpolating 3d arrays not yet supported",
+                   e$line, e$expr)
+      }
+      nm
     }
-    g(expr[[2]], 1L)
-    g(expr[[3]], rank + 1L)
+    nm_t <- g(expr[[2]], 1L)
+    nm_y <- g(expr[[3]], rank + 1L)
+    e$rhs$interpolate_data <-
+      list(type=expr[[4]],
+           nd=rank,
+           ny=if (rank == 0L) 1L else array_dim_name(nm_y),
+           nt=array_dim_name(nm_t),
+           t=nm_t,
+           y=nm_y,
+           name=paste0("interpolate_", e$name))
     e$rhs$interpolate <- TRUE
     e
   }

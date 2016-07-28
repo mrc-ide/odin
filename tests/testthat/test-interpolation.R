@@ -131,7 +131,6 @@ test_that("constant array", {
                "Integration times do not span interpolation")
 
   yy <- mod$run(tt)
-  matplot(tt, yy[, -1], type="l")
   zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
   expect_equal(yy[, 2], zz1, tolerance=1e-5)
