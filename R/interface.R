@@ -270,7 +270,9 @@ ode_system_generator <- function(dll, name=NULL) {
           if (self$initial_stage == STAGE_USER) {
             self$init <- .Call(self$C$init, self$ptr, NA_real_)
           }
-          self$dim_stage == STAGE_USER
+          if (self$dim_stage == STAGE_USER) {
+            self$update_cache()
+          }
         } else {
           stop("This model does not have parameters")
         }
