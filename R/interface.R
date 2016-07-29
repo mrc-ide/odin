@@ -234,6 +234,7 @@ ode_system_generator <- function(dll, name=NULL) {
       order=NULL,
       output_order=NULL,
       transform_variables=NULL,
+      output_length=NULL,
 
       ## TODO: both initialize and set_user should optionally be fully
       ## generated to take a proper argument lists derived from
@@ -277,6 +278,9 @@ ode_system_generator <- function(dll, name=NULL) {
       update_cache=function() {
         self$order <- .Call(self$C$order, self$ptr)
         self$output_order <- .Call(self$C$output_order, self$ptr)
+        self$output_length <- as.integer(
+          sum(vnapply(self$output_order, function(x)
+            if (is.null(x)) 1 else prod(x))))
         self$transform_variables <- make_transform_variables(self)
         if (self$has_interpolate) {
           self$interpolate_t <- .Call(self$C$interpolate_t, self$ptr)
@@ -328,7 +332,7 @@ ode_system_generator <- function(dll, name=NULL) {
           ## keep_history=TRUE.
           n_history <- if (self$has_delay) 1000L else 0L
           ## NOTE: This is a bit shit, but does the job for now:
-          n_out <- sum(self$output_order)
+          n_out <- self$output_length
           output <- if (n_out > 0L) self$C$dde_output else NULL
           ret <- self$ode(y, t, self$C$dde_deriv, self$ptr,
                           dllname=self$dll, n_out=n_out, output=output,

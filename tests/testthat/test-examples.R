@@ -52,8 +52,6 @@ test_that("basic interface", {
                  if (mod_c$has_delay) NULL else unname(mod_r$initial(t0)))
     expect_equal(mod_c$initial(t0), unname(mod_r$initial(t0)))
 
-    output_len <- sum(mod_c$output_order)
-
     if (mod_c$has_delay) {
       expect_error(mod_c$deriv(t0, mod_c$init), "not supported in delay")
     } else {
@@ -61,7 +59,7 @@ test_that("basic interface", {
       deriv_r <- mod_r$derivs(t0, mod_c$init)
       expect_equal(deriv_c, deriv_r[[1L]], check.attributes=FALSE)
 
-      if (output_len == 0L) {
+      if (mod_c$output_length == 0L) {
         expect_null(attr(deriv_c, "output"))
       } else {
         ## The check.attributes is necessary because otherwise testthat

@@ -922,21 +922,44 @@ odin_generate_output_order <- function(obj) {
   ret$add("// Like the variable order above, but for any output vars")
   ret$add("// If no output variables are used, return an R NULL")
   ret$add("SEXP %s_output_order(SEXP %s_ptr) {", obj$base, obj$base)
-  if (is.null(obj[["output_tmp"]])) {
+  ## TODO: this has drifted from vars; there we have is_array and
+  ## array; I think I remember adding that so just tweak this together
+  ## at some point and combine.  Yay technical debt.
+  output <- obj[["output_tmp"]]
+  if (is.null(output)) { # prefer obj$info$has_output?
     ret$add("  return R_NilValue;", STATE)
   } else {
-    if (any(obj$output_tmp$array)) { # TODO: array > 0
+    if (any(output$array)) { # TODO: array > 0
       ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
               obj$type_pars, obj$name_pars, obj$base, obj$base)
+      stop("array output not supported yet") # changes throughout
     }
-    ret$add("  SEXP %s_len = PROTECT(allocVector(INTSXP, %d));",
-            STATE, nrow(obj[["output_tmp"]]))
+    ret$add("  SEXP %s_len = PROTECT(allocVector(VECSXP, %d));",
+            STATE, nrow(output))
     ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
-            STATE, nrow(obj[["output_tmp"]]))
-    i <- seq_len(nrow(obj[["output_tmp"]])) - 1L
-    ret$add("  INTEGER(%s_len)[%s] = %s;", STATE, i, obj[["output_tmp"]]$length)
-    ret$add("  SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
-            STATE, i, obj[["output_tmp"]]$name)
+            STATE, nrow(output))
+    for (i in seq_len(nrow(output))) {
+      nd <- 0L # fixes needed above.
+
+      ## TODO: how much can this be combined with generate_order once
+      ## the data structures are a little harmonised?
+      if (nd == 0L) {
+        ret$add("  SET_VECTOR_ELT(%s_len, %s, R_NilValue);", STATE, i - 1L)
+      } else if (nd == 1L) {
+        ret$add("  SET_VECTOR_ELT(%s_len, %s, ScalarInteger(%s));",
+                STATE, i - 1L, output$length[[i]])
+      } else {
+        ret$add("  SET_VECTOR_ELT(%s_len, %s, allocVector(INTSXP, %d));",
+                STATE, i - 1L, nd)
+        ret$add("  tmp = INTEGER(VECTOR_ELT(%s_len, %s));", STATE, i - 1L)
+        for (j in seq_len(nd)) {
+          ret$add("  tmp[%d] = %s;", j - 1L,
+                  obj$rewrite(array_dim_name(output$name[[i]], j)))
+        }
+      }
+      ret$add("  SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
+              STATE, i - 1L, output$name[[i]])
+    }
     ret$add("  setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
     ret$add("  UNPROTECT(2);")
     ret$add("  return %s_len;", STATE)
