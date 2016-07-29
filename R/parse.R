@@ -612,6 +612,7 @@ odin_parse_combine_arrays <- function(obj) {
   }
 
   obj$eqs <- eqs
+  obj$has_array <- any(is_array)
   obj
 }
 

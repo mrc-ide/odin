@@ -104,6 +104,7 @@ odin_generate_object <- function(dat) {
                     has_delay=dat$has_delay,
                     has_output=dat$has_output,
                     has_interpolate=dat$has_interpolate,
+                    has_array=dat$has_array,
                     user=dat$user,
                     initial_stage=dat$initial_stage,
                     dim_stage=dat$dim_stage)

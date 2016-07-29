@@ -254,6 +254,7 @@ test_that("dde", {
     attr(res_ds, "rstate") <- NULL
     attr(res_ds, "type") <- NULL
     class(res_ds) <- "matrix"
+    dimnames(res_dde) <- NULL
 
     ## The tolerances here are going to be not spectacular for some of
     ## the models, because Lorenz is chaotic...

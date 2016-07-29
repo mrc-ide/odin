@@ -218,6 +218,7 @@ ode_system_generator <- function(dll, name=NULL) {
       has_user=length(info$user) > 0L,
       has_output=info$has_output,
       has_interpolate=info$has_interpolate,
+      has_array=info$has_array,
       ## TODO: make this configurable as info$use_dde
       use_dde=FALSE,
       user=info$user,
@@ -233,6 +234,7 @@ ode_system_generator <- function(dll, name=NULL) {
       init=NULL,
       order=NULL,
       output_order=NULL,
+      names=NULL,
       transform_variables=NULL,
       output_length=NULL,
 
@@ -281,6 +283,7 @@ ode_system_generator <- function(dll, name=NULL) {
         self$output_length <- as.integer(
           sum(vnapply(self$output_order, function(x)
             if (is.null(x)) 1 else prod(x))))
+        self$names <- make_names(c(self$order, self$output_order))
         self$transform_variables <- make_transform_variables(self)
         if (self$has_interpolate) {
           self$interpolate_t <- .Call(self$C$interpolate_t, self$ptr)
@@ -303,7 +306,7 @@ ode_system_generator <- function(dll, name=NULL) {
         }
       },
 
-      run=function(t, y=NULL, ...) {
+      run=function(t, y=NULL, ..., use_names=TRUE) {
         t0 <- t[[1L]]
         if (is.null(y)) {
           y <- self$initial(t0)
@@ -341,12 +344,18 @@ ode_system_generator <- function(dll, name=NULL) {
                           ## Try and preserve some compatibility with deSolve:
                           by_column=TRUE, keep_initial=TRUE,
                           ...)
-          cbind(t, ret, attr(ret, "output"), deparse.level=0)
+          ret <- cbind(t, ret, attr(ret, "output"), deparse.level=0)
         } else {
-          self$ode(y, t, self$C$ds_deriv, self$ptr,
-                   initfunc=self$C$ds_initmod, dllname=self$dll,
-                   nout=sum(self$output_order), ...)
+          ret <- self$ode(y, t, self$C$ds_deriv, self$ptr,
+                          initfunc=self$C$ds_initmod, dllname=self$dll,
+                          nout=self$output_length, ...)
         }
+        if (use_names) {
+          colnames(ret) <- self$names
+        } else {
+          colnames(ret) <- NULL
+        }
+        ret
       },
 
       contents=function() {
@@ -475,4 +484,21 @@ make_user_collector <- function(user, call, env, dde) {
               bquote(.(call)(user, dde)))
   }
   as.function(args, env)
+}
+
+make_names <- function(ord) {
+  if (all(vlapply(ord, is.null))) {
+    nms <- names(ord)
+  } else {
+    f <- function(x) {
+      if (is.null(x)) {
+        ""
+      } else {
+        sprintf("[%s]", apply(expand_grid_int(x), 1, paste, collapse=","))
+      }
+    }
+    idx <- unname(lapply(ord, f))
+    nms <- sprintf("%s%s", rep(names(ord), lengths(idx)), unlist(idx))
+  }
+  c(TIME, nms)
 }
