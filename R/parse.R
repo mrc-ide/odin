@@ -1,15 +1,4 @@
 ## Read in the file and do the basic classification of all expressions.
-##
-## Coming out of parse we want to know:
-##   * classification of all expressions into deriv, initial, var, output
-##   * the set, and order, of ODE variables
-##   * check that all ODE variables are initialised
-##   * collect all array expressions
-##   * do a topological sort
-##
-## Note that this is one big horrific linear function until I work out
-## where the constituent parts are.  There will be some but they're
-## not really obvious at the moment.
 odin_parse <- function(x, as="file") {
   exprs <- switch(match.arg(as, c("file", "text", "expression")),
                   file=parse(file=x, keep.source=TRUE),
@@ -20,22 +9,9 @@ odin_parse <- function(x, as="file") {
   ## possible segfaults (but not all!)
   file <- if (as == "file") x else basename(tempfile("odin", "."))
 
-  ## TODO: when passing in expressions, source information will not be
-  ## available generally.  It's possible that this might be relaxable
-  ## in the case of running an expression from a file though.  In
-  ## either case we'll need to do a bit of work to get the linenumbers
-  ## back, or to print the error messages sensibly without them.
-
   ## First pass is to check that all operations are assignments.  No
-  ## for loops, no if/else statements.  This might be relaxed later to
-  ## allow if/else blocks to be created, but that's going to be
-  ## potentially difficult because we'll need to check a bunch of
-  ## branches.
-  is_assignment <- function(x) {
-    length(x) == 3L &&
-      (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
-  }
-  err <- which(!vlapply(exprs, is_assignment))
+  ## for loops, no if/else statements.
+  err <- which(!vlapply(exprs, expr_is_assignment))
   if (length(err) > 0L) {
     odin_error("Every line must contain an assignment", err, exprs[err])
   }
@@ -43,10 +19,10 @@ odin_parse <- function(x, as="file") {
   ## TODO: This will eventually run with some sort of error collection
   ## step so that all the errors are reported at once within this
   ## block.  Similar approaches will apply elsewhere.
-  eqs <- lapply(seq_along(exprs), odin_parse_expr, exprs)
-  ret <- list(eqs=eqs,
-              vars=odin_parse_find_vars(eqs),
+  ret <- list(eqs=lapply(seq_along(exprs), odin_parse_expr, exprs),
               file=file)
+
+  ret$vars <- odin_parse_find_vars(ret$eqs)
 
   ## The order here does matter, but it's not documented which depends
   ## on which yet.
@@ -115,105 +91,17 @@ odin_parse_replace_empty <- function(x) {
 
 odin_parse_lhs <- function(lhs, line, expr) {
   if (is.name(lhs)) {
-    ret <- list(type="symbol",
-         name=deparse(lhs))
+    ret <- list(type="symbol", name=deparse(lhs))
   } else if (is.call(lhs)) {
     fun <- deparse_str(lhs[[1L]])
     if (fun %in% "[") { # NOTE: single indexing *only*
-      if (!is.name(lhs[[2L]])) {
-        odin_error("array lhs must be a name", line, expr)
-      }
-      index <- as.list(lhs[-(1:2)])
-
-      nd <- length(index)
-      if (nd > 3L) {
-        odin_error(
-          sprintf("Arrays must have at at most 3 dimensions (given %d)", nd),
-          line, as.expression(expr))
-      }
-
-      is_empty <- vlapply(index, identical, quote(expr=))
-      if (any(is_empty)) {
-        if (length(index) == 1L) {
-          index[] <- list(bquote(1:length(.(lhs[[2L]]))))
-        } else {
-          index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
-            bquote(1:dim(.(lhs[[2L]]), .(i))))
-        }
-        lhs[-(1:2)] <- index
-      }
-
-      ## Valid expressions are:
-      ##
-      ##   binary inline +, - (unlimited number)
-      ##   A single ':' which is the only thing that generates a range
-      ##   A unary -(x) is not allowed as it's too hard to control
-      ##
-      ## With these options, the extent of the array index can be
-      ## expressed as a relatively simple expression; the min and max
-      ## will be the expression with x:y substituted for x and y
-      ## respectively.
-      ##
-      ## TODO: Consider looking for, and warning about (1:x - 1)
-      ## rather than (1:x) - 1 as that will imply a negative length
-      ## array.  Or we can look for the minimum value being negative.
-      tmp <- lapply(index, check_array_lhs_index)
-      ok <- vlapply(tmp, as.logical)
-      if (all(ok)) {
-        extent_max <- lapply(tmp, attr, "value_max", exact=TRUE)
-        extent_min <- lapply(tmp, attr, "value_min", exact=TRUE)
-        is_range <- !vlapply(extent_min, is.null)
-      } else {
-        msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse="\n")
-        odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
-                   line, expr)
-      }
-
-      deps <- find_symbols(index)
-      err <- intersect(INDEX, deps$variables)
-      if (length(err) > 0L) {
-        odin_error(
-          sprintf("Special index variable %s may not be used on array lhs",
-                  pastec(err)), line, as.expression(expr))
-      }
-
-      ## Build a big data structure out of all the index stuff; it's
-      ## going to be heaps easier to deal with later.
-      idx <- list(value=index,
-                  is_range=is_range,
-                  extent_max=extent_max,
-                  extent_min=extent_min)
-
-      ret <- list(type="array",
-                  name=deparse(lhs[[2L]]),
-                  index=idx,
-                  nd=nd,
-                  depends=deps)
+      ret <- odin_parse_lhs_index(lhs, line, expr)
     } else if (fun %in% SPECIAL_LHS) {
-      if (length(lhs) != 2L) {
-        odin_error("Invalid length special function on lhs", line, expr)
-      }
-      ret <- odin_parse_lhs(lhs[[2L]], line, expr)
-      if (fun == "dim") {
-        if (ret$type != "symbol") {
-          odin_error("dim() must be applied to a name only (not an array)",
-                     line, expr)
-        }
-      }
-      if (is.null(ret$special)) {
-        ret$special <- fun
-      } else {
-        ## TODO: This should be called on the *final* iteration; this will
-        ## give the wrong error message on
-        ##   initial(initial(initial(x))) <- ...
-        ## but noone should do that!
-        odin_error("lhs functions require exactly one argument", line, expr)
-      }
+      ret <- odin_parse_lhs_special(lhs, line, expr)
     } else {
       odin_error(sprintf("Unhandled expression %s on lhs", fun), line, expr)
     }
   } else { # things like atomic will raise here: 1 <- 2
-    ## TODO: config("foo") fails here -- should it?
     odin_error("Invalid left hand side", line, expr)
   }
 
@@ -236,6 +124,97 @@ odin_parse_lhs <- function(lhs, line, expr) {
   ret
 }
 
+odin_parse_lhs_index <- function(lhs, line, expr) {
+  if (!is.name(lhs[[2L]])) {
+    odin_error("array lhs must be a name", line, expr)
+  }
+  index <- as.list(lhs[-(1:2)])
+
+  nd <- length(index)
+  if (nd > 3L) {
+    odin_error(
+      sprintf("Arrays must have at at most 3 dimensions (given %d)", nd),
+      line, as.expression(expr))
+  }
+
+  is_empty <- vlapply(index, identical, quote(expr=))
+  if (any(is_empty)) {
+    if (length(index) == 1L) {
+      index[] <- list(bquote(1:length(.(lhs[[2L]]))))
+    } else {
+      index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
+        bquote(1:dim(.(lhs[[2L]]), .(i))))
+    }
+    lhs[-(1:2)] <- index
+  }
+
+  ## Valid expressions are:
+  ##
+  ##   binary inline +, - (unlimited number)
+  ##   A single ':' which is the only thing that generates a range
+  ##   A unary -(x) is not allowed as it's too hard to control
+  ##
+  ## With these options, the extent of the array index can be
+  ## expressed as a relatively simple expression; the min and max
+  ## will be the expression with x:y substituted for x and y
+  ## respectively.
+  ##
+  ## TODO: Consider looking for, and warning about (1:x - 1)
+  ## rather than (1:x) - 1 as that will imply a negative length
+  ## array.  Or we can look for the minimum value being negative.
+  tmp <- lapply(index, check_array_lhs_index)
+  ok <- vlapply(tmp, as.logical)
+  if (all(ok)) {
+    extent_max <- lapply(tmp, attr, "value_max", exact=TRUE)
+    extent_min <- lapply(tmp, attr, "value_min", exact=TRUE)
+    is_range <- !vlapply(extent_min, is.null)
+  } else {
+    msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse="\n")
+    odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
+               line, expr)
+  }
+
+  deps <- find_symbols(index)
+  err <- intersect(INDEX, deps$variables)
+  if (length(err) > 0L) {
+    odin_error(
+      sprintf("Special index variable %s may not be used on array lhs",
+              pastec(err)), line, as.expression(expr))
+  }
+
+  ## Build a big data structure out of all the index stuff; it's
+  ## going to be heaps easier to deal with later.
+  idx <- list(value=index,
+              is_range=is_range,
+              extent_max=extent_max,
+              extent_min=extent_min)
+
+  list(type="array",
+       name=deparse(lhs[[2L]]),
+       index=idx,
+       nd=nd,
+       depends=deps)
+}
+
+odin_parse_lhs_special <- function(lhs, line, expr) {
+  if (length(lhs) != 2L) {
+    odin_error("Invalid length special function on lhs", line, expr)
+  }
+  fun <- deparse_str(lhs[[1L]])
+  if (any(find_symbols(lhs[[2L]])$functions %in% SPECIAL_LHS)) {
+    odin_error("lhs functions require exactly one argument", line, expr)
+  }
+  ret <- odin_parse_lhs(lhs[[2L]], line, expr)
+  ret$special <- fun
+
+  if (fun == "dim" && ret$type != "symbol") {
+    odin_error("dim() must be applied to a name only (not an array)",
+               line, expr)
+  }
+
+  ret
+}
+
 odin_parse_rhs <- function(rhs, line, expr) {
   if (is.atomic(rhs)) {
     ## These are easy; they're constants so we can deal with these directly.
@@ -252,77 +231,9 @@ odin_parse_rhs <- function(rhs, line, expr) {
                          paste(unique(err), collapse=", ")), line, expr)
     }
     if ("delay" %in% deps$functions) {
-      ## NOTE: Some of the restrictions for delay() are the same as
-      ## user() (first call, no nesting etc).  So perhaps factor those
-      ## out.
-      ##
-      ## Bunch of special treatment here for delay, because this is
-      ## dealt with in a very different way; we'll need to know the
-      ## dependencies of the delayed expression and of the time.
-      ## These will be treated differently depending on which bits are
-      ## time sensitive.
-      if (!identical(rhs[[1]], quote(delay))) {
-        odin_error("delay() must surround entire rhs", line, expr)
-      }
-      if (length(rhs) != 3L) {
-        odin_error("delay() requires exactly two arguments", line, expr)
-      }
-      deps_delay_expr <- find_symbols(rhs[[2L]])
-      deps_delay_time <- find_symbols(rhs[[3L]])
-      fns <- c(deps_delay_expr$functions, deps_delay_time$functions)
-      if ("delay" %in% fns) {
-        odin_error("delay() may not be nested", line, expr)
-      }
-      if (TIME %in% deps_delay_expr) {
-        ## TODO: This could be relaxed by substituting a different
-        ## value of time within the block (say t - delay).
-        ##
-        ## Doing that requires rewriting the expression here
-        ## (substitute would be fine) because we need to replace time
-        ## with something more sensible.
-        ##
-        ## TODO: Worse than that is if any expression *explicitly*
-        ## depends on time, then it's really confusing to deal with
-        ## because "time" there should probably be the original time
-        ## not the delayed time (so t - delay).  Can probably just
-        ## mask the variables.
-        odin_error("delay() may not refer to time as that's confusing")
-      }
-      rhs$deps <- deps
-      ret <- list(type="expression",
-                  delay=TRUE,
-                  ## resolved at the same time as everything else:
-                  depends=deps_delay_time,
-                  ## resolved independently in the previous time:
-                  depends_delay=deps_delay_expr,
-                  value_expr=rhs[[2L]],
-                  value_time=rhs[[3L]])
+      ret <- odin_parse_rhs_delay(rhs, line, expr, deps)
     } else if ("user" %in% deps$functions) {
-      if (!identical(rhs[[1L]], quote(user))) {
-        odin_error("user() must be the only call on the rhs", line, expr)
-      }
-      if (length(rhs) > 2L) {
-        odin_error("user() call must have zero or one argument", line, expr)
-      }
-
-      deps <- find_symbols(as.list(rhs[-1L]))
-      ## TODO: This could be relaxed I think, but dealing with
-      ## potential cycles is hard because they could be generated at
-      ## runtime.  So for now, these values must be constants.  I
-      ## don't want to relax that until it's clear enough how arrays
-      ## get treated here.
-      if (length(deps$functions) > 0L) {
-        odin_error("user() call must not use functions", line, expr)
-      }
-      if (length(deps$variables) > 0L) {
-        odin_error("user() call must not reference variables", line, expr)
-      }
-      default <- length(rhs) == 2L
-      ret <- list(type="expression",
-                  depends=deps,
-                  value=if (default) rhs[[2L]] else NULL,
-                  default=default,
-                  user=TRUE)
+      ret <- odin_parse_rhs_user(rhs, line, expr, deps)
     } else {
       if ("sum" %in% deps$functions) {
         ## TODO: It would be so much nicer if by the time this rolls
@@ -349,6 +260,82 @@ odin_parse_rhs <- function(rhs, line, expr) {
     odin_error("Unhandled expression on rhs", line, expr)
   }
   ret
+}
+
+odin_parse_rhs_delay <- function(rhs, line, expr, deps) {
+  ## NOTE: Some of the restrictions for delay() are the same as
+  ## user() (first call, no nesting etc).  So perhaps factor those
+  ## out.
+  ##
+  ## Bunch of special treatment here for delay, because this is
+  ## dealt with in a very different way; we'll need to know the
+  ## dependencies of the delayed expression and of the time.
+  ## These will be treated differently depending on which bits are
+  ## time sensitive.
+  if (!identical(rhs[[1]], quote(delay))) {
+    odin_error("delay() must surround entire rhs", line, expr)
+  }
+  if (length(rhs) != 3L) {
+    odin_error("delay() requires exactly two arguments", line, expr)
+  }
+  deps_delay_expr <- find_symbols(rhs[[2L]])
+  deps_delay_time <- find_symbols(rhs[[3L]])
+  fns <- c(deps_delay_expr$functions, deps_delay_time$functions)
+  if ("delay" %in% fns) {
+    odin_error("delay() may not be nested", line, expr)
+  }
+  if (TIME %in% deps_delay_expr) {
+    ## TODO: This could be relaxed by substituting a different
+    ## value of time within the block (say t - delay).
+    ##
+    ## Doing that requires rewriting the expression here
+    ## (substitute would be fine) because we need to replace time
+    ## with something more sensible.
+    ##
+    ## TODO: Worse than that is if any expression *explicitly*
+    ## depends on time, then it's really confusing to deal with
+    ## because "time" there should probably be the original time
+    ## not the delayed time (so t - delay).  Can probably just
+    ## mask the variables.
+    odin_error("delay() may not refer to time as that's confusing")
+  }
+  rhs$deps <- deps
+  list(type="expression",
+       delay=TRUE,
+       ## resolved at the same time as everything else:
+       depends=deps_delay_time,
+       ## resolved independently in the previous time:
+       depends_delay=deps_delay_expr,
+       value_expr=rhs[[2L]],
+       value_time=rhs[[3L]])
+}
+
+odin_parse_rhs_user <- function(rhs, line, expr, deps) {
+  if (!identical(rhs[[1L]], quote(user))) {
+    odin_error("user() must be the only call on the rhs", line, expr)
+  }
+  if (length(rhs) > 2L) {
+    odin_error("user() call must have zero or one argument", line, expr)
+  }
+
+  deps <- find_symbols(as.list(rhs[-1L]))
+  ## TODO: This could be relaxed I think, but dealing with
+  ## potential cycles is hard because they could be generated at
+  ## runtime.  So for now, these values must be constants.  I
+  ## don't want to relax that until it's clear enough how arrays
+  ## get treated here.
+  if (length(deps$functions) > 0L) {
+    odin_error("user() call must not use functions", line, expr)
+  }
+  if (length(deps$variables) > 0L) {
+    odin_error("user() call must not reference variables", line, expr)
+  }
+  default <- length(rhs) == 2L
+  ret <- list(type="expression",
+              depends=deps,
+              value=if (default) rhs[[2L]] else NULL,
+              default=default,
+              user=TRUE)
 }
 
 odin_parse_config <- function(obj) {
@@ -1692,6 +1679,11 @@ get_lines <- function(x) {
 }
 get_exprs <- function(x) {
   as.expression(unlist(lapply(x, "[[", "expr")))
+}
+
+expr_is_assignment <- function(x) {
+  length(x) == 3L &&
+    (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
 }
 
 recursive_dependencies <- function(order, deps, vars) {
