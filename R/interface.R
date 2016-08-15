@@ -334,17 +334,17 @@ ode_system_generator <- function(dll, name=NULL) {
           ## TODO: this doesn't allow for n_history to be tweaked by
           ## the calling function, which would be useful if we want to
           ## exploit the history.  That also requires passing in
-          ## keep_history=TRUE.
+          ## return_history=TRUE.
           n_history <- if (self$has_delay) 1000L else 0L
           ## NOTE: This is a bit shit, but does the job for now:
           n_out <- self$output_length
           output <- if (n_out > 0L) self$C$dde_output else NULL
           ret <- self$ode(y, t, self$C$dde_deriv, self$ptr,
                           dllname=self$dll, n_out=n_out, output=output,
-                          n_history=n_history, keep_history=FALSE,
+                          n_history=n_history, return_history=FALSE,
                           parms_are_real=FALSE,
                           ## Try and preserve some compatibility with deSolve:
-                          by_column=TRUE, keep_initial=TRUE,
+                          by_column=TRUE, return_initial=TRUE,
                           ...)
           ret <- cbind(t, ret, attr(ret, "output"), deparse.level=0)
         } else {
