@@ -20,11 +20,12 @@ odin_parse <- function(x, as="file") {
   ## step so that all the errors are reported at once within this
   ## block.  Similar approaches will apply elsewhere.  Once that
   ## happens, the expression bit can roll in I think.
-  ret <- list(eqs=lapply(seq_along(exprs), odin_parse_expr, exprs),
-              file=file)
-
-  ret$vars <- odin_parse_find_vars(ret$eqs)
-  ret$traits <- odin_parse_collect_traits(ret)
+  eqs <- lapply(seq_along(exprs), odin_parse_expr, exprs)
+  ret <- list(eqs=eqs,
+              file=file,
+              vars=odin_parse_find_vars(eqs),
+              traits=odin_parse_collect_traits(eqs))
+  names(ret$eqs) <- rownames(ret$traits)
 
   ## The order here does matter, but it's not documented which depends
   ## on which yet.
@@ -340,27 +341,30 @@ odin_parse_rhs_user <- function(rhs, line, expr, deps) {
               user=TRUE)
 }
 
-odin_parse_collect_traits <- function(obj) {
-  eqs <- obj$eqs
+odin_parse_collect_traits <- function(eqs) {
   nms <- vcapply(eqs, "[[", "name")
 
   ## special lhs:
-  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
-  is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
-  is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
-  is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
+  special <- vcapply(eqs, function(x) x$lhs$special %||% "")
+  is_dim <- special == "dim"
+  is_deriv <- special == "deriv"
+  is_initial <- special == "initial"
+  is_output <- special == "output"
+  is_config <- special == "config"
 
   ## core rhs:
   is_array <- vcapply(eqs, function(x) x$lhs$type) == "array"
   is_symbol <- vcapply(eqs, function(x) x$lhs$type) == "symbol"
 
   ## rhs behaviour
+  uses_atomic <- vlapply(eqs, function(x) identical(x$rhs$type, "atomic"))
   uses_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
   uses_interpolate <- vlapply(eqs, function(x) isTRUE(x$rhs$interpolate))
   uses_user <- vlapply(eqs, function(x) isTRUE(x$rhs$user))
 
-  traits <- cbind(is_dim, is_deriv, is_initial, is_output, is_array, is_symbol,
-                  uses_delay, uses_interpolate, uses_user)
+  traits <- cbind(is_dim, is_deriv, is_initial, is_output, is_config,
+                  is_array, is_symbol,
+                  uses_atomic, uses_delay, uses_interpolate, uses_user)
   rownames(traits) <- nms
   traits
 }
@@ -377,13 +381,12 @@ odin_parse_config <- function(obj) {
 
   ## That will scale pretty well for packages where we'll want each
   ## different file to have their own base.
-  is_config <- vlapply(obj$eqs, function(x) identical(x$lhs$special, "config"))
-  cfg <- obj$eqs[is_config]
+  cfg <- obj$eqs[rownames(obj$traits)[obj$traits[, "is_config"]]]
 
   ## Then, we go through and get the names of the variables.  They
   ## must all be symbols, rather than characters, but that's enforced
   ## earlier
-  err <- !vlapply(cfg, function(x) identical(x$rhs$type, "atomic"))
+  err <- !obj$traits[names(cfg), "uses_atomic"]
   if (any(err)) {
     odin_error("config() rhs must be atomic (not an expression)",
                get_lines(cfg[err]), get_exprs(cfg[err]))
@@ -410,7 +413,7 @@ odin_parse_config <- function(obj) {
 
   err <- setdiff(names(dat), names(defaults))
   if (length(err)) {
-    tmp <- obj$eqs[is_config][match(err, names(dat))]
+    tmp <- cfg[match(err, names(dat))]
     odin_error(sprintf("Unknown configuration options: %s",
                        paste(err, collapse=", ")),
                get_lines(tmp), get_exprs(tmp))
@@ -424,7 +427,7 @@ odin_parse_config <- function(obj) {
     ##
     ## TODO: this branch is not tested (there was a typo in which that
     ## is not triggered anywhere)
-    tmp <- obj$eqs[is_config][!ok]
+    tmp <- cfg[!ok]
     odin_error(sprintf("Incorrect type (char vs numeric) for configuration: %s",
                        paste(names(which(!ok)), collapse=", ")),
                get_lines(tmp), get_exprs(tmp))
@@ -436,8 +439,8 @@ odin_parse_config <- function(obj) {
       tryCatch(read_user_c(dat[[j]]),
                error=function(e)
                  odin_error(paste("Could not read include file:", e$message),
-                            obj$eqs[is_config][i][[j]]$line,
-                            obj$eqs[is_config][i][[j]]$expr))
+                            cfg[i][[j]]$line,
+                            cfg[i][[j]]$expr))
     }
     res <- lapply(which(i), read)
     res <- list(declarations=unlist(lapply(res, "[[", "declarations")),
@@ -459,7 +462,9 @@ odin_parse_config <- function(obj) {
     obj$config$include <- NULL
   }
 
-  obj$eqs <- obj$eqs[!is_config]
+  keep <- !obj$traits[, "is_config"]
+  obj$eqs <- obj$eqs[keep]
+  obj$traits <- obj$traits[keep, , drop=FALSE]
   obj
 }
 
