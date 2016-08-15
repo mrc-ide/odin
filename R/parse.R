@@ -18,11 +18,13 @@ odin_parse <- function(x, as="file") {
 
   ## TODO: This will eventually run with some sort of error collection
   ## step so that all the errors are reported at once within this
-  ## block.  Similar approaches will apply elsewhere.
+  ## block.  Similar approaches will apply elsewhere.  Once that
+  ## happens, the expression bit can roll in I think.
   ret <- list(eqs=lapply(seq_along(exprs), odin_parse_expr, exprs),
               file=file)
 
   ret$vars <- odin_parse_find_vars(ret$eqs)
+  ret$traits <- odin_parse_collect_traits(ret)
 
   ## The order here does matter, but it's not documented which depends
   ## on which yet.
@@ -336,6 +338,31 @@ odin_parse_rhs_user <- function(rhs, line, expr, deps) {
               value=if (default) rhs[[2L]] else NULL,
               default=default,
               user=TRUE)
+}
+
+odin_parse_collect_traits <- function(obj) {
+  eqs <- obj$eqs
+  nms <- vcapply(eqs, "[[", "name")
+
+  ## special lhs:
+  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
+  is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
+  is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
+  is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
+
+  ## core rhs:
+  is_array <- vcapply(eqs, function(x) x$lhs$type) == "array"
+  is_symbol <- vcapply(eqs, function(x) x$lhs$type) == "symbol"
+
+  ## rhs behaviour
+  uses_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
+  uses_interpolate <- vlapply(eqs, function(x) isTRUE(x$rhs$interpolate))
+  uses_user <- vlapply(eqs, function(x) isTRUE(x$rhs$user))
+
+  traits <- cbind(is_dim, is_deriv, is_initial, is_output, is_array, is_symbol,
+                  uses_delay, uses_interpolate, uses_user)
+  rownames(traits) <- nms
+  traits
 }
 
 odin_parse_config <- function(obj) {
