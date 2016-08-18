@@ -144,31 +144,34 @@ test_that("RHS array checking", {
   expect_error(check_array_rhs(quote(a[]), c(a=1), line, expr),
                "Empty array index not allowed on rhs")
 
-  rhs <- odin_parse_rewrite_sum(quote(sum(a)))
+  rhs <- odin_parse_expr_rhs_sum(quote(sum(a)))$value
   expect_null(check_array_rhs(rhs, c(a=1), line, expr))
   expect_error(check_array_rhs(rhs, c(b=1), line, expr),
                "Special function sum requires array as first argument")
 })
 
 test_that("lhs array checking", {
-  res <- check_array_lhs_index(quote(a + (2:(n-3) - 4) + z))
+  res <- odin_parse_expr_lhs_check_index(quote(a + (2:(n-3) - 4) + z))
   expect_true(res)
   expect_equal(attr(res, "value_max"), quote(a + ((n-3) - 4) + z))
   expect_equal(attr(res, "value_min"), quote(a + (2 - 4) + z))
 
-  res <- check_array_lhs_index(quote(a))
+  res <- odin_parse_expr_lhs_check_index(quote(a))
   expect_true(res)
   expect_equal(attr(res, "value_max"), quote(a))
   expect_null(attr(res, "value_min"))
 
-  expect_false(check_array_lhs_index(quote(a:b + c:d)))
-  expect_false(check_array_lhs_index(quote(-(a:b))))
-  expect_false(check_array_lhs_index(quote((a:b):c)))
-  expect_false(check_array_lhs_index(quote(c:(a:b))))
-  expect_false(check_array_lhs_index(quote((-a))))
+  expect_false(odin_parse_expr_lhs_check_index(quote(a:b + c:d)))
+  expect_false(odin_parse_expr_lhs_check_index(quote(-(a:b))))
+  expect_false(odin_parse_expr_lhs_check_index(quote((a:b):c)))
+  expect_false(odin_parse_expr_lhs_check_index(quote(c:(a:b))))
+  expect_false(odin_parse_expr_lhs_check_index(quote((-a))))
 })
 
 test_that("sum rewriting", {
+  odin_parse_rewrite_sum <- function(x, line=NA_integer_, expr=NULL) {
+    odin_parse_expr_rhs_sum(x, line, expr)$value
+  }
   ## Dummy args:
   line <- 1
   expr <- quote(x)
@@ -218,13 +221,16 @@ test_that("sum rewriting", {
 test_that("conditinals need else clause", {
   line <- 1
   expr <- quote(x)
-  expect_silent(odin_parse_check_if(quote(if (foo) 1 else 2), line, expr))
-  expect_error(odin_parse_check_if(quote(if (foo) 1), line, expr),
+  expect_silent(odin_parse_expr_rhs_check_if(quote(if (foo) 1 else 2),
+                                             line, expr))
+  expect_error(odin_parse_expr_rhs_check_if(quote(if (foo) 1), line, expr),
                "All if statements must have an else clause")
 
   ## Compound:
-  expect_silent(odin_parse_check_if(quote(1 + (if (foo) 1 else 2) + bar),
-                                    line, expr))
-  expect_error(odin_parse_check_if(quote(1 + (if (foo) 1) + bar), line, expr),
+  expect_silent(odin_parse_expr_rhs_check_if(
+    quote(1 + (if (foo) 1 else 2) + bar),
+    line, expr))
+  expect_error(odin_parse_expr_rhs_check_if(quote(1 + (if (foo) 1) + bar),
+                                            line, expr),
                "All if statements must have an else clause")
 })
