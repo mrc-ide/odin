@@ -42,9 +42,10 @@ odin_parse <- function(x, as="file") {
   ## The order here does matter, but it's not documented which depends
   ## on which yet.
   ret <- odin_parse_config(ret)
-  ret <- odin_parse_process_interpolate(ret)
-  ret <- odin_parse_rewrite_initial_conditions(ret)
   ret <- odin_parse_combine_arrays(ret)
+
+  ret <- odin_parse_process_interpolate(ret) # after combine_arrays
+  ret <- odin_parse_rewrite_initial_conditions(ret)
   ret <- odin_parse_dependencies(ret)
   ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
@@ -360,7 +361,7 @@ odin_parse_combine_arrays <- function(obj) {
       ## If a delay or a user value is used, then we _must_ have only a
       ## single thing here.  So we'll check these separately.
       ok <- c("type", "depends", "value", "user", "default",
-              "interpolate", "interpolate_data", "sum")
+              "interpolate", "sum")
       stopifnot(length(setdiff(used_rhs, ok)) == 0L)
     }
     eqs[[k]] <- x
@@ -1198,66 +1199,69 @@ check_array_length_dim <- function(x, nd) {
   TRUE
 }
 
+## TODO: At the moment there are some corner cases here that are
+## neither correctly warned about, nor correctly dealt with.  Things
+## like:
+##
+##   y[, 1:4] <- interpolate(a, b)
+##
+## Will sail through but not work appropriately because interpolate is
+## expected to return output that is the same dimension as 'y' (I
+## think this is checked somewhere).  Worse, the rank of:
+##
+##   y[, 1] <- interpolate(a, b)
+##
+## is unclear; this could work with a vector or a 1 column matrix!
+##
+## Anyway, for now we skip this annoying difficulty and assumr that
+## the user doesn't do anything crazy with these functions.
 odin_parse_process_interpolate <- function(obj) {
-  ## TODO: make this more like delay where we do isTRUE(x$rhs$interpolate)
-  is_interpolate <-
-    vlapply(obj$eqs, function(x) "interpolate" %in% x$depends$functions)
-  obj$has_interpolate <- any(is_interpolate)
-  if (!obj$has_interpolate) {
+  if (!obj$info$has_interpolate) {
     return(obj)
   }
 
-  nms <- vcapply(obj$eqs, function(x) x$name)
-
-  ## Here, we need to go through and inspect all the variables that
-  ## are used in interpolation.  The way this works is we're going
-  ## add one rank to the input, require a few sizes here and there.
-  ## It's going to be a blast!
-  ##
-  ## The two variables will be declared as _user_ stage variables.
-  f <- function(e) {
-    expr <- e$rhs$value
-    rank <- if (e$lhs$type == "symbol") 0L else e$lhs$nd
-
-    ## Already checked that 't' and 'y' are symbols...
-    g <- function(sym, rank) {
-      nm <- as.character(sym)
-      j <- match(nm, nms)
-      if (is.na(j)) {
-        odin_error(sprintf("Interpolation variable %s not found", nm),
-                   e$line, e$expr)
-      }
-      target <- obj$eqs[[j]]
-      if (target$lhs$type != "array" || target$lhs$nd != rank) {
-        type <- if (rank == 1L) "vector" else paste(rank, "dimensional array")
-        odin_error(sprintf("Expected %s to be a %s", nm, type),
-                   e$line, e$expr)
-      }
-      ## This requires some serious work because it requires that the user
-      ## supplied 'y' is *four* dimensional.  It can probably be treated
-      ## somewhat specially though, but I fear it will make a mess of
-      ## various checks.
-      if (rank > 3) {
-        odin_error("interpolating 3d arrays not yet supported",
-                   e$line, e$expr)
-      }
-      nm
+  check_interpolate_arg <- function(nm, rank) {
+    target <- obj$eqs[[nm]]
+    if (is.null(target)) {
+      odin_error(sprintf("Interpolation variable %s not found", nm),
+                 e$line, e$expr)
     }
-    nm_t <- g(expr[[2]], 1L)
-    nm_y <- g(expr[[3]], rank + 1L)
-    e$rhs$interpolate_data <-
-      list(type=expr[[4]],
-           nd=rank,
-           ny=if (rank == 0L) 1L else array_dim_name(nm_y),
-           nt=array_dim_name(nm_t),
-           t=nm_t,
-           y=nm_y,
-           name=paste0("interpolate_", e$name))
-    e$rhs$interpolate <- TRUE
+    if (target$lhs$type != "array" || target$lhs$nd != rank) {
+      type <- if (rank == 1L) "vector" else paste(rank, "dimensional array")
+      odin_error(sprintf("Expected %s to be a %s", nm, type),
+                 e$line, e$expr)
+    }
+  }
+  process1 <- function(e) {
+    rank <- if (e$lhs$type == "symbol") 0L else e$lhs$nd
+    if (rank > 3) {
+      ## TODO: support here requires 4d input y arrays (hard-ish) but
+      ## supplying required 4d arrays is likely to be horrid anyway.
+      odin_error("interpolating 3d arrays not yet supported",
+                 e$line, e$expr)
+    }
+    if (rank == 0L) {
+      value <- e$rhs$value
+    } else {
+      if (length(e$rhs$value) != 1L) {
+        odin_error("Array interpolation requires single assignment",
+                   e$line, e$expr)
+      }
+      value <- e$rhs$value[[1L]]
+    }
+    check_interpolate_arg(value$t, 1L)
+    check_interpolate_arg(value$y, rank + 1L)
+    value$nd <- rank
+    value$ny <- if (rank == 0L) 1L else array_dim_name(value$y)
+    value$nt <- array_dim_name(value$t)
+    value$name <- paste0("interpolate_", e$name)
+
+    e$rhs$value <- value
     e
   }
 
-  obj$eqs[is_interpolate] <- lapply(obj$eqs[is_interpolate], f)
+  is_interpolate <- obj$traits[, "uses_interpolate"]
+  obj$eqs[is_interpolate] <- lapply(obj$eqs[is_interpolate], process1)
 
   obj
 }

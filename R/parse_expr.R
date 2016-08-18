@@ -335,9 +335,11 @@ odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
     odin_error("interpolation target argument must be a symbol", line, expr)
   }
 
+  value <- list(type=type, t=deparse(rhs[[2L]]), y=deparse(rhs[[3L]]))
+
   list(type="expression",
        depends=find_symbols(rhs),
-       value=rhs,
+       value=value,
        interpolate=TRUE)
 }
 

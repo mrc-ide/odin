@@ -103,7 +103,7 @@ odin_generate_object <- function(dat) {
   self$info <- list(base=base,
                     has_delay=dat$has_delay,
                     has_output=dat$has_output,
-                    has_interpolate=dat$has_interpolate,
+                    has_interpolate=dat$info$has_interpolate,
                     has_array=dat$has_array,
                     user=dat$user,
                     initial_stage=dat$initial_stage,
@@ -761,14 +761,14 @@ odin_generate_delay <- function(x, obj, dat) {
 
 odin_generate_interpolate_expr <- function(x, obj, dat) {
   nm <- x$name
-  id <- x$rhs[["interpolate_data"]]
-  nd <- id[["nd"]]
-  ny <- id[["ny"]]
-  nt <- id[["nt"]]
-  nm_t <- id[["t"]]
-  nm_y <- id[["y"]]
-  interpolation_type <- id[["type"]]
-  dest <- id[["name"]]
+  tmp <- x$rhs$value
+  nd <- tmp[["nd"]]
+  ny <- tmp[["ny"]]
+  nt <- tmp[["nt"]]
+  nm_t <- tmp[["t"]]
+  nm_y <- tmp[["y"]]
+  interpolation_type <- tmp[["type"]]
+  dest <- tmp[["name"]]
 
   obj$interpolate$add(list(interpolation_type=interpolation_type, t=nm_t))
   obj$library_fns$add("odin_interpolate_check")
