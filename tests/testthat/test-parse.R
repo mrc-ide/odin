@@ -110,7 +110,7 @@ test_that("some parse errors", {
   ##   ".")
 
   expect_error(odin_parse(as="text", "a = 1 + delay(1)"),
-               "delay() must surround entire rhs", fixed=TRUE)
+               "delay() must be the only call on the rhs", fixed=TRUE)
   expect_error(odin_parse(as="text", "a = delay(1)"),
                "delay() requires exactly two arguments", fixed=TRUE)
   expect_error(odin_parse(as="text", "a = delay(1, 2, 3)"),
@@ -144,7 +144,7 @@ test_that("RHS array checking", {
   expect_error(check_array_rhs(quote(a[]), c(a=1), line, expr),
                "Empty array index not allowed on rhs")
 
-  rhs <- odin_parse_expr_rhs_sum(quote(sum(a)))$value
+  rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
   expect_null(check_array_rhs(rhs, c(a=1), line, expr))
   expect_error(check_array_rhs(rhs, c(b=1), line, expr),
                "Special function sum requires array as first argument")
@@ -169,52 +169,50 @@ test_that("lhs array checking", {
 })
 
 test_that("sum rewriting", {
-  odin_parse_rewrite_sum <- function(x, line=NA_integer_, expr=NULL) {
-    odin_parse_expr_rhs_sum(x, line, expr)$value
-  }
   ## Dummy args:
   line <- 1
   expr <- quote(x)
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a)), line, expr),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a)), line, expr),
                    quote(sum(a, 1, length(a))))
-  expect_error(odin_parse_rewrite_sum(quote(sum(a, b)), line, expr),
+  expect_error(odin_parse_expr_rhs_rewrite_sum(quote(sum(a, b)), line, expr),
                "sum() requires exactly one argument", fixed=TRUE)
 
   ## Start working through some of the more complex cases:
   ## 1d:
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[b:c]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c]))),
                    quote(sum(a, b, c)))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[4:9]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[4:9]))),
                    quote(sum(a, 4, 9)))
 
   ## 2d:
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[,]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[,]))),
                    quote(sum(a, 1, dim(a, 1), 1, dim(a, 2), dim(a, 1))))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[b:c,]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c,]))),
                    quote(sum(a, b, c, 1, dim(a, 2), dim(a, 1))))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[,d:e]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[,d:e]))),
                    quote(sum(a, 1, dim(a, 1), d, e, dim(a, 1))))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[b:c,d:e]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c,d:e]))),
                    quote(sum(a, b, c, d, e, dim(a, 1))))
 
   ## 3d:
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[, , ]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, , ]))),
                    quote(sum(a, 1, dim(a, 1), 1, dim(a, 2), 1, dim(a, 3),
                              dim(a, 1), dim(a, 2))))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[b:c, , ]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c, , ]))),
                    quote(sum(a, b, c, 1, dim(a, 2), 1, dim(a, 3),
                              dim(a, 1), dim(a, 2))))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[, d:e, ]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, d:e, ]))),
                    quote(sum(a, 1, dim(a, 1), d, e, 1, dim(a, 3),
                              dim(a, 1), dim(a, 2))))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[, , f:g]))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, , f:g]))),
                    quote(sum(a, 1, dim(a, 1), 1, dim(a, 2), f, g,
                              dim(a, 1), dim(a, 2))))
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a[b:c, d:e, f:g]))),
-                   quote(sum(a, b, c, d, e, f, g,dim(a, 1), dim(a, 2))))
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(
+    quote(sum(a[b:c, d:e, f:g]))),
+    quote(sum(a, b, c, d, e, f, g,dim(a, 1), dim(a, 2))))
 
   ## Within a statement:
-  expect_identical(odin_parse_rewrite_sum(quote(sum(a) + sum(b))),
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a) + sum(b))),
                    quote(sum(a, 1, length(a)) + sum(b, 1, length(b))))
 })
 

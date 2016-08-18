@@ -1312,6 +1312,7 @@ USER <- "user"
 ## on the lhs index bits.  Probably need to standardise that at some
 ## point.
 SPECIAL_LHS <- c("initial", "deriv", "output", "dim", "config")
+SPECIAL_RHS <- c("user", "interpolate", "delay")
 INDEX <- c("i", "j", "k")
 RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")

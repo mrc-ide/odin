@@ -168,34 +168,65 @@ odin_parse_expr_rhs <- function(rhs, line, expr) {
     ## logical, numeric only.  It's possible that strings would be
     ## possible but I'm not sure that's sensible.
     ret <- list(type="atomic", value=rhs)
-  } else if (is.call(rhs) || is.name(rhs)) {
-    deps <- find_symbols(rhs)
-    err <- intersect(SPECIAL_LHS, deps$functions)
-    if (length(err) > 0L) {
-      odin_error(sprintf("Function %s is disallowed on rhs",
-                         paste(unique(err), collapse=", ")), line, expr)
+  } else if (is.name(rhs)) {
+    ## These are easy(ish); they just can't be called a few things
+    ## (probably more than what is listed here; otherwise we're going
+    ## to run into trouble with things like:
+    ##
+    ##   foo <- `+`
+    ##
+    ## which is valid R but going to generally cause hell.  But these
+    ## will also get picked up reasonably well later by being missing
+    ## variables oin the graph.
+    nm <- deparse(rhs)
+    if (nm %in% c(SPECIAL_LHS, SPECIAL_RHS)) {
+      odin_error(sprintf("Function %s is disallowed as symbol on rhs",
+                         nm, line, expr))
     }
-    if ("delay" %in% deps$functions) {
+    ## TODO: consider a special 'symbol' case here?
+    ret <- list(type="expression",
+                depends=list(functions=character(0),
+                             variables=nm),
+                value=rhs)
+  } else if (is.call(rhs)) {
+    fun <- deparse(rhs[[1L]])
+    if (fun == "delay") {
       ret <- odin_parse_expr_rhs_delay(rhs, line, expr)
-    } else if ("user" %in% deps$functions) {
+    } else if (fun == "user") {
       ret <- odin_parse_expr_rhs_user(rhs, line, expr)
-    } else if ("interpolate" %in% deps$functions) {
+    } else if (fun == "interpolate") {
       ret <- odin_parse_expr_rhs_interpolate(rhs, line, expr)
-    } else if ("sum" %in% deps$functions) {
-      ret <- odin_parse_expr_rhs_sum(rhs, line, expr)
     } else {
-      ret <- list(type="expression",
-                  depends=deps,
-                  value=rhs)
-    }
-    ## NOTE: _not_ exclusive conditions
-    if ("if" %in% deps$functions) {
-      odin_parse_expr_rhs_check_if(rhs, line, expr)
+      ret <- odin_parse_expr_rhs_expression(rhs, line, expr)
     }
   } else {
     odin_error("Unhandled expression on rhs", line, expr)
   }
   ret
+}
+
+odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
+  deps <- find_symbols(rhs)
+  err <- intersect(SPECIAL_LHS, deps$functions)
+  if (length(err) > 0L) {
+    odin_error(sprintf("Function %s is disallowed on rhs",
+                       paste(unique(err), collapse=", ")), line, expr)
+  }
+  err <- intersect(SPECIAL_RHS, deps$functions)
+  if (length(err) > 0L) {
+    odin_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
+               line, expr)
+  }
+  if ("if" %in% deps$functions) {
+    odin_parse_expr_rhs_check_if(rhs, line, expr)
+  }
+  if ("sum" %in% deps$functions) {
+    rhs <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
+  }
+
+  list(type="expression",
+       depends=deps,
+       value=rhs)
 }
 
 odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
@@ -317,40 +348,48 @@ odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
 ## appropriate arguments.  We'll do the function name rewrite (from
 ## sum to one of odin_sum1, odin_sum2 or odin_sum3 in the rewrite
 ## function when we tackle the minus1 from indices.
-odin_parse_expr_rhs_sum <- function(rhs, line, expr) {
+odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
   ## TODO: It would be so much nicer if by the time this rolls
   ## around we could have already determined the number of
   ## dimensions that a sum has.  We'll pick that up later in the
   ## checks I think but the error is going to be confusing
   ## because it will be a rewritten statement.
-
-  ## TODO: Remove this recursive approach; it should be quite a bit
-  ## easier than this...
+  ##
+  ## TODO: This really needs to move elsewhere I have decided.  We
+  ## leave the sums as they are here, but deal with them in (probably)
+  ## check_rhs_index or whatever it is.  That way we'll deal with all
+  ## the issues throughout.
+  ##
+  ## For now, I'll simplify this a bit and then try and move it into
+  ## the later processing?
+  ##
+  ## NOTE: This needs to be recursive because we're looking through
+  ## all the calls here for the `sum` call, then checking that it's
+  ## not calling itself.  Things like sum(a) + sum(b) are allowed.
   rewrite_sum <- function(x, is_sum=FALSE) {
     if (!is.recursive(x)) {
       x
     } else {
       if (is_sum) {
         if (!is_call(x, quote(`[`))) {
-          odin_error("Argument to sum must be an array index", line, expr)
+          odin_error("Argument to sum must be an symbol or array index",
+                     line, expr)
         }
         x <- odin_parse_expr_rhs_replace_empty_index(x)
         tmp <- lapply(as.list(x[-(1:2)]), odin_parse_expr_lhs_check_index)
         ok <- vlapply(tmp, as.logical)
-        if (all(ok)) {
-          f <- function(x) {
-            min <- attr(x, "value_min")
-            max <- attr(x, "value_max")
-            list(if (is.null(min)) max else min, max)
-          }
-          ret <- c(list(x[[2L]]), unlist(lapply(tmp, f), FALSE))
-        } else {
+        if (!all(ok)) {
           msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"),
                         collapse="\n")
           odin_error(sprintf("Invalid array use in sum():\n%s", msg),
                      line, expr)
         }
-        ret
+        f <- function(x) {
+          min <- attr(x, "value_min")
+          max <- attr(x, "value_max")
+          list(if (is.null(min)) max else min, max)
+        }
+        c(list(x[[2L]]), unlist(lapply(tmp, f), FALSE))
       } else if (is_call(x, quote(sum))) {
         ## TODO: I don't know that we check the variables here are
         ## actually arrays.
@@ -363,8 +402,6 @@ odin_parse_expr_rhs_sum <- function(rhs, line, expr) {
           ## sum(foo)
           ret <- call("sum", x[[2L]], 1, call("length", x[[2L]]))
         } else {
-          ## TODO: replace this recursive version with something better?
-          ## sum(foo[1
           args <- rewrite_sum(x[[2L]], TRUE)
           n <- (length(args) - 1L) / 2L
           if (n > 1) {
@@ -382,11 +419,7 @@ odin_parse_expr_rhs_sum <- function(rhs, line, expr) {
     }
   }
 
-  rhs <- rewrite_sum(rhs)
-  list(type="expression",
-       depends=find_symbols(rhs),
-       value=rhs,
-       sum=TRUE)
+  rewrite_sum(rhs)
 }
 
 ######################################################################
