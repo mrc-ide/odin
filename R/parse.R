@@ -1,6 +1,7 @@
 ## The general approach here is:
 ##
-## 1. coerce whatever we're given into a list of assignments
+## 1. coerce whatever we're given into a list of assignments;
+##    odin_parse_prepare
 ##
 ## 2. parse each expression into core types, along with a small amount
 ##    of rewriting.  This stage does all the bits that can be done to
@@ -9,7 +10,11 @@
 ##        -         _expr_lhs{,_index,_special}
 ##        -         _expr_rhs{,_delay,_user,_interpolate,_sum}
 ##
-## 3. ...undocumented...
+## 3. compute core "traits" about every expression; these are used
+##    through the processing code; odin_parse_collect_traits
+##
+## 4. identify *variables* (based on having an initial() & deriv() on
+##    the lhs); odin_parse_find_variables
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x, as="file") {
@@ -21,18 +26,14 @@ odin_parse <- function(x, as="file") {
 
   ## Start building the core object:
   ret <- list(eqs=eqs,
-              file=if (as == "file") x else basename(tempfile("odin", ".")),
-              vars=odin_parse_find_vars(eqs),
-              traits=odin_parse_collect_traits(eqs))
-  names(ret$eqs) <- rownames(ret$traits)
+              file=if (as == "file") x else basename(tempfile("odin", ".")))
 
-  ## Compute overall information on types:
-  ret$info <- list(has_array=any(ret$traits[, "is_array"]),
-                   has_output=any(ret$traits[, "is_output"]),
-                   has_user=any(ret$traits[, "uses_user"]),
-                   has_delay=any(ret$traits[, "uses_delay"]),
-                   has_interpolate=any(ret$traits[, "uses_interpolate"]),
-                   has_sum=any(ret$traits[, "uses_sum"]))
+  ## Compute overall information on traits (creates elements $traits
+  ## and $info):
+  ret <- odin_parse_collect_traits(ret)
+
+  ## Identify all ODE variables:
+  ret$vars <- odin_parse_find_vars(ret$eqs, ret$traits)
 
   ## Then below here everything is done via modifying the object
   ## directly.  Things may (and do) modify more than one element of
@@ -79,8 +80,8 @@ odin_parse_prepare <- function(x, as="file") {
   exprs
 }
 
-
-odin_parse_collect_traits <- function(eqs) {
+odin_parse_collect_traits <- function(obj) {
+  eqs <- obj$eqs
   nms <- vcapply(eqs, "[[", "name")
 
   ## special lhs:
@@ -106,9 +107,101 @@ odin_parse_collect_traits <- function(eqs) {
                   is_array, is_symbol,
                   uses_atomic, uses_user, uses_delay,
                   uses_interpolate, uses_sum)
+  rownames(traits) <- names(eqs)
 
-  rownames(traits) <- nms
-  traits
+  obj$traits <- traits
+  obj$info <- list(has_array=any(is_array), # || any(is_dim)
+                   has_output=any(is_output),
+                   has_user=any(uses_user),
+                   has_delay=any(uses_delay),
+                   has_interpolate=any(uses_interpolate),
+                   has_sum=any(uses_sum))
+
+  obj
+}
+
+odin_parse_find_vars <- function(eqs, traits) {
+  is_deriv <- traits[, "is_deriv"]
+  is_initial <- traits[, "is_initial"]
+
+  ## Extract the *real* name here:
+  name_target <- function(x) x$lhs$name_target
+  vars <- unique(vcapply(eqs[is_deriv], name_target))
+  vars_initial <- unique(vcapply(eqs[is_initial], name_target))
+
+  if (!setequal(vars, vars_initial)) {
+    msg <- collector()
+    msg_initial <- setdiff(vars, vars_initial)
+    if (length(msg_initial) > 0L) {
+      msg$add("\tin deriv() but not initial(): %s",
+              paste(msg_initial, collapse=", "))
+    }
+    msg_vars <- setdiff(vars_initial, vars)
+    if (length(msg_vars) > 0L) {
+      msg$add("\tin initial() but not deriv(): %s",
+              paste(msg_vars, collapse=", "))
+    }
+    stop("derivs() and initial() must contain same set of equations:\n",
+         paste(msg$get(), collapse="\n"), call.=FALSE)
+  }
+
+  err <- names(is_deriv) %in% vars
+  if (any(err)) {
+    odin_error(
+      sprintf("variables on lhs must be within deriv() or initial() (%s)",
+              paste(intersect(vars, names(eqs)), collapse=", ")),
+      get_lines(eqs[err]), get_exprs(eqs[err]))
+  }
+
+  vars
+}
+
+## TODO: consider  allowing use of  initial(x) anywhere to  access the
+## initial condition.  Then we can do things like
+##
+##   deriv(y) = r * (y - initial(y))
+##
+## for exponential decay towards a stabilising force. For now it's ok,
+## and this can always be achieved by assignment via a common 3rd
+## parameter.
+##
+## NOTE: This is for handling the dependency graph when one initialial
+## condition depends on another.  For example (from test-odin.R)
+##
+##   initial(y1) <- 1
+##   initial(y2) <- y1 + v1
+##
+## We need to rewrite y1 -> initial(y1) -> initial_y1
+##
+## This depends on knowing what are *variables*, so must be after
+## first pass.
+odin_parse_rewrite_initial_conditions <- function(obj) {
+  vars <- obj$vars
+  i <- vlapply(obj$eqs, function(x) (identical(x$lhs$special, "initial") &&
+                                     any(vars %in% x$rhs$depends$variables)))
+  if (any(i)) {
+    replace <- function(x, tr) {
+      i <- match(x, names(tr))
+      j <- !is.na(i)
+      x[j] <- tr[i][j]
+      x
+    }
+    rewrite_expression <- function(expr, env) {
+      eval(substitute(substitute(y, env), list(y = expr)))
+    }
+    subs <- setNames(sprintf("initial_%s", vars), vars)
+    env <- as.environment(lapply(subs, as.name))
+    f <- function(x) {
+      if (any(vars %in% x$rhs$depends$variables)) {
+        x$rhs$value <- rewrite_expression(x$rhs$value, env)
+        x$rhs$depends$variables <- replace(x$rhs$depends$variables, subs)
+        x$depends$variables <- replace(x$depends$variables, subs)
+      }
+      x
+    }
+    obj$eqs[i] <- lapply(obj$eqs[i], f)
+  }
+  obj
 }
 
 odin_parse_config <- function(obj) {
@@ -375,86 +468,6 @@ odin_parse_combine_arrays <- function(obj) {
 
   obj$eqs <- eqs
   obj$has_array <- any(is_array)
-  obj
-}
-
-odin_parse_find_vars <- function(obj) {
-  ## Next, identify initial conditions and derivatives.
-  is_deriv <- vlapply(obj, function(x) identical(x$lhs$special, "deriv"))
-  is_initial <- vlapply(obj, function(x) identical(x$lhs$special, "initial"))
-
-  nms <- vcapply(obj, "[[", "name")
-
-  name_target <- function(x) x$lhs$name_target
-  vars <- unique(vcapply(obj[is_deriv], name_target))
-  vars_initial <- unique(vcapply(obj[is_initial], name_target))
-
-  ## And from these, determine the names of the core variables.  The
-  ## order will be the same as the order they are first defined in the
-  ## file (so for an array calculation this is important).
-  if (!setequal(vars, vars_initial)) {
-    msg <- collector()
-    msg_initial <- setdiff(vars, vars_initial)
-    if (length(msg_initial) > 0L) {
-      msg$add("\tin deriv() but not initial(): %s",
-              paste(msg_initial, collapse=", "))
-    }
-    msg_vars <- setdiff(vars_initial, vars)
-    if (length(msg_vars) > 0L) {
-      msg$add("\tin initial() but not deriv(): %s",
-              paste(msg_vars, collapse=", "))
-    }
-    stop("derivs() and initial() must contain same set of equations:\n",
-         paste(msg$get(), collapse="\n"), call.=FALSE)
-  }
-
-  err <- nms %in% vars
-  if (any(err)) {
-    line <- viapply(obj[err], "[[", "line")
-    expr <- as.expression(lapply(obj[err], "[[", "expr"))
-    ## TODO: _or_ the rhs of anything.  Could be clearer.
-    odin_error(
-      sprintf("variables on lhs must be within deriv() or initial() (%s)",
-              paste(intersect(vars, nms), collapse=", ")), line, expr)
-  }
-
-  vars
-}
-
-## TODO: consider  allowing use of  initial(x) anywhere to  access the
-## initial condition.  Then we can do things like
-##
-##   deriv(y) = r * (y - initial(y))
-##
-## for exponential decay towards a stabilising force. For now it's ok,
-## and this can always be achieved by assignment via a common 3rd
-## parameter.
-odin_parse_rewrite_initial_conditions <- function(obj) {
-  vars <- obj$vars
-  i <- vlapply(obj$eqs, function(x) (identical(x$lhs$special, "initial") &&
-                                     any(vars %in% x$rhs$depends$variables)))
-  if (any(i)) {
-    replace <- function(x, tr) {
-      i <- match(x, names(tr))
-      j <- !is.na(i)
-      x[j] <- tr[i][j]
-      x
-    }
-    rewrite_expression <- function(expr, env) {
-      eval(substitute(substitute(y, env), list(y = expr)))
-    }
-    subs <- setNames(sprintf("initial_%s", vars), vars)
-    env <- as.environment(lapply(subs, as.name))
-    f <- function(x) {
-      if (any(vars %in% x$rhs$depends$variables)) {
-        x$rhs$value <- rewrite_expression(x$rhs$value, env)
-        x$rhs$depends$variables <- replace(x$rhs$depends$variables, subs)
-        x$depends$variables <- replace(x$depends$variables, subs)
-      }
-      x
-    }
-    obj$eqs[i] <- lapply(obj$eqs[i], f)
-  }
   obj
 }
 

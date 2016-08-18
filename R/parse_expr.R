@@ -6,7 +6,10 @@ odin_parse_exprs <- function(exprs) {
   ## block.  Similar approaches will apply elsewhere.  Once that
   ## happens, the expression bit can roll in I think.
   lines <- utils::getSrcLocation(exprs, "line")
-  lapply(seq_along(exprs), function(i) odin_parse_expr(exprs[[i]], lines[[i]]))
+  ret <- lapply(seq_along(exprs),
+                function(i) odin_parse_expr(exprs[[i]], lines[[i]]))
+  names(ret) <- vcapply(ret, "[[", "name")
+  ret
 }
 
 odin_parse_expr <- function(expr, line) {
