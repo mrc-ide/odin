@@ -21,6 +21,9 @@
 ##
 ## 6. write some expressions involving variables when computing
 ##    initial conditions of variables (odin_parse_rewrite_initial)
+##
+## 7. Combine array equations involving the same expression into a
+##    single expression.
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x, as="file") {
@@ -56,8 +59,13 @@ odin_parse <- function(x, as="file") {
   ## "vars", and before combining arrays).
   ret <- odin_parse_rewrite_initial(ret)
 
-  ## ...below here not reviewed yet...
+  ## 7. Combine array equations involving the same expression into a
+  ## single expression.  NOTE: The position if this call matters a lot
+  ## because it rewrites the 'eqs' object as well as the array
+  ## equations themselves.
   ret <- odin_parse_combine_arrays(ret)
+
+  ## ...below here not reviewed yet...
   ret <- odin_parse_dependencies(ret)
   ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
@@ -129,6 +137,11 @@ odin_parse_collect_traits <- function(obj) {
                    has_delay=any(uses_delay),
                    has_interpolate=any(uses_interpolate),
                    has_sum=any(uses_sum))
+
+  nms_target <- names(eqs)
+  i <- is_deriv | is_initial | is_dim
+  nms_target[i] <- vcapply(eqs[i], function(x) x$lhs$name_target)
+  obj$names_target <- nms_target
 
   obj
 }
@@ -216,174 +229,6 @@ odin_parse_rewrite_initial <- function(obj) {
   obj
 }
 
-## So the pair:
-##   x[1] <- ...
-##   x[2:n] <- ...
-## will get grouped together as a single x.  All dependencies of the
-## expression will be combined, and the source reference also gets
-## updated.
-odin_parse_combine_arrays <- function(obj) {
-  eqs <- obj$eqs
-  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
-  is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
-  is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
-  is_array <- vcapply(eqs, function(x) x$lhs$type) == "array"
-
-  nms <- vcapply(eqs, "[[", "name")
-
-  nms_real <- nms
-  i <- is_deriv | is_initial | is_dim
-  nms_real[i] <- vcapply(eqs[i], function(x) x$lhs$name_target)
-  names(nms_real) <- nms
-
-  err <- intersect(nms_real[is_array & !is_dim],
-                   nms_real[!is_array & !is_dim])
-  if (length(err) > 0L) {
-    i <- nms_real %in% err
-    line <- viapply(eqs[i], "[[", "line")
-    expr <- as.expression(lapply(eqs[i], "[[", "expr"))
-    odin_error(sprintf("Array variables must always assign as arrays (%s)",
-                       paste(err, collapse=", ")),
-               line, expr)
-  }
-
-  ## TODO: I don't know if multiple dim() calls would be caught here
-  ## (but they should be!)
-  dup <- unique(nms[duplicated(nms)])
-  err <- unique(nms[nms %in% dup & !is_array])
-  if (length(err) > 0L) {
-    i <- nms %in% err
-    line <- viapply(eqs[i], "[[", "line")
-    expr <- as.expression(lapply(eqs[i], "[[", "expr"))
-    odin_error(sprintf("Duplicate entries must all be arrays (%s)",
-                       paste(err, collapse=", ")),
-               line, expr)
-  }
-
-  ## Now, work through the dim() calls so we establish dimensionality
-  ## of arrays.
-  nd <- setNames(viapply(eqs[is_dim], check_dim_rhs), nms_real[is_dim])
-  if (any(is.na(nd))) {
-    i <- which(is_dim)[is.na(nd)]
-    odin_error("Invalid dim() rhs", get_lines(eqs[i]), get_exprs(eqs[i]))
-  }
-  if (any(nd == 0L)) {
-    ## Then, check for user-driven array sizes; we'll pull nd from the
-    ## definition.
-    i <- nd == 0L
-    j <- match(nms_real[is_dim][i], nms)
-    ## First check that the underlying variable is a user-sized array.
-    err <- !vlapply(eqs[j], function(x) x$rhs$user)
-    if (any(err)) {
-      odin_error("user-specified dim() must be used with user-specified array",
-                 get_lines(eqs[j][err]), get_exprs(eqs[j][err]))
-    }
-    err <- !vlapply(eqs[j], function(x) identical(x$lhs$type, "array"))
-    if (any(err)) {
-      odin_error("user-specified dim() must be used with array",
-                 get_lines(eqs[j][err]), get_exprs(eqs[j][err]))
-    }
-
-    ## TODO: It's possible here that we'll get duplicated calls to
-    ## user; they'll probably make it through here which won't cause a
-    ## great problem but it's a bit ugly, and hard to check.
-    nd[i] <- viapply(eqs[j], function(x) x$lhs$nd)
-  }
-
-  j <- which(is_dim)
-  for (i in seq_along(nd)) {
-    eqs[[j[[i]]]]$nd <- nd[[i]]
-  }
-
-  ## Then, work out which sets to combine
-  i <- match(nms, unique(nms[is_array]))
-  i <- unname(split(which(!is.na(i)), na.omit(i)))
-
-  for (j in i) {
-    k <- j[[1]]
-    x <- eqs[[k]]
-    x$depends <-
-      join_deps(lapply(eqs[j], function(x) x[["depends"]]))
-    ## NOTE: this is the only case where self referential variables
-    ## are allowed.  There's no checking here and things like
-    ##   x[i] = x[i] * 2
-    ## will cause a crash or nonsense behaviour.
-    x$depends$variables <- setdiff(x$depends$variables, x$name)
-    if (!is_dim[k]) {
-      x$depends$variables <- union(x$depends$variables,
-                                   sprintf("dim_%s", nms_real[[x$name]]))
-    }
-    x$expr <- lapply(eqs[j], "[[", "expr")
-    x$line <- viapply(eqs[j], "[[", "line")
-
-    nd_x <- tryCatch(nd[[nms_real[[x$name]]]],
-                     error=function(e) {
-                       odin_error(
-                         sprintf("No dim() call found for %s - used in:",
-                                 x$lhs$name_target %||% x$name),
-                         x$line, as.expression(x$expr))})
-
-    err <- viapply(eqs[j], function(x) x[["lhs"]][["nd"]]) != nd_x
-    if (any(err)) {
-      odin_error(
-        sprintf("Array dimensionality is not consistent (expected %d %s)",
-                nd_x, ngettext(nd_x, "index", "indices")),
-        get_lines(eqs[j]), get_exprs(eqs[j]))
-    }
-
-    ## TODO: some of the lhs depends stuff will not matter so much now.
-    x$lhs$index <- lapply(eqs[j], function(x) x[["lhs"]][["index"]])
-    x$lhs$depends <-
-      join_deps(lapply(eqs[j], function(x) x[["lhs"]][["depends"]]))
-
-    x$rhs$type <- vcapply(eqs[j], function(x) x[["rhs"]][["type"]])
-    x$rhs$depends <-
-      join_deps(lapply(eqs[j], function(x) x[["rhs"]][["depends"]]))
-    x$rhs$value <- lapply(eqs[j], function(x) x[["rhs"]][["value"]])
-
-    ## TODO: All these sanity checks need major overhauls, I think.
-    ## Sanity check:
-    ok <- c("name", "lhs", "rhs", "depends", "expr", "line")
-    stopifnot(length(setdiff(unlist(lapply(eqs[j], names)), ok)) == 0L)
-    ## NOTE: mixed type specials are dealt with elsewhere.  By this I
-    ## mean that a variable is more than one of initial(), deriv(),
-    ## output() and plain.
-    used_lhs <- unlist(lapply(eqs[j], function(x) names(x$lhs)))
-    ok <- c("type", "name", "name_target", "index", "nd", "depends", "special")
-    stopifnot(length(setdiff(used_lhs, ok)) == 0L)
-
-    used_rhs <- unlist(lapply(eqs[j], function(x) names(x$rhs)))
-    if ("delay" %in% used_rhs) {
-      if (length(j) > 1L) {
-        odin_error("delay() may only be used on a single-line array assignment",
-                   get_lines(eqs[j]), get_exprs(eqs[j]))
-      }
-    } else if ("user" %in% used_rhs) {
-      if (length(j) > 1L) {
-        odin_error("user() may only be used on a single-line array assignment",
-                   get_lines(eqs[j]), get_exprs(eqs[j]))
-      }
-    } else {
-      ## If a delay or a user value is used, then we _must_ have only a
-      ## single thing here.  So we'll check these separately.
-      ok <- c("type", "depends", "value", "user", "default",
-              "interpolate", "sum")
-      stopifnot(length(setdiff(used_rhs, ok)) == 0L)
-    }
-    eqs[[k]] <- x
-  }
-
-  drop <- unlist(lapply(i, "[", -1L))
-  if (length(drop) > 0L) {
-    eqs <- eqs[-drop]
-    nms_real <- nms_real[-drop]
-  }
-
-  obj$eqs <- eqs
-  obj$has_array <- any(is_array)
-  obj
-}
-
 odin_parse_dependencies <- function(obj) {
   eqs <- obj$eqs
   vars <- obj$vars
@@ -411,8 +256,11 @@ odin_parse_dependencies <- function(obj) {
     }
   }
 
-  deps <- lapply(eqs, function(el) setdiff(el$depends$variables, exclude))
-  names(deps) <- nms
+  ## NOTE: Here, we filter the dependency lists to exclude any self
+  ## referencing variables.  These are allowed only for array
+  ## variables and this is checked in parse_expr.
+  deps <- lapply(eqs, function(el)
+    setdiff(el$depends$variables, c(el$name, exclude)))
 
   msg <- lapply(deps, setdiff, c(nms, vars, TIME))
   i <- lengths(msg) > 0L
@@ -638,7 +486,7 @@ odin_parse_check_array_usage <- function(obj) {
                   names(which(is_rhs_length)),
                   names(which(is_rhs_dim)))
   all_index_vars <- unique(unlist(index_vars))
-  err <- intersect(index_vars, names(which(is_array)))
+  err <- intersect(all_index_vars, names(which(is_array)))
   if (length(err) > 0L) {
     i <- which(is_array)[vlapply(eqs[is_array], function(x)
       any(err %in% x$lhs$depends$variables))]
@@ -711,25 +559,27 @@ odin_parse_variable_order <- function(obj) {
   ## I think it should be sorted by stage within the arrays though,
   ## and stage added here.
   vars <- obj$vars
-  is_array <- setNames(vlapply(obj$eqs[sprintf("deriv_%s", vars)],
-                               function(x) x$lhs$type == "array"), vars)
+  vars_deriv <- paste0("deriv_", vars)
+  is_array <- setNames(obj$traits[vars_deriv, "is_array"], vars)
 
   ord <- rep(0L, length(is_array))
   array <- setNames(rep(0L, length(is_array)), vars)
+  stage <- setNames(rep(STAGE_CONSTANT, length(is_array)), vars)
+
   if (any(is_array)) {
-    tmp <- vcapply(vars[is_array], array_dim_name, USE.NAMES=FALSE)
+    tmp <- vcapply(obj$eqs[vars_deriv], function(x) x$lhs$name_dim)
     ord[is_array] <- match(tmp, names(obj$eqs))
+    ## TODO: may change to function(x) x$lhs$nd
     array[is_array] <- viapply(obj$eqs[tmp], "[[", "nd")
+
+    stage[is_array] <- viapply(obj$eqs[tmp], function(x) x$stage)
+    names(stage) <- vars
+
+    ## Reorder to get variables ordered to scalars first
+    vars <- vars[order(ord)]
+    is_array <- is_array[vars]
+    array <- array[vars]
   }
-
-  vars <- vars[order(ord)]
-  is_array <- is_array[vars]
-  array <- array[vars]
-
-  stage <- rep(STAGE_CONSTANT, length(is_array))
-  stage[is_array] <- viapply(obj$eqs[sprintf("dim_%s", vars[is_array])],
-                             function(x) x$stage)
-  names(stage) <- vars
 
   offset <- setNames(as.list(seq_along(is_array) - 1L), vars)
   f <- function(i) {
@@ -757,10 +607,13 @@ odin_parse_variable_order <- function(obj) {
   total_use <- if (total_is_var) "dim" else total
   total_stage <- max(stage)
 
+  ## TODO: This is likely to expand to include "used in delay", "used
+  ## in output", etc...
+
   ## Check whether variables are actually used in the time equations:
-  used <- vars %in% unlist(lapply(obj$eqs, function(x)
+  used_vars <- unlist(lapply(obj$eqs, function(x)
     if (x$stage >= STAGE_TIME) x$depends$variables), use.names=FALSE)
-  names(used) <- vars
+  used <- setNames(vars %in% used_vars, vars)
 
   obj$variable_order <-
     list(order=vars,
@@ -1032,28 +885,6 @@ check_array_rhs <- function(rhs, nd, line, expr) {
 
   f(rhs, NULL)
   invisible(NULL) # never return anything at all.
-}
-
-check_dim_rhs <- function(x) {
-  if (x$rhs$type == "atomic" || is.name(x$rhs$value)) {
-    1L
-  } else if (is_call(x$rhs$value, quote(c))) {
-    ok <- vlapply(as.list(x$rhs$value[-1L]),
-                  function(x) is.symbol(x) || is.atomic(x))
-    if (!all(ok)) {
-      NA_integer_
-    } else {
-      length(ok)
-    }
-  } else if (isTRUE(x$rhs$user)) {
-    if (isTRUE(x$rhs$default)) {
-      odin_error("Default in user dimension size not handled",
-                 x$line, x$expr)
-    }
-    0L
-  } else {
-    NA_integer_
-  }
 }
 
 check_array_length_dim <- function(x, nd) {

@@ -103,4 +103,8 @@ expand_grid_int <- function(x) {
   }
 }
 
+is_duplicated <- function(x) {
+  x %in% x[duplicated(x)]
+}
+
 self <- NULL

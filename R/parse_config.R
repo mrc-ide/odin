@@ -39,6 +39,7 @@ odin_parse_config <- function(obj) {
     ## Filter configuration options out of equations (and traits!)
     obj$eqs <- obj$eqs[!is_config]
     obj$traits <- obj$traits[!is_config, , drop=FALSE]
+    obj$names_target <- obj$names_target[!is_config]
 
     dat <- odin_parse_config_check_types(cfg)
 

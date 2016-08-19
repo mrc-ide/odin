@@ -75,11 +75,11 @@ test_that("some parse errors", {
                "variables on lhs must be within deriv")
 
   expect_error(odin_parse(as="text", "x = 1\nx = 2"),
-               "Duplicate entries must all be arrays")
+               "Duplicate entries must all be array assignments")
   expect_error(odin_parse(as="text", "x[1] = 1\nx = 2"),
-               "Array variables must always assign as arrays")
+               "Duplicate entries must all be array assignments")
   expect_error(odin_parse(as="text", "deriv(x[1]) = 1\ninitial(x) = 2"),
-               "Array variables must always assign as arrays")
+               "Missing dim() call", fixed=TRUE)
 
   expect_error(
     odin_parse(as="text", "x[1] <- 1\nx[2,1] <- 2\ndim(x) <- 10"),
@@ -231,4 +231,9 @@ test_that("conditinals need else clause", {
   expect_error(odin_parse_expr_rhs_check_if(quote(1 + (if (foo) 1) + bar),
                                             line, expr),
                "All if statements must have an else clause")
+})
+
+test_that("recursive variables", {
+  expect_error(odin_parse_expr(quote(foo <- foo + 1), NULL),
+               "Self referencing expressions not allowed")
 })

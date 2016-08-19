@@ -13,6 +13,7 @@ odin_parse_exprs <- function(exprs) {
 }
 
 odin_parse_expr <- function(expr, line) {
+  line <- line %||% NA_integer_
   lhs <- odin_parse_expr_lhs(expr[[2L]], line, expr)
   rhs <- odin_parse_expr_rhs(expr[[3L]], line, expr)
   deps <- join_deps(list(lhs$depends, rhs$depends))
@@ -28,12 +29,25 @@ odin_parse_expr <- function(expr, line) {
     odin_error("delay() only valid for non-special variables", line, expr)
   }
 
+  if (identical(lhs$special, "dim")) {
+    lhs$nd <- odin_parse_expr_check_dim(rhs, line, expr)
+  }
+
+  ## NOTE: arrays are the only case where self referential variables
+  ## are allowed.  For arrays, there's no checking here and things like
+  ##   x[i] = x[i] * 2
+  ## will cause a crash or nonsense behaviour.
+  if (lhs$type != "array" && lhs$name %in% deps$variables) {
+    odin_error("Self referencing expressions not allowed (except for arrays)",
+               line, expr)
+  }
+
   list(name=lhs$name,
        lhs=lhs,
        rhs=rhs,
        depends=deps,
        expr=expr,
-       line=line %||% NA_integer_)
+       line=line)
 }
 
 odin_parse_expr_lhs <- function(lhs, line, expr) {
@@ -122,6 +136,7 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
                line, expr)
   }
 
+  name <- deparse(lhs[[2L]])
   deps <- find_symbols(index)
   err <- intersect(INDEX, deps$variables)
   if (length(err) > 0L) {
@@ -129,6 +144,10 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
       sprintf("Special index variable %s may not be used on array lhs",
               pastec(err)), line, as.expression(expr))
   }
+  ## The dimension for this array:
+  name_dim <- paste0("dim_", name)
+  ## ...which must be a dependency:
+  deps$variables <- union(deps$variables, name_dim)
 
   ## Build a big data structure out of all the index stuff; it's
   ## going to be heaps easier to deal with later.
@@ -138,9 +157,10 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
               extent_min=extent_min)
 
   list(type="array",
-       name=deparse(lhs[[2L]]),
+       name=name,
        index=idx,
        nd=nd,
+       name_dim=name_dim,
        depends=deps)
 }
 
@@ -517,4 +537,28 @@ odin_parse_expr_lhs_check_index <- function(x) {
   } else {
     structure(FALSE, message=x)
   }
+}
+
+odin_parse_expr_check_dim <- function(rhs, line, expr) {
+  if (rhs$type == "atomic" || is.name(rhs$value)) {
+    ret <- 1L
+  } else if (is_call(rhs$value, quote(c))) {
+    ## TODO: what about dim(.) <- c(1.2, 3) -- should error
+    ok <- vlapply(as.list(rhs$value[-1L]),
+                  function(x) is.symbol(x) || is.numeric(x))
+    if (!all(ok)) {
+      odin_error("Invalid dim() rhs; c() must contain atomics or numbers",
+                 line, expr)
+    } else {
+      ret <- length(ok)
+    }
+  } else if (isTRUE(rhs$user)) {
+    if (isTRUE(rhs$default)) {
+      odin_error("Default in user dimension size not handled", line, expr)
+    }
+    ret <- 0L
+  } else {
+    odin_error("Invalid dim() rhs; expected atomic, user or c", line, expr)
+  }
+  ret
 }
