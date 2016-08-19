@@ -92,7 +92,7 @@ basename_no_ext <- function(path) {
 }
 
 substitute_ <- function(expr, env) {
-  eval(substitute(substitute(y, env), list(y=expr)))
+  eval(substitute(substitute(y, env), list(y = expr)))
 }
 
 expand_grid_int <- function(x) {

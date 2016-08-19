@@ -18,6 +18,9 @@
 ##
 ## 5. apply (and remove) and "config()" directives in the model;
 ##    odin_parse_config
+##
+## 6. write some expressions involving variables when computing
+##    initial conditions of variables (odin_parse_rewrite_initial)
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x, as="file") {
@@ -47,10 +50,16 @@ odin_parse <- function(x, as="file") {
   ## "config" element in the data object.
   ret <- odin_parse_config(ret)
 
+  ## 6. When establishing initial conditions, all uses of a variable
+  ## "v" on the rhs are assumed to refer to "initial(v)" and this
+  ## requires some reqwriting (can be done any time after determining
+  ## "vars", and before combining arrays).
+  ret <- odin_parse_rewrite_initial(ret)
+
+
   ## ...below here not reviewed yet...
   ret <- odin_parse_combine_arrays(ret)
   ret <- odin_parse_process_interpolate(ret) # after combine_arrays
-  ret <- odin_parse_rewrite_initial_conditions(ret)
   ret <- odin_parse_dependencies(ret)
   ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
@@ -179,32 +188,29 @@ odin_parse_find_vars <- function(eqs, traits) {
 ##
 ## This depends on knowing what are *variables*, so must be after
 ## first pass.
-odin_parse_rewrite_initial_conditions <- function(obj) {
+odin_parse_rewrite_initial <- function(obj) {
   vars <- obj$vars
-  i <- vlapply(obj$eqs, function(x) (identical(x$lhs$special, "initial") &&
-                                     any(vars %in% x$rhs$depends$variables)))
-  if (any(i)) {
-    replace <- function(x, tr) {
-      i <- match(x, names(tr))
-      j <- !is.na(i)
-      x[j] <- tr[i][j]
-      x
-    }
-    rewrite_expression <- function(expr, env) {
-      eval(substitute(substitute(y, env), list(y = expr)))
-    }
-    subs <- setNames(sprintf("initial_%s", vars), vars)
-    env <- as.environment(lapply(subs, as.name))
-    f <- function(x) {
-      if (any(vars %in% x$rhs$depends$variables)) {
-        x$rhs$value <- rewrite_expression(x$rhs$value, env)
-        x$rhs$depends$variables <- replace(x$rhs$depends$variables, subs)
-        x$depends$variables <- replace(x$depends$variables, subs)
-      }
-      x
-    }
-    obj$eqs[i] <- lapply(obj$eqs[i], f)
+  subs <- setNames(sprintf("initial_%s", vars), vars)
+  env <- as.environment(lapply(subs, as.name))
+
+  replace <- function(x, tr) {
+    i <- match(x, names(tr))
+    j <- !is.na(i)
+    x[j] <- tr[i][j]
+    x
   }
+  f <- function(x) {
+    if (any(x$rhs$depends$variables %in% vars)) {
+      x$rhs$value <- substitute_(x$rhs$value, env)
+      x$rhs$depends$variables <- replace(x$rhs$depends$variables, subs)
+      x$depends$variables <- replace(x$depends$variables, subs)
+    }
+    x
+  }
+
+  is_initial <- obj$traits[, "is_initial"]
+  obj$eqs[is_initial] <- lapply(obj$eqs[is_initial], f)
+
   obj
 }
 
