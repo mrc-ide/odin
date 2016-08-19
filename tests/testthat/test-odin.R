@@ -154,8 +154,6 @@ test_that("time dependent initial conditions", {
 })
 
 test_that("user c", {
-  ## The config(include) interface will probably change because it's
-  ## pretty nasty.
   gen <- odin({
     config(include) <- "user_fns.c"
     z <- squarepulse(t, 1, 2)

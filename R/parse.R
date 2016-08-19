@@ -14,25 +14,28 @@
 ##    through the processing code; odin_parse_collect_traits
 ##
 ## 4. identify *variables* (based on having an initial() & deriv() on
-##    the lhs); odin_parse_find_variables
+##    the lhs); odin_parse_find_vars
+##
+## 5. apply (and remove) and "config()" directives in the model;
+##    odin_parse_config
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x, as="file") {
-  ## Basic preparations over the expression list:
+  ## 1. Basic preparations over the expression list:
   exprs <- odin_parse_prepare(x, as)
 
-  ## Prepare each expression:
+  ## 2. Prepare each expression:
   eqs <- odin_parse_exprs(exprs)
 
   ## Start building the core object:
   ret <- list(eqs=eqs,
               file=if (as == "file") x else basename(tempfile("odin", ".")))
 
-  ## Compute overall information on traits (creates elements $traits
+  ## 3. Compute overall information on traits (creates elements $traits
   ## and $info):
   ret <- odin_parse_collect_traits(ret)
 
-  ## Identify all ODE variables:
+  ## 4. Identify all ODE variables:
   ret$vars <- odin_parse_find_vars(ret$eqs, ret$traits)
 
   ## Then below here everything is done via modifying the object
@@ -40,11 +43,12 @@ odin_parse <- function(x, as="file") {
   ## the object here.  During the cleanup I'll try and work out what
   ## is going on though.
 
-  ## The order here does matter, but it's not documented which depends
-  ## on which yet.
+  ## 5. Strip out all the configuration options, replacing them with a
+  ## "config" element in the data object.
   ret <- odin_parse_config(ret)
-  ret <- odin_parse_combine_arrays(ret)
 
+  ## ...below here not reviewed yet...
+  ret <- odin_parse_combine_arrays(ret)
   ret <- odin_parse_process_interpolate(ret) # after combine_arrays
   ret <- odin_parse_rewrite_initial_conditions(ret)
   ret <- odin_parse_dependencies(ret)
@@ -201,105 +205,6 @@ odin_parse_rewrite_initial_conditions <- function(obj) {
     }
     obj$eqs[i] <- lapply(obj$eqs[i], f)
   }
-  obj
-}
-
-odin_parse_config <- function(obj) {
-  ## We'll test for allowed config keys here:
-  ##    base - basename
-  ##    method - this is the default only
-  ##    atol, rtol - defaults only
-  ##    [we'll accept any defaults here?]
-
-  ## If base is not given, then we'll look at the actual underlying
-  ## filename; if that is not given, use odin?
-
-  ## That will scale pretty well for packages where we'll want each
-  ## different file to have their own base.
-  cfg <- obj$eqs[rownames(obj$traits)[obj$traits[, "is_config"]]]
-
-  ## Then, we go through and get the names of the variables.  They
-  ## must all be symbols, rather than characters, but that's enforced
-  ## earlier
-  err <- !obj$traits[names(cfg), "uses_atomic"]
-  if (any(err)) {
-    odin_error("config() rhs must be atomic (not an expression)",
-               get_lines(cfg[err]), get_exprs(cfg[err]))
-  }
-
-  dat <- setNames(lapply(cfg, function(x) x$rhs$value),
-                  vcapply(cfg, function(x) x$lhs$name_target))
-  ## Here, we do need to check a bunch of values, really.
-  defaults <- list(base="odin", include=character(0))
-  if (obj$file != "") {
-    defaults$base <- gsub("[-.]", "_", basename_no_ext(obj$file))
-  }
-
-  ## These all need support on the C side.
-  ##
-  ## Consider namespacing these here:
-  ## atol=formals(deSolve::lsoda)$atol,
-  ## rtol=formals(deSolve::lsoda)$rtol,
-  ## method="lsoda", # same as deSolve::ode
-  ## ## delay only
-  ## mxhist=10000
-  ##
-  ## Also allow renaming here (time, derivs, etc).
-
-  err <- setdiff(names(dat), names(defaults))
-  if (length(err)) {
-    tmp <- cfg[match(err, names(dat))]
-    odin_error(sprintf("Unknown configuration options: %s",
-                       paste(err, collapse=", ")),
-               get_lines(tmp), get_exprs(tmp))
-  }
-
-  ## Now, we need to typecheck these.  This is really annoying to do!
-  char <- vlapply(defaults, is.character)
-  ok <- vlapply(dat, is.character) == char[names(dat)]
-  if (!all(ok)) {
-    ## TODO: better error messages (which are the wrong types?)
-    ##
-    ## TODO: this branch is not tested (there was a typo in which that
-    ## is not triggered anywhere)
-    tmp <- cfg[!ok]
-    odin_error(sprintf("Incorrect type (char vs numeric) for configuration: %s",
-                       paste(names(which(!ok)), collapse=", ")),
-               get_lines(tmp), get_exprs(tmp))
-  }
-
-  i <- names(dat) == "include"
-  if (any(i)) {
-    read <- function(j) {
-      tryCatch(read_user_c(dat[[j]]),
-               error=function(e)
-                 odin_error(paste("Could not read include file:", e$message),
-                            cfg[i][[j]]$line,
-                            cfg[i][[j]]$expr))
-    }
-    res <- lapply(which(i), read)
-    res <- list(declarations=unlist(lapply(res, "[[", "declarations")),
-                definitions=unlist(lapply(res, "[[", "definitions")))
-    if (any(duplicated(res$declarations))) {
-      ## TODO: could be nicer
-      stop("Duplicate declarations while reading includes")
-    }
-    dat <- dat[-i]
-    dat$include <- res
-  }
-
-  obj$config <- modifyList(defaults, dat)
-  if (!grepl("^[[:alnum:]_]+$", obj$config$base)) {
-    stop(sprintf("Invalid base value: '%s', must contain letters, numbers and underscores only", obj$config$base))
-  }
-
-  if (length(obj$config$include) == 0L) {
-    obj$config$include <- NULL
-  }
-
-  keep <- !obj$traits[, "is_config"]
-  obj$eqs <- obj$eqs[keep]
-  obj$traits <- obj$traits[keep, , drop=FALSE]
   obj
 }
 
@@ -1307,6 +1212,18 @@ recursive_dependencies <- function(order, deps, vars) {
       c(j, unique(as.character(unlist(deps_rec[j], use.names=FALSE))))
   }
   deps_rec
+}
+
+is_c_identifier <- function(x) {
+  ## Keyword list from:
+  ## http://en.cppreference.com/w/c/keyword
+  c_reserved <-
+    c("auto", "break", "case", "char", "const", "continue", "default",
+      "do", "double", "else", "enum", "extern", "float", "for", "goto",
+      "if", "inline", "int", "long", "register", "restrict", "return",
+      "short", "signed", "sizeof", "static", "struct", "switch", "typedef",
+      "union", "unsigned", "void", "volatile", "while")
+  grepl("[A-Za-z_][A-Za-z0-9_]*", x) & !(x %in% c_reserved)
 }
 
 ## NOTE:
