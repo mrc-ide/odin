@@ -56,13 +56,13 @@ odin_parse <- function(x, as="file") {
   ## "vars", and before combining arrays).
   ret <- odin_parse_rewrite_initial(ret)
 
-
   ## ...below here not reviewed yet...
   ret <- odin_parse_combine_arrays(ret)
-  ret <- odin_parse_process_interpolate(ret) # after combine_arrays
   ret <- odin_parse_dependencies(ret)
   ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
+
+  ret <- odin_parse_process_interpolate(ret)
   ret <- odin_parse_delay(ret)
   ret <- odin_parse_output(ret)
   ret
@@ -133,6 +133,8 @@ odin_parse_collect_traits <- function(obj) {
   obj
 }
 
+## Identfying variables is straightforward; they have deriv() and
+## initial() calls.  It is an error not to have both.
 odin_parse_find_vars <- function(eqs, traits) {
   is_deriv <- traits[, "is_deriv"]
   is_initial <- traits[, "is_initial"]
@@ -568,18 +570,14 @@ odin_parse_dependencies <- function(obj) {
   user <- setNames(!vlapply(eqs[is_user], function(x) x$rhs$default),
                    nms[is_user])
 
-  ## NOTE: Be careful doing anything after the re-order as you will
-  ## probably make a mistake; this invalidates most variables really.
-  i <- match(order_keep, nms)
-  eqs <- eqs[i]
-  nms <- nms[i]
-  deps <- deps[i]
-  deps_rec <- deps_rec[i]
-  names(eqs) <- nms
-
-  for (i in nms) {
+  for (i in order_keep) {
     eqs[[i]]$stage <- stage[[i]]
   }
+
+  ## NOTE: Equation reordering; *must* update traits at the same time.
+  i <- match(order_keep, nms)
+  obj$eqs <- eqs[i]
+  obj$traits <- obj$traits[i, ]
 
   ## TODO: The other thing that is needed through here is going to be
   ## information about _exactly_ which variables need unpacking from
@@ -591,7 +589,6 @@ odin_parse_dependencies <- function(obj) {
   ## that don't need unpacking.  I think that if I change the dummy
   ## 't' variable to be '<time>' and use that for detecting stage but
   ## look out for an explicit time variable that would be preferable.
-  obj$eqs <- eqs
   obj$user <- user
   obj$initial_stage <- initial_stage
   obj$dim_stage <- dim_stage
