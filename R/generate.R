@@ -101,12 +101,13 @@ odin_generate_object <- function(dat) {
   self <- list(base=base)
 
   self$info <- list(base=base,
-                    has_delay=dat$has_delay,
-                    has_output=dat$has_output,
+                    has_delay=dat$info$has_delay,
+                    has_output=dat$info$has_output,
                     has_interpolate=dat$info$has_interpolate,
                     has_array=dat$has_array,
-                    user=dat$user,
-                    initial_stage=dat$initial_stage,
+                    user=dat$user_default, # TODO: update
+                    ## TODO: tweak dat$info here?
+                    initial_stage=dat$initial$stage,
                     dim_stage=dat$dim_stage)
 
   self$name_pars <- sprintf("%s_p", base)
@@ -192,7 +193,7 @@ odin_generate_loop <- function(dat) {
     obj$library_fns$add("odin_sum2")
     obj$library_fns$add("odin_sum3")
   }
-  if (dat$has_delay) {
+  if (dat$info$has_delay) {
     obj$library_fns$add("lagvalue_dde")
     obj$library_fns$add("lagvalue_ds")
   }
@@ -202,8 +203,8 @@ odin_generate_loop <- function(dat) {
   ## Need to do this out here, rather than in the main loop because
   ## otherwise when there is more than one delay variable they would
   ## be added multiple times!
-  if (length(dat$delay_arrays) > 0L) {
-    for (nm in dat$delay_arrays) {
+  if (length(dat$delay_support$arrays) > 0L) {
+    for (nm in dat$delay_support$arrays) {
       obj$add_element(nm, "double", 1L)
     }
   }
@@ -225,7 +226,8 @@ odin_generate_loop <- function(dat) {
     }
   }
 
-  initial_t_deps <- dat$initial_t_deps
+  ## TODO: this should be factored out?
+  initial_t_deps <- dat$initial$time_deps
   if (length(initial_t_deps)) {
     ## All of the elements here are _time_ dependent, which changes
     ## things a little.
@@ -262,7 +264,7 @@ odin_generate_loop <- function(dat) {
   }
   obj$variable_size <- obj$rewrite(dat$variable_order$total_use)
 
-  if (dat$has_output) {
+  if (dat$info$has_output) {
     if (dat$output_order$total_is_var) {
       obj$add_element(dat$output_order$total_use, "int")
       st <- STAGES[[dat$output_order$total_stage]]
@@ -298,7 +300,7 @@ odin_generate_loop <- function(dat) {
   ## the parsing bits because it's really a parse step.  I'll try and
   ## move that across shortly, and then think about rationalising it a
   ## bit.
-  if (dat$has_output) {
+  if (dat$info$has_output) {
     obj$vars$used_output <- obj$vars$name %in% dat$output_info$used
     output_len <- rep_len("1", length(dat$output_order$is_array))
     output_len[dat$output_order$is_array] <-
@@ -617,10 +619,10 @@ odin_generate_delay <- function(x, obj, dat) {
   obj$free$add("Free(%s);", obj$rewrite(delay_idx))
   obj$free$add("Free(%s);", obj$rewrite(delay_state))
 
-  if (length(dat$delay_arrays) > 0L) {
-    for (i in seq_along(dat$delay_arrays)) {
-      nm_arr <- dat$delay_arrays[[i]]
-      size <- array_dim_name(names(dat$delay_arrays)[[i]])
+  if (length(dat$delay_support$arrays) > 0L) {
+    for (i in seq_along(dat$delay_support$arrays)) {
+      nm_arr <- dat$delay_support$arrays[[i]]
+      size <- array_dim_name(names(dat$delay_support$arrays)[[i]])
       if (st == "user") { ## NOTE: duplicated from odin_generate_dim()
         obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_arr))
         obj[["user"]]$add("Free(%s);", obj$rewrite(nm_arr))
@@ -719,11 +721,11 @@ odin_generate_delay <- function(x, obj, dat) {
   ## Then we'll organise that whenever we hit a variable that is used
   ## in a delay statement we'll add it in here in the appropriate
   ## order.
-  if (length(dat$delay_arrays) > 0L) {
-    subs <- lapply(dat$delay_arrays, as.name)
+  if (length(dat$delay_support$arrays) > 0L) {
+    subs <- lapply(dat$delay_support$arrays, as.name)
     tr <- function(x) {
       if (x$name %in% names(subs)) {
-        x$name <- dat$delay_arrays[[x$name]]
+        x$name <- dat$delay_support$arrays[[x$name]]
       }
       if (isTRUE(x$rhs$delay)) {
         ## This one is the actual target (last step in the process).
@@ -1445,6 +1447,9 @@ read_user_c <- function(filename) {
 }
 
 array_dim_name <- function(name, sub=NULL, use=TRUE) {
+  if (length(name) > 1L) {
+    return(vcapply(name, array_dim_name, sub, use, USE.NAMES=FALSE))
+  }
   if (!is.null(sub)) {
     name <- sprintf("%s_%s", name, sub)
   }

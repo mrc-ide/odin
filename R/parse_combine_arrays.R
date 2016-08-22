@@ -37,7 +37,7 @@ odin_parse_combine_arrays <- function(obj) {
     i <- match(names(eqs), unique(names(eqs)[is_array]))
     i <- unname(split(which(!is.na(i)), na.omit(i)))
     i_repl <- viapply(i, "[[", 1L)
-    eqs[i_repl] <- lapply(i, odin_parse_combine_arrays_1, eqs)
+    eqs[i_repl] <- lapply(i, odin_parse_combine_arrays_1, obj)
     ## Drop the duplicated lines (perhaps)
     i_drop <- unlist(lapply(i, "[", -1L))
     if (length(i_drop) == 0L) {
@@ -137,7 +137,8 @@ odin_parse_combine_arrays_nd <- function(obj) {
   nd
 }
 
-odin_parse_combine_arrays_1 <- function(idx, eqs) {
+odin_parse_combine_arrays_1 <- function(idx, obj) {
+  eqs <- obj$eqs
   x <- eqs[[idx[[1L]]]]
 
   x$depends <- join_deps(lapply(eqs[idx], function(x) x[["depends"]]))
@@ -183,6 +184,21 @@ odin_parse_combine_arrays_1 <- function(idx, eqs) {
   } else {
     ok <- c("type", "depends", "value", "user", "default", "sum")
     stopifnot(length(setdiff(used_rhs, ok)) == 0L)
+  }
+
+  ## Array delay variables need to delay on the dimensions of their
+  ## "present" array, so that the order of initialisation is always
+  ## correct.  In practice I don't think this is a big deal because
+  ## array sizing is not time dependent.  However, this resolves a
+  ## difficulty in determining the total array size of the delay
+  ## bookkeeping indices.
+  if (isTRUE(x$rhs$delay)) {
+    d <- setdiff(x$rhs$depends_delay$variables, c(obj$vars, INDEX))
+    extra <- names(which(obj$traits[d, "is_array"]))
+    if (length(extra) > 0L) {
+      x$rhs$depends$variables <- union(x$rhs$depends$variables,
+                                       array_dim_name(extra))
+    }
   }
 
   x

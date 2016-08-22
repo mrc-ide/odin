@@ -24,6 +24,9 @@
 ##
 ## 7. Combine array equations involving the same expression into a
 ##    single expression.
+##
+## 8. Determine the graph structure of the model and (from that) the
+##    order in which to traverse the model.
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x, as="file") {
@@ -65,14 +68,20 @@ odin_parse <- function(x, as="file") {
   ## equations themselves.
   ret <- odin_parse_combine_arrays(ret)
 
-  ## ...below here not reviewed yet...
+  ## 8. Determine the graph structure of the model and (from that) the
+  ## order in which to traverse the model.
   ret <- odin_parse_dependencies(ret)
+
+  ## ...below here not reviewed yet...
+  ret <- odin_parse_output_TEMPORARY(ret)
   ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
-
+  ret <- odin_parse_initial(ret)
   ret <- odin_parse_process_interpolate(ret)
   ret <- odin_parse_delay(ret)
   ret <- odin_parse_output(ret)
+  ret <- odin_parse_user(ret)
+
   ret
 }
 
@@ -226,221 +235,6 @@ odin_parse_rewrite_initial <- function(obj) {
   is_initial <- obj$traits[, "is_initial"]
   obj$eqs[is_initial] <- lapply(obj$eqs[is_initial], f)
 
-  obj
-}
-
-odin_parse_dependencies <- function(obj) {
-  eqs <- obj$eqs
-  vars <- obj$vars
-  nms <- vcapply(eqs, "[[", "name")
-  exclude <- c("", INDEX)
-
-  ## Array delay variables need to delay on the dimensions of their
-  ## "present" array, so that the order of initialisation is always
-  ## correct.  In practice I don't think this is a big deal because
-  ## array sizing is not time dependent.  However, this resolves a
-  ## difficulty in determining the total array size of the delay
-  ## bookkeeping indices.
-  is_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
-  is_array <- setNames(vlapply(eqs, function(x) identical(x$lhs$type, "array")),
-                       nms)
-  if (any(is_delay)) {
-    for (i in which(is_delay)) {
-      j <- is_array[setdiff(eqs[[i]]$rhs$depends_delay$variables,
-                            c(obj$vars, INDEX))]
-      if (any(j)) {
-        eqs[[i]]$rhs$depends$variables <-
-                 union(eqs[[i]]$rhs$depends$variables,
-                       vcapply(names(j[j]), array_dim_name, USE.NAMES=FALSE))
-      }
-    }
-  }
-
-  ## NOTE: Here, we filter the dependency lists to exclude any self
-  ## referencing variables.  These are allowed only for array
-  ## variables and this is checked in parse_expr.
-  deps <- lapply(eqs, function(el)
-    setdiff(el$depends$variables, c(el$name, exclude)))
-
-  msg <- lapply(deps, setdiff, c(nms, vars, TIME))
-  i <- lengths(msg) > 0L
-  if (any(i)) {
-    odin_error(sprintf("Unknown variables %s",
-                       paste(sort(unique(unlist(msg))), collapse=", ")),
-               get_lines(eqs[i]), get_exprs(eqs[i]))
-  }
-
-  ## For the derivative calculations the variables come in with no
-  ## dependencies because they are provided by the integrator, but
-  ## we'll add an implicit time dependency.
-  time_implicit <- paste0(TIME, "<implicit>")
-  dummy <- c(list(t=character(0)),
-             setNames(list(character(0)), time_implicit),
-             setNames(rep(list(time_implicit), length(vars)), vars))
-  order <- topological_order(c(deps, dummy))
-
-  ## Then, we work out the recursive dependencies; this is the entire
-  ## dependency chain of a thing; including its dependencies, its
-  ## dependencies dependencies and so on.
-  deps_rec <- recursive_dependencies(order, c(deps, dummy), vars)
-  is_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
-  is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
-  is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
-  is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
-  is_user <- vlapply(eqs, function(x) isTRUE(x$rhs$user))
-  is_interpolate <- vlapply(eqs, function(x) isTRUE(x$rhs$interpolate))
-
-  ## Then, we can get the stage for these variables:
-  stage <- setNames(rep(STAGE_CONSTANT, length(order)), order)
-  stage[c(TIME, time_implicit)] <- STAGE_TIME
-  stage[nms[is_user]] <- STAGE_USER
-  stage[nms[is_delay | is_output | is_deriv | is_interpolate]] <- STAGE_TIME
-
-  ## OK, this is potentially quite nasty for initial values that
-  ## depend on time, on delay equations, etc, because it requires
-  ## pulling a whole extra set of calculations out like we do for the
-  ## delays.
-
-  ## In topological order, determine inherited stage (a initial/time stage
-  ## anywhere in a chain implies a initial/time stage).
-  for (i in seq_along(order)) {
-    stage[[i]] <- max(stage[[i]], stage[deps_rec[[i]]])
-  }
-
-  ## Lots of ugly processing here.  The idea here is to order the
-  ## time-dependent variables correctly within each delay block and to
-  ## filter out any non-time-dependent things.
-  if (any(is_delay)) {
-    delay_arrays <- collector()
-    f <- function(x) {
-      tmp <- setdiff(x$rhs$depends_delay$variables, INDEX)
-      deps <- unique(c(tmp, unlist(deps_rec[tmp], use.names=FALSE)))
-      ## NOTE: We have to exclude delayed values from the dependencies
-      ## here, even though they are time dependent (*different* sort
-      ## of time dependence...)
-      deps <- setdiff(deps[stage[deps] == STAGE_TIME],
-                      c(TIME, time_implicit, nms[is_delay]))
-      delay_arrays$add(intersect(names(which(is_array)), deps))
-      deps[order(match(deps, order))]
-    }
-    for (i in which(is_delay)) {
-      eqs[[i]]$rhs$order_delay <- f(eqs[[i]])
-    }
-    tmp <- unique(delay_arrays$get())
-    obj$delay_arrays <- setNames(sprintf("delay_%s", tmp), tmp)
-  }
-
-  if (any(stage[nms[is_initial]] == STAGE_TIME)) {
-    ## NOTE: The intersect() here ensures correct ordering.
-    initial_t <- names(which(stage[nms[is_initial]] == STAGE_TIME))
-    tmp <- unique(unlist(deps_rec[initial_t], use.names=FALSE))
-    tmp <- intersect(order, setdiff(tmp[stage[tmp] == STAGE_TIME], TIME))
-    obj$initial_t_deps <- tmp
-  }
-
-  ## Adjust the order so that it's by stage first, and then the order.
-  ## This should not create any impossible situations because of the
-  ## stage treatent above.
-  i <- order(stage)
-  stage <- stage[i]
-  order <- order[i]
-
-  order_keep <- setdiff(order, names(dummy))
-
-  ## Then, we compute two subgraphs (for dde) in the case where there
-  ## are output variables.  We'd actually only want to get the output
-  ## variables that are time dependent I think, but that really should
-  ## be all of them.
-  if (any(is_output)) {
-    ## OK, what I need to find out here is:
-    ##
-    ##   * what is the full set of dependencies, including variables,
-    ##     that are used in computing the output variables.
-    ##
-    ##   * what is *only* used in computing output variables
-    ##
-    ## This may change later...
-    nms_output <- nms[is_output]
-    used_output <-
-      setdiff(unique(c(unlist(deps_rec[nms_output], use.names=FALSE),
-                       nms_output)),
-              c(TIME, time_implicit))
-    used_output <- c(setdiff(used_output, order_keep),
-                     intersect(order_keep, used_output))
-    nms_deriv <- nms[is_deriv]
-    used_deriv <- unique(c(unlist(deps_rec[nms_deriv], use.names=FALSE),
-                           nms_deriv))
-
-    if (any(is_delay)) {
-      used_delay <-
-        unique(unlist(lapply(eqs[is_delay], function(x) x$rhs$order_delay)))
-    } else {
-      used_delay <- character(0)
-    }
-
-    only_output <- setdiff(used_output, c(used_deriv, used_delay))
-    only_output <- intersect(only_output, names(stage[stage == STAGE_TIME]))
-
-    output_info <- list(used=used_output, only=only_output, deriv=used_deriv)
-    stage[only_output] <- STAGE_OUTPUT
-  } else {
-    output_info <- NULL
-  }
-
-  ## TODO: Special treatment is needed for time-dependent initial
-  ## conditions; they get special treatment and are held to max of
-  ## STAGE_USER.  However, we'll record that they are time-dependent
-  ## here.
-  is_initial <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
-  initial_stage <- (if (any(is_delay)) STAGE_TIME
-                    else max(c(STAGE_CONSTANT, stage[nms[is_initial]])))
-
-  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
-  dim_stage <- max(c(STAGE_CONSTANT, stage[nms[is_dim]]))
-
-  ## Check for unused branches:
-  is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
-  endpoints <- nms[is_initial | is_output | is_deriv]
-  used <- union(endpoints, unique(unlist(deps_rec[endpoints], use.names=FALSE)))
-  unused <- setdiff(nms, used)
-  if (length(unused) > 0L) {
-    i <- sort(match(unused, nms))
-    ## TODO: this is disabled for now because it breaks a ton of tests
-    ## that I want to throw earlier.
-    ##
-    ## TODO: perhaps this should be a warning?
-    ## odin_error(sprintf("Unused variables: %s", paste(unused, collapse=", ")),
-    ##            get_lines(eqs[i]), get_exprs(eqs[i]))
-  }
-
-  ## We need to filter the dimensions off here for user arrays:
-  is_user <- is_user & !is_dim
-  user <- setNames(!vlapply(eqs[is_user], function(x) x$rhs$default),
-                   nms[is_user])
-
-  for (i in order_keep) {
-    eqs[[i]]$stage <- stage[[i]]
-  }
-
-  ## NOTE: Equation reordering; *must* update traits at the same time.
-  i <- match(order_keep, nms)
-  obj$eqs <- eqs[i]
-  obj$traits <- obj$traits[i, ]
-
-  ## TODO: The other thing that is needed through here is going to be
-  ## information about _exactly_ which variables need unpacking from
-  ## the structs; there will be models where time is never
-  ## _explicitly_ used (the lorenz attractor is one such model).
-  ## There will be models where some variables have derivatives
-  ## computed but the value of the variable is never referenced in the
-  ## calculations and there will be (in the dde/output case) variables
-  ## that don't need unpacking.  I think that if I change the dummy
-  ## 't' variable to be '<time>' and use that for detecting stage but
-  ## look out for an explicit time variable that would be preferable.
-  obj$user <- user
-  obj$initial_stage <- initial_stage
-  obj$dim_stage <- dim_stage
-  obj$output_info <- output_info
   obj
 }
 
@@ -627,104 +421,6 @@ odin_parse_variable_order <- function(obj) {
          total_is_var=total_is_var,
          total_use=total_use,
          total_stage=total_stage)
-  obj
-}
-
-## Delay variables can't depend on delay variables (I believe this is
-## checked somewhere).  That simplifies things because we can't have:
-##
-##   x <- delay(a, t)
-##   y <- delay(x, t)
-##
-## and then have to extract the delayed variable over the delayed
-## variable!  That would just be too much for deSolve to deal with I
-## think.
-##
-## The ordering of delay variables is based on the lag time.  Delay
-## variables will be computed before they are needed for the rest of
-## the variables but ideally we'd collect all variables that
-## correspond to a particular time to allow sharing of computation.
-## So if there are two delay variables with the same lag time then
-## we'd extract the pair of them together:
-##
-##   x <- delay(a + c, t)
-##   y <- delay(b + c, t)
-##
-## will group x and y together so that the lookup happens at once:
-##
-##   {
-##      ... pull a, b, c out of the delay loop ...
-##      ... compute x and y ...
-##   }
-##
-## however, that complicates things significantly for gains that might
-## not be that apparent.  In particular we would need to reorder the
-## expressions computed on underlying a, b, c above and get the
-## topological order there correct.  I think that can be looked up
-## against the order vector though.  I'm really in two minds about
-## this because I don't see it being used much in the BM code that I
-## have seen, and because correct is better than fast.  For now, we
-## don't combine.
-odin_parse_delay <- function(obj) {
-  is_delay <- which(vlapply(obj$eqs, function(x) isTRUE(x$rhs$delay)))
-  obj$has_delay <- length(is_delay) > 0L
-  if (!obj$has_delay) {
-    return(obj)
-  }
-
-  for (idx in seq_along(is_delay)) {
-    i <- is_delay[[idx]]
-    x <- obj$eqs[[i]]
-    deps <- x$rhs$order_delay
-    time <- x$rhs$value_time
-    if (is.recursive(time)) {
-      time <- call("(", time)
-    }
-    ## TODO: Consider checking through the time values and making sure
-    ## we don't include any INDEX variables.  Later they will be
-    ## supported.  I think that time is OK though.
-    if (any(INDEX %in% x$rhs$depends$variables)) {
-      odin_error("delay times may not reference index variables (yet)",
-                 x$line, x$expr)
-    }
-    ## TODO: check for delay through the recursive deps for delay vars...
-
-    ## Here, it's really important to pull these out with the scalars
-    ## first, then the arrays.
-    vars_is_array <- obj$variable_order$is_array
-    extract <- intersect(names(vars_is_array), deps) # retains ordering
-    is_array <- vars_is_array[extract]
-    len <- length(extract)
-    size <- vector("list", len)
-    offset <- vector("list", len)
-    for (j in seq_len(len)) {
-      if (!is_array[[j]]) {
-        size[[j]] <- 1L
-        offset[[j]] <- j - 1L
-      } else {
-        size[[j]] <- array_dim_name(extract[[j]])
-        if (j == 1L || !is_array[[j - 1L]]) {
-          offset[[j]] <- j - 1L
-        } else {
-          offset[[j]] <- size[[j - 1L]]
-        }
-      }
-    }
-    names(size) <- names(offset) <- extract
-
-    deps <- setdiff(deps, extract)
-    dep_is_array <- vcapply(obj$eqs[deps], function(x) x$lhs$type) == "array"
-
-    obj$eqs[[i]]$delay <- list(idx=idx,
-                               time=time,
-                               extract=extract,
-                               deps=deps,
-                               dep_is_array=dep_is_array,
-                               is_array=is_array,
-                               size=size,
-                               offset=offset)
-  }
-
   obj
 }
 
@@ -965,7 +661,7 @@ check_array_length_dim <- function(x, nd) {
 ##
 ## is unclear; this could work with a vector or a 1 column matrix!
 ##
-## Anyway, for now we skip this annoying difficulty and assumr that
+## Anyway, for now we skip this annoying difficulty and assume that
 ## the user doesn't do anything crazy with these functions.
 odin_parse_process_interpolate <- function(obj) {
   if (!obj$info$has_interpolate) {
@@ -1086,3 +782,110 @@ RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
+
+######################################################################
+
+odin_parse_initial <- function(obj) {
+  stage <- obj$stage
+  nms_initial <- names(which(obj$traits[, "is_initial"]))
+
+  ## TODO: Special treatment is needed for time-dependent initial
+  ## conditions; they get special treatment and are held to max of
+  ## STAGE_USER.  However, we'll record that they are time-dependent
+  ## here.
+  initial_stage <- (if (obj$info$has_delay) STAGE_TIME
+                    else max(c(STAGE_CONSTANT, stage[nms_initial])))
+  initial <- list(stage=initial_stage)
+
+  nms_initial_t <- names(which(stage[nms_initial] == STAGE_TIME))
+  if (length(nms_initial_t) > 0L) {
+    ## NOTE: The intersect() here ensures correct ordering.
+    d <- unique(unlist(obj$deps_rec[nms_initial_t], use.names=FALSE))
+    initial$time_deps <-
+      intersect(names(obj$deps_rec), setdiff(d[stage[d] == STAGE_TIME], TIME))
+  }
+
+  obj$initial <- initial
+  obj
+}
+
+odin_parse_output_TEMPORARY <- function(obj) {
+  ## Then, we compute two subgraphs (for dde) in the case where there
+  ## are output variables.  We'd actually only want to get the output
+  ## variables that are time dependent I think, but that really should
+  ## be all of them.
+  if (obj$info$has_output) {
+    is_output <-
+    ## OK, what I need to find out here is:
+    ##
+    ##   * what is the full set of dependencies, including variables,
+    ##     that are used in computing the output variables.
+    ##
+    ##   * what is *only* used in computing output variables
+    ##
+    ## This may change later...
+    nms_output <- names(which(obj$traits[, "is_output"]))
+    nms_deriv <- names(which(obj$traits[, "is_deriv"]))
+
+    used_output <-
+      setdiff(unique(c(unlist(obj$deps_rec[nms_output], use.names=FALSE),
+                       nms_output)),
+              TIME)
+    used_output <- c(setdiff(used_output, names(obj$eqs)),
+                     intersect(names(obj$eqs), used_output))
+    used_deriv <- unique(c(unlist(obj$deps_rec[nms_deriv], use.names=FALSE),
+                           nms_deriv))
+
+    if (obj$info$has_delay) {
+      ## TODO: need to do a little more work here; we don't have
+      ## access to delay_support$order in general, but we can get at
+      ## the dependencies that went into this, which we *do* have.
+      stop("FIXME")
+      ## browser()
+      used_delay <-
+        unique(unlist(lapply(obj$eqs[obj$traits[, "uses_delay"]],
+                             function(x) x$rhs$delay_support$order)))
+    } else {
+      used_delay <- character(0)
+    }
+
+    only_output <- intersect(setdiff(used_output, c(used_deriv, used_delay)),
+                             names_if(obj$stage == STAGE_TIME))
+
+    ## This is the write bit:
+    obj$output_info <-
+      list(used=used_output, only=only_output, deriv=used_deriv)
+    obj$stage[only_output] <- STAGE_OUTPUT
+    for (i in intersect(only_output, names(obj$eqs))) {
+      obj$eqs[[i]]$stage <- STAGE_OUTPUT
+    }
+  }
+  obj
+}
+
+odin_parse_user <- function(obj) {
+  ## We need to filter the dimensions off here for user arrays:
+  is_user <- obj$traits[, "uses_user"] & !obj$traits[, "is_dim"]
+  obj$user_default <-
+    setNames(!vlapply(obj$eqs[is_user], function(x) x$rhs$default),
+             obj$names_target[is_user])
+  obj
+}
+
+odin_parse_check_unused <- function(obj) {
+  ## Check for unused branches:
+  v <- c("is_deriv", "is_output", "is_initial")
+  endpoints <- names_if(apply(obj$traits[, v], 1, any))
+  used <- union(endpoints,
+                unique(unlist(obj$deps_rec[endpoints], use.names=FALSE)))
+  unused <- !(names(obj$eqs) %in% used)
+  if (any(unused)) {
+    ## TODO: this is disabled for now because it breaks a ton of tests
+    ## that I want to throw earlier.
+    ##
+    ## TODO: perhaps this should be a warning?
+    ## odin_error(sprintf("Unused variables: %s",
+    ##                    paste(names(obj$eqs)[unused], collapse=", ")),
+    ##            get_lines(obj$eqs[unused]), get_exprs(obj$eqs[unused]))
+  }
+}

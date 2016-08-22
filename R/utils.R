@@ -23,6 +23,7 @@ collector <- function(init=character(0)) {
   list(add=function(x, ...) res <<- c(res, sprintf(x, ...)),
        prepend=function(x, ...) res <<- c(sprintf(x, ...), res),
        clear=function() res <<- init,
+       length=function(x) length(res),
        pop=function() {ret <- res; res <<- init; ret},
        get=function() res)
 }
@@ -40,7 +41,11 @@ collector_named <- function(required=FALSE) {
         stop("required names are missing")
       }
       names$add(nms)
+      n_prev <- data$length()
       data$add(...)
+      if (data$length() != n_prev + n) {
+        stop("odin bug")
+      }
     },
     get=function() {
       setNames(data$get(), names$get())
@@ -105,6 +110,10 @@ expand_grid_int <- function(x) {
 
 is_duplicated <- function(x) {
   x %in% x[duplicated(x)]
+}
+
+names_if <- function(x) {
+  names(x)[x]
 }
 
 self <- NULL

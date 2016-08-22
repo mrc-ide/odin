@@ -289,6 +289,20 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
     ## mask the variables.
     odin_error("delay() may not refer to time as that's confusing")
   }
+
+  time <- rhs[[3L]]
+  if (is.recursive(time) && !is_call(time, quote(`(`))) {
+    time <- call("(", time)
+  }
+
+  ## TODO: Consider checking through the time values and making sure
+  ## we don't include any INDEX variables.  Later they will be
+  ## supported.  I think that time is OK though.
+  if (any(INDEX %in% rhs$depends$variables)) {
+    odin_error("delay expressions may not reference index variables (yet)",
+               line, expr)
+  }
+
   list(type="expression",
        delay=TRUE,
        ## resolved at the same time as everything else:
@@ -296,7 +310,7 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
        ## resolved independently in the previous time:
        depends_delay=deps_delay_expr,
        value_expr=rhs[[2L]],
-       value_time=rhs[[3L]])
+       value_time=time)
 }
 
 odin_parse_expr_rhs_user <- function(rhs, line, expr) {
