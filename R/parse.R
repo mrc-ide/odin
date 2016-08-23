@@ -28,6 +28,12 @@
 ## 8. Determine the graph structure of the model and (from that) the
 ##    order in which to traverse the model.  This step also determines
 ##    if expressions are constant or time dependent ("stage").
+##
+## 9. Compute the order to store variables in, and associated bits for
+##    extraction.  These are used in odin_parse_delay() too.
+##
+## 10. Collect some information about initial conditions, user
+##     variables, outputs, delays and interpolate calls.
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x, as="file") {
@@ -74,15 +80,16 @@ odin_parse <- function(x, as="file") {
   ret <- odin_parse_dependencies(ret)
 
   ## 9. Compute the order to store variables in, and associated bits
-  ##    for extraction.  These are used in odin_parse_delay() too.
+  ## for extraction.  These are used in odin_parse_delay() too.
   ret <- odin_parse_variable_order(ret)
 
-  ## ...below here not reviewed yet...
+  ## 10. Collect some information about initial conditions, user
+  ## variables, outputs, delays and interpolate calls.
   ret <- odin_parse_initial(ret)
-  ret <- odin_parse_process_interpolate(ret)
-  ret <- odin_parse_delay(ret)
-  ret <- odin_parse_output(ret)
   ret <- odin_parse_user(ret)
+  ret <- odin_parse_output(ret)
+  ret <- odin_parse_delay(ret)
+  ret <- odin_parse_interpolate(ret)
 
   ret
 }
@@ -346,7 +353,7 @@ odin_parse_extract_order <- function(names, obj) {
 ##
 ## Anyway, for now we skip this annoying difficulty and assume that
 ## the user doesn't do anything crazy with these functions.
-odin_parse_process_interpolate <- function(obj) {
+odin_parse_interpolate <- function(obj) {
   if (!obj$info$has_interpolate) {
     return(obj)
   }
@@ -468,6 +475,7 @@ INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 
 ######################################################################
 
+## TODO: this seems borderline useless.
 odin_parse_initial <- function(obj) {
   stage <- obj$stage
   nms_initial <- names(which(obj$traits[, "is_initial"]))
