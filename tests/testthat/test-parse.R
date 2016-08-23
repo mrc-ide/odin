@@ -127,26 +127,30 @@ test_that("RHS array checking", {
   expr <- quote(x)
 
   ## This needs expanding as I find more corner cases
-  expect_null(check_array_rhs(quote(a + b[1]), c(b=1), line, expr))
-  expect_error(check_array_rhs(quote(a + b[1]), c(b=2), line, expr),
+  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=1), line, expr))
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=2), line, expr),
                "Incorrect dimensionality for b")
-  expect_error(check_array_rhs(quote(a + b[1,2,3]), c(b=2), line, expr),
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=2),
+                                           line, expr),
                "Incorrect dimensionality for b")
-  expect_null(check_array_rhs(quote(a + b[1,2,3]), c(b=3), line, expr))
-  expect_error(check_array_rhs(quote(a + b[f(1)]), c(b=1), line, expr),
+  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=3),
+                                          line, expr))
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b=1),
+                                           line, expr),
                "Disallowed functions used for b")
-  expect_error(check_array_rhs(quote(b), c(b=1), line, expr),
+  expect_error(odin_parse_arrays_check_rhs(quote(b), c(b=1), line, expr),
                "Array 'b' used without array index")
-  expect_null(check_array_rhs(quote(a), c(b=1), line, expr))
+  expect_null(odin_parse_arrays_check_rhs(quote(a), c(b=1), line, expr))
   ## Would be nicer to detect the nested indexing.
-  expect_error(check_array_rhs(quote(a[b[1]]), c(a=1, b=1), line, expr),
+  expect_error(odin_parse_arrays_check_rhs(quote(a[b[1]]), c(a=1, b=1),
+                                           line, expr),
                "Disallowed functions used for a in")
-  expect_error(check_array_rhs(quote(a[]), c(a=1), line, expr),
+  expect_error(odin_parse_arrays_check_rhs(quote(a[]), c(a=1), line, expr),
                "Empty array index not allowed on rhs")
 
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
-  expect_null(check_array_rhs(rhs, c(a=1), line, expr))
-  expect_error(check_array_rhs(rhs, c(b=1), line, expr),
+  expect_null(odin_parse_arrays_check_rhs(rhs, c(a=1), line, expr))
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), line, expr),
                "Special function sum requires array as first argument")
 })
 

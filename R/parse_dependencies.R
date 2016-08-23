@@ -13,6 +13,12 @@ odin_parse_dependencies <- function(obj) {
   obj$dim_stage <- max(c(STAGE_CONSTANT,
                          obj$stage[names_if(obj$traits[, "is_dim"])]))
 
+  if (obj$dim_stage >= STAGE_TIME) {
+    err <- obj$stage[obj$traits[, "is_dim"]] == STAGE_TIME
+    odin_error("Array extent is determined by time",
+               get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
+  }
+
   ## NOTE: Equation reordering; *must* update traits and names_target
   ## at the same time.
   ##

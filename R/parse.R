@@ -26,7 +26,8 @@
 ##    single expression.
 ##
 ## 8. Determine the graph structure of the model and (from that) the
-##    order in which to traverse the model.
+##    order in which to traverse the model.  This step also determines
+##    if expressions are constant or time dependent ("stage").
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x, as="file") {
@@ -66,14 +67,13 @@ odin_parse <- function(x, as="file") {
   ## single expression.  NOTE: The position if this call matters a lot
   ## because it rewrites the 'eqs' object as well as the array
   ## equations themselves.
-  ret <- odin_parse_combine_arrays(ret)
+  ret <- odin_parse_arrays(ret)
 
   ## 8. Determine the graph structure of the model and (from that) the
   ## order in which to traverse the model.
   ret <- odin_parse_dependencies(ret)
 
   ## ...below here not reviewed yet...
-  ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
   ret <- odin_parse_initial(ret)
   ret <- odin_parse_process_interpolate(ret)
@@ -237,112 +237,6 @@ odin_parse_rewrite_initial <- function(obj) {
   obj
 }
 
-odin_parse_check_array_usage <- function(obj) {
-  ## This is *entirely* checking things, except that we set
-  ## "index_vars" on the way out.
-  eqs <- obj$eqs
-
-  ## Next, check all the lhs array variables are OK; these must be
-  ## constant or user (not time based).  At the same time it would be
-  ## great to work out how large the arrays actually are; looking for a
-  ## vector of dim here for all of them.  This might be good to go
-  ## into another function.
-  ##
-  ## - if deriv is array, initial must be and they must have the same
-  ##   computed size.
-  ## - all assignments into array varibles are checked already
-  ## - all references *from* array variables must be indexed
-  ##   - those references should be range-checked where possible
-  is_array <- vlapply(eqs, function(x) identical(x$lhs$type, "array"))
-  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
-  is_rhs_length <- vlapply(eqs, function(x) is_call(x$rhs$value, quote(length)))
-  is_rhs_dim <- vlapply(eqs, function(x) is_call(x$rhs$value, quote(dim)))
-
-  ## TODO: Compute length(arr) as a special thing and allow it to be
-  ## used directly in code.  Similarly allow dim(arr, {1,2,3}), stored
-  ## internaly as dim_1, dim_2, dim_3; can do that with code rewriting
-  ## easily enough; make dim an allowed function in the rhs arrays and
-  ## lhs if not a cyclic dependency (this is all done apart from
-  ## _using_ dim).
-  i <- viapply(eqs[is_dim], function(x) x$stage) == STAGE_TIME
-  if (any(i)) {
-    odin_error("Array extent is determined by time",
-               get_lines(eqs[i]), get_exprs(eqs[i]))
-  }
-
-  ## Determine which variables are array extents and indices; we'll
-  ## flag these as integers.  At the same time we need to try and work
-  ## out which of these are confusing (perhaps used as an argument to
-  ## division).
-  index_vars <- c(lapply(eqs[is_dim], function(x) x$rhs$depends$variables),
-                  lapply(eqs[is_array], function(x) x$lhs$depends$variables),
-                  names(which(is_rhs_length)),
-                  names(which(is_rhs_dim)))
-  all_index_vars <- unique(unlist(index_vars))
-  err <- intersect(all_index_vars, names(which(is_array)))
-  if (length(err) > 0L) {
-    i <- which(is_array)[vlapply(eqs[is_array], function(x)
-      any(err %in% x$lhs$depends$variables))]
-    odin_error(sprintf("Array indices may not be arrays (%s used)",
-                       pastec(err)),
-               get_lines(eqs[i]), get_exprs(eqs[i]))
-  }
-
-  ## TODO: There are actually times where this might make sense,
-  ## especially when applied in a conditional.  Now that array size is
-  ## static(ish) this should be OK...
-  if (TIME %in% all_index_vars) {
-    i <- which(is_array)[vlapply(eqs[is_array], function(x)
-      any(TIME %in% x$lhs$depends$variables))]
-    odin_error("Array indices may not be time",
-               get_lines(eqs[i]), get_exprs(eqs[i]))
-  }
-
-  ## Number of dimensions for each variable array variable.
-  nd <- setNames(viapply(eqs[is_array], function(x) x$lhs$nd),
-                 names(which(is_array)))
-
-  ## TODO: this is a hack; we should have array-ness of vars sorted
-  ## before here.
-  i <- match(intersect(names(nd), sprintf("deriv_%s", obj$vars)), names(nd))
-  names(nd)[i] <- sub("^deriv_", "", names(nd)[i])
-
-  ## need to check all length and dim calls here.  Basically we're
-  ## looking for length() to be used with calls on nd==1 arrays and
-  ## range check all dim() calls on the others.  This is moderately
-  ## complicated and we'll need to poke into some expressions we've
-  ## looked at already.  Later on an optimisation pass we can try
-  ## precompute the required information but that's just asking for
-  ## headaches at the moment.  We'll need to check that on both the
-  ## lhs and rhs for every expression that uses either.
-  to_check <- vlapply(
-    eqs[is_array],
-    function(x) any(c("dim", "length") %in% x$lhs$depends$functions) ||
-                any(c("dim", "length") %in% x$depends$functions))
-
-  vlapply(obj$eqs[is_array][to_check], check_array_length_dim, nd)
-
-  ## How do we determine that these are not used as floats anywhere?
-  ## The actual variables are already filtered out.
-  arrays <- unique(sub("^(deriv|initial)_", "", names(which(is_array))))
-  uses_array <- vlapply(eqs, function(x)
-    any(x$depends$variables %in% arrays) ||
-    any(x$depends$functions %in% "[") ||
-    any(x$rhs$depends_delay$variables %in% arrays) ||
-    any(x$rhs$depends_delay$functions %in% "["))
-
-  for (eq in eqs[uses_array]) {
-    if (isTRUE(eq$rhs$delay)) {
-      check_array_rhs(eq$rhs$value_expr, nd, eq$line, as.expression(eq$expr))
-      check_array_rhs(eq$rhs$value_time, nd, eq$line, as.expression(eq$expr))
-    } else {
-      check_array_rhs(eq$rhs$value, nd, eq$line, as.expression(eq$expr))
-    }
-  }
-
-  obj$index_vars <- all_index_vars
-  obj
-}
 
 odin_parse_variable_order <- function(obj) {
   ## Within these classes, is it best to put them in topological order
@@ -421,154 +315,6 @@ odin_parse_variable_order <- function(obj) {
          total_use=total_use,
          total_stage=total_stage)
   obj
-}
-
-check_array_rhs <- function(rhs, nd, line, expr) {
-  if (is.list(rhs)) {
-    for (i in seq_along(rhs)) {
-      check_array_rhs(rhs[[i]], nd, line[[i]], expr[[i]])
-    }
-  }
-  nms <- names(nd)
-  throw <- function(...) {
-    odin_error(sprintf(...), line, expr)
-  }
-
-  f <- function(e, special) {
-    if (!is.recursive(e)) { # leaf
-      if (!is.symbol(e)) { # A literal of some type
-        return()
-      } else if (is.null(special) && deparse(e) %in% nms) {
-        throw("Array '%s' used without array index", deparse(e))
-      }
-    } else if (is.symbol(e[[1L]])) {
-      f_nm <- as.character(e[[1L]])
-      if (identical(f_nm, "[")) {
-        x <- deparse(e[[2L]])
-        if (!is.null(special)) {
-          throw(
-            "Within special function %s, array %s must be used without '['",
-            special, x)
-        }
-        ijk <- as.list(e[-(1:2)])
-        if (x %in% nms) {
-          if (length(ijk) != nd[[x]]) {
-            throw(
-              "Incorrect dimensionality for %s in '%s' (expected %d)",
-              x, deparse_str(e), nd[[x]])
-          }
-          sym <- find_symbols(ijk)
-          nok <- setdiff(sym$functions, VALID_ARRAY)
-          if (length(nok) > 0L) {
-            throw(
-              "Disallowed functions used for %s in '%s': %s",
-              x, deparse_str(e), pastec(nok))
-          }
-          nok <- intersect(sym$variables, nms)
-          if (length(nok) > 0L) {
-            throw("Disallowed variables used for %s in '%s': %s",
-                  x, deparse_str(e), pastec(nok))
-          }
-          if ("" %in% sym$variables) {
-            throw("Empty array index not allowed on rhs")
-          }
-        } else {
-          throw("Unknown array variable %s in '%s'", x, deparse_str(e))
-        }
-      } else {
-        if (f_nm %in% c("sum", "length", "dim", "interpolate")) {
-          special <- f_nm
-          if (length(e) < 2L) {
-            throw("Special function %s requires at least 1 argument", special)
-          } else {
-            if (!(deparse(e[[2L]]) %in% nms)) {
-              throw("Special function %s requires array as first argument",
-                    special)
-              ## Don't proceed any further at this point, as we can
-              ## hit generated code, especially when the function is
-              ## 'sum' as by this point it has been expanded by
-              ## rewrite_sum.
-              return()
-            }
-          }
-        } else {
-          special <- NULL
-        }
-        for (a in as.list(e[-1])) {
-          if (!missing(a)) {
-            f(a, special)
-          }
-        }
-      }
-    }
-  }
-
-  f(rhs, NULL)
-  invisible(NULL) # never return anything at all.
-}
-
-check_array_length_dim <- function(x, nd) {
-  ## Now, we need to collect and check all usages of length and check.
-  ## If we extract all usages we can check them.
-  f <- function(x, throw) {
-    if (is.recursive(x)) {
-      call <- x[[1L]]
-      if (identical(call, quote(length))) {
-        if (length(x) != 2L) {
-          throw("length() requires exactly one argument (recieved %d)",
-                  length(x) - 1L)
-        } else if (!is.symbol(x[[2L]])) {
-          throw("argument to length must be a symbol")
-        } else {
-          nm <- as.character(x[[2L]])
-          if (!(nm %in% names(nd))) {
-            throw("argument to length must be an array (%s is not)", nm)
-          } else if (nd[[nm]] != 1L) {
-            throw("argument to length must be a 1-D array (%s is %d-D)",
-                    nm, nd[[nm]])
-          }
-        }
-      } else if (identical(call, quote(dim))) {
-        if (length(x) != 3L) {
-          throw("dim() requires exactly two arguments (recieved %d)",
-                  length(x) - 1L)
-        } else if (!is.symbol(x[[2L]])) {
-          throw("first argument to dim must be a symbol")
-        } else {
-          nm <- as.character(x[[2L]])
-          if (!(nm %in% names(nd))) {
-            throw("first argument to dim must be an array (%s is not)", nm)
-          } else if (nd[[nm]] == 1L) {
-            throw("dim() must not be used for 1D arrays (use length)")
-          } else if (!is_integer_like(x[[3L]])) {
-            throw("second argument to dim() must be an integer")
-          } else if (x[[3L]] < 1 || x[[3L]] > nd[[nm]]) {
-            throw("array index out of bounds, must be one of 1:%d", nd[[nm]])
-          }
-        }
-      } else {
-        lapply(x[-1L], f, throw)
-      }
-    }
-    NULL
-  }
-  make_throw <- function(line, expr) {
-    force(line)
-    force(expr)
-    function(fmt, ...) {
-      odin_error(sprintf(fmt, ...), line, expr)
-    }
-  }
-
-  if (x$lhs$type == "array") {
-    for (i in seq_along(x$expr)) {
-      f(x$expr[[i]], make_throw(x$line[[i]], x$expr[[i]]))
-    }
-  } else {
-    f(x$expr, make_throw(x$line, x$expr))
-  }
-
-  TRUE
 }
 
 ## TODO: At the moment there are some corner cases here that are
