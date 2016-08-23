@@ -347,7 +347,7 @@ odin_parse_process_interpolate <- function(obj) {
     if (target$lhs$type != "array" || target$lhs$nd != rank) {
       type <- if (rank == 1L) "vector" else paste(rank, "dimensional array")
       odin_error(sprintf("Expected %s to be a %s", nm, type),
-                 e$line, e$expr)
+                 target$line, target$expr)
     }
   }
   process1 <- function(e) {
