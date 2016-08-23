@@ -73,7 +73,6 @@ odin_parse <- function(x, as="file") {
   ret <- odin_parse_dependencies(ret)
 
   ## ...below here not reviewed yet...
-  ret <- odin_parse_output_TEMPORARY(ret)
   ret <- odin_parse_check_array_usage(ret)
   ret <- odin_parse_variable_order(ret)
   ret <- odin_parse_initial(ret)
@@ -424,81 +423,6 @@ odin_parse_variable_order <- function(obj) {
   obj
 }
 
-odin_parse_output <- function(obj) {
-  is_output <- which(vlapply(obj$eqs, function(x)
-    identical(x$lhs$special, "output")))
-  obj$has_output <- length(is_output) > 0L
-  if (!obj$has_output) {
-    return(obj)
-  }
-  ## Here we really need to know the length of these things but we
-  ## don't have that yet.  Then at the beginning of the derivative
-  ## function we should assign everything out of the appropriate
-  ## pointer so we're going to need to store some offsets.
-
-  ## So a new function "output_order" will return NULL or a vector of
-  ## indices.  We throw a bunch more offsets into the parameter vector
-  ## too I think.
-  vars <- names(is_output)
-  vars_target <- vcapply(obj$eqs[is_output], function(x) x$lhs$name_target)
-  is_array <- vlapply(obj$eqs[is_output], function(x) x$lhs$type == "array")
-
-  ord <- rep(0, length(is_array))
-  stage <- rep(STAGE_CONSTANT, length(is_array))
-  names(stage) <- vars
-
-  if (any(is_array)) {
-    tmp <- vcapply(vars[is_array], array_dim_name)
-    ord[is_array] <- match(tmp, names(obj$eqs))
-    stage[is_array] <- viapply(obj$eqs[tmp], function(x) x$stage)
-  }
-  i <- order(ord)
-  vars <- vars[i]
-  vars_target <- vars_target[i]
-  is_array <- is_array[i]
-  stage <- stage[i]
-
-  ## TODO: This is duplicated from above and could be generalised.
-  offset <- setNames(as.list(seq_along(is_array) - 1L), vars)
-  f <- function(i) {
-    if (i == 1L) {
-      0L
-    } else if (!is_array[[i - 1L]]) {
-      offset[[i - 1L]] + 1L
-    } else if (identical(offset[[i - 1L]], 0L)) {
-      as.name(array_dim_name(vars[[i - 1L]]))
-    } else {
-      call("+",
-           as.name(paste0("offset_", vars[[i - 1L]])),
-           as.name(array_dim_name(vars[[i - 1L]])))
-    }
-  }
-  for (i in which(is_array)) {
-    offset[[i]] <- f(i)
-  }
-
-  offset_is_var <- !vlapply(offset, is.numeric)
-  offset_use <- offset
-  offset_use[offset_is_var] <- sprintf("offset_%s", vars[offset_is_var])
-
-  total <- f(length(is_array) + 1L)
-  total_is_var <- !is.numeric(total)
-  total_use <- if (total_is_var) "dim" else total
-  total_stage <- max(stage)
-
-  obj$output_order <-
-    list(order=vars_target,
-         is_array=is_array,
-         offset=offset,
-         offset_use=offset_use,
-         offset_is_var=offset_is_var,
-         total=total,
-         total_is_var=total_is_var,
-         total_use=total_use,
-         total_stage=total_stage)
-  obj
-}
-
 check_array_rhs <- function(rhs, nd, line, expr) {
   if (is.list(rhs)) {
     for (i in seq_along(rhs)) {
@@ -806,60 +730,6 @@ odin_parse_initial <- function(obj) {
   }
 
   obj$initial <- initial
-  obj
-}
-
-odin_parse_output_TEMPORARY <- function(obj) {
-  ## Then, we compute two subgraphs (for dde) in the case where there
-  ## are output variables.  We'd actually only want to get the output
-  ## variables that are time dependent I think, but that really should
-  ## be all of them.
-  if (obj$info$has_output) {
-    is_output <-
-    ## OK, what I need to find out here is:
-    ##
-    ##   * what is the full set of dependencies, including variables,
-    ##     that are used in computing the output variables.
-    ##
-    ##   * what is *only* used in computing output variables
-    ##
-    ## This may change later...
-    nms_output <- names(which(obj$traits[, "is_output"]))
-    nms_deriv <- names(which(obj$traits[, "is_deriv"]))
-
-    used_output <-
-      setdiff(unique(c(unlist(obj$deps_rec[nms_output], use.names=FALSE),
-                       nms_output)),
-              TIME)
-    used_output <- c(setdiff(used_output, names(obj$eqs)),
-                     intersect(names(obj$eqs), used_output))
-    used_deriv <- unique(c(unlist(obj$deps_rec[nms_deriv], use.names=FALSE),
-                           nms_deriv))
-
-    if (obj$info$has_delay) {
-      ## TODO: need to do a little more work here; we don't have
-      ## access to delay_support$order in general, but we can get at
-      ## the dependencies that went into this, which we *do* have.
-      stop("FIXME")
-      ## browser()
-      used_delay <-
-        unique(unlist(lapply(obj$eqs[obj$traits[, "uses_delay"]],
-                             function(x) x$rhs$delay_support$order)))
-    } else {
-      used_delay <- character(0)
-    }
-
-    only_output <- intersect(setdiff(used_output, c(used_deriv, used_delay)),
-                             names_if(obj$stage == STAGE_TIME))
-
-    ## This is the write bit:
-    obj$output_info <-
-      list(used=used_output, only=only_output, deriv=used_deriv)
-    obj$stage[only_output] <- STAGE_OUTPUT
-    for (i in intersect(only_output, names(obj$eqs))) {
-      obj$eqs[[i]]$stage <- STAGE_OUTPUT
-    }
-  }
   obj
 }
 
