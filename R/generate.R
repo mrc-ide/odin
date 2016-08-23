@@ -408,10 +408,15 @@ odin_generate_dim <- function(x, obj, dat) {
   obj$free$add("Free(%s);", obj$rewrite(nm_s))
 
   if (is_var) {
+    ## TODO: Does this not create some unnecessary offsets?  (e.g., in
+    ## the mixed example in test-odin).  I would have thought that the
+    ## *first* array would not need an offset; we'd only be interested
+    ## in this if dat$variable_order$offset_is_var[[i]] is TRUE?
     nm_offset <- paste0("offset_", nm_t)
     obj$add_element(nm_offset, "int")
-    obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset),
-                  obj$rewrite(dat$variable_order$offset[[nm_t]]))
+    i <- match(nm_t, dat$variable_order$order)
+    offset <- dat$variable_order$offset[[i]]
+    obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset), obj$rewrite(offset))
   }
 }
 
@@ -443,13 +448,13 @@ odin_generate_symbol <- function(x, obj, dat, target=NULL) {
   if (x$stage < STAGE_TIME || is_initial) {
     target$add("%s = %s;", obj$rewrite(nm), value, name=nm)
   } else if (identical(x$lhs$special, "deriv")) {
-    target$add("%s[%s] = %s;",
-               DSTATEDT,
-               dat$variable_order$offset_use[[x$lhs$name_target]],
-               value, name=nm)
+    i <- match(x$lhs$name_target, dat$variable_order$order)
+    offset <- dat$variable_order$offset_use[[i]]
+    target$add("%s[%s] = %s;", DSTATEDT, offset, value, name=nm)
   } else if (identical(x$lhs$special, "output")) {
-    target$add("%s[%s] = %s;",
-               OUTPUT, dat$output_order$offset_use[[nm]], value, name=nm)
+    i <- match(x$lhs$name_target, dat$output_order$order)
+    offset <- dat$output_order$offset_use[[i]]
+    target$add("%s[%s] = %s;", OUTPUT, offset, value, name=nm)
   } else {
     target$add("%s %s = %s;", type, nm, value, name=nm)
   }
@@ -548,7 +553,7 @@ odin_generate_delay <- function(x, obj, dat) {
   delay_len <- length(x$delay$extract)
   delay_is_array <- x$delay$is_array
   ## This one is nasty:
-  dep_is_array <- x$delay$dep_is_array
+  deps_is_array <- x$delay$deps_is_array
 
   delay_size <- vcapply(x$delay$size, obj$rewrite)
   ## Need to compute total array size here, with the 3 options of all
@@ -637,7 +642,8 @@ odin_generate_delay <- function(x, obj, dat) {
   ## because we need to work across two sets of offsets that don't
   ## necessarily match up.  Note that the non-array things go in here
   ## before the array things.
-  delay_var_offset <- dat$variable_order$offset_use[x$delay$extract]
+  i <- match(x$delay$extract, dat$variable_order$order)
+  delay_var_offset <- dat$variable_order$offset_use[i]
   obj[[st]]$add("{", name=nm)
   obj[[st]]$add("  int j = 0;", name=nm)
   for (i in seq_along(delay_var_offset)) {
@@ -742,7 +748,7 @@ odin_generate_delay <- function(x, obj, dat) {
 
   ## Here, identify and rewrite the arrays from the equation.
   for (nm_dep in x$delay$deps) {
-    if (dep_is_array[[nm_dep]]) {
+    if (deps_is_array[[nm_dep]]) {
       obj[[st]]$add(indent(
                  odin_generate_array_expr(tr(dat$eqs[[nm_dep]]), obj), 2),
                  name=nm)
@@ -870,7 +876,7 @@ odin_generate_interpolate_t <- function(obj) {
 ## fall into two phases; global collection and output.  Below here is
 ## all output and does not modify obj, except for the library_fns one.
 
-## TODO: This aand generate_output_order do basically the same thing
+## TODO: This and generate_output_order do basically the same thing
 ## to two different sets of variables.  It would be good to abstract
 ## this away if that makes much sense because the new version is a bit
 ## of a terror.

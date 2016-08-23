@@ -73,8 +73,11 @@ odin_parse <- function(x, as="file") {
   ## order in which to traverse the model.
   ret <- odin_parse_dependencies(ret)
 
-  ## ...below here not reviewed yet...
+  ## 9. Compute the order to store variables in, and associated bits
+  ##    for extraction.  These are used in odin_parse_delay() too.
   ret <- odin_parse_variable_order(ret)
+
+  ## ...below here not reviewed yet...
   ret <- odin_parse_initial(ret)
   ret <- odin_parse_process_interpolate(ret)
   ret <- odin_parse_delay(ret)
@@ -147,7 +150,7 @@ odin_parse_collect_traits <- function(obj) {
                    has_sum=any(uses_sum))
 
   nms_target <- names(eqs)
-  i <- is_deriv | is_initial | is_dim
+  i <- is_deriv | is_initial | is_dim | is_output
   nms_target[i] <- vcapply(eqs[i], function(x) x$lhs$name_target)
   obj$names_target <- nms_target
 
@@ -237,7 +240,6 @@ odin_parse_rewrite_initial <- function(obj) {
   obj
 }
 
-
 odin_parse_variable_order <- function(obj) {
   ## Within these classes, is it best to put them in topological order
   ## or in lexical order?  Start with lexical order as we can always
@@ -246,75 +248,86 @@ odin_parse_variable_order <- function(obj) {
   ## I think it should be sorted by stage within the arrays though,
   ## and stage added here.
   vars <- obj$vars
-  vars_deriv <- paste0("deriv_", vars)
-  is_array <- setNames(obj$traits[vars_deriv, "is_array"], vars)
+  variable_order <- odin_parse_extract_order(paste0("deriv_", vars), obj)
 
-  ord <- rep(0L, length(is_array))
-  array <- setNames(rep(0L, length(is_array)), vars)
-  stage <- setNames(rep(STAGE_CONSTANT, length(is_array)), vars)
+  ## TODO: Expand this to include things like output perhaps?  I could
+  ## probably use this elsewhere (such as in output).
+
+  ## Check whether variables are actually used in the time equations:
+  used_vars <- unlist(lapply(obj$eqs, function(x)
+    if (x$stage >= STAGE_TIME) x$depends$variables), use.names=FALSE)
+  variable_order$used <- setNames(vars %in% used_vars, vars)
+
+  obj$variable_order <- variable_order
+  obj
+}
+
+## Given a vector of equation naems, let's unpack things:
+odin_parse_extract_order <- function(names, obj) {
+  n <- length(names)
+  is_array <- obj$traits[names, "is_array"]
+
+  ord <- integer(n)
+  array <- integer(n)
+  stage_dim <- rep_len(STAGE_CONSTANT, n)
 
   if (any(is_array)) {
-    tmp <- vcapply(obj$eqs[vars_deriv], function(x) x$lhs$name_dim)
+    tmp <- vcapply(obj$eqs[names][is_array], function(x) x$lhs$name_dim)
     ord[is_array] <- match(tmp, names(obj$eqs))
-    ## TODO: may change to function(x) x$lhs$nd
+    ## TODO: change to function(x) x$lhs$nd ?
     array[is_array] <- viapply(obj$eqs[tmp], "[[", "nd")
-
-    stage[is_array] <- viapply(obj$eqs[tmp], function(x) x$stage)
-    names(stage) <- vars
+    stage_dim[is_array] <- obj$stage[tmp]
 
     ## Reorder to get variables ordered to scalars first
-    vars <- vars[order(ord)]
-    is_array <- is_array[vars]
-    array <- array[vars]
+    i <- order(ord)
+    names <- names[i]
+    is_array <- is_array[i]
+    array <- array[i]
+    stage_dim <- stage_dim[i]
   }
 
-  offset <- setNames(as.list(seq_along(is_array) - 1L), vars)
-  f <- function(i) {
+  names_target <- obj$names_target[match(names, names(obj$eqs))]
+  names_offset <- sprintf("offset_%s", names_target)
+
+  offset <- as.list(seq_len(n) - 1L)
+  accumulate_offset <- function(i) {
     if (i == 1L) {
       0L
     } else if (!is_array[[i - 1L]]) {
       offset[[i - 1L]] + 1L
     } else if (identical(offset[[i - 1L]], 0L)) {
-      as.name(paste0("dim_", vars[[i - 1L]]))
+      as.name(array_dim_name(names_target[[i - 1L]]))
     } else {
-      call("+",
-           as.name(paste0("offset_", vars[[i - 1L]])),
-           as.name(paste0("dim_", vars[[i - 1L]])))
+      prev <- offset[[i - 1L]]
+      if (is.language(prev)) {
+        prev <- as.name(names_offset[[i - 1L]])
+      }
+      call("+", prev, as.name(array_dim_name(names_target[[i - 1L]])))
     }
   }
   for (i in which(is_array)) {
-    offset[[i]] <- f(i)
+    offset[[i]] <- accumulate_offset(i)
   }
-  offset_is_var <- !vlapply(offset, is.numeric)
-  offset_use <- offset
-  offset_use[offset_is_var] <- sprintf("offset_%s", vars[offset_is_var])
 
-  total <- f(length(is_array) + 1L)
-  total_is_var <- !is.numeric(total)
+  offset_is_var <- vlapply(offset, is.language)
+  offset_use <- ifelse(offset_is_var, as.list(names_offset), offset)
+
+  total <- accumulate_offset(n + 1L)
+  total_is_var <- is.language(total)
   total_use <- if (total_is_var) "dim" else total
-  total_stage <- max(stage)
+  total_stage <- max(stage_dim)
 
-  ## TODO: This is likely to expand to include "used in delay", "used
-  ## in output", etc...
-
-  ## Check whether variables are actually used in the time equations:
-  used_vars <- unlist(lapply(obj$eqs, function(x)
-    if (x$stage >= STAGE_TIME) x$depends$variables), use.names=FALSE)
-  used <- setNames(vars %in% used_vars, vars)
-
-  obj$variable_order <-
-    list(order=vars,
-         is_array=is_array, # may be dropped in favour of (array > 0)
-         used=used,
-         array=array,
-         offset=offset,
-         offset_use=offset_use,
-         offset_is_var=offset_is_var,
-         total=total,
-         total_is_var=total_is_var,
-         total_use=total_use,
-         total_stage=total_stage)
-  obj
+  list(order=names_target,
+       names=names,
+       is_array=is_array, # drop in favour of array > 0?
+       array=array,
+       offset=offset,
+       offset_use=offset_use,
+       offset_is_var=offset_is_var,
+       total=total,
+       total_is_var=total_is_var,
+       total_use=total_use,
+       total_stage=total_stage)
 }
 
 ## TODO: At the moment there are some corner cases here that are

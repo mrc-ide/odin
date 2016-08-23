@@ -268,3 +268,22 @@ test_that("3d array", {
   zz <- mod$transform_variables(yy)
   expect_equal(dim(zz$y), c(c(length(tt), 2, 3, 4)))
 })
+
+## I need a system with mixed variables and arrays for testing the
+## parse code.  This is going to be a really stupid system!
+test_that("mixed", {
+  gen <- odin({
+    deriv(a) <- r * a
+    initial(a) <- 1
+    deriv(b) <- r * b
+    initial(b) <- 1
+    deriv(v[]) <- r * v[i]
+    initial(v[]) <- 1
+    dim(v) <- 3
+    r <- 0.1
+  }, verbose=FALSE)
+  mod <- gen()
+  expect_is(mod, "ode_system")
+  t <- seq(0, 10, length.out = 100)
+  expect_error(mod$run(t), NA)
+})

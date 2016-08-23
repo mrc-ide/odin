@@ -55,7 +55,8 @@ odin_parse_delay <- function(obj) {
   ## For now, go through and pull these out, but I think we can get
   ## them other ways, later, perhaps.
   delay_arrays <-
-    unique(unlist(lapply(obj$eqs[uses_delay], function(x) x$delay$arrays)))
+    unique(unlist(lapply(obj$eqs[uses_delay],
+                         function(x) names_if(x$delay$deps_is_array))))
   delay_arrays <- setNames(sprintf("delay_%s", delay_arrays), delay_arrays)
   obj$delay_support <- list(arrays=delay_arrays)
 
@@ -79,40 +80,48 @@ odin_parse_delay_1 <- function(idx, obj) {
                   c(TIME, names_if(obj$traits[, "uses_delay"])))
   deps <- deps[order(match(deps, names(obj$deps_rec)))]
 
+  ## TODO: this overlaps with the new function "odin_parse_extract_order".
   ## Here, it's really important to pull these out with the scalars
   ## first, then the arrays.
-  vars_is_array <- obj$variable_order$is_array
-  extract <- intersect(names(vars_is_array), deps) # retains ordering
-  is_array <- vars_is_array[extract]
-  len <- length(extract)
-  size <- vector("list", len)
-  offset <- vector("list", len)
+  var_extract <- intersect(obj$variable_order$order, deps) # retains ordering
+  var_is_array <-
+    obj$variable_order$is_array[match(var_extract, obj$variable_order$order)]
+
+  len <- length(var_extract)
+  var_size <- vector("list", len)
+  var_offset <- vector("list", len)
   for (j in seq_len(len)) {
-    if (!is_array[[j]]) {
-      size[[j]] <- 1L
-      offset[[j]] <- j - 1L
+    if (!var_is_array[[j]]) {
+      var_size[[j]] <- 1L
+      var_offset[[j]] <- j - 1L
     } else {
-      size[[j]] <- array_dim_name(extract[[j]])
-      if (j == 1L || !is_array[[j - 1L]]) {
-        offset[[j]] <- j - 1L
+      var_size[[j]] <- array_dim_name(var_extract[[j]])
+      if (j == 1L || !var_is_array[[j - 1L]]) {
+        var_offset[[j]] <- j - 1L
       } else {
-        offset[[j]] <- size[[j - 1L]]
+        var_offset[[j]] <- var_size[[j - 1L]]
       }
     }
   }
-  names(size) <- names(offset) <- extract
+  names(var_size) <- names(var_offset) <- var_extract
 
-  deps <- setdiff(deps, extract)
-  dep_is_array <- vcapply(obj$eqs[deps], function(x) x$lhs$type) == "array"
+  ## Non-variable dependencies:
+  deps <- setdiff(deps, var_extract)
+  ## NOTE: setNames is needed here because they may otherwise be
+  ## dropped.  This might cause bugs elsewhere so watch for usage of
+  ## indexing traits when names are required...
+  deps_is_array <- setNames(obj$traits[deps, "is_array"], deps)
 
   x$delay <- list(idx=idx,
                   time=x$rhs$value_time,
-                  extract=extract,
+                  ## variables:
+                  ## TODO: in generate, shift to the var_ prefix (or nest)
+                  extract=var_extract,
+                  is_array=var_is_array,
+                  size=var_size,
+                  offset=var_offset,
+                  ## other dependencies:
                   deps=deps,
-                  dep_is_array=dep_is_array,
-                  arrays=intersect(deps, names_if(obj$traits[, "is_array"])),
-                  is_array=is_array,
-                  size=size,
-                  offset=offset)
+                  deps_is_array=deps_is_array)
   x
 }
