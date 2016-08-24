@@ -1,5 +1,13 @@
 ## Welcome to the sausage factory!
 
+## There are two stages to the generation:
+##
+## 1. first is the odin_generate_loop (and functions called by this
+## function).  During this phase we build up and modify an 'obj'.
+##
+## 2. second (and most of the functions here) works on this object to
+## generate a character vector to put somewhere.  This is all of
+## odin_generate *except* the first line.
 odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   obj <- odin_generate_loop(dat)
   support <- odin_generate_support_defns(obj)
@@ -283,17 +291,10 @@ odin_generate_loop <- function(dat) {
   ## awkward.  In contrast with vars, which is known on entry to this
   ## function, types is collected by this function so needs to be
   ## written out at the end.
-  obj$types <- do.call(rbind,
-                       lapply(obj$types$get(),
-                              as.data.frame, stringsAsFactors=FALSE))
-
-  vars_len <- rep_len("1", length(dat$variable_order$is_array))
-  vars_len[dat$variable_order$is_array] <-
-    vcapply(dat$variable_order$order[dat$variable_order$is_array],
-            array_dim_name)
+  obj$types <- rbind_as_df(obj$types$get())
 
   ## TODO: This comes out soon; it's used in reporting but should not
-  ## be needed really.
+  ## be needed in quite this form.
   obj$vars <- data.frame(
     name=dat$variable_order$order,
     is_array=dat$variable_order$is_array,
@@ -302,7 +303,7 @@ odin_generate_loop <- function(dat) {
     ## TODO: watch out here - should be elsewhere, no?
     used_output=dat$variable_order$order %in% obj$output_info$used$output,
     offset=vcapply(dat$variable_order$offset_use, obj$rewrite),
-    length=vcapply(vars_len, obj$rewrite),
+    length=vcapply(dat$variable_order$len, obj$rewrite),
     stringsAsFactors=FALSE)
 
   obj

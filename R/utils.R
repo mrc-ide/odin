@@ -116,4 +116,10 @@ names_if <- function(x) {
   names(x)[x]
 }
 
+rbind_as_df <- function(x) {
+  do.call("rbind",
+          lapply(x, as.data.frame, stringsAsFactors=FALSE),
+          quote=TRUE)
+}
+
 self <- NULL
