@@ -38,7 +38,7 @@ rewrite_c <- function(expr, name_pars,
   ## * lgamma -> lgammafn
 
   ## * pi (#define pi M_PI) or translate to M_PI
-  f <- function(expr) {
+  rewrite_expr <- function(expr) {
     if (!is.recursive(expr)) {
       num <- is.numeric(expr)
       if (num) {
@@ -67,7 +67,7 @@ rewrite_c <- function(expr, name_pars,
       stop(sprintf("Unsupported function '%s'", nm))
     }
 
-    res <- lapply(as.list(expr[-1L]), f)
+    res <- lapply(as.list(expr[-1L]), rewrite_expr)
     n <- length(res)
     values <- vcapply(res, "[[", "value")
     is_index <- any(vlapply(res, "[[", "is_index"))
@@ -141,11 +141,11 @@ rewrite_c <- function(expr, name_pars,
       }
       value <- sprintf("%s %s %s", values[[1L]], nm, values[[2L]])
     } else if (nm == "length") {
-      value <- f(array_dim_name(as.character(expr[[2L]])))$value
+      value <- rewrite_expr(array_dim_name(as.character(expr[[2L]])))$value
     } else if (nm == "dim") {
       tmp <- sprintf("%s_%d", array_dim_name(as.character(expr[[2L]])),
                      expr[[3L]])
-      value <- f(tmp)$value
+      value <- rewrite_expr(tmp)$value
     } else if (nm == "if") {
       ## NOTE: The ternary operator has very low precendence, so I'm
       ## going to agressively parenthesise it.  This is strictly not
@@ -184,7 +184,7 @@ rewrite_c <- function(expr, name_pars,
     list(numeric=FALSE, value=value, is_index=is_index)
   }
 
-  f(expr)$value
+  rewrite_expr(expr)$value
 }
 
 ## The rewrite function here must be a parameterised version of the

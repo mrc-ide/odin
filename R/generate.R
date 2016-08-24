@@ -9,7 +9,7 @@
 ## generate a character vector to put somewhere.  This is all of
 ## odin_generate *except* the first line.
 odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
-  obj <- odin_generate1_loop(dat)
+  obj <- odin_generate1(dat)
   support <- odin_generate2_support_defns(obj)
   library_fns <- odin_generate2_library_fns(obj)
 

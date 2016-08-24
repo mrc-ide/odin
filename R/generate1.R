@@ -1,60 +1,27 @@
 ## TODO: Disallow '<base>_' as a name; otherwise potential for
 ## collision, so probably set that in the DSL rather than here.
-odin_generate1_loop <- function(dat) {
+odin_generate1 <- function(dat) {
   obj <- odin_generate1_object(dat)
 
   ## (1): Add a few elements to the object:
 
-  ## Flag indicating if we're using dde.  This is set during object
-  ## creation, and can't (yet) be set from within the odin code [TODO]
+  ## Flag indicating if we're using dde, and for saving initial time.
+  ##
+  ## These must both exist before we hit any delay equation, and will
+  ## be used in the second pass unconditionally.  The internal
+  ## interface here may change in future.
+  ##
+  ## The dde flag is set at object creation and a default cannot (yet)
+  ## be set from within the odin code [TODO]
   obj$add_element("odin_use_dde", "int")
-
-  ## Initial time:
   obj$add_element(sprintf("initial_%s", TIME), "double")
 
-  ## Support for interacting with deSolve parameters
-  obj$library_fns$add("get_ds_pars")
-
-  ## (2): Add some support functions:
-
-  ## Support for sum() of varying orders
-  if ("sum" %in%
-      unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))) {
-    ## TODO: We should be more clever here, but not done yet and the
-    ## cost including all three definitions is low.  The issue is that
-    ## in contrast with most special functions, sum can be used in
-    ## nested expressions.  So for now this adds all three sum
-    ## functions but perhaps we only need one of them.
-    obj$library_fns$add("odin_sum1")
-    obj$library_fns$add("odin_sum2")
-    obj$library_fns$add("odin_sum3")
-  }
-
-  ## Support for differential equations:
-  if (dat$info$has_delay) {
-    obj$library_fns$add("lagvalue_dde")
-    obj$library_fns$add("lagvalue_ds")
-  }
-
-  ## Custom include files:
+  ## Set a few common things within the object that must be added before we
+  odin_generate1_common(obj, dat)
   obj$custom <- dat$config$include
 
-  ## (3): The main loop over all equations:
-  for (x in dat$eqs) {
-    if (identical(x$lhs$special, "dim")) {
-      odin_generate1_dim(x, obj, dat)
-    } else if (isTRUE(x$rhs$interpolate)) {
-      odin_generate1_interpolate_expr(x, obj, dat)
-    } else if (isTRUE(x$rhs$delay)) {
-      odin_generate1_delay(x, obj, dat)
-    } else if (x$lhs$type == "symbol") {
-      odin_generate1_symbol(x, obj, dat)
-    } else if (x$lhs$type == "array") {
-      odin_generate1_array(x, obj, dat)
-    } else {
-      stop("Unhandled type")
-    }
-  }
+  ## The main loop over all equations:
+  odin_generate1_loop(obj, dat)
 
   ## TODO: this should be factored out?
   initial_t_deps <- dat$initial$time_deps
@@ -214,6 +181,54 @@ odin_generate1_object <- function(dat) {
   self$lookup <- lookup
 
   self
+}
+
+odin_generate1_loop <- function(obj, dat) {
+  for (x in dat$eqs) {
+    if (identical(x$lhs$special, "dim")) {
+      odin_generate1_dim(x, obj, dat)
+    } else if (isTRUE(x$rhs$interpolate)) {
+      odin_generate1_interpolate_expr(x, obj, dat)
+    } else if (isTRUE(x$rhs$delay)) {
+      odin_generate1_delay(x, obj, dat)
+    } else if (x$lhs$type == "symbol") {
+      odin_generate1_symbol(x, obj, dat)
+    } else if (x$lhs$type == "array") {
+      odin_generate1_array(x, obj, dat)
+    } else {
+      stop("Unhandled type")
+    }
+  }
+}
+
+## Add common things that need to be added early:
+odin_generate1_common <- function(obj, dat) {
+  ## (2): Add some support functions:
+
+  ## NOTE: these *don't* need to be added early; we could do this
+  ## whenever and may well do so.
+
+  ## Support for interacting with deSolve parameters
+  obj$library_fns$add("get_ds_pars")
+
+  ## Support for sum() of varying orders
+  if ("sum" %in%
+      unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))) {
+    ## TODO: We should be more clever here, but not done yet and the
+    ## cost including all three definitions is low.  The issue is that
+    ## in contrast with most special functions, sum can be used in
+    ## nested expressions.  So for now this adds all three sum
+    ## functions but perhaps we only need one of them.
+    obj$library_fns$add("odin_sum1")
+    obj$library_fns$add("odin_sum2")
+    obj$library_fns$add("odin_sum3")
+  }
+
+  ## Support for differential equations:
+  if (dat$info$has_delay) {
+    obj$library_fns$add("lagvalue_dde")
+    obj$library_fns$add("lagvalue_ds")
+  }
 }
 
 odin_generate1_dim <- function(x, obj, dat) {
