@@ -3,8 +3,8 @@
 odin_generate1 <- function(dat) {
   obj <- odin_generate1_object(dat)
 
-  ## (1): Add a few elements to the object:
-
+  ## (1): Before really starting, add a few elements to the object.
+  ##
   ## Flag indicating if we're using dde, and for saving initial time.
   ##
   ## These must both exist before we hit any delay equation, and will
@@ -16,12 +16,12 @@ odin_generate1 <- function(dat) {
   obj$add_element("odin_use_dde", "int")
   obj$add_element(sprintf("initial_%s", TIME), "double")
 
+  ## The main loop over all equations:
+  odin_generate1_loop(obj, dat)
+
   ## Set a few common things within the object that must be added before we
   odin_generate1_common(obj, dat)
   obj$custom <- dat$config$include
-
-  ## The main loop over all equations:
-  odin_generate1_loop(obj, dat)
 
   ## TODO: this should be factored out?
   initial_t_deps <- dat$initial$time_deps
@@ -39,7 +39,7 @@ odin_generate1 <- function(dat) {
         ## non-delay branch which is the easier branch.
         stop("delay use in initial not handled")
       } else if (x$lhs$type == "symbol") {
-        odin_generate1_symbol(x, obj, dat, initial_deps)
+        initial_deps$add(odin_generate1_symbol_expr(x, obj, dat))
       } else if (x$lhs$type == "array") {
         initial_deps$add(odin_generate1_array_expr(x, obj))
       } else {
@@ -342,15 +342,15 @@ odin_generate1_dim <- function(x, obj, dat) {
   }
 }
 
-odin_generate1_symbol <- function(x, obj, dat, target=NULL) {
+odin_generate1_symbol <- function(x, obj, dat) {
+  st <- STAGES[[x$stage]]
   nm <- x$name
   type <- if (nm %in% dat$index_vars) "int" else "double"
+
   is_initial <- identical(x$lhs$special, "initial")
-  if (is.null(target)) {
-    target <- obj[[if (is_initial) "initial" else STAGES[[x$stage]]]]
-    if (x$stage < STAGE_TIME || is_initial) {
-      obj$add_element(nm, type)
-    }
+  st <- if (is_initial) "initial" else STAGES[[x$stage]]
+  if (x$stage < STAGE_TIME || is_initial) {
+    obj$add_element(nm, type)
   }
 
   if (isTRUE(x$rhs$user)) {
@@ -360,6 +360,17 @@ odin_generate1_symbol <- function(x, obj, dat, target=NULL) {
       default <- if (type == "int") "NA_INTEGER" else "NA_REAL"
     }
     obj$constant$add("%s = %s;", obj$rewrite(nm), default)
+  }
+
+  obj[[st]]$add(odin_generate1_symbol_expr(x, obj, dat), name=nm)
+}
+
+odin_generate1_symbol_expr <- function(x, obj, dat) {
+  nm <- x$name
+  ## TODO: consider setting x$type?  Might be tidier.
+  type <- if (nm %in% dat$index_vars) "int" else "double"
+
+  if (isTRUE(x$rhs$user)) {
     get_user <- sprintf("get_user_%s", type)
     obj$library_fns$add(get_user)
     value <- sprintf("%s(%s, \"%s\", %s)", get_user, USER, nm, obj$rewrite(nm))
@@ -367,20 +378,22 @@ odin_generate1_symbol <- function(x, obj, dat, target=NULL) {
     value <- obj$rewrite(x$rhs$value)
   }
 
+  is_initial <- identical(x$lhs$special, "initial")
   if (x$stage < STAGE_TIME || is_initial) {
-    target$add("%s = %s;", obj$rewrite(nm), value, name=nm)
+    ret <- sprintf("%s = %s;", obj$rewrite(nm), value)
   } else if (identical(x$lhs$special, "deriv")) {
     ## NOTE: offset guaranteed to be OK, but should probably rewrite?
     i <- match(x$lhs$name_target, dat$variable_order$order)
     offset <- obj$rewrite(dat$variable_order$offset_use[[i]])
-    target$add("%s[%s] = %s;", DSTATEDT, offset, value, name=nm)
+    ret <- sprintf("%s[%s] = %s;", DSTATEDT, offset, value)
   } else if (identical(x$lhs$special, "output")) {
     i <- match(x$lhs$name_target, obj$output_info$order)
     offset <- obj$rewrite(obj$output_info$offset_use[[i]])
-    target$add("%s[%s] = %s;", OUTPUT, offset, value, name=nm)
+    ret <- sprintf("%s[%s] = %s;", OUTPUT, offset, value)
   } else {
-    target$add("%s %s = %s;", type, nm, value, name=nm)
+    ret <- sprintf("%s %s = %s;", type, nm, value)
   }
+  ret
 }
 
 odin_generate1_array <- function(x, obj, dat) {
