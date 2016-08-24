@@ -226,7 +226,7 @@ odin_generate2_create <- function(obj) {
   ## failing (as it throws on failure so the Free's would never
   ## happen.
   ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
-  ret$add("  %s->odin_use_dde = INTEGER(odin_use_dde)[0];", obj$name_pars)
+  ret$add("  %s = INTEGER(odin_use_dde)[0];", obj$rewrite("odin_use_dde"))
   ret$add("  UNPROTECT(1);")
   ret$add("  return %s_ptr;", obj$base)
   ret$add("}")

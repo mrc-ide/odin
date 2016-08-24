@@ -141,9 +141,6 @@ rewrite_c <- function(expr, name_pars,
       }
       value <- sprintf("%s %s %s", values[[1L]], nm, values[[2L]])
     } else if (nm == "length") {
-      ## TODO: Consider replacing all other '->' bits above with
-      ## recalling f().  Make that easy to do though.  Not 100% sure
-      ## that's always worth doing though.
       value <- f(array_dim_name(as.character(expr[[2L]])))$value
     } else if (nm == "dim") {
       tmp <- sprintf("%s_%d", array_dim_name(as.character(expr[[2L]])),

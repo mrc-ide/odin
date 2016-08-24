@@ -611,7 +611,7 @@ odin_generate1_delay <- function(x, obj, dat) {
                        obj$rewrite(delay_idx),
                        obj$rewrite(delay_dim),
                        obj$rewrite(delay_state))
-  obj[[st]]$add("    if (%s->odin_use_dde) {", obj$name_pars, name=nm)
+  obj[[st]]$add("    if (%s) {", obj$rewrite("odin_use_dde"), name=nm)
   obj[[st]]$add(lagvalue, "dde", name=nm)
   obj[[st]]$add("    } else {", name=nm)
   obj[[st]]$add(lagvalue, "ds", name=nm)
