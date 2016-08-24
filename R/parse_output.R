@@ -5,18 +5,25 @@
 ## * use an array as an output
 ##
 ## These can get added soonish.  See issue #18
-##
-## For now, this function remains a mess.
 odin_parse_output <- function(obj) {
   if (!obj$info$has_output) {
     return(obj)
   }
 
-  ## Then, we compute two subgraphs (for dde) in the case where there
-  ## are output variables.  We'd actually only want to get the output
-  ## variables that are time dependent I think, but that really should
-  ## be all of them.
+  info <- odin_parse_extract_order(names_if(obj$traits[, "is_output"]), obj)
+  info$used <- odin_parse_output_usage(obj)
 
+  ## Modify the input here only:
+  obj$output_info <- info
+  obj$stage[info$used$output_only] <- STAGE_OUTPUT
+  for (i in intersect(info$used$output_only, names(obj$eqs))) {
+    obj$eqs[[i]]$stage <- STAGE_OUTPUT
+  }
+
+  obj
+}
+
+odin_parse_output_usage <- function(obj) {
   ## OK, what I need to find out here is:
   ##
   ##   * what is the full set of dependencies, including variables,
@@ -46,17 +53,13 @@ odin_parse_output <- function(obj) {
     used_delay <- character(0)
   }
 
-  only_output <- intersect(setdiff(used_output, c(used_deriv, used_delay)),
+  output_only <- intersect(setdiff(used_output, c(used_deriv, used_delay)),
                            names_if(obj$stage == STAGE_TIME))
+  output_exprs <- setdiff(used_output, c(obj$vars, nms_output))
 
-  ## A bit of information (TODO: may merge these?)
-  obj$output_info <- list(used=used_output, only=only_output, deriv=used_deriv)
-  obj$output_order <- odin_parse_extract_order(nms_output, obj)
-
-  obj$stage[only_output] <- STAGE_OUTPUT
-  for (i in intersect(only_output, names(obj$eqs))) {
-    obj$eqs[[i]]$stage <- STAGE_OUTPUT
-  }
-
-  obj
+  ## Still not sure exactly how these are used; not all may be needed.
+  list(output=used_output,
+       output_only=output_only,
+       deriv=used_deriv,
+       exprs=output_exprs)
 }

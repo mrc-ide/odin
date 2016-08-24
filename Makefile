@@ -4,9 +4,6 @@ RSCRIPT = Rscript --no-init-file
 all: install
 
 test:
-	STORR_SKIP_DOWNLOADS=true make test_all
-
-test_all:
 	${RSCRIPT} -e 'library(methods); devtools::test()'
 
 roxygen:

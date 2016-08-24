@@ -296,6 +296,10 @@ odin_parse_extract_order <- function(names, obj) {
   names_target <- obj$names_target[match(names, names(obj$eqs))]
   names_offset <- sprintf("offset_%s", names_target)
 
+  len <- rep_len(list(1L), n)
+  len[is_array] <- vcapply(names_target[is_array], array_dim_name)
+  len_is_var <- vlapply(len, is.language)
+
   offset <- as.list(seq_len(n) - 1L)
   accumulate_offset <- function(i) {
     if (i == 1L) {
@@ -309,7 +313,7 @@ odin_parse_extract_order <- function(names, obj) {
       if (is.language(prev)) {
         prev <- as.name(names_offset[[i - 1L]])
       }
-      call("+", prev, as.name(array_dim_name(names_target[[i - 1L]])))
+      call("+", prev, as.name(len[[i - 1L]]))
     }
   }
   for (i in which(is_array)) {
@@ -325,12 +329,15 @@ odin_parse_extract_order <- function(names, obj) {
   total_stage <- max(stage_dim)
 
   list(order=names_target,
+       n=n,
        names=names,
        is_array=is_array, # drop in favour of array > 0?
        array=array,
        offset=offset,
        offset_use=offset_use,
        offset_is_var=offset_is_var,
+       len=len,
+       len_is_var=len_is_var,
        total=total,
        total_is_var=total_is_var,
        total_use=total_use,
