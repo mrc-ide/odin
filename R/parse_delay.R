@@ -52,13 +52,16 @@ odin_parse_delay <- function(obj) {
   uses_delay <- obj$traits[, "uses_delay"]
   obj$eqs[uses_delay] <- lapply(which(uses_delay), odin_parse_delay_1, obj)
 
-  ## For now, go through and pull these out, but I think we can get
-  ## them other ways, later, perhaps.
-  delay_arrays <-
+  ## Determine all delay equation dependencies that are delays, and
+  ## indicate this in their dim() element.  The reason it goes there
+  ## is because we'll need to arrange additional array storage for all
+  ## of these.
+  delay_array_deps <-
     unique(unlist(lapply(obj$eqs[uses_delay],
                          function(x) names_if(x$delay$deps_is_array))))
-  delay_arrays <- setNames(sprintf("delay_%s", delay_arrays), delay_arrays)
-  obj$delay_support <- list(arrays=delay_arrays)
+  for (nm in delay_array_deps) {
+    obj$eqs[[array_dim_name(nm)]]$used_in_delay <- TRUE
+  }
 
   obj
 }

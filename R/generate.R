@@ -150,3 +150,7 @@ array_dim_name <- function(name, sub=NULL, use=TRUE) {
   }
   name_dim
 }
+
+delay_name <- function(name) {
+  sprintf("delay_%s", name)
+}

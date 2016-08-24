@@ -3,44 +3,43 @@
 odin_generate1_loop <- function(dat) {
   obj <- odin_generate1_object(dat)
 
+  ## (1): Add a few elements to the object:
+
+  ## Flag indicating if we're using dde.  This is set during object
+  ## creation, and can't (yet) be set from within the odin code [TODO]
   obj$add_element("odin_use_dde", "int")
 
-  ## Set up initial time so we can refer to it later.  Not all models
-  ## make use of this, but it seems worth adding (and doesn't take
-  ## that much space).  Delay models will make extensive use of this.
-  ## We could omit this for any non-delay model perhaps?
-  ##
-  ## TODO: support general RHS rewriting of initial(x) -> initial_x
-  ## combined with parse-time checking of valid x.
+  ## Initial time:
   obj$add_element(sprintf("initial_%s", TIME), "double")
 
+  ## Support for interacting with deSolve parameters
   obj$library_fns$add("get_ds_pars")
-  fns <- unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))
-  if ("sum" %in% fns) {
+
+  ## (2): Add some support functions:
+
+  ## Support for sum() of varying orders
+  if ("sum" %in%
+      unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))) {
     ## TODO: We should be more clever here, but not done yet and the
-    ## cost of this is low.
+    ## cost including all three definitions is low.  The issue is that
+    ## in contrast with most special functions, sum can be used in
+    ## nested expressions.  So for now this adds all three sum
+    ## functions but perhaps we only need one of them.
     obj$library_fns$add("odin_sum1")
     obj$library_fns$add("odin_sum2")
     obj$library_fns$add("odin_sum3")
   }
+
+  ## Support for differential equations:
   if (dat$info$has_delay) {
     obj$library_fns$add("lagvalue_dde")
     obj$library_fns$add("lagvalue_ds")
   }
 
+  ## Custom include files:
   obj$custom <- dat$config$include
 
-  ## Need to do this out here, rather than in the main loop because
-  ## otherwise when there is more than one delay variable they would
-  ## be added multiple times!
-  if (length(dat$delay_support$arrays) > 0L) {
-    for (nm in dat$delay_support$arrays) {
-      obj$add_element(nm, "double", 1L)
-    }
-  }
-
-  ## This is the bit that is the real main loop:
-  nms <- names(dat$eqs)
+  ## (3): The main loop over all equations:
   for (x in dat$eqs) {
     if (identical(x$lhs$special, "dim")) {
       odin_generate1_dim(x, obj, dat)
@@ -219,9 +218,9 @@ odin_generate1_object <- function(dat) {
 
 odin_generate1_dim <- function(x, obj, dat) {
   nm <- x$name
-  nm_t <- x$lhs$name_target
-  is_var <- nm_t %in% dat$vars
-  nm_s <- if (is_var) paste0("initial_", nm_t) else nm_t
+  nm_target <- x$lhs$name_target
+  is_var <- nm_target %in% dat$vars
+  nm_s <- if (is_var) paste0("initial_", nm_target) else nm_target
   st <- STAGES[[x$stage]]
 
   obj$add_element(nm_s, "double", x$nd)
@@ -247,7 +246,7 @@ odin_generate1_dim <- function(x, obj, dat) {
 
     if (x$nd > 1L) {
       nm_i <- vcapply(seq_len(x$nd),
-                      function(i) obj$rewrite(array_dim_name(nm_t, i)))
+                      function(i) obj$rewrite(array_dim_name(nm_target, i)))
     } else {
       nm_i <- obj$rewrite(nm)
     }
@@ -261,7 +260,7 @@ odin_generate1_dim <- function(x, obj, dat) {
     if (x$nd > 1L) {
       if (x$nd == 3L) {
         obj[[st]]$add("  %s = %s;",
-                      obj$rewrite(array_dim_name(nm_t, "12")),
+                      obj$rewrite(array_dim_name(nm_target, "12")),
                       paste(nm_i[1:2], collapse=" * "))
       }
       obj[[st]]$add("  %s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
@@ -275,7 +274,7 @@ odin_generate1_dim <- function(x, obj, dat) {
     if (x$nd > 1L) {
       size <- as.list(x$rhs$value[-1L])
       nm_i <- vcapply(seq_len(x$nd),
-                      function(i) obj$rewrite(array_dim_name(nm_t, i)))
+                      function(i) obj$rewrite(array_dim_name(nm_target, i)))
       for (i in seq_len(x$nd)) {
         obj[[st]]$add("%s = %s;", nm_i[[i]], obj$rewrite(size[[i]]))
       }
@@ -284,7 +283,7 @@ odin_generate1_dim <- function(x, obj, dat) {
       ## but we only need the special case here.
       if (x$nd == 3L) {
         obj[[st]]$add("%s = %s;",
-                      obj$rewrite(array_dim_name(nm_t, "12")),
+                      obj$rewrite(array_dim_name(nm_target, "12")),
                       paste(nm_i[1:2], collapse=" * "))
       }
       obj[[st]]$add("%s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
@@ -294,17 +293,35 @@ odin_generate1_dim <- function(x, obj, dat) {
     obj[[st]]$add("%s = (double*) Calloc(%s, double);",
                   obj$rewrite(nm_s), obj$rewrite(nm))
   }
-
   obj$free$add("Free(%s);", obj$rewrite(nm_s))
+
+  if (isTRUE(x$used_in_delay)) {
+    ## Storage for array components that are used within delay
+    ## expressions.  These will need to be extracted twice (once for
+    ## "now", once in a delay expression) so we need to create a bit
+    ## of extra space for them.
+    nm_delay <- delay_name(nm_target)
+    ## TODO: I'm not sure about the 1 on the end here; why is this not
+    ## the correct nd here?  Just to avoid writing out all the
+    ## subindexing?
+    obj$add_element(nm_delay, "double", 1L)
+    if (x$stage == STAGE_USER) {
+      obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_delay))
+      obj[["user"]]$add("Free(%s);", obj$rewrite(nm_delay))
+    }
+    obj[[st]]$add("%s = (double*) Calloc(%s, double);",
+                  obj$rewrite(nm_delay), obj$rewrite(nm))
+    obj$free$add("Free(%s);", obj$rewrite(nm_delay))
+  }
 
   if (is_var) {
     ## TODO: Does this not create some unnecessary offsets?  (e.g., in
     ## the mixed example in test-odin).  I would have thought that the
     ## *first* array would not need an offset; we'd only be interested
     ## in this if dat$variable_order$offset_is_var[[i]] is TRUE?
-    nm_offset <- paste0("offset_", nm_t)
+    nm_offset <- paste0("offset_", nm_target)
     obj$add_element(nm_offset, "int")
-    i <- match(nm_t, dat$variable_order$order)
+    i <- match(nm_target, dat$variable_order$order)
     offset <- dat$variable_order$offset[[i]]
     obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset), obj$rewrite(offset))
   }
@@ -515,19 +532,6 @@ odin_generate1_delay <- function(x, obj, dat) {
   obj$free$add("Free(%s);", obj$rewrite(delay_idx))
   obj$free$add("Free(%s);", obj$rewrite(delay_state))
 
-  if (length(dat$delay_support$arrays) > 0L) {
-    for (i in seq_along(dat$delay_support$arrays)) {
-      nm_arr <- dat$delay_support$arrays[[i]]
-      size <- array_dim_name(names(dat$delay_support$arrays)[[i]])
-      if (st == "user") { ## NOTE: duplicated from odin_generate1_dim()
-        obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_arr))
-        obj[["user"]]$add("Free(%s);", obj$rewrite(nm_arr))
-      }
-      obj[[st]]$add("%s = (double*) Calloc(%s, double);",
-                    obj$rewrite(nm_arr), obj$rewrite(size), name=nm)
-    }
-  }
-
   ## Fill in the instructions for deSolve as to which variables we
   ## need delays for.  This is pretty hairy in the case of variables
   ## because we need to work across two sets of offsets that don't
@@ -618,11 +622,12 @@ odin_generate1_delay <- function(x, obj, dat) {
   ## Then we'll organise that whenever we hit a variable that is used
   ## in a delay statement we'll add it in here in the appropriate
   ## order.
-  if (length(dat$delay_support$arrays) > 0L) {
-    subs <- lapply(dat$delay_support$arrays, as.name)
+  if (any(x$delay$deps_is_array)) {
+    subs <- names_if(x$delay$deps_is_array)
+    subs <- setNames(lapply(delay_name(subs), as.name), subs)
     tr <- function(x) {
       if (x$name %in% names(subs)) {
-        x$name <- dat$delay_support$arrays[[x$name]]
+        x$name <- as.character(subs[[x$name]])
       }
       if (isTRUE(x$rhs$delay)) {
         ## This one is the actual target (last step in the process).
