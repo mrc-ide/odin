@@ -1,0 +1,726 @@
+## TODO: Disallow '<base>_' as a name; otherwise potential for
+## collision, so probably set that in the DSL rather than here.
+odin_generate1_loop <- function(dat) {
+  obj <- odin_generate1_object(dat)
+
+  obj$add_element("odin_use_dde", "int")
+
+  ## Set up initial time so we can refer to it later.  Not all models
+  ## make use of this, but it seems worth adding (and doesn't take
+  ## that much space).  Delay models will make extensive use of this.
+  ## We could omit this for any non-delay model perhaps?
+  ##
+  ## TODO: support general RHS rewriting of initial(x) -> initial_x
+  ## combined with parse-time checking of valid x.
+  obj$add_element(sprintf("initial_%s", TIME), "double")
+
+  obj$library_fns$add("get_ds_pars")
+  fns <- unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))
+  if ("sum" %in% fns) {
+    ## TODO: We should be more clever here, but not done yet and the
+    ## cost of this is low.
+    obj$library_fns$add("odin_sum1")
+    obj$library_fns$add("odin_sum2")
+    obj$library_fns$add("odin_sum3")
+  }
+  if (dat$info$has_delay) {
+    obj$library_fns$add("lagvalue_dde")
+    obj$library_fns$add("lagvalue_ds")
+  }
+
+  obj$custom <- dat$config$include
+
+  ## Need to do this out here, rather than in the main loop because
+  ## otherwise when there is more than one delay variable they would
+  ## be added multiple times!
+  if (length(dat$delay_support$arrays) > 0L) {
+    for (nm in dat$delay_support$arrays) {
+      obj$add_element(nm, "double", 1L)
+    }
+  }
+
+  ## This is the bit that is the real main loop:
+  nms <- names(dat$eqs)
+  for (x in dat$eqs) {
+    if (identical(x$lhs$special, "dim")) {
+      odin_generate1_dim(x, obj, dat)
+    } else if (isTRUE(x$rhs$interpolate)) {
+      odin_generate1_interpolate_expr(x, obj, dat)
+    } else if (isTRUE(x$rhs$delay)) {
+      odin_generate1_delay(x, obj, dat)
+    } else if (x$lhs$type == "symbol") {
+      odin_generate1_symbol(x, obj, dat)
+    } else if (x$lhs$type == "array") {
+      odin_generate1_array(x, obj, dat)
+    } else {
+      stop("Unhandled type")
+    }
+  }
+
+  ## TODO: this should be factored out?
+  initial_t_deps <- dat$initial$time_deps
+  if (length(initial_t_deps)) {
+    ## All of the elements here are _time_ dependent, which changes
+    ## things a little.
+    initial_deps <- collector()
+
+    for (x in dat$eqs[initial_t_deps]) {
+      if (identical(x$lhs$special, "dim")) {
+        stop("dim use in initial should never happen (bug?)")
+      } else if (isTRUE(x$rhs$delay)) {
+        ## This one should be pretty easy as by definition we can't
+        ## have accumulated any delays yet.  So we should be using the
+        ## non-delay branch which is the easier branch.
+        stop("delay use in initial not handled")
+      } else if (x$lhs$type == "symbol") {
+        odin_generate1_symbol(x, obj, dat, initial_deps)
+      } else if (x$lhs$type == "array") {
+        initial_deps$add(odin_generate1_array_expr(x, obj))
+      } else {
+        stop("Unhandled type")
+      }
+    }
+    ## NOTE: This is a bit ugly, but I really need to process things
+    ## in this order, and that is most simply dealt with by a prepend
+    ## here.
+    obj$initial$prepend(initial_deps$get())
+  }
+
+  if (dat$variable_order$total_is_var) {
+    obj$add_element(dat$variable_order$total_use, "int")
+    st <- STAGES[[dat$variable_order$total_stage]]
+    obj[[st]]$add("%s = %s;",
+                  obj$rewrite(dat$variable_order$total_use),
+                  obj$rewrite(dat$variable_order$total))
+  }
+  obj$variable_size <- obj$rewrite(dat$variable_order$total_use)
+
+  ## #### OUTPUT ####
+  ## TODO: Neither 'if' branch here is tested.
+  if (dat$info$has_output) {
+    if (obj$output_info$total_is_var) {
+      obj$add_element(obj$output_info$total_use, "int")
+      st <- STAGES[[obj$output_info$total_stage]]
+      obj[[st]]$add("%s = %s;",
+                    obj$rewrite(obj$output_info$total_use),
+                    obj$rewrite(obj$output_info$total))
+    }
+    if (any(obj$output_info$is_array)) {
+      stop("untested")
+      offset <- vcapply(obj$output_use$offset_use[obj$output_info$is_array],
+                        obj$rewrite)
+      obj$output$add("double *output_%s = %s + %s;",
+                     obj$output_info$order[obj$output_info$is_array],
+                     OUTPUT, offset)
+    }
+  }
+
+  ## We're going to use this in a couple of places and it's kind of
+  ## awkward.  In contrast with vars, which is known on entry to this
+  ## function, types is collected by this function so needs to be
+  ## written out at the end.
+  obj$types <- rbind_as_df(obj$types$get())
+
+  ## TODO: This comes out soon; it's used in reporting but should not
+  ## be needed in quite this form.
+  obj$vars <- data.frame(
+    name=dat$variable_order$order,
+    is_array=dat$variable_order$is_array,
+    array=dat$variable_order$array,
+    used=dat$variable_order$used,
+    ## TODO: watch out here - should be elsewhere, no?
+    used_output=dat$variable_order$order %in% obj$output_info$used$output,
+    offset=vcapply(dat$variable_order$offset_use, obj$rewrite),
+    length=vcapply(dat$variable_order$len, obj$rewrite),
+    stringsAsFactors=FALSE)
+
+  obj
+}
+
+## What we are going to write here is a little bit of (fairly nasty)
+## reference-style code that will help generate the interface.  The
+## simplest way of doing this might be to generate a small list of
+## types that we can reference everywhere.  But that might just be
+## more complicated than it needs to be?
+odin_generate1_object <- function(dat) {
+  base <- dat[["config"]][["base"]]
+  self <- list(base=base)
+
+  self$info <- list(base=base,
+                    has_delay=dat$info$has_delay,
+                    has_output=dat$info$has_output,
+                    has_interpolate=dat$info$has_interpolate,
+                    has_array=dat$has_array,
+                    user=dat$user_default, # TODO: update
+                    ## TODO: tweak dat$info here? Or move this around a bit?
+                    initial_stage=dat$initial$stage,
+                    dim_stage=dat$dim_stage)
+
+  ## NOTE: This stage might grow
+  self$output_info <- dat$output_info
+
+  self$name_pars <- sprintf("%s_p", base)
+  self$type_pars <- sprintf("%s_pars", base)
+
+  ## This is the set of variables we know to be *ours*.
+  lookup <- collector()
+
+  ## Type information will generate a bunch of extra things, so
+  ## process that later for simplicity:
+  self$types <- collector_list()
+
+  ## The major stages:
+  self$constant <- collector_named()
+  self$user <- collector_named()
+  self$time <- collector_named(TRUE)
+  self$output <- collector_named(TRUE)
+
+  self$initial <- collector()
+  self$free <- collector()
+
+  self$interpolate <- collector_list()
+
+  ## Keep track of which library functions we need.  I'll keep those
+  ## elsewhere and select them based on name.
+  self$library_fns <- collector()
+  self$declarations <- collector()
+
+  self$add_element <- function(name, type, array=0) {
+    if (array > 0L) {
+      name_dim <- array_dim_name(name, use=FALSE)
+      if (!is.null(name_dim)) {
+        Recall(name_dim, "int", FALSE)
+        if (array > 1L) {
+          for (i in seq_len(array)) {
+            Recall(array_dim_name(name, i, use=FALSE), "int")
+          }
+          if (array == 3L) {
+            Recall(array_dim_name(name, "12", use=FALSE), "int")
+          }
+        }
+      }
+    }
+    interpolate <- type == "interpolate_data"
+    self$types$add(list(name=name, type=type,
+                        array=array, interpolate=interpolate))
+    lookup$add(name)
+  }
+
+  ## Rewrite based on that.
+  custom <- names(dat$config$include$declarations)
+  self$rewrite <- function(x) {
+    rewrite_c(x, self$name_pars, lookup$get(), INDEX, custom)
+  }
+
+  self$lookup <- lookup
+
+  self
+}
+
+odin_generate1_dim <- function(x, obj, dat) {
+  nm <- x$name
+  nm_t <- x$lhs$name_target
+  is_var <- nm_t %in% dat$vars
+  nm_s <- if (is_var) paste0("initial_", nm_t) else nm_t
+  st <- STAGES[[x$stage]]
+
+  obj$add_element(nm_s, "double", x$nd)
+  if (x$stage == STAGE_USER) {
+    obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_s))
+    obj[["user"]]$add("Free(%s);", obj$rewrite(nm_s))
+  } else if (x$stage > STAGE_USER) {
+    stop("This should never happen!")
+  }
+
+  if (x$nd > 1L) {
+    obj$library_fns$add(sprintf("odin_set_dim%d", x$nd))
+  }
+
+  if (isTRUE(x$rhs$user)) {
+    ## Here, we'll need to a little extra work; get the value, check
+    ## length, copy out integers.
+    fn <- sprintf("get_user_array_dim%d", x$nd)
+    obj$library_fns$add(fn)
+    ## We really need to do this in a scoped block I think as we need
+    ## to set a few things all at once.
+    obj[[st]]$add("{")
+
+    if (x$nd > 1L) {
+      nm_i <- vcapply(seq_len(x$nd),
+                      function(i) obj$rewrite(array_dim_name(nm_t, i)))
+    } else {
+      nm_i <- obj$rewrite(nm)
+    }
+
+    ## TODO "tmp" -> STATE?
+    obj[[st]]$add('  double* tmp = %s(%s, "%s", %s);',
+                  fn, USER, nm_s, paste0("&", nm_i, collapse=", "))
+    ## TODO: This duplicates the code below for computing compound
+    ## dimensions, but until I get test cases in that's probably the
+    ## simplest for now (note it differs in indent though).
+    if (x$nd > 1L) {
+      if (x$nd == 3L) {
+        obj[[st]]$add("  %s = %s;",
+                      obj$rewrite(array_dim_name(nm_t, "12")),
+                      paste(nm_i[1:2], collapse=" * "))
+      }
+      obj[[st]]$add("  %s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
+    }
+    obj[[st]]$add("  %s = (double*) Calloc(%s, double);",
+                  obj$rewrite(nm_s), obj$rewrite(nm))
+    obj[[st]]$add("  memcpy(%s, tmp, %s * sizeof(double));",
+                  obj$rewrite(nm_s), obj$rewrite(nm))
+    obj[[st]]$add("}")
+  } else {
+    if (x$nd > 1L) {
+      size <- as.list(x$rhs$value[-1L])
+      nm_i <- vcapply(seq_len(x$nd),
+                      function(i) obj$rewrite(array_dim_name(nm_t, i)))
+      for (i in seq_len(x$nd)) {
+        obj[[st]]$add("%s = %s;", nm_i[[i]], obj$rewrite(size[[i]]))
+      }
+      ## Little extra work for the 3d case.  If we were allowing
+      ## arbitrary matrices here this would be heaps more complicated
+      ## but we only need the special case here.
+      if (x$nd == 3L) {
+        obj[[st]]$add("%s = %s;",
+                      obj$rewrite(array_dim_name(nm_t, "12")),
+                      paste(nm_i[1:2], collapse=" * "))
+      }
+      obj[[st]]$add("%s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
+    } else {
+      obj[[st]]$add("%s = %s;", obj$rewrite(nm), obj$rewrite(x$rhs$value))
+    }
+    obj[[st]]$add("%s = (double*) Calloc(%s, double);",
+                  obj$rewrite(nm_s), obj$rewrite(nm))
+  }
+
+  obj$free$add("Free(%s);", obj$rewrite(nm_s))
+
+  if (is_var) {
+    ## TODO: Does this not create some unnecessary offsets?  (e.g., in
+    ## the mixed example in test-odin).  I would have thought that the
+    ## *first* array would not need an offset; we'd only be interested
+    ## in this if dat$variable_order$offset_is_var[[i]] is TRUE?
+    nm_offset <- paste0("offset_", nm_t)
+    obj$add_element(nm_offset, "int")
+    i <- match(nm_t, dat$variable_order$order)
+    offset <- dat$variable_order$offset[[i]]
+    obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset), obj$rewrite(offset))
+  }
+}
+
+odin_generate1_symbol <- function(x, obj, dat, target=NULL) {
+  nm <- x$name
+  type <- if (nm %in% dat$index_vars) "int" else "double"
+  is_initial <- identical(x$lhs$special, "initial")
+  if (is.null(target)) {
+    target <- obj[[if (is_initial) "initial" else STAGES[[x$stage]]]]
+    if (x$stage < STAGE_TIME || is_initial) {
+      obj$add_element(nm, type)
+    }
+  }
+
+  if (isTRUE(x$rhs$user)) {
+    if (isTRUE(x$rhs$default)) {
+      default <- obj$rewrite(x$rhs$value)
+    } else {
+      default <- if (type == "int") "NA_INTEGER" else "NA_REAL"
+    }
+    obj$constant$add("%s = %s;", obj$rewrite(nm), default)
+    get_user <- sprintf("get_user_%s", type)
+    obj$library_fns$add(get_user)
+    value <- sprintf("%s(%s, \"%s\", %s)", get_user, USER, nm, obj$rewrite(nm))
+  } else {
+    value <- obj$rewrite(x$rhs$value)
+  }
+
+  if (x$stage < STAGE_TIME || is_initial) {
+    target$add("%s = %s;", obj$rewrite(nm), value, name=nm)
+  } else if (identical(x$lhs$special, "deriv")) {
+    ## NOTE: offset guaranteed to be OK, but should probably rewrite?
+    i <- match(x$lhs$name_target, dat$variable_order$order)
+    offset <- obj$rewrite(dat$variable_order$offset_use[[i]])
+    target$add("%s[%s] = %s;", DSTATEDT, offset, value, name=nm)
+  } else if (identical(x$lhs$special, "output")) {
+    i <- match(x$lhs$name_target, obj$output_info$order)
+    offset <- obj$rewrite(obj$output_info$offset_use[[i]])
+    target$add("%s[%s] = %s;", OUTPUT, offset, value, name=nm)
+  } else {
+    target$add("%s %s = %s;", type, nm, value, name=nm)
+  }
+}
+
+odin_generate1_array <- function(x, obj, dat) {
+  st <- STAGES[[x$stage]]
+  nm <- x$name
+
+  if (isTRUE(x$rhs$user)) {
+    dim <- dat$eqs[[array_dim_name(x$name)]]
+    if (isTRUE(dim$rhs$user)) {
+      ## All done already while establishing dim
+      return()
+    }
+    nd <- dim$nd
+    fn <- sprintf("get_user_array%d", nd)
+    obj$library_fns$add(fn)
+
+    if (nd == 1) {
+      dn <- obj$rewrite(dim$name)
+    } else {
+      dn <- paste(vcapply(seq_len(nd), function(i)
+        obj$rewrite(array_dim_name(x$name, i)), USE.NAMES=FALSE), collapse=", ")
+    }
+    obj[[st]]$add('%s(%s, "%s", %s, %s);',
+                  fn, USER, nm, dn, obj$rewrite(x$name), name=nm)
+  } else {
+    obj[[st]]$add(odin_generate1_array_expr(x, obj), name=nm)
+  }
+}
+
+odin_generate1_array_expr <- function(x, obj) {
+  ret <- collector()
+  indent <- ""
+  ## TODO: For >= 2 dimensions, consider running the indices
+  ## backwards here to be more cache friendly.  So this means
+  ## running k, then j, then i.  To do this well, store the offsets
+  ## at each loop level.  See odin_sum2 and odin_sum3 for how this
+  ## works.  I'm not really sure if this will actually make a
+  ## performance gain, but it should be simple enough to implement.
+  ## It's worth checking the code that compiler generates though
+  ## actually differs (especially with -O2 or higher).
+  for (j in seq_along(x$lhs$index)) {
+    xj <- x$lhs$index[[j]]
+    is_range <- xj$is_range
+    target <- xj$extent_max
+    ## TODO: The index variables need sanitising so that no more
+    ## than one of i,j,k is allowed; things like x[i,j] = z[i + j]
+    ## are not allowed!
+    for (k in seq_along(is_range)) {
+      if (is_range[k]) {
+        ret$add("%sfor (int %s = %s; %s < %s; ++%s) {",
+                indent,
+                INDEX[[k]], minus1(xj$extent_min[[k]], obj$rewrite),
+                INDEX[[k]], obj$rewrite(xj$extent_max[[k]]),
+                INDEX[[k]])
+        indent <- paste0("  ", indent)
+        target[[k]] <- as.symbol(INDEX[[k]])
+      } else if (INDEX[[k]] %in% x$rhs$depends$variables) {
+        ## TODO: I need to get the index rhs depends back here to
+        ## do this best (i.e., if the rhs does not depend on an
+        ## index then don't bother adding the declaration here).
+        ## As it is this will do this for *all* entries which is
+        ## not ideal.
+        if (!nzchar(indent)) {
+          ret$add("{")
+          indent <- "  "
+        }
+        ret$add("%sint %s = %s;", indent, INDEX[[k]],
+                minus1(xj$extent_max[[k]], obj$rewrite))
+        target[[k]] <- as.symbol(INDEX[[k]])
+      } else {
+        target[[k]] <- xj$extent_max[[k]]
+      }
+    }
+    target <- obj$rewrite(as.call(c(quote(`[`), as.symbol(x$name), target)))
+    value <- obj$rewrite(x$rhs$value[[j]])
+    ret$add("%s%s = %s;", indent, target, value)
+
+    while (nzchar(indent)) {
+      indent <- substr(indent, 3L, nchar(indent))
+      ret$add("%s}", indent)
+    }
+  }
+  ret$get()
+}
+
+## TODO: I think I have some duplication here in both the variable
+## ordering and the output ordering (computing offsets and the like).
+## Here I'm hoping to make the simplifying assumption that the number
+## of array variables stored is smallish so we can afford to manually
+## do calculations on them.
+odin_generate1_delay <- function(x, obj, dat) {
+  nm <- x$name
+  delay_len <- length(x$delay$extract)
+  delay_is_array <- x$delay$is_array
+  ## This one is nasty:
+  deps_is_array <- x$delay$deps_is_array
+
+  delay_size <- vcapply(x$delay$size, obj$rewrite)
+  ## Need to compute total array size here, with the 3 options of all
+  ## array, no array or some array:
+  if (all(delay_is_array)) {
+    delay_size_tot <- paste(delay_size, collapse=" + ")
+  } else if (any(delay_is_array)) {
+    delay_size_tot <-
+      paste(c(sum(!delay_is_array), delay_size[delay_is_array]),
+            collapse=" + ")
+  } else {
+    delay_size_tot <- delay_len
+  }
+
+  ## NOTE: There's some duplication here in terms of the size of
+  ## various arrays.  That helps with some assumptions about how
+  ## the array allocations and copying works.  It's possible that
+  ## could be worked around with a #define but I don't think it's
+  ## worth it at this point.  For now just accept the redundancy.
+  ##
+  ## NOTE: it would be *heaps* simpler to extract the entire
+  ## structure here (create one vector of length `p->dim` and set
+  ## it as `0..(p->dim-1)` but potentially slower as it will look
+  ## up all varaibles (and most of the time we won't be interested
+  ## in all).
+  ##
+  ## TODO: The Calloc/Free calls here could move into contents if
+  ## it took a stage argument.
+  ##
+  ## TODO: The Calloc/Free calls here are in danger of being incorrect
+  ## here with user-sized array input.  I think that this just
+  ## requires nailing the stage correctly, but there are some unusual
+  ## dependencies for delay things (and we need to delay on the size
+  ## for all given variables which is not currently supported
+  ## properly)
+
+  ## The options for naming are to use a series of indices (e.g., 1,
+  ## 2, 3) or name things after the variables that are being delayed
+  ## (delay_1_idx vs delay_lag_inf_idx, delay_1_state vs
+  ## delay_lag_inf_state).  I think that the latter is probably nicer.
+  delay_idx <- sprintf("delay_%s_%s", INDEX[[1L]], nm)
+  delay_state <- sprintf("delay_%s_%s", STATE, nm)
+  delay_dim <- array_dim_name(delay_idx)
+  delay_time <- sprintf("delay_%s", TIME)
+
+  ## If there are any arrays here we'll need to organise offsets.
+  ## Rather than store the full offset vector I'll do this one by hand
+  ## I think and let the compiler take care of it?  Getting this right
+  ## will require a good test.  It's possible that this can be done
+  ## with an accumulating variable as we'll need to get lengths here
+  ## anyway.
+  st <- STAGES[if (any(x$delay$is_array)) dat$dim_stage else STAGE_CONSTANT]
+
+  obj$add_element(delay_idx, "int", 1L)
+  obj$add_element(delay_state, "double", 1L)
+
+  obj[[st]]$add("%s = %s;", obj$rewrite(delay_dim), delay_size_tot, name=nm)
+  if (st == "user") { ## NOTE: duplicated from odin_generate1_dim()
+    obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_idx))
+    obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_state))
+    obj[["user"]]$add("Free(%s);", obj$rewrite(delay_idx))
+    obj[["user"]]$add("Free(%s);", obj$rewrite(delay_state))
+  }
+  obj[[st]]$add("%s = (int*) Calloc(%s, int);",
+                obj$rewrite(delay_idx), obj$rewrite(delay_dim), name=nm)
+  obj[[st]]$add("%s = (double*) Calloc(%s, double);",
+                obj$rewrite(delay_state), obj$rewrite(delay_dim), name=nm)
+  obj$free$add("Free(%s);", obj$rewrite(delay_idx))
+  obj$free$add("Free(%s);", obj$rewrite(delay_state))
+
+  if (length(dat$delay_support$arrays) > 0L) {
+    for (i in seq_along(dat$delay_support$arrays)) {
+      nm_arr <- dat$delay_support$arrays[[i]]
+      size <- array_dim_name(names(dat$delay_support$arrays)[[i]])
+      if (st == "user") { ## NOTE: duplicated from odin_generate1_dim()
+        obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_arr))
+        obj[["user"]]$add("Free(%s);", obj$rewrite(nm_arr))
+      }
+      obj[[st]]$add("%s = (double*) Calloc(%s, double);",
+                    obj$rewrite(nm_arr), obj$rewrite(size), name=nm)
+    }
+  }
+
+  ## Fill in the instructions for deSolve as to which variables we
+  ## need delays for.  This is pretty hairy in the case of variables
+  ## because we need to work across two sets of offsets that don't
+  ## necessarily match up.  Note that the non-array things go in here
+  ## before the array things.
+  i <- match(x$delay$extract, dat$variable_order$order)
+  delay_var_offset <- dat$variable_order$offset_use[i]
+  obj[[st]]$add("{", name=nm)
+  obj[[st]]$add("  int j = 0;", name=nm)
+  for (i in seq_along(delay_var_offset)) {
+    if (x$delay$is_array[[i]]) {
+      obj[[st]]$add("  for (int i = 0, k = %s; i < %s; ++i) {",
+                    obj$rewrite(delay_var_offset[[i]]),
+                    obj$rewrite(array_dim_name(x$delay$extract[[i]])),
+                    name=nm)
+      obj[[st]]$add("    %s[j++] = k++;", obj$rewrite(delay_idx), name=nm)
+      obj[[st]]$add("  }", name=nm)
+    } else {
+      obj[[st]]$add("  %s[j++] = %s;", obj$rewrite(delay_idx),
+                    obj$rewrite(delay_var_offset[[i]]), name=nm)
+    }
+  }
+  obj[[st]]$add("}", name=nm)
+
+  ## Next, prepare output variables so we can push them up out of scope:
+  st <- STAGES[STAGE_TIME]
+  if (x$lhs$type == "symbol") {
+    obj[[st]]$add("double %s;", nm, name=nm)
+  }
+  obj[[st]]$add("{", name=nm)
+
+  ## 4. Pull things out of the lag value, but only if time is past
+  ## where the lag is OK to work with.  That's going to look like:
+  obj[[st]]$add("  double %s;",
+                paste0(ifelse(x$delay$is_array, "*", ""),
+                       x$delay$extract, collapse=", "), name=nm)
+
+  ## Next, we need to compute offsets.  This is annoying because it
+  ## duplicates code elsewhere, but life goes on.  I'm running this
+  ## one a bit differently though, in the hope that not too many ways.
+  ##
+  ## Here, we need, for the array case, to swap out the delay_state in
+  ## place of the last array.  If I do that always it's less checking,
+  ## actually.  This will always be of the form X + dim(X) so that's
+  ## nice.
+  f <- function(i) {
+    if (identical(x$delay$offset[[i]], 0L) && x$delay$is_array[[i]]) {
+      obj$rewrite(delay_state)
+    } else {
+      fmt <- if (x$delay$is_array[[i]]) "%s + %s" else "%s[%s]"
+      if (i > 1L && x$delay$is_array[[i - 1L]]) {
+        base <- x$delay$extract[[i - 1L]]
+      } else {
+        base <- obj$rewrite(delay_state)
+      }
+      sprintf(fmt, base, obj$rewrite(x$delay$offset[[i]]))
+    }
+  }
+  delay_access <- vcapply(seq_along(x$delay$offset), f)
+
+  ## TODO: if time is used in the time calculation it will need
+  ## rewriting.  But I believe that parse prohibits that in the
+  ## meantime.
+  obj[[st]]$add("  const double %s = %s - %s;",
+                delay_time, TIME, obj$rewrite(x$delay$time), name=nm)
+  obj[[st]]$add("  if (%s <= %s) {",
+                delay_time, obj$rewrite(sprintf("initial_%s", TIME)), name=nm)
+  obj[[st]]$add("    %s = %s;",
+                x$delay$extract,
+                vcapply(sprintf("initial_%s", x$delay$extract),
+                        obj$rewrite, USE.NAMES=FALSE), name=nm)
+  obj[[st]]$add("  } else {", name=nm)
+  ## TODO: This could be done on a switch in the parameters; that
+  ## would enable dde and deSolve to exist side-by-side.
+  lagvalue <-  sprintf("      lagvalue_%%s(%s, %s, %s, %s);",
+                       delay_time,
+                       obj$rewrite(delay_idx),
+                       obj$rewrite(delay_dim),
+                       obj$rewrite(delay_state))
+  obj[[st]]$add("    if (%s->odin_use_dde) {", obj$name_pars, name=nm)
+  obj[[st]]$add(lagvalue, "dde", name=nm)
+  obj[[st]]$add("    } else {", name=nm)
+  obj[[st]]$add(lagvalue, "ds", name=nm)
+  obj[[st]]$add("    }", name=nm)
+  obj[[st]]$add("    %s = %s;", x$delay$extract, delay_access, name=nm)
+  obj[[st]]$add("  }", name=nm)
+
+  ## Then we'll organise that whenever we hit a variable that is used
+  ## in a delay statement we'll add it in here in the appropriate
+  ## order.
+  if (length(dat$delay_support$arrays) > 0L) {
+    subs <- lapply(dat$delay_support$arrays, as.name)
+    tr <- function(x) {
+      if (x$name %in% names(subs)) {
+        x$name <- dat$delay_support$arrays[[x$name]]
+      }
+      if (isTRUE(x$rhs$delay)) {
+        ## This one is the actual target (last step in the process).
+        x$rhs$value <- list(substitute_(x$rhs$value_expr, subs))
+      } else {
+        ## This one is an array used to generate the target.
+        x$rhs$value <- lapply(x$rhs$value, substitute_, subs)
+      }
+      x
+    }
+  } else {
+    tr <- identity
+  }
+
+  ## Here, identify and rewrite the arrays from the equation.
+  for (nm_dep in x$delay$deps) {
+    if (deps_is_array[[nm_dep]]) {
+      obj[[st]]$add(indent(
+                 odin_generate1_array_expr(tr(dat$eqs[[nm_dep]]), obj), 2),
+                 name=nm)
+    } else {
+      obj[[st]]$add("  double %s = %s;",
+                    nm_dep, obj$rewrite(tr(dat$eqs[[nm_dep]])$rhs$value),
+                    name=nm)
+    }
+  }
+  if (x$lhs$type == "array") {
+    obj[[st]]$add(indent(odin_generate1_array_expr(tr(x), obj), 2), name=nm)
+  } else {
+    obj[[st]]$add("  %s = %s;", nm, obj$rewrite(tr(x)$rhs$value_expr),
+                  name=nm)
+  }
+  obj[[st]]$add("}", name=nm)
+}
+
+odin_generate1_interpolate_expr <- function(x, obj, dat) {
+  nm <- x$name
+  tmp <- x$rhs$value
+  nd <- tmp[["nd"]]
+  ny <- tmp[["ny"]]
+  nt <- tmp[["nt"]]
+  nm_t <- tmp[["t"]]
+  nm_y <- tmp[["y"]]
+  interpolation_type <- tmp[["type"]]
+  dest <- tmp[["name"]]
+
+  obj$interpolate$add(list(interpolation_type=interpolation_type, t=nm_t))
+  obj$library_fns$add("odin_interpolate_check")
+  obj$add_element(dest, "interpolate_data")
+
+  ## TODO: throughout here; consider looking at the actual definitions
+  ## as it may be possible to determine that the conditional will
+  ## always be true.  The compiler should sort that out for us though,
+  ## though it may give warnings.
+  if (nd == 0L) {
+    obj$add_element(nm, "double")
+    obj$user$add('odin_interpolate_check(%s, %s, 0, "%s", "%s");',
+                 obj$rewrite(nt), obj$rewrite(array_dim_name(nm_y)), nm_y, nm)
+    n_target <- 1L
+  } else {
+    n_target <- array_dim_name(nm)
+    for (i in seq_len(nd + 1)) {
+      if (i == 1L) {
+        dim_target <- array_dim_name(nm_t)
+      } else {
+        dim_target <- array_dim_name(nm, if (nd == 1) NULL else i - 1)
+      }
+      obj$user$add('odin_interpolate_check(%s, %s, %d, "%s", "%s");',
+                   obj$rewrite(dim_target),
+                   obj$rewrite(array_dim_name(nm_y, i)), i, nm_y, nm)
+    }
+  }
+
+  ## TODO: need to check that the dimensions of the arrays are OK.
+  ## That's actually not totally straightforward.  It goes in the user
+  ## bit right here before free/alloc though.
+  ##
+  ## TODO: Right before running (so init stage) we need to check that
+  ## the times span appropriately.
+  ##
+  ## TODO: At some point we'll need to specify some critical values so
+  ## that the integrator doesn't struggle with things having to change
+  ## radically.
+  obj$user$add('interpolate_free(%s);', obj$rewrite(dest))
+  obj$user$add('%s = interpolate_alloc(%s, %s, %s, %s, %s);',
+               obj$rewrite(dest), toupper(interpolation_type),
+               obj$rewrite(nt), obj$rewrite(n_target),
+               obj$rewrite(nm_t), obj$rewrite(nm_y))
+
+  ## TODO: These are going to do tricky things with time when delayed.
+  ##
+  ## TODO: don't have error handling done here yet - it's not totally
+  ## clear what we should do.  The safest thing is going to be to
+  ## throw an error and just bail.  After that the next best thing to
+  ## do is not go further than the end?
+  target <- sprintf(if (x$lhs$type == "array") "%s" else "&(%s)",
+                    obj$rewrite(nm))
+  obj$time$add("interpolate_%s_run(%s, %s, %s);",
+               interpolation_type, TIME, obj$rewrite(dest), target,
+               name=nm)
+}
