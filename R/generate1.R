@@ -78,13 +78,6 @@ odin_generate1_object <- function(dat) {
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)
 
-  ## This is the set of variables we know to be *ours*.
-  self$lookup <- collector()
-
-  ## Type information will generate a bunch of extra things, so
-  ## process that later for simplicity:
-  self$types <- collector_list()
-
   ## The major stages:
   self$constant <- collector_named()
   self$user <- collector_named()
@@ -101,6 +94,19 @@ odin_generate1_object <- function(dat) {
   self$library_fns <- collector()
   self$declarations <- collector()
 
+  ## Below here, things are related to each other; lookup, and types
+  ## are both called by add_element, and rewrite looks up variables in
+  ## lookup.  So as elements are added to the object (which happens in
+  ## topological order) we can rewrite the C to pull them from the
+  ## struct.
+
+  ## This is the set of variables we know to be *ours*.
+  self$lookup <- collector()
+
+  ## Type information will generate a bunch of extra things, so
+  ## process that later for simplicity:
+  self$types <- collector_list()
+
   self$add_element <- function(name, type, array=0) {
     if (array > 0L) {
       name_dim <- array_dim_name(name, use=FALSE)
@@ -116,9 +122,7 @@ odin_generate1_object <- function(dat) {
         }
       }
     }
-    interpolate <- type == "interpolate_data"
-    self$types$add(list(name=name, type=type,
-                        array=array, interpolate=interpolate))
+    self$types$add(list(name=name, type=type, array=array))
     self$lookup$add(name)
   }
 

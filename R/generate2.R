@@ -120,13 +120,13 @@ odin_generate2_contents <- function(obj) {
           STATE, len)
 
   for (i in seq_len(len)) {
-    if (types$interpolate[[i]]) {
-      ## Can't do anything with these.
-      next
-    }
     name <- types$name[[i]]
     type <- types$type[[i]]
     array <- types$array[[i]]
+    if (type == "interpolate_data") {
+      ## Can't do anything with these.
+      next
+    }
     if (array > 0L) {
       name_dim <- array_dim_name(name)
       ret$add("  SET_VECTOR_ELT(%s, %d, allocVector(%s, %s));",
@@ -171,7 +171,7 @@ odin_generate2_struct <- function(obj) {
   ret$add("// Collect together all the parameters and transient memory")
   ret$add("// required to run the model in a struct.")
   ret$add("typedef struct %s {", obj$type_pars)
-  ptr <- types$array | types$interpolate
+  ptr <- types$array | types$type == "interpolate_data"
   ret$add("  %s %s%s;", types$type, ifelse(ptr, "*", ""), types$name)
   ret$add("} %s;", obj$type_pars)
   ret$get()
