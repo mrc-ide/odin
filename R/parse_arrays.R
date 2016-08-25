@@ -13,8 +13,11 @@
 ## (potentially) have reordered and resized the eqs, traits and
 ## names_target elements.
 odin_parse_arrays <- function(obj) {
-  obj$index_vars <- odin_parse_arrays_index_vars(obj)
+  ## Set the type (int/double) based on variable usage as array
+  ## indices.
+  obj <- odin_parse_arrays_set_type(obj)
 
+  ## Then check that everything is used appropriately
   odin_parse_arrays_check_usage(obj)
 
   ## TODO: it's possible that this will allow through arrays that are
@@ -51,13 +54,14 @@ odin_parse_arrays <- function(obj) {
     }
   }
 
-  ## Bunch of checking now everything is tidied up.
+  ## Bunch of checking now everything is tidied up; this mostly checks
+  ## that where used arrays have the correct dimensions.
   odin_parse_array_check(obj)
 
   obj
 }
 
-odin_parse_arrays_index_vars <- function(obj) {
+odin_parse_arrays_set_type <- function(obj) {
   ## Need to identify calls to length and dim return integers.  This
   ## could probably be extended a little bit to pick up on cases where
   ## the calls are dim() and length() calls joined by arithmetic
@@ -96,7 +100,14 @@ odin_parse_arrays_index_vars <- function(obj) {
                get_lines(obj$eqs[i]), get_exprs(obj$eqs[i]))
   }
 
-  index_vars
+  ## Set a data_type element (on the lhs) to int for all variables
+  ## that are used as indices.
+  types <- ifelse(obj$names_target %in% index_vars, "int", "double")
+  for (i in seq_along(obj$eqs)) {
+    obj$eqs[[i]]$lhs$data_type <- types[[i]]
+  }
+
+  obj
 }
 
 ## Called for error checking only; no modifications to object:
@@ -214,7 +225,7 @@ odin_parse_arrays_1 <- function(idx, obj) {
   ## output() and plain.
   used_lhs <- unlist(lapply(eqs[idx], function(x) names(x$lhs)))
   ok <- c("type", "name", "name_target", "index", "nd", "name_dim",
-          "depends", "special")
+          "depends", "special", "data_type")
   stopifnot(length(setdiff(used_lhs, ok)) == 0L)
 
   ## NOTE: These *could* have been done with traits, but are not.  I

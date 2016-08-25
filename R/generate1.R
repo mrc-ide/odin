@@ -345,7 +345,7 @@ odin_generate1_dim <- function(x, obj, dat) {
 odin_generate1_symbol <- function(x, obj, dat) {
   st <- STAGES[[x$stage]]
   nm <- x$name
-  type <- if (nm %in% dat$index_vars) "int" else "double"
+  type <- x$lhs$data_type
 
   is_initial <- identical(x$lhs$special, "initial")
   st <- if (is_initial) "initial" else STAGES[[x$stage]]
@@ -367,8 +367,7 @@ odin_generate1_symbol <- function(x, obj, dat) {
 
 odin_generate1_symbol_expr <- function(x, obj, dat) {
   nm <- x$name
-  ## TODO: consider setting x$type?  Might be tidier.
-  type <- if (nm %in% dat$index_vars) "int" else "double"
+  type <- x$lhs$data_type
 
   if (isTRUE(x$rhs$user)) {
     get_user <- sprintf("get_user_%s", type)
