@@ -15,24 +15,14 @@ odin_generate1 <- function(dat) {
   ## be set from within the odin code [TODO]
   obj$add_element("odin_use_dde", "int")
   obj$add_element(sprintf("initial_%s", TIME), "double")
+  odin_generate1_library(obj, dat$eqs)
 
   ## The main loop over all equations:
   odin_generate1_loop(obj, dat$eqs)
 
-  odin_generate1_library(obj)
-
   odin_generate1_total(obj$variable_info, obj)
-
   if (obj$info$has_output) {
     odin_generate1_total(obj$output_info, obj)
-    if (any(obj$output_info$is_array)) {
-      stop("untested") # TODO!
-      offset <- vcapply(obj$output_use$offset_use[obj$output_info$is_array],
-                        obj$rewrite)
-      obj$output$add("double *output_%s = %s + %s;",
-                     obj$output_info$order[obj$output_info$is_array],
-                     OUTPUT, offset)
-    }
   }
 
   ## By this point, all variables have been added.
@@ -56,9 +46,6 @@ odin_generate1_object <- function(dat) {
   base <- dat[["config"]][["base"]]
   self <- list(base=base)
 
-  has_sum <-
-    "sum" %in% unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))
-
   self$info <- list(base=base,
                     has_delay=dat$info$has_delay,
                     has_output=dat$info$has_output,
@@ -67,8 +54,7 @@ odin_generate1_object <- function(dat) {
                     ## Below here a bit different; might belong elsewhere?
                     user=dat$user_default, # TODO: update?
                     initial_stage=dat$initial_info$stage,
-                    dim_stage=dat$dim_stage, # TODO: update?
-                    has_sum=has_sum)
+                    dim_stage=dat$dim_stage) # TODO: update?
 
   ## NOTE: This stage might grow
   self$output_info <- dat$output_info
@@ -167,12 +153,14 @@ odin_generate1_total <- function(x, obj) {
 }
 
 ## Support for any library functions we detect
-odin_generate1_library <- function(obj) {
+odin_generate1_library <- function(obj, eqs) {
   ## Support for interacting with deSolve parameters
   obj$library_fns$add("get_ds_pars")
 
   ## Support for sum() of varying orders
-  if (obj$info$has_sum) {
+  has_sum <-
+    "sum" %in% unique(unlist(lapply(eqs, function(x) x$depends$functions)))
+  if (has_sum) {
     ## TODO: We should be more clever here, but not done yet and the
     ## cost including all three definitions is low.  The issue is that
     ## in contrast with most special functions, sum can be used in

@@ -321,15 +321,10 @@ odin_generate2_deriv <- function(obj) {
   ret$add(
     "void %s_deriv(%s *%s, double %s, double *%s, double *%s, double *%s) {",
     obj$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
-  v <- odin_generate2_vars(obj)
-  if (length(v) > 0L) {
-    ret$add(indent(v, 2))
-  }
-  if (any(info$is_array)) {
-    ret$add("  double *deriv_%s = %s + %s;",
-            info$order[info$is_array], DSTATEDT,
-            vcapply(info$offset_use[info$is_array], obj$rewrite))
-  }
+
+  ret$add(indent(odin_generate2_vars(obj), 2))
+  ret$add(indent(odin_generate2_unpack(obj), 2))
+
   time <- obj$time$get()
   if (length(time) > 0L) {
     ret$add(indent(time, 2))
@@ -353,20 +348,16 @@ odin_generate2_output <- function(obj) {
   if (!obj$info$has_output) {
     return(NULL)
   }
-  output <- obj$output$get()
+  info <- obj$output_info
 
   ret <- collector()
   ret$add(
     "void %s_output(%s *%s, double %s, double *%s, double *%s) {",
     obj$base, obj$type_pars, obj$name_pars, TIME, STATE, OUTPUT)
 
-  ## Here we unpack:
-
   ## 1. variables that we need to use
-  v <- odin_generate2_vars(obj, TRUE)
-  if (length(v) > 0L) {
-    ret$add(indent(v, 2))
-  }
+  ret$add(indent(odin_generate2_vars(obj, TRUE), 2))
+  ret$add(indent(odin_generate2_unpack(obj, TRUE), 2))
 
   ## 2. dependent calculations
   time <- obj$time$get()
@@ -376,7 +367,7 @@ odin_generate2_output <- function(obj) {
   }
 
   ## 3. the actual output calculations:
-  ret$add(indent(output, 2))
+  ret$add(indent(obj$output$get(), 2))
   ret$add("}")
   ret$get()
 }
@@ -587,6 +578,20 @@ odin_generate2_vars <- function(obj, output=FALSE) {
   }
   ret$get()
 }
+
+odin_generate2_unpack <- function(obj, output=FALSE) {
+  info <- obj[[if (output) "output_info" else "variable_info"]]
+  if (any(info$is_array)) {
+    sprintf("double *%s_%s = %s + %s;",
+            if (output) "output" else "deriv",
+            info$order[info$is_array],
+            if (output) OUTPUT else DSTATEDT,
+            vcapply(info$offset_use[info$is_array], obj$rewrite))
+  } else {
+    character(0)
+  }
+}
+
 
 odin_generate2_interpolate_t <- function(obj) {
   ret <- collector()

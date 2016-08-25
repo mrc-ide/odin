@@ -61,11 +61,15 @@ pastec <- function(..., collapse=", ") {
 }
 
 indent <- function(x, n=2) {
-  x <- unlist(strsplit(x, "\\n", fixed=TRUE), use.names=FALSE)
-  if (length(x) > 0L) {
-    paste0(strrep(n), x)
+  if (length(x) == 0L && is.character(x)) {
+    return(x)
   } else {
-    x
+    x <- unlist(strsplit(x, "\\n", fixed=TRUE), use.names=FALSE)
+    if (length(x) > 0L) {
+      paste0(strrep(n), x)
+    } else {
+      x
+    }
   }
 }
 
