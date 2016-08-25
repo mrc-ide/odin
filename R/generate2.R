@@ -159,7 +159,7 @@ odin_generate2_initial <- function(obj) {
       ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
     }
     if (obj$info$has_delay) {
-      ret$add("  %s = %s;", obj$rewrite(sprintf("initial_%s", TIME)), TIME)
+      ret$add("  %s = %s;", obj$rewrite(initial_name(TIME)), TIME)
     }
 
     ## Dependencies of any initial expressions, filtered by time dependency:
@@ -181,8 +181,7 @@ odin_generate2_initial <- function(obj) {
           STATE, obj$rewrite(obj$variable_info$total_use))
   copy <- character(vars_info$n)
   i <- vars_info$is_array
-  nm_initial <- vcapply(sprintf("initial_%s", vars_info$order),
-                        obj$rewrite)
+  nm_initial <- vcapply(initial_name(vars_info$order), obj$rewrite)
   offset <- vcapply(vars_info$offset_use, obj$rewrite)
   copy[i] <- sprintf("  memcpy(REAL(%s) + %s, %s, %s * sizeof(double));",
                      STATE, offset[i], nm_initial[i],

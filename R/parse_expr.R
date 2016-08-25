@@ -145,7 +145,7 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
               pastec(err)), line, as.expression(expr))
   }
   ## The dimension for this array:
-  name_dim <- paste0("dim_", name)
+  name_dim <- array_dim_name(name)
   ## ...which must be a dependency:
   deps$variables <- union(deps$variables, name_dim)
 

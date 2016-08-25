@@ -3,11 +3,13 @@
 ## There are two stages to the generation:
 ##
 ## 1. first is the odin_generate1*; During this phase we build up and
-## modify an 'obj'.
+##    modify an 'obj' which contains the information required to
+##    generate the model.  If the model has made it through the parse
+##    stage, any error there will be a odin error (hopefully).
 ##
 ## 2. second is odin_generate2*; all functions work on this object to
-## generate a character vector to put somewhere.  This is all of
-## odin_generate *except* the first line.
+##    generate a character vector to put somewhere.  These are much
+##    simpler generate the actual code.
 odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   obj <- odin_generate1(dat)
 
@@ -26,7 +28,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   } else {
     interpolate <- NULL
   }
-
 
   ## Then attempt to make some sense out of the things that we have
   ## collected:
@@ -122,33 +123,4 @@ read_user_c <- function(filename) {
   defn <- setNames(vcapply(seq_along(i), function(k)
     paste(d[i[[k]]:j[[k]]], collapse="\n")), name)
   list(declarations=decl, definitions=defn)
-}
-
-array_dim_name <- function(name, sub=NULL, use=TRUE) {
-  if (length(name) > 1L) {
-    return(vcapply(name, array_dim_name, sub, use, USE.NAMES=FALSE))
-  }
-  if (!is.null(sub)) {
-    name <- sprintf("%s_%s", name, sub)
-  }
-  if (grepl("^(initial|deriv)_", name)) {
-    name_dim <- sub("^(initial|deriv)_", "dim_", name)
-  } else if (grepl("^delay_", name)) {
-    re <- "^delay_([^_]+)_(.*)$"
-    type <- sub(re, "\\1", name)
-    if (type == INDEX[[1L]] || (use && type == STATE)) {
-      name_dim <- sub(re, "dim_delay_\\2", name)
-    } else if (use) {
-      name_dim <- sub("^delay_", "dim_", name)
-    } else {
-      name_dim <- NULL
-    }
-  } else {
-    name_dim <- sprintf("dim_%s", name)
-  }
-  name_dim
-}
-
-delay_name <- function(name) {
-  sprintf("delay_%s", name)
 }

@@ -14,7 +14,7 @@ odin_generate1 <- function(dat) {
   ## The dde flag is set at object creation and a default cannot (yet)
   ## be set from within the odin code [TODO]
   obj$add_element("odin_use_dde", "int")
-  obj$add_element(sprintf("initial_%s", TIME), "double")
+  obj$add_element(initial_name(TIME), "double")
   odin_generate1_library(obj, dat$eqs)
 
   ## The main loop over all equations:
@@ -186,7 +186,7 @@ odin_generate1_dim <- function(x, obj) {
   nm <- x$name
   nm_target <- x$lhs$name_target
   is_var <- nm_target %in% obj$variable_info$order
-  nm_s <- if (is_var) paste0("initial_", nm_target) else nm_target
+  nm_s <- if (is_var) initial_name(nm_target) else nm_target
   st <- STAGES[[x$stage]]
 
   obj$add_element(nm_s, "double", x$nd)
@@ -480,10 +480,10 @@ odin_generate1_delay <- function(x, obj, eqs) {
   ## 2, 3) or name things after the variables that are being delayed
   ## (delay_1_idx vs delay_lag_inf_idx, delay_1_state vs
   ## delay_lag_inf_state).  I think that the latter is probably nicer.
-  delay_idx <- sprintf("delay_%s_%s", INDEX[[1L]], nm)
-  delay_state <- sprintf("delay_%s_%s", STATE, nm)
+  delay_idx <- delay_name(sprintf("%s_%s", INDEX[[1L]], nm))
+  delay_state <- delay_name(sprintf("%s_%s", STATE, nm))
   delay_dim <- array_dim_name(delay_idx)
-  delay_time <- sprintf("delay_%s", TIME)
+  delay_time <- delay_name(TIME)
 
   ## If there are any arrays here we'll need to organise offsets.
   ## Rather than store the full offset vector I'll do this one by hand
@@ -576,10 +576,10 @@ odin_generate1_delay <- function(x, obj, eqs) {
   obj[[st]]$add("  const double %s = %s - %s;",
                 delay_time, TIME, obj$rewrite(x$delay$time), name=nm)
   obj[[st]]$add("  if (%s <= %s) {",
-                delay_time, obj$rewrite(sprintf("initial_%s", TIME)), name=nm)
+                delay_time, obj$rewrite(initial_name(TIME)), name=nm)
   obj[[st]]$add("    %s = %s;",
                 x$delay$extract,
-                vcapply(sprintf("initial_%s", x$delay$extract),
+                vcapply(initial_name(x$delay$extract),
                         obj$rewrite, USE.NAMES=FALSE), name=nm)
   obj[[st]]$add("  } else {", name=nm)
   lagvalue <-  sprintf("      lagvalue_%%s(%s, %s, %s, %s);",

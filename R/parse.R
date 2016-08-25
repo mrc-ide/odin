@@ -223,7 +223,7 @@ odin_parse_find_vars <- function(eqs, traits) {
 ## first pass.
 odin_parse_rewrite_initial <- function(obj) {
   vars <- obj$vars
-  subs <- setNames(sprintf("initial_%s", vars), vars)
+  subs <- setNames(initial_name(vars), vars)
   env <- as.environment(lapply(subs, as.name))
 
   replace <- function(x, tr) {
@@ -453,32 +453,6 @@ is_c_identifier <- function(x) {
   grepl("[A-Za-z_][A-Za-z0-9_]*", x) & !(x %in% c_reserved)
 }
 
-## NOTE:
-##
-## These are all "odin constants".  Some of these we'll probably make
-## user configurable at some point (time is one, the index variables
-## are another).  Most of the others are not changing.
-STAGE_CONSTANT <- 1L
-STAGE_USER <- 2L
-STAGE_TIME <- 3L
-STAGE_OUTPUT <- 4L
-STAGES <- c("constant", "user", "time", "output")
-TIME <- "t"
-STATE <- "state"
-DSTATEDT <- "dstatedt"
-OUTPUT <- "output"
-USER <- "user"
-## TODO: None of these deal with the use of these as functions (only
-## variables) but that needs checking too.  Not 100% sure this is done
-## on the lhs index bits.  Probably need to standardise that at some
-## point.
-SPECIAL_LHS <- c("initial", "deriv", "output", "dim", "config")
-SPECIAL_RHS <- c("user", "interpolate", "delay")
-INDEX <- c("i", "j", "k")
-RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
-RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
-VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")
-INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 
 ######################################################################
 
