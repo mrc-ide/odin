@@ -21,30 +21,15 @@ odin_generate1 <- function(dat) {
 
   ## Set a few common things within the object that must be added before we
   odin_generate1_common(obj, dat)
-  ## TODO: I don't know about this; it's kind of ugly
-  obj$custom <- dat$config$include
 
-  if (dat$variable_order$total_is_var) {
-    obj$add_element(dat$variable_order$total_use, "int")
-    st <- STAGES[[dat$variable_order$total_stage]]
-    obj[[st]]$add("%s = %s;",
-                  obj$rewrite(dat$variable_order$total_use),
-                  obj$rewrite(dat$variable_order$total))
-  }
+  odin_generate1_total(dat$variable_order, obj)
+  ## This is handled differently elsewhere...
   obj$variable_size <- obj$rewrite(dat$variable_order$total_use)
 
-  ## #### OUTPUT ####
-  ## TODO: Neither 'if' branch here is tested.
   if (dat$info$has_output) {
-    if (obj$output_info$total_is_var) {
-      obj$add_element(obj$output_info$total_use, "int")
-      st <- STAGES[[obj$output_info$total_stage]]
-      obj[[st]]$add("%s = %s;",
-                    obj$rewrite(obj$output_info$total_use),
-                    obj$rewrite(obj$output_info$total))
-    }
+    odin_generate1_total(obj$output_info, obj)
     if (any(obj$output_info$is_array)) {
-      stop("untested")
+      stop("untested") # TODO!
       offset <- vcapply(obj$output_use$offset_use[obj$output_info$is_array],
                         obj$rewrite)
       obj$output$add("double *output_%s = %s + %s;",
@@ -52,6 +37,9 @@ odin_generate1 <- function(dat) {
                      OUTPUT, offset)
     }
   }
+
+  ## By this point, all variables have been added.
+  obj$add_element <- function(...) stop("odin bug")
 
   ## We're going to use this in a couple of places and it's kind of
   ## awkward.  In contrast with vars, which is known on entry to this
@@ -102,7 +90,7 @@ odin_generate1_object <- function(dat) {
   self$type_pars <- sprintf("%s_pars", base)
 
   ## This is the set of variables we know to be *ours*.
-  lookup <- collector()
+  self$lookup <- collector()
 
   ## Type information will generate a bunch of extra things, so
   ## process that later for simplicity:
@@ -142,16 +130,17 @@ odin_generate1_object <- function(dat) {
     interpolate <- type == "interpolate_data"
     self$types$add(list(name=name, type=type,
                         array=array, interpolate=interpolate))
-    lookup$add(name)
+    self$lookup$add(name)
   }
 
-  ## Rewrite based on that.
-  custom <- names(dat$config$include$declarations)
+  ## Custom functions, defined in .c files:
+  self$custom <- dat$config$include
+  custom_functions <- names(self$custom$declarations)
+
+  ## Rewrite based on all the above; only lookup is modified as we go.
   self$rewrite <- function(x) {
-    rewrite_c(x, self$name_pars, lookup$get(), INDEX, custom)
+    rewrite_c(x, self$name_pars, self$lookup$get(), INDEX, custom_functions)
   }
-
-  self$lookup <- lookup
 
   self
 }
@@ -171,6 +160,16 @@ odin_generate1_loop <- function(obj, dat) {
     } else {
       stop("Unhandled type")
     }
+  }
+}
+
+odin_generate1_total <- function(x, obj) {
+  if (x$total_is_var) {
+    obj$add_element(x$total_use, "int")
+    st <- STAGES[[x$total_stage]]
+    obj[[st]]$add("%s = %s;",
+                  obj$rewrite(x$total_use),
+                  obj$rewrite(x$total))
   }
 }
 
