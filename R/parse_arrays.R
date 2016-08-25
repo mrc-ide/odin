@@ -33,7 +33,6 @@ odin_parse_arrays <- function(obj) {
   }
   obj$eqs <- eqs
 
-
   ## Then, work out which sets to combine
   is_array <- obj$traits[, "is_array"]
   if (any(is_array)) {
@@ -84,6 +83,19 @@ odin_parse_arrays_index_vars <- function(obj) {
                get_lines(obj$eqs[i]), get_exprs(obj$eqs[i]))
   }
 
+  ## Determine which variables are array extents and indices; we'll
+  ## flag these as integers.  At the same time we need to try and work
+  ## out which of these are confusing (perhaps used as an argument to
+  ## division).
+  err <- intersect(index_vars, names_if(is_array))
+  if (length(err) > 0L) {
+    i <- which(is_array)[vlapply(obj$eqs[is_array], function(x)
+      any(err %in% x$lhs$depends$variables))]
+    odin_error(sprintf("Array indices may not be arrays (%s used)",
+                       pastec(err)),
+               get_lines(obj$eqs[i]), get_exprs(obj$eqs[i]))
+  }
+
   index_vars
 }
 
@@ -126,19 +138,6 @@ odin_parse_arrays_check_usage <- function(obj) {
     odin_error(sprintf("Missing dim() call for %s, assigned as an array",
                        paste(unique(names_target[err]), collapse=", ")),
                get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
-  }
-
-  ## Determine which variables are array extents and indices; we'll
-  ## flag these as integers.  At the same time we need to try and work
-  ## out which of these are confusing (perhaps used as an argument to
-  ## division).
-  err <- intersect(obj$index_vars, names_if(is_array))
-  if (length(err) > 0L) {
-    i <- which(is_array)[vlapply(obj$eqs[is_array], function(x)
-      any(err %in% x$lhs$depends$variables))]
-    odin_error(sprintf("Array indices may not be arrays (%s used)",
-                       pastec(err)),
-               get_lines(obj$eqs[i]), get_exprs(obj$eqs[i]))
   }
 }
 
