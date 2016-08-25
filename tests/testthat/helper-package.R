@@ -8,7 +8,7 @@ odin_create_package <- function(name, filenames, single_file=TRUE,
   }
   dir.create(file.path(pkg, "inst", "odin"), FALSE, TRUE)
   file.copy(filenames, file.path(pkg, "inst", "odin"))
-  odin_generate_package(pkg, single_file=single_file)
+  odin_package(pkg, single_file=single_file)
   if (build) {
     build_package(pkg, verbose)
   } else {

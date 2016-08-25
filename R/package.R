@@ -36,8 +36,7 @@
 ##'   sources.  Alternatively, all .R files within the directory
 ##'   \code{inst/odin} will be used.
 ##' @export
-odin_generate_package <- function(path_package, filenames=NULL,
-                                  single_file=TRUE) {
+odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   if (!file.exists(file.path(path_package, "DESCRIPTION"))) {
     stop("Did not find package at ", path_package)
   }
@@ -60,10 +59,10 @@ odin_generate_package <- function(path_package, filenames=NULL,
     odin_generate(odin_parse(f, "file"), package=TRUE))
 
   library_fns <- combine_library(dat)
+  struct <- lapply(dat, "[[", "struct")
   code <- vcapply(dat, "[[", "code")
   info <- lapply(dat, "[[", "info")
   base <- vcapply(info, "[[", "base")
-  struct <- lapply(dat, "[[", "struct")
 
   ## This is pretty tricky because the order here matters a lot
   ## (mostly because I never did a good job of forward declaring the
