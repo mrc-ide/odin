@@ -174,7 +174,6 @@ test_that("user c", {
 })
 
 test_that("time dependent initial conditions", {
-  ## This works OK except that I've generated
   gen <- odin::odin({
     y1 <- cos(t)
     y2 <- y1 * (1 + t)

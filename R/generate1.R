@@ -21,36 +21,8 @@ odin_generate1 <- function(dat) {
 
   ## Set a few common things within the object that must be added before we
   odin_generate1_common(obj, dat)
+  ## TODO: I don't know about this; it's kind of ugly
   obj$custom <- dat$config$include
-
-  ## TODO: this should be factored out?
-  initial_t_deps <- dat$initial$time_deps
-  if (length(initial_t_deps)) {
-    ## All of the elements here are _time_ dependent, which changes
-    ## things a little.
-    initial_deps <- collector()
-
-    for (x in dat$eqs[initial_t_deps]) {
-      if (identical(x$lhs$special, "dim")) {
-        stop("dim use in initial should never happen (bug?)")
-      } else if (isTRUE(x$rhs$delay)) {
-        ## This one should be pretty easy as by definition we can't
-        ## have accumulated any delays yet.  So we should be using the
-        ## non-delay branch which is the easier branch.
-        stop("delay use in initial not handled")
-      } else if (x$lhs$type == "symbol") {
-        initial_deps$add(odin_generate1_symbol_expr(x, obj, dat))
-      } else if (x$lhs$type == "array") {
-        initial_deps$add(odin_generate1_array_expr(x, obj))
-      } else {
-        stop("Unhandled type")
-      }
-    }
-    ## NOTE: This is a bit ugly, but I really need to process things
-    ## in this order, and that is most simply dealt with by a prepend
-    ## here.
-    obj$initial$prepend(initial_deps$get())
-  }
 
   if (dat$variable_order$total_is_var) {
     obj$add_element(dat$variable_order$total_use, "int")
@@ -116,14 +88,15 @@ odin_generate1_object <- function(dat) {
                     has_delay=dat$info$has_delay,
                     has_output=dat$info$has_output,
                     has_interpolate=dat$info$has_interpolate,
-                    has_array=dat$has_array,
-                    user=dat$user_default, # TODO: update
-                    ## TODO: tweak dat$info here? Or move this around a bit?
-                    initial_stage=dat$initial$stage,
-                    dim_stage=dat$dim_stage)
+                    has_array=dat$info$has_array, # update?
+                    ## Below here a bit different; might belong elsewhere?
+                    user=dat$user_default, # TODO: update?
+                    initial_stage=dat$initial_info$stage,
+                    dim_stage=dat$dim_stage) # TODO: update?
 
   ## NOTE: This stage might grow
   self$output_info <- dat$output_info
+  self$initial_info <- dat$initial_info
 
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)

@@ -264,16 +264,26 @@ odin_generate2_initial <- function(obj) {
           obj$type_pars, obj$name_pars, obj$base, obj$base)
 
   initial <- obj$initial$get()
+
   if (obj$info$has_delay || length(initial) > 0L) {
-    if (obj$info$initial_stage >= STAGE_TIME) {
+    if (obj$info$has_delay || obj$info$initial_stage >= STAGE_TIME) {
       ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
     }
-  }
-  if (obj$info$has_delay) {
-    ret$add("  %s = %s;", obj$rewrite(sprintf("initial_%s", TIME)), TIME)
-  }
-  if (length(initial) > 0L) {
-    ret$add(indent(initial, 2))
+    if (obj$info$has_delay) {
+      ret$add("  %s = %s;", obj$rewrite(sprintf("initial_%s", TIME)), TIME)
+    }
+
+    ## Dependencies of any initial expressions, filtered by time dependency:
+    time <- obj$time$get()
+    time <- time[names(time) %in% obj$initial_info$used$exprs]
+    if (length(time) > 0L) {
+      ret$add(indent(time, 2))
+    }
+
+    ## And time-sensitive initial expressions
+    if (length(initial) > 0L) {
+      ret$add(indent(initial, 2))
+    }
   }
 
   ## It's possible this bit should be factored out into a separate function?

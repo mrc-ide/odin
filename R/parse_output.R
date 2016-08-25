@@ -53,6 +53,8 @@ odin_parse_output_usage <- function(obj) {
     used_delay <- character(0)
   }
 
+  ## TODO: I think this needs an intersect to get the order correct,
+  ## but that might be done OK in used_output
   output_only <- intersect(setdiff(used_output, c(used_deriv, used_delay)),
                            names_if(obj$stage == STAGE_TIME))
   output_exprs <- setdiff(used_output, c(obj$vars, nms_output))

@@ -482,28 +482,19 @@ INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 
 ######################################################################
 
-## TODO: this seems borderline useless.
 odin_parse_initial <- function(obj) {
-  stage <- obj$stage
-  nms_initial <- names(which(obj$traits[, "is_initial"]))
+  nms_initial <- names_if(obj$traits[, "is_initial"])
 
-  ## TODO: Special treatment is needed for time-dependent initial
-  ## conditions; they get special treatment and are held to max of
-  ## STAGE_USER.  However, we'll record that they are time-dependent
-  ## here.
   initial_stage <- (if (obj$info$has_delay) STAGE_TIME
-                    else max(c(STAGE_CONSTANT, stage[nms_initial])))
-  initial <- list(stage=initial_stage)
+                    else max(c(STAGE_CONSTANT, obj$stage[nms_initial])))
 
-  nms_initial_t <- names(which(stage[nms_initial] == STAGE_TIME))
-  if (length(nms_initial_t) > 0L) {
-    ## NOTE: The intersect() here ensures correct ordering.
-    d <- unique(unlist(obj$deps_rec[nms_initial_t], use.names=FALSE))
-    initial$time_deps <-
-      intersect(names(obj$deps_rec), setdiff(d[stage[d] == STAGE_TIME], TIME))
-  }
+  ## Determine all dependencies of initial conditions.  This is a bit
+  ## less roundabout than the equivalent code in
+  ## odin_parse_output_usage()
+  initial_exprs <- unique(unlist(obj$deps_rec[nms_initial], use.names=FALSE))
+  used <- list(exprs=intersect(names(obj$eqs), initial_exprs))
 
-  obj$initial <- initial
+  obj$initial_info <- list(used=used, stage=initial_stage)
   obj
 }
 

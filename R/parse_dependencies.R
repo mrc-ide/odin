@@ -118,5 +118,14 @@ odin_parse_dependencies_stage <- function(obj) {
   ## Adjust the order so that it's by stage first, and then the order.
   ## This should not create any impossible situations because of the
   ## stage treatent above.
+
+  ## NOTE: The final stage vector contains TIME and vars; it must
+  ## continue to contain these unless they are filtered from the
+  ## *names and contents* of deps_rec.  In that case, we can do:
+  ##
+  ##    stage[names(stage) %in% names(obj$eqs)]
+  ##
+  ## after this step to put this in the same order as eqs
+
   stage[order(stage)]
 }

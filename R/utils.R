@@ -21,10 +21,7 @@ deparse_str <- function(x) {
 collector <- function(init=character(0)) {
   res <- init
   list(add=function(x, ...) res <<- c(res, sprintf(x, ...)),
-       prepend=function(x, ...) res <<- c(sprintf(x, ...), res),
-       clear=function() res <<- init,
-       length=function(x) length(res),
-       pop=function() {ret <- res; res <<- init; ret},
+       length=function(x) length(res), # used only in debugging below
        get=function() res)
 }
 
