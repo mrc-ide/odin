@@ -1,7 +1,3 @@
-## TODO: This and generate_output_order do basically the same thing
-## to two different sets of variables.  It would be good to abstract
-## this away if that makes much sense because the new version is a bit
-## of a terror.
 odin_generate2_order <- function(obj, output=FALSE) {
   ret <- collector()
   if (output) {
@@ -14,7 +10,7 @@ odin_generate2_order <- function(obj, output=FALSE) {
     ret$add("// variable, from which offset, etc, can be worked out.")
   }
   ret$add("SEXP %s_%s_order(SEXP %s_ptr) {",
-          obj$base, if (output) "output" else "variable", obj$base)
+          obj$info$base, if (output) "output" else "variable", obj$info$base)
 
   ## Early exit if we have nothing to generate:
   if (output && !obj$info$has_output) {
@@ -26,7 +22,7 @@ odin_generate2_order <- function(obj, output=FALSE) {
   info <- obj[[if (output) "output_info" else "variable_info"]]
   if (any(info$is_array)) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-            obj$type_pars, obj$name_pars, obj$base, obj$base)
+            obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
     if (max(info$array) > 1L) {
       ret$add("  int *tmp;")
     }
@@ -72,9 +68,9 @@ odin_generate2_contents <- function(obj) {
   ret <- collector()
   ret$add("// Translate all elements in the struct back to R")
   ret$add("// This will mostly be useful for debugging.")
-  ret$add("SEXP %s_contents(SEXP %s_ptr) {", obj$base, obj$base)
+  ret$add("SEXP %s_contents(SEXP %s_ptr) {", obj$info$base, obj$info$base)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-          obj$type_pars, obj$name_pars, obj$base, obj$base)
+          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
   ret$add("  SEXP %s = PROTECT(allocVector(VECSXP, %d));",
           STATE, len)
 
@@ -93,11 +89,6 @@ odin_generate2_contents <- function(obj) {
       ret$add("  memcpy(%s(VECTOR_ELT(%s, %d)), %s, %s * sizeof(%s));",
               raccess[[type]], STATE, i - 1L, obj$rewrite(name),
               obj$rewrite(name_dim), type)
-      ## TODO: Should add something here for multidimensional arrays
-      ## to get the dimension set, I think; but we also need a
-      ## function to do that for the output vector (and that's hard
-      ## because we don't have a nice way of accessing that yet due to
-      ## the time axis of the output).
       if (array > 1L) {
         ret$add("  odin_set_dim%d(VECTOR_ELT(%s, %d), %s);",
                 array, STATE, i - 1L,
@@ -142,23 +133,19 @@ odin_generate2_finalize <- function(obj) {
   ret$add("// This is called by R automatically when the pointer is")
   ret$add("// garbage collected (i.e., when all objects holding the pointer")
   ret$add("// go out of scope")
-  ret$add("void %s_finalize(SEXP %s_ptr) {", obj$base, obj$base)
+  ## NOTE: declaration for this is made in odin_generate2_create()
+  ret$add("void %s_finalize(SEXP %s_ptr) {", obj$info$base, obj$info$base)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 0);",
-          obj$type_pars, obj$name_pars, obj$base, obj$base)
-  ret$add("  if (%s_ptr) {", obj$base)
+          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
+  ret$add("  if (%s_ptr) {", obj$info$base)
   free <- obj$free$get()
   if (length(free) > 0L) {
     ret$add(indent(free, 4))
   }
   ret$add("    Free(%s);", obj$name_pars)
-  ret$add("    R_ClearExternalPtr(%s_ptr);", obj$base)
+  ret$add("    R_ClearExternalPtr(%s_ptr);", obj$info$base)
   ret$add("  }")
   ret$add("}")
-
-  ## We need a declaration for this one.  However, if things get
-  ## broken up into a header and nonheader file this will need
-  ## injecting into the nonheader file I think.  For now it's fine.
-
   ret$get()
 }
 
@@ -167,9 +154,9 @@ odin_generate2_create <- function(obj) {
   ret$add("// Create the pointer; this will establish the struct, allocate")
   ret$add("// memory for things that are constant size, and initialize")
   ret$add("// constant variables")
-  ## See odin_generate2_finalize(); we need to declare the finalizer here.
-  ret$add("static void %s_finalize(SEXP %s_ptr);", obj$base, obj$base)
-  ret$add("SEXP %s_create(SEXP %s, SEXP odin_use_dde) {", obj$base, USER)
+  ## NOTE: finalize definition in odin_generate2_finalize()
+  ret$add("static void %s_finalize(SEXP %s_ptr);", obj$info$base, obj$info$base)
+  ret$add("SEXP %s_create(SEXP %s, SEXP odin_use_dde) {", obj$info$base, USER)
   ret$add("  %s *%s = (%s*) Calloc(1, %s);",
           obj$type_pars, obj$name_pars, obj$type_pars, obj$type_pars)
   constant <- obj$constant$get()
@@ -178,16 +165,17 @@ odin_generate2_create <- function(obj) {
   }
   ret$add(
     "  SEXP %s_ptr = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
-    obj$base, obj$name_pars)
-  ret$add("  R_RegisterCFinalizer(%s_ptr, %s_finalize);", obj$base, obj$base)
+    obj$info$base, obj$name_pars)
+  ret$add("  R_RegisterCFinalizer(%s_ptr, %s_finalize);",
+          obj$info$base, obj$info$base)
   ## NOTE: set user variables *after* creating the pointer and
   ## finaliser to avoid any memory leak in the case of set_user
-  ## failing (as it throws on failure so the Free's would never
-  ## happen.
-  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
+  ## failing (as it throws on failure so the Free()'s would never
+  ## happen).
+  ret$add("  %s_set_user(%s, %s);", obj$info$base, obj$name_pars, USER)
   ret$add("  %s = INTEGER(odin_use_dde)[0];", obj$rewrite("odin_use_dde"))
   ret$add("  UNPROTECT(1);")
-  ret$add("  return %s_ptr;", obj$base)
+  ret$add("  return %s_ptr;", obj$info$base)
   ret$add("}")
   ret$get()
 }
@@ -196,7 +184,7 @@ odin_generate2_user <- function(obj) {
   ret <- collector()
   ret$add("// Set user-supplied parameter values.")
   ret$add("SEXP %s_set_user(%s *%s, SEXP %s) {",
-          obj$base, obj$type_pars, obj$name_pars, USER)
+          obj$info$base, obj$type_pars, obj$name_pars, USER)
   user <- obj$user$get()
   if (length(user) > 0L) {
     ret$add(indent(user, 2))
@@ -205,22 +193,21 @@ odin_generate2_user <- function(obj) {
   ret$add("};")
   ret$add("// Wrapper around this for use from R.")
   ret$add("SEXP r_%s_set_user(SEXP %s_ptr, SEXP %s) {",
-          obj$base, obj$base, USER)
+          obj$info$base, obj$info$base, USER)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-          obj$type_pars, obj$name_pars, obj$base, obj$base)
-  ret$add("  %s_set_user(%s, %s);", obj$base, obj$name_pars, USER)
+          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
+  ret$add("  %s_set_user(%s, %s);", obj$info$base, obj$name_pars, USER)
   ret$add("  return R_NilValue;")
   ret$add("};")
   ret$get()
 }
 
-## TODO: for %s_ptr, use odin_ptr (<base>_ptr) or use <obj$type_pars>_ptr?
 odin_generate2_initial <- function(obj) {
   ret <- collector()
   ret$add("SEXP %s_initialise(SEXP %s_ptr, SEXP %s_ptr) {",
-          obj$base, obj$base, TIME)
+          obj$info$base, obj$info$base, TIME)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-          obj$type_pars, obj$name_pars, obj$base, obj$base)
+          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
 
   initial <- obj$initial$get()
 
@@ -279,7 +266,7 @@ odin_generate2_deriv <- function(obj) {
   ret <- collector()
   ret$add(
     "void %s_deriv(%s *%s, double %s, double *%s, double *%s, double *%s) {",
-    obj$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
+    obj$info$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
 
   ret$add(indent(odin_generate2_vars(obj), 2))
   ret$add(indent(odin_generate2_unpack(obj), 2))
@@ -312,7 +299,7 @@ odin_generate2_output <- function(obj) {
   ret <- collector()
   ret$add(
     "void %s_output(%s *%s, double %s, double *%s, double *%s) {",
-    obj$base, obj$type_pars, obj$name_pars, TIME, STATE, OUTPUT)
+    obj$info$base, obj$type_pars, obj$name_pars, TIME, STATE, OUTPUT)
 
   ## 1. variables that we need to use
   ret$add(indent(odin_generate2_vars(obj, TRUE), 2))
@@ -348,21 +335,21 @@ odin_generate2_library_fns <- function(obj) {
 odin_generate2_support_decls <- function(obj) {
   ret <- collector()
   ret$add("%s* %s_get_pointer(SEXP %s_ptr, int closed_error);",
-          obj$type_pars, obj$base, obj$base)
+          obj$type_pars, obj$info$base, obj$info$base)
   ret$add("SEXP %s_set_user(%s *%s, SEXP %s);",
-          obj$base, obj$type_pars, obj$name_pars, USER)
+          obj$info$base, obj$type_pars, obj$name_pars, USER)
   ret$get()
 }
 odin_generate2_support_defns <- function(obj) {
   ret <- collector()
   ret$add("%s* %s_get_pointer(SEXP %s_ptr, int closed_error) {",
-          obj$type_pars, obj$base, obj$base)
+          obj$type_pars, obj$info$base, obj$info$base)
   ret$add("  %s *%s = NULL;", obj$type_pars, obj$name_pars)
-  ret$add("  if (TYPEOF(%s_ptr) != EXTPTRSXP) {", obj$base)
+  ret$add("  if (TYPEOF(%s_ptr) != EXTPTRSXP) {", obj$info$base)
   ret$add('    Rf_error("Expected an external pointer");')
   ret$add("  }")
   ret$add("  %s = (%s*) R_ExternalPtrAddr(%s_ptr);",
-          obj$name_pars, obj$type_pars, obj$base)
+          obj$name_pars, obj$type_pars, obj$info$base)
   ret$add("  if (!%s && closed_error) {", obj$name_pars)
   ret$add('    Rf_error("Pointer has been invalidated");')
   ret$add("  }")
@@ -374,11 +361,11 @@ odin_generate2_support_defns <- function(obj) {
 odin_generate2_deriv_r <- function(obj) {
   ret <- collector()
   ret$add("SEXP r_%s_deriv(SEXP %s_ptr, SEXP %s, SEXP %s) {",
-          obj$base, obj$base, TIME, STATE)
+          obj$info$base, obj$info$base, TIME, STATE)
   ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
           DSTATEDT, STATE)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-          obj$type_pars, obj$name_pars, obj$base, obj$base)
+          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
 
   if (obj$info$has_output) {
     ret$add("  SEXP %s_ptr = PROTECT(allocVector(REALSXP, %s));",
@@ -392,7 +379,7 @@ odin_generate2_deriv_r <- function(obj) {
   }
 
   ret$add("  %s_deriv(%s, REAL(%s)[0], REAL(%s), REAL(%s), %s);",
-          obj$base, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
+          obj$info$base, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
   ret$add("  UNPROTECT(%d);", np)
   ret$add("  return %s;", DSTATEDT)
   ret$add("}")
@@ -405,17 +392,17 @@ odin_generate2_desolve <- function(obj) {
   ret$add("// Global variable set on initmod, as per deSolve design")
   ret$add("static %s *%s;", obj$type_pars, obj$name_pars)
   ret$add("void %s_ds_initmod(void(* odeparms) (int *, double *)) {",
-          obj$base)
+          obj$info$base)
   ret$add('  DL_FUNC get_deSolve_gparms = R_GetCCallable("deSolve", "get_deSolve_gparms");')
   ret$add("  %s = %s_get_pointer(get_deSolve_gparms(), 1);",
-          obj$name_pars, obj$base)
+          obj$name_pars, obj$info$base)
   ret$add("}")
   ret$add("void %s_ds_derivs(int *neq, double *%s, double *%s,",
-          obj$base, TIME, STATE)
+          obj$info$base, TIME, STATE)
   ret$add("%sdouble *%s, double *%s, int *np) {",
-          strrep(nchar(obj$base) + 15L), DSTATEDT, OUTPUT)
+          strrep(nchar(obj$info$base) + 15L), DSTATEDT, OUTPUT)
   ret$add("  %s_deriv(%s, *%s, %s, %s, %s);",
-          obj$base, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
+          obj$info$base, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
   ret$add("}")
   ret$get()
 }
@@ -424,11 +411,11 @@ odin_generate2_dde <- function(obj) {
   ret <- collector()
   ret$add("// dde interface")
   ret$add("void %s_dde_derivs(size_t n_eq, double %s, double *%s,",
-          obj$base, TIME, STATE)
+          obj$info$base, TIME, STATE)
   ret$add("%sdouble *%s, void *%s) {",
-          strrep(nchar(obj$base) + 17L), DSTATEDT, obj$name_pars)
+          strrep(nchar(obj$info$base) + 17L), DSTATEDT, obj$name_pars)
   ret$add("  %s_deriv((%s*)%s, %s, %s, %s, NULL);",
-          obj$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT)
+          obj$info$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT)
   ret$add("}")
 
   if (obj$info$has_output) {
@@ -441,11 +428,11 @@ odin_generate2_dde <- function(obj) {
 
     ## Here, we'll need to have done some output processing.
     ret$add("\nvoid %s_dde_output(size_t n_eq, double %s, double *%s,",
-            obj$base, TIME, STATE)
+            obj$info$base, TIME, STATE)
     ret$add("%ssize_t dim_%s, double *%s, void *%s) {",
-            strrep(nchar(obj$base) + 17L), OUTPUT, OUTPUT, obj$name_pars)
+            strrep(nchar(obj$info$base) + 17L), OUTPUT, OUTPUT, obj$name_pars)
     ret$add("  %s_output((%s*)%s, %s, %s, %s);",
-            obj$base, obj$type_pars, obj$name_pars, TIME, STATE, OUTPUT)
+            obj$info$base, obj$type_pars, obj$name_pars, TIME, STATE, OUTPUT)
     ret$add("}")
   }
   ret$get()
@@ -460,7 +447,7 @@ odin_generate2_info <- function(obj) {
   ret$add("// or want a pointer here.  Things like output length, variable")
   ret$add("// length etc might vary depending on parameters used to generate")
   ret$add("// the model so we'll pull those elsewhere")
-  ret$add("SEXP %s_info() {", obj$base)
+  ret$add("SEXP %s_info() {", obj$info$base)
   ret$add("  SEXP ret = PROTECT(allocVector(VECSXP, %d));", length(info))
   ret$add("  SEXP nms = PROTECT(allocVector(STRSXP, %d));", length(info))
   as_vector <- vlapply(info, function(x)
@@ -555,10 +542,10 @@ odin_generate2_unpack <- function(obj, output=FALSE) {
 odin_generate2_interpolate_t <- function(obj) {
   ret <- collector()
   ret$add("// Report back to R information about interpolating functions")
-  ret$add("SEXP %s_interpolate_t(SEXP %s_ptr) {", obj$base, obj$base)
+  ret$add("SEXP %s_interpolate_t(SEXP %s_ptr) {", obj$info$base, obj$info$base)
   if (obj$info$has_interpolate) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-            obj$type_pars, obj$name_pars, obj$base, obj$base)
+            obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
     dat <- unique(obj$interpolate$get())
     dat_type <- vcapply(dat, "[[", "interpolation_type")
     dat_time <- vcapply(dat, "[[", "t")

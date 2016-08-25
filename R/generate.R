@@ -38,7 +38,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               if (!package) odin_includes(),
               if (!package) interpolate$types,
               if (!package) struct,
-              if (!package) obj$declarations$get(),
               if (!package) library_fns$declarations,
               if (!package) interpolate$declarations,
               odin_generate2_create(obj),
@@ -65,14 +64,13 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
                collapse="\n\n")
 
   if (package) {
-    list(struct=struct, code=txt,
-         library_fns=library_fns, base=obj$base, info=obj$info)
+    list(struct=struct, code=txt, library_fns=library_fns, info=obj$info)
   } else if (is.null(dest)) {
     ## Here we'll return the actual contents:
     txt
   } else {
     if (is_directory(dest) || !grepl(".", basename(dest), fixed=TRUE)) {
-      dest <- file.path(dest, sprintf("%s.c", obj$base))
+      dest <- file.path(dest, sprintf("%s.c", obj$info$base))
     }
     writeLines(txt, dest)
     dest

@@ -43,42 +43,46 @@ odin_generate1 <- function(dat) {
 ## types that we can reference everywhere.  But that might just be
 ## more complicated than it needs to be?
 odin_generate1_object <- function(dat) {
-  base <- dat[["config"]][["base"]]
+  base <- dat$config$base
   self <- list(base=base)
 
   self$info <- list(base=base,
+                    ## Core traits
                     has_delay=dat$info$has_delay,
                     has_output=dat$info$has_output,
                     has_interpolate=dat$info$has_interpolate,
-                    has_array=dat$info$has_array, # update?
-                    ## Below here a bit different; might belong elsewhere?
-                    user=dat$user_default, # TODO: update?
+                    has_array=dat$info$has_array,
+                    ## Initialisation stages
                     initial_stage=dat$initial_info$stage,
-                    dim_stage=dat$dim_stage) # TODO: update?
+                    dim_stage=dat$dim_stage,
+                    ## User variables
+                    user=dat$user_default)
 
-  ## NOTE: This stage might grow
+  self$variable_info <- dat$variable_info
   self$output_info <- dat$output_info
   self$initial_info <- dat$initial_info
-  self$variable_info <- dat$variable_info
 
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)
 
-  ## The major stages:
+  ## The major stages; we'll collect things into these as the main
+  ## loop runs.
   self$constant <- collector_named()
   self$user <- collector_named()
   self$time <- collector_named(TRUE)
   self$output <- collector_named(TRUE)
 
+  ## Used on initialisation/freeing
   self$initial <- collector()
   self$free <- collector()
-
-  self$interpolate <- collector_list()
 
   ## Keep track of which library functions we need.  I'll keep those
   ## elsewhere and select them based on name.
   self$library_fns <- collector()
-  self$declarations <- collector()
+
+  ## Collects only interpolation type information; could probably be
+  ## replaced (TODO)
+  self$interpolate <- collector_list()
 
   ## Below here, things are related to each other; lookup, and types
   ## are both called by add_element, and rewrite looks up variables in
@@ -187,8 +191,8 @@ odin_generate1_dim <- function(x, obj) {
 
   obj$add_element(nm_s, "double", x$nd)
   if (x$stage == STAGE_USER) {
-    obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_s))
-    obj[["user"]]$add("Free(%s);", obj$rewrite(nm_s))
+    obj$constant$add("%s = NULL;", obj$rewrite(nm_s))
+    obj$user$add("Free(%s);", obj$rewrite(nm_s))
   } else if (x$stage > STAGE_USER) {
     stop("This should never happen!")
   }
@@ -268,8 +272,8 @@ odin_generate1_dim <- function(x, obj) {
     ## subindexing?
     obj$add_element(nm_delay, "double", 1L)
     if (x$stage == STAGE_USER) {
-      obj[["constant"]]$add("%s = NULL;", obj$rewrite(nm_delay))
-      obj[["user"]]$add("Free(%s);", obj$rewrite(nm_delay))
+      obj$constant$add("%s = NULL;", obj$rewrite(nm_delay))
+      obj$user$add("Free(%s);", obj$rewrite(nm_delay))
     }
     obj[[st]]$add("%s = (double*) Calloc(%s, double);",
                   obj$rewrite(nm_delay), obj$rewrite(nm))
@@ -494,10 +498,10 @@ odin_generate1_delay <- function(x, obj, eqs) {
 
   obj[[st]]$add("%s = %s;", obj$rewrite(delay_dim), delay_size_tot, name=nm)
   if (st == "user") { ## NOTE: duplicated from odin_generate1_dim()
-    obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_idx))
-    obj[["constant"]]$add("%s = NULL;", obj$rewrite(delay_state))
-    obj[["user"]]$add("Free(%s);", obj$rewrite(delay_idx))
-    obj[["user"]]$add("Free(%s);", obj$rewrite(delay_state))
+    obj$constant$add("%s = NULL;", obj$rewrite(delay_idx))
+    obj$constant$add("%s = NULL;", obj$rewrite(delay_state))
+    obj$user$add("Free(%s);", obj$rewrite(delay_idx))
+    obj$user$add("Free(%s);", obj$rewrite(delay_state))
   }
   obj[[st]]$add("%s = (int*) Calloc(%s, int);",
                 obj$rewrite(delay_idx), obj$rewrite(delay_dim), name=nm)
@@ -638,13 +642,13 @@ odin_generate1_delay <- function(x, obj, eqs) {
 odin_generate1_interpolate <- function(x, obj) {
   nm <- x$name
   tmp <- x$rhs$value
-  nd <- tmp[["nd"]]
-  ny <- tmp[["ny"]]
-  nt <- tmp[["nt"]]
-  nm_t <- tmp[["t"]]
-  nm_y <- tmp[["y"]]
-  interpolation_type <- tmp[["type"]]
-  dest <- tmp[["name"]]
+  nd <- tmp$nd
+  ny <- tmp$ny
+  nt <- tmp$nt
+  nm_t <- tmp$t
+  nm_y <- tmp$y
+  interpolation_type <- tmp$type
+  dest <- tmp$name
 
   obj$interpolate$add(list(interpolation_type=interpolation_type, t=nm_t))
   obj$library_fns$add("odin_interpolate_check")

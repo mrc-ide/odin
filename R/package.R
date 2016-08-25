@@ -61,8 +61,8 @@ odin_generate_package <- function(path_package, filenames=NULL,
 
   library_fns <- combine_library(dat)
   code <- vcapply(dat, "[[", "code")
-  base <- vcapply(dat, "[[", "base")
   info <- lapply(dat, "[[", "info")
+  base <- vcapply(info, "[[", "base")
   struct <- lapply(dat, "[[", "struct")
 
   ## This is pretty tricky because the order here matters a lot
