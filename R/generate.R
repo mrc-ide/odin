@@ -10,7 +10,9 @@
 ## odin_generate *except* the first line.
 odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   obj <- odin_generate1(dat)
-  support <- odin_generate2_support_defns(obj)
+
+  struct <- c(odin_generate2_struct(obj),
+              odin_generate2_support_decls(obj))
   library_fns <- odin_generate2_library_fns(obj)
 
   ## NOTE: For now, the interpolation functions are just slurped in
@@ -25,8 +27,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
     interpolate <- NULL
   }
 
-  struct <- c(odin_generate2_struct(obj),
-              odin_generate2_support_decls(obj))
 
   ## Then attempt to make some sense out of the things that we have
   ## collected:
