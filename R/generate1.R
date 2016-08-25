@@ -17,16 +17,15 @@ odin_generate1 <- function(dat) {
   obj$add_element(sprintf("initial_%s", TIME), "double")
 
   ## The main loop over all equations:
-  odin_generate1_loop(obj, dat)
+  odin_generate1_loop(obj, dat$eqs)
 
-  ## Set a few common things within the object that must be added before we
-  odin_generate1_common(obj, dat)
+  odin_generate1_library(obj)
 
-  odin_generate1_total(dat$variable_order, obj)
+  odin_generate1_total(obj$variable_info, obj)
   ## This is handled differently elsewhere...
-  obj$variable_size <- obj$rewrite(dat$variable_order$total_use)
+  obj$variable_size <- obj$rewrite(obj$variable_info$total_use)
 
-  if (dat$info$has_output) {
+  if (obj$info$has_output) {
     odin_generate1_total(obj$output_info, obj)
     if (any(obj$output_info$is_array)) {
       stop("untested") # TODO!
@@ -50,14 +49,14 @@ odin_generate1 <- function(dat) {
   ## TODO: This comes out soon; it's used in reporting but should not
   ## be needed in quite this form.
   obj$vars <- data.frame(
-    name=dat$variable_order$order,
-    is_array=dat$variable_order$is_array,
-    array=dat$variable_order$array,
-    used=dat$variable_order$used,
+    name=obj$variable_info$order,
+    is_array=obj$variable_info$is_array,
+    array=obj$variable_info$array,
+    used=obj$variable_info$used,
     ## TODO: watch out here - should be elsewhere, no?
-    used_output=dat$variable_order$order %in% obj$output_info$used$output,
-    offset=vcapply(dat$variable_order$offset_use, obj$rewrite),
-    length=vcapply(dat$variable_order$len, obj$rewrite),
+    used_output=obj$variable_info$order %in% obj$output_info$used$output,
+    offset=vcapply(obj$variable_info$offset_use, obj$rewrite),
+    length=vcapply(obj$variable_info$len, obj$rewrite),
     stringsAsFactors=FALSE)
 
   obj
@@ -72,6 +71,9 @@ odin_generate1_object <- function(dat) {
   base <- dat[["config"]][["base"]]
   self <- list(base=base)
 
+  has_sum <-
+    "sum" %in% unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))
+
   self$info <- list(base=base,
                     has_delay=dat$info$has_delay,
                     has_output=dat$info$has_output,
@@ -80,11 +82,13 @@ odin_generate1_object <- function(dat) {
                     ## Below here a bit different; might belong elsewhere?
                     user=dat$user_default, # TODO: update?
                     initial_stage=dat$initial_info$stage,
-                    dim_stage=dat$dim_stage) # TODO: update?
+                    dim_stage=dat$dim_stage, # TODO: update?
+                    has_sum=has_sum)
 
   ## NOTE: This stage might grow
   self$output_info <- dat$output_info
   self$initial_info <- dat$initial_info
+  self$variable_info <- dat$variable_info
 
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)
@@ -145,18 +149,18 @@ odin_generate1_object <- function(dat) {
   self
 }
 
-odin_generate1_loop <- function(obj, dat) {
-  for (x in dat$eqs) {
+odin_generate1_loop <- function(obj, eqs) {
+  for (x in eqs) {
     if (identical(x$lhs$special, "dim")) {
-      odin_generate1_dim(x, obj, dat)
+      odin_generate1_dim(x, obj)
     } else if (isTRUE(x$rhs$interpolate)) {
-      odin_generate1_interpolate_expr(x, obj, dat)
+      odin_generate1_interpolate(x, obj)
     } else if (isTRUE(x$rhs$delay)) {
-      odin_generate1_delay(x, obj, dat)
+      odin_generate1_delay(x, obj, eqs)
     } else if (x$lhs$type == "symbol") {
-      odin_generate1_symbol(x, obj, dat)
+      odin_generate1_symbol(x, obj)
     } else if (x$lhs$type == "array") {
-      odin_generate1_array(x, obj, dat)
+      odin_generate1_array(x, obj, eqs)
     } else {
       stop("Unhandled type")
     }
@@ -173,19 +177,13 @@ odin_generate1_total <- function(x, obj) {
   }
 }
 
-## Add common things that need to be added early:
-odin_generate1_common <- function(obj, dat) {
-  ## (2): Add some support functions:
-
-  ## NOTE: these *don't* need to be added early; we could do this
-  ## whenever and may well do so.
-
+## Support for any library functions we detect
+odin_generate1_library <- function(obj) {
   ## Support for interacting with deSolve parameters
   obj$library_fns$add("get_ds_pars")
 
   ## Support for sum() of varying orders
-  if ("sum" %in%
-      unique(unlist(lapply(dat$eqs, function(x) x$depends$functions)))) {
+  if (obj$info$has_sum) {
     ## TODO: We should be more clever here, but not done yet and the
     ## cost including all three definitions is low.  The issue is that
     ## in contrast with most special functions, sum can be used in
@@ -197,16 +195,16 @@ odin_generate1_common <- function(obj, dat) {
   }
 
   ## Support for differential equations:
-  if (dat$info$has_delay) {
+  if (obj$info$has_delay) {
     obj$library_fns$add("lagvalue_dde")
     obj$library_fns$add("lagvalue_ds")
   }
 }
 
-odin_generate1_dim <- function(x, obj, dat) {
+odin_generate1_dim <- function(x, obj) {
   nm <- x$name
   nm_target <- x$lhs$name_target
-  is_var <- nm_target %in% dat$vars
+  is_var <- nm_target %in% obj$variable_info$order
   nm_s <- if (is_var) paste0("initial_", nm_target) else nm_target
   st <- STAGES[[x$stage]]
 
@@ -305,16 +303,16 @@ odin_generate1_dim <- function(x, obj, dat) {
     ## TODO: Does this not create some unnecessary offsets?  (e.g., in
     ## the mixed example in test-odin).  I would have thought that the
     ## *first* array would not need an offset; we'd only be interested
-    ## in this if dat$variable_order$offset_is_var[[i]] is TRUE?
+    ## in this if obj$variable_info$offset_is_var[[i]] is TRUE?
     nm_offset <- paste0("offset_", nm_target)
     obj$add_element(nm_offset, "int")
-    i <- match(nm_target, dat$variable_order$order)
-    offset <- dat$variable_order$offset[[i]]
+    i <- match(nm_target, obj$variable_info$order)
+    offset <- obj$variable_info$offset[[i]]
     obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset), obj$rewrite(offset))
   }
 }
 
-odin_generate1_symbol <- function(x, obj, dat) {
+odin_generate1_symbol <- function(x, obj) {
   st <- STAGES[[x$stage]]
   nm <- x$name
   type <- x$lhs$data_type
@@ -334,10 +332,10 @@ odin_generate1_symbol <- function(x, obj, dat) {
     obj$constant$add("%s = %s;", obj$rewrite(nm), default)
   }
 
-  obj[[st]]$add(odin_generate1_symbol_expr(x, obj, dat), name=nm)
+  obj[[st]]$add(odin_generate1_symbol_expr(x, obj), name=nm)
 }
 
-odin_generate1_symbol_expr <- function(x, obj, dat) {
+odin_generate1_symbol_expr <- function(x, obj) {
   nm <- x$name
   type <- x$lhs$data_type
 
@@ -354,8 +352,8 @@ odin_generate1_symbol_expr <- function(x, obj, dat) {
     ret <- sprintf("%s = %s;", obj$rewrite(nm), value)
   } else if (identical(x$lhs$special, "deriv")) {
     ## NOTE: offset guaranteed to be OK, but should probably rewrite?
-    i <- match(x$lhs$name_target, dat$variable_order$order)
-    offset <- obj$rewrite(dat$variable_order$offset_use[[i]])
+    i <- match(x$lhs$name_target, obj$variable_info$order)
+    offset <- obj$rewrite(obj$variable_info$offset_use[[i]])
     ret <- sprintf("%s[%s] = %s;", DSTATEDT, offset, value)
   } else if (identical(x$lhs$special, "output")) {
     i <- match(x$lhs$name_target, obj$output_info$order)
@@ -367,12 +365,12 @@ odin_generate1_symbol_expr <- function(x, obj, dat) {
   ret
 }
 
-odin_generate1_array <- function(x, obj, dat) {
+odin_generate1_array <- function(x, obj, eqs) {
   st <- STAGES[[x$stage]]
   nm <- x$name
 
   if (isTRUE(x$rhs$user)) {
-    dim <- dat$eqs[[array_dim_name(x$name)]]
+    dim <- eqs[[array_dim_name(x$name)]]
     if (isTRUE(dim$rhs$user)) {
       ## All done already while establishing dim
       return()
@@ -455,7 +453,7 @@ odin_generate1_array_expr <- function(x, obj) {
 ## Here I'm hoping to make the simplifying assumption that the number
 ## of array variables stored is smallish so we can afford to manually
 ## do calculations on them.
-odin_generate1_delay <- function(x, obj, dat) {
+odin_generate1_delay <- function(x, obj, eqs) {
   nm <- x$name
   delay_len <- length(x$delay$extract)
   delay_is_array <- x$delay$is_array
@@ -512,7 +510,7 @@ odin_generate1_delay <- function(x, obj, dat) {
   ## will require a good test.  It's possible that this can be done
   ## with an accumulating variable as we'll need to get lengths here
   ## anyway.
-  st <- STAGES[if (any(x$delay$is_array)) dat$dim_stage else STAGE_CONSTANT]
+  st <- STAGES[if (obj$info$has_array) obj$info$dim_stage else STAGE_CONSTANT]
 
   obj$add_element(delay_idx, "int", 1L)
   obj$add_element(delay_state, "double", 1L)
@@ -536,8 +534,8 @@ odin_generate1_delay <- function(x, obj, dat) {
   ## because we need to work across two sets of offsets that don't
   ## necessarily match up.  Note that the non-array things go in here
   ## before the array things.
-  i <- match(x$delay$extract, dat$variable_order$order)
-  delay_var_offset <- dat$variable_order$offset_use[i]
+  i <- match(x$delay$extract, obj$variable_info$order)
+  delay_var_offset <- obj$variable_info$offset_use[i]
   obj[[st]]$add("{", name=nm)
   obj[[st]]$add("  int j = 0;", name=nm)
   for (i in seq_along(delay_var_offset)) {
@@ -603,8 +601,6 @@ odin_generate1_delay <- function(x, obj, dat) {
                 vcapply(sprintf("initial_%s", x$delay$extract),
                         obj$rewrite, USE.NAMES=FALSE), name=nm)
   obj[[st]]$add("  } else {", name=nm)
-  ## TODO: This could be done on a switch in the parameters; that
-  ## would enable dde and deSolve to exist side-by-side.
   lagvalue <-  sprintf("      lagvalue_%%s(%s, %s, %s, %s);",
                        delay_time,
                        obj$rewrite(delay_idx),
@@ -645,11 +641,11 @@ odin_generate1_delay <- function(x, obj, dat) {
   for (nm_dep in x$delay$deps) {
     if (deps_is_array[[nm_dep]]) {
       obj[[st]]$add(indent(
-                 odin_generate1_array_expr(tr(dat$eqs[[nm_dep]]), obj), 2),
+                 odin_generate1_array_expr(tr(eqs[[nm_dep]]), obj), 2),
                  name=nm)
     } else {
       obj[[st]]$add("  double %s = %s;",
-                    nm_dep, obj$rewrite(tr(dat$eqs[[nm_dep]])$rhs$value),
+                    nm_dep, obj$rewrite(tr(eqs[[nm_dep]])$rhs$value),
                     name=nm)
     }
   }
@@ -662,7 +658,7 @@ odin_generate1_delay <- function(x, obj, dat) {
   obj[[st]]$add("}", name=nm)
 }
 
-odin_generate1_interpolate_expr <- function(x, obj, dat) {
+odin_generate1_interpolate <- function(x, obj) {
   nm <- x$name
   tmp <- x$rhs$value
   nd <- tmp[["nd"]]

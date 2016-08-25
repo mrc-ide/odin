@@ -86,9 +86,9 @@ odin_parse_delay_1 <- function(idx, obj) {
   ## TODO: this overlaps with the new function "odin_parse_extract_order".
   ## Here, it's really important to pull these out with the scalars
   ## first, then the arrays.
-  var_extract <- intersect(obj$variable_order$order, deps) # retains ordering
+  var_extract <- intersect(obj$variable_info$order, deps) # retains ordering
   var_is_array <-
-    obj$variable_order$is_array[match(var_extract, obj$variable_order$order)]
+    obj$variable_info$is_array[match(var_extract, obj$variable_info$order)]
 
   len <- length(var_extract)
   var_size <- vector("list", len)
