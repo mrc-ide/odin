@@ -2,13 +2,28 @@
 ## to two different sets of variables.  It would be good to abstract
 ## this away if that makes much sense because the new version is a bit
 ## of a terror.
-odin_generate2_order <- function(obj) {
+odin_generate2_order <- function(obj, output=FALSE) {
   ret <- collector()
-  info <- obj$variable_info
-  ret$add("// Report back to R information on variable ordering")
-  ret$add("// The reported information includes position and length of each")
-  ret$add("// variable, from which offset, etc, can be worked out.")
-  ret$add("SEXP %s_order(SEXP %s_ptr) {", obj$base, obj$base)
+  if (output) {
+  ret$add("// Report back to R information on output variable ordering")
+  ret$add("// Like the variable order above, but for any output vars")
+  ret$add("// If no output variables are used, return an R NULL")
+  } else {
+    ret$add("// Report back to R information on variable ordering")
+    ret$add("// The reported information includes position and length of each")
+    ret$add("// variable, from which offset, etc, can be worked out.")
+  }
+  ret$add("SEXP %s_%s_order(SEXP %s_ptr) {",
+          obj$base, if (output) "output" else "variable", obj$base)
+
+  ## Early exit if we have nothing to generate:
+  if (output && !obj$info$has_output) {
+    ret$add("  return R_NilValue;", STATE)
+    ret$add("}")
+    return(ret$get())
+  }
+
+  info <- obj[[if (output) "output_info" else "variable_info"]]
   if (any(info$is_array)) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
             obj$type_pars, obj$name_pars, obj$base, obj$base)
@@ -43,62 +58,6 @@ odin_generate2_order <- function(obj) {
   ret$add("  setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
   ret$add("  UNPROTECT(2);")
   ret$add("  return %s_len;", STATE)
-  ret$add("}")
-  ret$get()
-}
-
-odin_generate2_output_order <- function(obj) {
-  ret <- collector()
-  ret$add("// Report back to R information on output variable ordering")
-  ret$add("// Like the variable order above, but for any output vars")
-  ret$add("// If no output variables are used, return an R NULL")
-  ret$add("SEXP %s_output_order(SEXP %s_ptr) {", obj$base, obj$base)
-  ## TODO: this has drifted from vars; there we have is_array and
-  ## array; I think I remember adding that so just tweak this together
-  ## at some point and combine.  Yay technical debt.
-  ##
-  ## TODO: See what I can do about the harmonisation above.
-  ## Add a 'n'
-  if (obj$info$has_output) {
-    output <- obj[["output_info"]]
-    if (any(output$is_array)) { # TODO: array > 0 (perhaps?)
-      ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-              obj$type_pars, obj$name_pars, obj$base, obj$base)
-      stop("array output not supported yet") # changes throughout
-    }
-    ret$add("  SEXP %s_len = PROTECT(allocVector(VECSXP, %d));",
-            STATE, output$n)
-    ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
-            STATE, output$n)
-    ## TODO: how much can this be combined with generate_order once
-    ## the data structures are a little harmonised?
-    for (i in seq_len(output$n)) {
-      ## TODO: was ==>  nd <- 0L # fixes needed above.
-      nd <- output$array[[i]]
-      if (nd == 0L) {
-        ret$add("  SET_VECTOR_ELT(%s_len, %s, R_NilValue);", STATE, i - 1L)
-      } else if (nd == 1L) {
-        ret$add("  SET_VECTOR_ELT(%s_len, %s, ScalarInteger(%s));",
-                STATE, i - 1L, obj$rewrite(output$len[[i]]))
-      } else {
-        ret$add("  SET_VECTOR_ELT(%s_len, %s, allocVector(INTSXP, %d));",
-                STATE, i - 1L, nd)
-        ret$add("  tmp = INTEGER(VECTOR_ELT(%s_len, %s));", STATE, i - 1L)
-        for (j in seq_len(nd)) {
-          ret$add("  tmp[%d] = %s;", j - 1L,
-                  obj$rewrite(array_dim_name(output$order[[i]], j)))
-        }
-      }
-      ret$add("  SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
-              STATE, i - 1L, output$order[[i]])
-    }
-    ret$add("  setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
-    ret$add("  UNPROTECT(2);")
-    ret$add("  return %s_len;", STATE)
-  } else {
-    ret$add("  return R_NilValue;", STATE)
-  }
-
   ret$add("}")
   ret$get()
 }

@@ -49,7 +49,7 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               odin_generate2_deriv_r(obj),
               odin_generate2_contents(obj),
               odin_generate2_order(obj),
-              odin_generate2_output_order(obj),
+              odin_generate2_order(obj, TRUE),
               odin_generate2_output(obj),
               odin_generate2_interpolate_t(obj),
               odin_generate2_desolve(obj),

@@ -232,7 +232,7 @@ ode_system_generator <- function(dll, name=NULL) {
 
       ## Cache:
       init=NULL,
-      order=NULL,
+      variable_order=NULL,
       output_order=NULL,
       names=NULL,
       transform_variables=NULL,
@@ -280,12 +280,12 @@ ode_system_generator <- function(dll, name=NULL) {
       },
 
       update_cache=function() {
-        self$order <- .Call(self$C$order, self$ptr)
+        self$variable_order <- .Call(self$C$variable_order, self$ptr)
         self$output_order <- .Call(self$C$output_order, self$ptr)
         self$output_length <- as.integer(
           sum(vnapply(self$output_order, function(x)
             if (is.null(x)) 1 else prod(x))))
-        self$names <- make_names(c(self$order, self$output_order))
+        self$names <- make_names(c(self$variable_order, self$output_order))
         self$transform_variables <- make_transform_variables(self)
         if (self$has_interpolate) {
           self$interpolate_t <- .Call(self$C$interpolate_t, self$ptr)
@@ -377,7 +377,7 @@ odin_dll_info <- function(name, dll) {
     set_user=getNativeSymbolInfo(sprintf("r_%s_set_user", name), dll),
     deriv=getNativeSymbolInfo(sprintf("r_%s_deriv", name), dll),
     contents=getNativeSymbolInfo(sprintf("%s_contents", name), dll),
-    order=getNativeSymbolInfo(sprintf("%s_order", name), dll),
+    variable_order=getNativeSymbolInfo(sprintf("%s_variable_order", name), dll),
     output_order=getNativeSymbolInfo(sprintf("%s_output_order", name), dll),
     interpolate_t=getNativeSymbolInfo(sprintf("%s_interpolate_t", name), dll),
     ## deSolve does not support this (yet)
@@ -403,8 +403,8 @@ odin_dll_info <- function(name, dll) {
 ## through the transformation.  But for x[, 1:5] and logical indices?
 ## Who knows?  This is _hard_...
 make_transform_variables <- function(x) {
-  ord <- c(x$order, x$output_order)
-  j <- seq_along(x$order)
+  ord <- c(x$variable_order, x$output_order)
+  j <- seq_along(x$variable_order)
   n <- length(ord)
   len <- vnapply(ord, function(x) if (is.null(x)) 1L else prod(x),
                    USE.NAMES=FALSE)
@@ -415,7 +415,7 @@ make_transform_variables <- function(x) {
   nms <- names(ord)
 
   tot_vars <- sum(len)
-  n_vars <- length(x$order)
+  n_vars <- length(x$variable_order)
 
   ## We can detect time except for the cases where the output length
   ## is one.  But we should be able to work with this by checking for

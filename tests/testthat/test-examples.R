@@ -81,9 +81,9 @@ test_that("basic interface", {
     expect_is(y, "list")
 
     if (mod_c$has_output) {
-      order <- c(mod_c$order, mod_c$output_order)
+      order <- c(mod_c$variable_order, mod_c$output_order)
     } else {
-      order <- mod_c$order
+      order <- mod_c$variable_order
     }
     expect_equal(names(y), c(names(order)))
     is_array <- !vlapply(order, is.null)
