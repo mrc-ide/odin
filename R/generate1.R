@@ -22,8 +22,6 @@ odin_generate1 <- function(dat) {
   odin_generate1_library(obj)
 
   odin_generate1_total(obj$variable_info, obj)
-  ## This is handled differently elsewhere...
-  obj$variable_size <- obj$rewrite(obj$variable_info$total_use)
 
   if (obj$info$has_output) {
     odin_generate1_total(obj$output_info, obj)
@@ -45,19 +43,6 @@ odin_generate1 <- function(dat) {
   ## function, types is collected by this function so needs to be
   ## written out at the end.
   obj$types <- rbind_as_df(obj$types$get())
-
-  ## TODO: This comes out soon; it's used in reporting but should not
-  ## be needed in quite this form.
-  obj$vars <- data.frame(
-    name=obj$variable_info$order,
-    is_array=obj$variable_info$is_array,
-    array=obj$variable_info$array,
-    used=obj$variable_info$used,
-    ## TODO: watch out here - should be elsewhere, no?
-    used_output=obj$variable_info$order %in% obj$output_info$used$output,
-    offset=vcapply(obj$variable_info$offset_use, obj$rewrite),
-    length=vcapply(obj$variable_info$len, obj$rewrite),
-    stringsAsFactors=FALSE)
 
   obj
 }

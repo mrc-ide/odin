@@ -4,41 +4,41 @@
 ## of a terror.
 odin_generate2_order <- function(obj) {
   ret <- collector()
-  vars <- obj[["vars"]]
+  info <- obj$variable_info
   ret$add("// Report back to R information on variable ordering")
   ret$add("// The reported information includes position and length of each")
   ret$add("// variable, from which offset, etc, can be worked out.")
   ret$add("SEXP %s_order(SEXP %s_ptr) {", obj$base, obj$base)
-  if (any(vars$is_array)) {
+  if (any(info$is_array)) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
             obj$type_pars, obj$name_pars, obj$base, obj$base)
-    if (max(vars$array) > 1L) {
+    if (max(info$array) > 1L) {
       ret$add("  int *tmp;")
     }
   }
   ret$add("  SEXP %s_len = PROTECT(allocVector(VECSXP, %d));",
-          STATE, nrow(vars))
+          STATE, info$n)
   ret$add("  SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
-          STATE, nrow(vars))
+          STATE, info$n)
 
-  for (i in seq_len(nrow(vars))) {
-    nd <- vars$array[[i]]
+  for (i in seq_len(info$n)) {
+    nd <- info$array[[i]]
     if (nd == 0L) {
       ret$add("  SET_VECTOR_ELT(%s_len, %s, R_NilValue);", STATE, i - 1L)
     } else if (nd == 1L) {
       ret$add("  SET_VECTOR_ELT(%s_len, %s, ScalarInteger(%s));",
-              STATE, i - 1L, vars$length[[i]])
+              STATE, i - 1L, obj$rewrite(info$len[[i]]))
     } else {
       ret$add("  SET_VECTOR_ELT(%s_len, %s, allocVector(INTSXP, %d));",
               STATE, i - 1L, nd)
       ret$add("  tmp = INTEGER(VECTOR_ELT(%s_len, %s));", STATE, i - 1L)
       for (j in seq_len(nd)) {
         ret$add("  tmp[%d] = %s;", j - 1L,
-                obj$rewrite(array_dim_name(vars$name[[i]], j)))
+                obj$rewrite(array_dim_name(info$order[[i]], j)))
       }
     }
     ret$add("  SET_STRING_ELT(%s_names, %d, mkChar(\"%s\"));",
-            STATE, i - 1L, vars$name[[i]])
+            STATE, i - 1L, info$order[[i]])
   }
   ret$add("  setAttrib(%s_len, R_NamesSymbol, %s_names);", STATE, STATE)
   ret$add("  UNPROTECT(2);")
@@ -286,17 +286,20 @@ odin_generate2_initial <- function(obj) {
     }
   }
 
+  vars_info <- obj$variable_info
   ## It's possible this bit should be factored out into a separate function?
   ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, %s));",
-          STATE, obj$variable_size)
-  copy <- character(nrow(obj[["vars"]]))
-  i <- obj[["vars"]]$is_array
-  nm_initial <- vcapply(sprintf("initial_%s", obj[["vars"]]$name), obj$rewrite)
+          STATE, obj$rewrite(obj$variable_info$total_use))
+  copy <- character(vars_info$n)
+  i <- vars_info$is_array
+  nm_initial <- vcapply(sprintf("initial_%s", vars_info$order),
+                        obj$rewrite)
+  offset <- vcapply(vars_info$offset_use, obj$rewrite)
   copy[i] <- sprintf("  memcpy(REAL(%s) + %s, %s, %s * sizeof(double));",
-                     STATE, obj[["vars"]]$offset[i], nm_initial[i],
-                     obj[["vars"]]$length[i])
+                     STATE, offset[i], nm_initial[i],
+                     vcapply(vars_info$len[i], obj$rewrite))
   copy[!i] <- sprintf("  REAL(%s)[%s] = %s;",
-                      STATE, obj[["vars"]]$offset[!i], nm_initial[!i])
+                      STATE, offset[!i], nm_initial[!i])
   ret$add(copy)
   if (obj$info$has_output) {
     ret$add('  setAttrib(%s, install("%s_len"), ScalarInteger(%s));',
@@ -312,9 +315,9 @@ odin_generate2_initial <- function(obj) {
 ## forms of the derivative function.  The base one (that this does)
 ## returns void and takes a pointer.
 odin_generate2_deriv <- function(obj) {
-  vars <- obj[["vars"]]
-  ret <- collector()
+  info <- obj$variable_info
 
+  ret <- collector()
   ret$add(
     "void %s_deriv(%s *%s, double %s, double *%s, double *%s, double *%s) {",
     obj$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
@@ -322,9 +325,10 @@ odin_generate2_deriv <- function(obj) {
   if (length(v) > 0L) {
     ret$add(indent(v, 2))
   }
-  if (any(vars$is_array)) {
+  if (any(info$is_array)) {
     ret$add("  double *deriv_%s = %s + %s;",
-            vars$name[vars$is_array], DSTATEDT, vars$offset[vars$is_array])
+            info$order[info$is_array], DSTATEDT,
+            vcapply(info$offset_use[info$is_array], obj$rewrite))
   }
   time <- obj$time$get()
   if (length(time) > 0L) {
@@ -567,16 +571,19 @@ odin_generate2_info <- function(obj) {
 }
 
 odin_generate2_vars <- function(obj, output=FALSE) {
-  vars <- obj[["vars"]]
-  vars <- vars[if (output) vars$used_output else vars$used, ]
+  info <- obj$variable_info
+  used <- info$used | (info$order %in% obj$output_info$used$output)
+
   ret <- collector()
-  if (any(!vars$is_array)) {
-    ret$add("double %s = %s[%s];",
-            vars$name[!vars$is_array], STATE, vars$offset[!vars$is_array])
+  i <- used & !info$is_array
+  if (any(i)) {
+    ret$add("double %s = %s[%s];", info$order[i], STATE,
+            vcapply(info$offset_use[i], obj$rewrite))
   }
-  if (any(vars$is_array)) {
-    ret$add("double *%s = %s + %s;",
-            vars$name[vars$is_array], STATE, vars$offset[vars$is_array])
+  i <- used & info$is_array
+  if (any(i)) {
+    ret$add("double *%s = %s + %s;", info$order[i], STATE,
+            vcapply(info$offset_use[i], obj$rewrite))
   }
   ret$get()
 }
