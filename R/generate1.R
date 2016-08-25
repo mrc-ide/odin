@@ -80,8 +80,7 @@ odin_generate1_object <- function(dat) {
   ## elsewhere and select them based on name.
   self$library_fns <- collector()
 
-  ## Collects only interpolation type information; could probably be
-  ## replaced (TODO)
+  ## Collects only interpolation type information
   self$interpolate <- collector_list()
 
   ## Below here, things are related to each other; lookup, and types
@@ -165,11 +164,6 @@ odin_generate1_library <- function(obj, eqs) {
   has_sum <-
     "sum" %in% unique(unlist(lapply(eqs, function(x) x$depends$functions)))
   if (has_sum) {
-    ## TODO: We should be more clever here, but not done yet and the
-    ## cost including all three definitions is low.  The issue is that
-    ## in contrast with most special functions, sum can be used in
-    ## nested expressions.  So for now this adds all three sum
-    ## functions but perhaps we only need one of them.
     obj$library_fns$add("odin_sum1")
     obj$library_fns$add("odin_sum2")
     obj$library_fns$add("odin_sum3")
@@ -217,8 +211,7 @@ odin_generate1_dim <- function(x, obj) {
       nm_i <- obj$rewrite(nm)
     }
 
-    ## TODO "tmp" -> STATE?
-    obj[[st]]$add('  double* tmp = %s(%s, "%s", %s);',
+    obj[[st]]$add('  double *tmp = %s(%s, "%s", %s);',
                   fn, USER, nm_s, paste0("&", nm_i, collapse=", "))
     ## TODO: This duplicates the code below for computing compound
     ## dimensions, but until I get test cases in that's probably the
@@ -384,13 +377,16 @@ odin_generate1_array_expr <- function(x, obj) {
   ## performance gain, but it should be simple enough to implement.
   ## It's worth checking the code that compiler generates though
   ## actually differs (especially with -O2 or higher).
+  ##
+  ## TODO: For some models, we might need to allow control over how
+  ## the sum indies are computed.
   for (j in seq_along(x$lhs$index)) {
     xj <- x$lhs$index[[j]]
     is_range <- xj$is_range
     target <- xj$extent_max
     ## TODO: The index variables need sanitising so that no more
     ## than one of i,j,k is allowed; things like x[i,j] = z[i + j]
-    ## are not allowed!
+    ## are not allowed! (this would be in odin_parse_arrays_check_rhs)
     for (k in seq_along(is_range)) {
       if (is_range[k]) {
         ret$add("%sfor (int %s = %s; %s < %s; ++%s) {",
@@ -401,11 +397,6 @@ odin_generate1_array_expr <- function(x, obj) {
         indent <- paste0("  ", indent)
         target[[k]] <- as.symbol(INDEX[[k]])
       } else if (INDEX[[k]] %in% x$rhs$depends$variables) {
-        ## TODO: I need to get the index rhs depends back here to
-        ## do this best (i.e., if the rhs does not depend on an
-        ## index then don't bother adding the declaration here).
-        ## As it is this will do this for *all* entries which is
-        ## not ideal.
         if (!nzchar(indent)) {
           ret$add("{")
           indent <- "  "
@@ -434,6 +425,11 @@ odin_generate1_array_expr <- function(x, obj) {
 ## Here I'm hoping to make the simplifying assumption that the number
 ## of array variables stored is smallish so we can afford to manually
 ## do calculations on them.
+##
+## TODO: This is, by far, the ugliest function.  It would probably pay
+## to split it up a bit and leverage any of the other generate bits I
+## can find where duplicated code is involved.  But this is *hard* in
+## general.
 odin_generate1_delay <- function(x, obj, eqs) {
   nm <- x$name
   delay_len <- length(x$delay$extract)
@@ -555,7 +551,7 @@ odin_generate1_delay <- function(x, obj, eqs) {
   ## place of the last array.  If I do that always it's less checking,
   ## actually.  This will always be of the form X + dim(X) so that's
   ## nice.
-  f <- function(i) {
+  compute_offset <- function(i) {
     if (identical(x$delay$offset[[i]], 0L) && x$delay$is_array[[i]]) {
       obj$rewrite(delay_state)
     } else {
@@ -568,7 +564,7 @@ odin_generate1_delay <- function(x, obj, eqs) {
       sprintf(fmt, base, obj$rewrite(x$delay$offset[[i]]))
     }
   }
-  delay_access <- vcapply(seq_along(x$delay$offset), f)
+  delay_access <- vcapply(seq_along(x$delay$offset), compute_offset)
 
   ## TODO: if time is used in the time calculation it will need
   ## rewriting.  But I believe that parse prohibits that in the
@@ -651,7 +647,6 @@ odin_generate1_interpolate <- function(x, obj) {
   dest <- tmp$name
 
   obj$interpolate$add(list(interpolation_type=interpolation_type, t=nm_t))
-  obj$library_fns$add("odin_interpolate_check")
   obj$add_element(dest, "interpolate_data")
 
   ## TODO: throughout here; consider looking at the actual definitions

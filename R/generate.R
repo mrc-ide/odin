@@ -38,9 +38,9 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   ret <- list(if (!package) odin_header(),
               if (!package) odin_includes(),
               if (!package) interpolate$types,
+              if (!package) interpolate$declarations,
               if (!package) struct,
               if (!package) library_fns$declarations,
-              if (!package) interpolate$declarations,
               odin_generate2_create(obj),
               odin_generate2_user(obj),
               odin_generate2_finalize(obj),
@@ -90,17 +90,19 @@ odin_includes <- function() {
 }
 
 odin_interpolate_support <- function() {
-  type <- readLines(system.file("interpolate_types.h", package="odin"))
-  decl <- readLines(system.file("interpolate_decls.h", package="odin"))
-  defn <- readLines(system.file("interpolate.c", package="odin"))
   ## This is error prone but tests should catch it.  We mostly need
   ## not to include "interpolate.h" here.
-  i <- grep("^(//|#include|$)", defn, perl=TRUE)
-  j <- seq_len(max(which(i == seq_along(i))))
-  if (length(j) > 0L) {
-    defn <- defn[-j]
+  filter_includes <- function(filename) {
+    x <- readLines(system.file(filename, package="odin"))
+    i <- grep("^(//|#include|$)", x, perl=TRUE)
+    j <- seq_len(max(which(i == seq_along(i))))
+    if (length(j) > 0L) {
+      x <- x[-j]
+    }
+    x
   }
-  list(types=type, declarations=decl, definitions=defn)
+  list(declarations=filter_includes("interpolate.h"),
+       definitions=filter_includes("interpolate.c"))
 }
 
 ## Read a bunch of library functions.  The format here is important.

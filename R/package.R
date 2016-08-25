@@ -64,43 +64,50 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   info <- lapply(dat, "[[", "info")
   base <- vcapply(info, "[[", "base")
 
-  ## This is pretty tricky because the order here matters a lot
-  ## (mostly because I never did a good job of forward declaring the
-  ## struct.  The model struct needs to be defined after the
-  ## interpolation struct.
-  has_interpolate <- any(vlapply(info, "[[", "has_interpolate"))
   header <- c(odin_header(), odin_includes())
 
+  has_interpolate <- any(vlapply(info, "[[", "has_interpolate"))
   if (has_interpolate) {
     interpolate <- odin_interpolate_support()
-    header <- c(header, "\n", interpolate$types)
-    library_fns$declarations <-
-      c(library_fns$declarations, "\n", interpolate$declarations)
-    library_fns$definitions <-
-      c(library_fns$definitions, "\n", interpolate$definitions)
+  } else {
+    interpolate <- NULL
   }
 
   dir.create(file.path(path_package, "R"), FALSE)
   dir.create(file.path(path_package, "src"), FALSE)
 
   writel <- function(x, file) {
-    writeLines(x, file.path(path_package, "src", file))
+    x <- x[lengths(x) > 0]
+    txt <- paste(vcapply(x, paste, collapse="\n"), collapse="\n\n")
+    writeLines(txt, file.path(path_package, "src", file))
   }
 
   if (single_file) {
     struct[-1] <- lapply(struct[-1], function(x) x[!grepl("^//", x)])
-    writel(c(header, "\n",
-             unlist(struct), "\n",
-             library_fns$declarations, "\n",
-             code, "\n",
-             library_fns$definitions), "odin.c")
+    writel(list(header,
+                if (has_interpolate) interpolate$types,
+                if (has_interpolate) interpolate$declarations,
+                unlist(struct),
+                library_fns$declarations,
+                code,
+                library_fns$definitions,
+                if (has_interpolate) interpolate$definitions),
+           "odin.c")
   } else {
-    writel(c(header, "\n", library_fns$definitions), "odin.c")
+    writel(list(header,
+                if (has_interpolate) interpolate$types,
+                if (has_interpolate) interpolate$declarations,
+                library_fns$declarations,
+                library_fns$definitions), "odin.c")
     for (i in seq_along(filenames)) {
-      writel(c(header, "\n",
-               struct[[i]], "\n",
-               library_fns$declarations, "\n",
-               code[[i]]), sprintf("odin_%s.c", base[[i]]))
+      writel(list(header,
+                  if (has_interpolate) interpolate$types,
+                  if (has_interpolate) interpolate$declarations,
+                  struct[[i]],
+                  code[[i]],
+                  library_fns$declarations,
+                  if (has_interpolate) interpolate$definitions,
+                  code[[i]]), sprintf("odin_%s.c", base[[i]]))
     }
   }
 
