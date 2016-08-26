@@ -253,7 +253,7 @@ ode_system_generator <- function(dll, name=NULL) {
         self$update_cache()
         if (self$use_dde) {
           loadNamespace("dde")
-          self$ode <- dde::dopri5
+          self$ode <- dde::dopri
         } else if (self$has_delay) {
           self$ode <- deSolve::dede
         } else {

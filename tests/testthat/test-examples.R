@@ -243,7 +243,7 @@ test_that("dde", {
 
     ## Correct function found:
     expect_equal(environmentName(environment(mod_ds$ode)), "deSolve")
-    expect_equal(mod_dde$ode, dde::dopri5)
+    expect_equal(mod_dde$ode, dde::dopri)
 
     ## Let's go.
     res_ds <- mod_ds$run(t)
