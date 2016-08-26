@@ -514,6 +514,7 @@ odin_generate1_delay <- function(x, obj, eqs) {
   i <- match(x$delay$extract, obj$variable_info$order)
   delay_var_offset <- obj$variable_info$offset_use[i]
   obj[[st]]$add("{", name=nm)
+  obj[[st]]$add("  // delay block for %s", nm, name=nm)
   obj[[st]]$add("  int j = 0;", name=nm)
   for (i in seq_along(delay_var_offset)) {
     if (x$delay$is_array[[i]]) {
