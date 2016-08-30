@@ -378,7 +378,7 @@ odin_parse_interpolate <- function(obj) {
     target <- obj$eqs[[nm]]
     if (is.null(target)) {
       odin_error(sprintf("Interpolation variable %s not found", nm),
-                 e$line, e$expr)
+                 target$line, target$expr)
     }
     if (target$lhs$type != "array" || target$lhs$nd != rank) {
       type <- if (rank == 1L) "vector" else paste(rank, "dimensional array")
