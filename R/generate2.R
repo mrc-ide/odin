@@ -568,7 +568,12 @@ odin_generate2_info <- function(obj) {
 ## Helper functions here:
 odin_generate2_vars <- function(obj, output=FALSE) {
   info <- obj$variable_info
-  used <- info$used | (info$order %in% obj$output_info$used$output)
+
+  if (output) {
+    used <- info$order %in% obj$output_info$used$output
+  } else {
+    used <- info$used
+  }
 
   ret <- collector()
   i <- used & !info$is_array
