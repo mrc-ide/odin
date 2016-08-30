@@ -2,7 +2,7 @@ context("package")
 
 test_that("generate package", {
   files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
-  res <- odin_create_package("example", files, verbose=FALSE)
+  res <- odin_create_package("example", files, verbose=TEST_VERBOSE)
   on.exit(res$cleanup())
 
   mod <- res$env$lorenz_odin()
@@ -16,7 +16,7 @@ test_that("generate package", {
 
 test_that("interpolation", {
   res <- odin_create_package("interpolation", "examples/interpolate_odin.R",
-                             verbose=FALSE)
+                             verbose=TEST_VERBOSE)
   on.exit(res$cleanup())
 
   flux_t <- c(1, 11, 21, 41, 73, 83, 93, 103, 113, 123, 133, 143, 153,

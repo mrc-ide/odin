@@ -39,7 +39,7 @@ test_that("basic interface", {
     t <- seq_range(mod_r$t, 300)
     t0 <- mod_r$t[[1L]]
 
-    gen <- odin(filename_o, verbose=FALSE)
+    gen <- odin(filename_o, verbose=TEST_VERBOSE)
     ## NOTE: this is a bit ugly; I'm really not sure what the right
     ## thing to do here is, but it might be to add an R6 option to
     ## odin() that would return the class (for use with inheritence
@@ -105,8 +105,8 @@ test_that("basic interface", {
 
 test_that("user arrays", {
   ## In the first version we have constant sized arrays:
-  gen1 <- odin("examples/array_odin.R", verbose=FALSE)
-  gen2 <- odin("examples/array_odin_user.R", verbose=FALSE)
+  gen1 <- odin("examples/array_odin.R", verbose=TEST_VERBOSE)
+  gen2 <- odin("examples/array_odin_user.R", verbose=TEST_VERBOSE)
 
   mod1 <- gen1()
   age_width <- mod1$contents()$age_width
@@ -131,7 +131,7 @@ test_that("user arrays", {
   expect_equal(mod2$initial_stage, STAGE_USER)
 
   ## User *sized* arrays.
-  gen3 <- odin("examples/array_odin_user2.R", verbose=FALSE)
+  gen3 <- odin("examples/array_odin_user2.R", verbose=TEST_VERBOSE)
   mod3 <- gen3(age_width)
 
   expect_equal(mod3$dim_stage, STAGE_USER)
@@ -157,7 +157,7 @@ test_that("user arrays", {
   expect_equal(tmp1$S[, 1], tmp3$S[, 1], tolerance=1e-6)
 
   ## All in; this one is driven by a variable sized array.
-  gen4 <- odin("examples/array_odin_user3.R", verbose=FALSE)
+  gen4 <- odin("examples/array_odin_user3.R", verbose=TEST_VERBOSE)
   mod4 <- gen4(age_width)
 
   dat4 <- mod4$contents()
@@ -190,7 +190,7 @@ test_that("lv", {
                y0=c(0.3013, 0.4586, 0.1307, 0.3557))
   mod_r <- source1("examples/lv4_deSolve.R")
   invisible(mod_r$initial(pars=pars))
-  gen <- odin("examples/lv4_odin.R", verbose=FALSE)
+  gen <- odin("examples/lv4_odin.R", verbose=TEST_VERBOSE)
   mod_c <- gen(user=pars)
 
   t <- seq_range(mod_r$t, 10000)
@@ -233,7 +233,7 @@ test_that("dde", {
     t <- seq_range(mod_r$t, 300)
     t0 <- mod_r$t[[1L]]
 
-    gen <- odin(filename_o, verbose=FALSE)
+    gen <- odin(filename_o, verbose=TEST_VERBOSE)
     mod_ds <- gen()
     mod_dde <- gen(dde=TRUE)
 

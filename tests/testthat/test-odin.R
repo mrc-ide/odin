@@ -5,7 +5,7 @@ test_that("constant model", {
   gen <- odin::odin({
     deriv(y) <- 0.5
     initial(y) <- 1
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
   mod <- gen()
   expect_identical(mod$init, 1.0)
   expect_identical(mod$deriv(0.0, mod$init), 0.5)
@@ -22,7 +22,7 @@ test_that("user variables", {
     N0 <- user(1)
     K <- user(100)
     r <- user()
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   ## Two different errors when r is not provided:
   expect_error(gen(), 'argument "r" is missing')
@@ -64,7 +64,7 @@ test_that("non-numeric time", {
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
   mod <- gen()
   t <- as.integer(0:10)
   expect_silent(mod$run(t))
@@ -77,7 +77,7 @@ test_that("non-numeric user", {
     N0 <- user(1)
     K <- user(100)
     r <- user()
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
   mod <- gen(1L)
   expect_is(mod$contents()$r, "numeric")
   expect_identical(mod$contents()$r, 1.0)
@@ -87,7 +87,7 @@ test_that("conditionals", {
   gen <- odin::odin({
     deriv(x) <- if (x > 2) 0 else 0.5
     initial(x) <- 0
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   ## Hey ho it works:
   mod <- gen()
@@ -101,7 +101,7 @@ test_that("conditionals, precendence", {
   gen <- odin::odin({
     deriv(x) <- 0.1 + 2 * if (t > 2) -0.1 else 0.5
     initial(x) <- 0
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod <- gen()
   t <- seq(0, 5, length.out=101)
@@ -119,7 +119,7 @@ test_that("time dependent", {
     N0 <- sqrt(t) + 1
     K <- 100
     r <- 0.5
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   ## The same model, but taking N0 as a user parameter.
   gen_cmp <- odin::odin({
@@ -128,7 +128,7 @@ test_that("time dependent", {
     N0 <- user()
     K <- 100
     r <- 0.5
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod_t <- gen_t()
   t0 <- seq(0,  10, length.out = 101)
@@ -144,7 +144,7 @@ test_that("time dependent initial conditions", {
     deriv(y2) <- y1
     initial(y2) <- -1
     output(y1) <- y1
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod <- gen()
   t <- seq(0, 2 * pi, length.out=101)
@@ -160,7 +160,7 @@ test_that("user c", {
     output(z) <- z
     deriv(y) <- z
     initial(y) <- 0
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod <- gen()
   t <- seq(0, 3, length.out=301)
@@ -181,7 +181,7 @@ test_that("time dependent initial conditions", {
     initial(y3) <- y2
     output(y1) <- y1
     output(y2) <- y2
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod <- gen()
 
@@ -209,7 +209,7 @@ test_that("time dependent initial conditions depending on vars", {
 
     deriv(y3) <- y3 * 0.1
     initial(y3) <- y1 + y2
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod <- gen()
   expect_equal(mod$initial(0), c(1, 2, 3))
@@ -241,7 +241,7 @@ test_that("unused variable in output", {
     deriv(R) <- gamma2 * I2
 
     output(tot) <- S + E1 + E2 + I1 + I2 + R
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
   mod <- gen()
   expect_is(mod, "ode_system")
   t <- seq(0, 10, length.out = 100)
@@ -253,7 +253,7 @@ test_that("3d array", {
     initial(y[,,]) <- 1
     deriv(y[,,]) <- y[i,j,k] * 0.1
     dim(y) <- c(2, 3, 4)
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
   mod <- gen()
   expect_equal(mod$initial(), rep(1.0, 2 * 3 * 4))
 
@@ -280,7 +280,7 @@ test_that("mixed", {
     initial(v[]) <- 1
     dim(v) <- 3
     r <- 0.1
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
   mod <- gen()
   expect_is(mod, "ode_system")
   t <- seq(0, 10, length.out = 100)
@@ -324,7 +324,7 @@ test_that("output array", {
     output(y2[]) <- y[i] * 2
     ## NOTE: Not dim(output(y2)) [TODO: should we support this?]
     dim(y2) <- 3 # length(y) -- TODO -- should be OK?
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod <- gen()
   tt <- seq(0, 10, length.out=101)
@@ -349,7 +349,7 @@ test_that("output array", {
     dim(y) <- 3
     ## This should probably be OK, but might need some more trickery...
     output(r[]) <- r
-  }, verbose=FALSE)
+  }, verbose=TEST_VERBOSE)
 
   mod <- gen()
   tt <- seq(0, 10, length.out=101)
@@ -374,6 +374,6 @@ test_that("invalid self output", {
     ## This should fail:
     output(r[]) <- r
     output(r[]) <- 1
-  }, verbose=FALSE),
+  }, verbose=TEST_VERBOSE),
   "Direct output of r only allowed on single-line")
 })
