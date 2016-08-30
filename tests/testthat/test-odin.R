@@ -363,3 +363,17 @@ test_that("output array", {
   zz <- mod$transform_variables(yy)
   expect_equal(zz$r, matrix(0.1, length(tt), 3))
 })
+
+test_that("invalid self output", {
+  expect_error(odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- 0.1
+    dim(r) <- 3
+    dim(y) <- 3
+    ## This should fail:
+    output(r[]) <- r
+    output(r[]) <- 1
+  }, verbose=FALSE),
+  "Direct output of r only allowed on single-line")
+})

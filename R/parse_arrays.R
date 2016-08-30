@@ -239,6 +239,14 @@ odin_parse_arrays_1 <- function(idx, obj) {
         "%s may only be used on a single-line array assignment", f),
         get_lines(eqs[idx]), get_exprs(eqs[idx]))
     }
+  } else if (identical(x$lhs$special, "output") && length(idx) > 1L) {
+    output_self <- vlapply(eqs[idx], function(x) isTRUE(x$rhs$output_self))
+    if (any(output_self)) {
+      odin_error(sprintf(
+        "Direct output of %s only allowed on single-line array assignment",
+        x$lhs$name_target),
+        get_lines(eqs[idx]), get_exprs(eqs[idx]))
+    }
   } else {
     ok <- c("type", "depends", "value", "user", "default", "sum", "output_self")
     stopifnot(length(setdiff(used_rhs, ok)) == 0L)

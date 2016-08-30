@@ -176,6 +176,11 @@ odin_parse_expr_lhs_special <- function(lhs, line, expr) {
   }
   fun <- deparse_str(lhs[[1L]])
   target <- lhs[[2L]]
+
+  ## TODO: this branch not tested.
+  if (any(find_symbols(target)$functions %in% SPECIAL_LHS)) {
+    odin_error("invalid lhs function call", line, expr)
+  }
   ret <- odin_parse_expr_lhs(target, line, expr)
   ret$special <- fun
 
