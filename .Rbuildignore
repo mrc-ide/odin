@@ -17,3 +17,4 @@
 ^notes\.md$
 ^issues\.md$
 ^update_web\.sh$
+^tests/testthat/joel$

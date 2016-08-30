@@ -9,3 +9,5 @@ tests/testthat/tmp*
 inst/doc
 inst/web
 tests/testthat/interpolate/Makevars
+tests/testthat/joel.R
+tests/testthat/joel
