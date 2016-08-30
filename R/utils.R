@@ -98,7 +98,7 @@ substitute_ <- function(expr, env) {
 expand_grid_int <- function(x) {
   if (length(x) == 1L) {
     matrix(seq_len(x), x, 1L)
-  } else if (length(x) == 2L) {
+  } else if (length(x) >= 2L) {
     unname(as.matrix(do.call("expand.grid", lapply(x, seq_len), quote=TRUE)))
   }
 }

@@ -250,3 +250,23 @@ test_that("unused variable in output", {
   t <- seq(0, 10, length.out = 100)
   expect_error(mod$run(t), NA)
 })
+
+test_that("3d array", {
+  gen <- odin::odin({
+    initial(y[,,]) <- 1
+    deriv(y[,,]) <- y[i,j,k] * 0.1
+    dim(y) <- c(2, 3, 4)
+  }, verbose=FALSE)
+  mod <- gen()
+  expect_equal(mod$initial(), rep(1.0, 2 * 3 * 4))
+
+  tt <- seq(0, 10, length.out=11)
+  yy <- mod$run(tt)
+
+  ## We now have nicely named output:
+  expect_match(colnames(yy)[-1], "^y\\[[0-9],[0-9],[0-9]\\]$")
+
+  ## Transform for even nicer:
+  zz <- mod$transform_variables(yy)
+  expect_equal(dim(zz$y), c(c(length(tt), 2, 3, 4)))
+})
