@@ -255,7 +255,7 @@ odin_parse_variable_info <- function(obj) {
   ## I think it should be sorted by stage within the arrays though,
   ## and stage added here.
   vars <- obj$vars
-  variable_info <- odin_parse_extract_order(paste0("deriv_", vars), obj)
+  variable_info <- odin_parse_extract_order(obj)
 
   ## TODO: Expand this to include things like output perhaps?  I could
   ## probably use this elsewhere (such as in output).
@@ -270,7 +270,13 @@ odin_parse_variable_info <- function(obj) {
 }
 
 ## Given a vector of equation naems, let's unpack things:
-odin_parse_extract_order <- function(names, obj) {
+odin_parse_extract_order <- function(obj, output=FALSE) {
+  if (output) {
+    names <- names_if(obj$traits[, "is_output"])
+  } else {
+    names <- paste0("deriv_", obj$vars)
+  }
+
   n <- length(names)
   is_array <- obj$traits[names, "is_array"]
 
@@ -325,7 +331,11 @@ odin_parse_extract_order <- function(names, obj) {
 
   total <- accumulate_offset(n + 1L)
   total_is_var <- is.language(total)
-  total_use <- if (total_is_var) "dim" else total
+  if (total_is_var) {
+    total_use <- if (output) "dim_output" else "dim"
+  } else {
+    total_use <- total
+  }
   total_stage <- max(stage_dim)
 
   list(order=names_target,

@@ -18,6 +18,7 @@ odin_parse_expr <- function(expr, line) {
   rhs <- odin_parse_expr_rhs(expr[[3L]], line, expr)
   deps <- join_deps(list(lhs$depends, rhs$depends))
 
+  ## Below here uses both the lhs and rhs:
   if (isTRUE(rhs$user) &&
       !is.null(lhs$special) && !identical(lhs$special, "dim")) {
     odin_error("user() only valid for non-special variables", line, expr)

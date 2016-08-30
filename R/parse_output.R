@@ -16,7 +16,7 @@ odin_parse_output <- function(obj) {
                get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
   }
 
-  info <- odin_parse_extract_order(names_if(obj$traits[, "is_output"]), obj)
+  info <- odin_parse_extract_order(obj, TRUE)
   info$used <- odin_parse_output_usage(obj)
 
   ## Modify the input here only:
