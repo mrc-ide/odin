@@ -338,3 +338,28 @@ test_that("output array", {
   zz <- mod$transform_variables(yy)
   expect_equal(zz$y2, zz$y * 2)
 })
+
+## (2) An existing array
+test_that("output array", {
+  gen <- odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- 0.1
+    dim(r) <- 3
+    dim(y) <- 3
+    ## This should probably be OK, but might need some more trickery...
+    output(r[]) <- r
+  }, verbose=FALSE)
+
+  mod <- gen()
+  tt <- seq(0, 10, length.out=101)
+  yy <- mod$run(tt)
+
+  expect_equal(colnames(yy), c("t",
+                               sprintf("y[%d]", 1:3),
+                               sprintf("r[%d]", 1:3)))
+
+  ## transform function:
+  zz <- mod$transform_variables(yy)
+  expect_equal(zz$r, matrix(0.1, length(tt), 3))
+})

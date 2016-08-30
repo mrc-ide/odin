@@ -240,7 +240,7 @@ odin_parse_arrays_1 <- function(idx, obj) {
         get_lines(eqs[idx]), get_exprs(eqs[idx]))
     }
   } else {
-    ok <- c("type", "depends", "value", "user", "default", "sum")
+    ok <- c("type", "depends", "value", "user", "default", "sum", "output_self")
     stopifnot(length(setdiff(used_rhs, ok)) == 0L)
   }
 
@@ -316,6 +316,13 @@ odin_parse_array_check <- function(obj) {
       any(eq$depends$functions %in% "[") ||
       any(eq$rhs$depends_delay$variables %in% nms_arrays) ||
       any(eq$rhs$depends_delay$functions %in% "[")
+    ## Special case for assignments of the form:
+    ##
+    ##   output(foo) <- foo
+    ##   output(foo) <- TRUE
+    ##
+    ## which will be checked elsewhere (and ignored)
+    uses_array <- uses_array & !isTRUE(eq$rhs$output_self)
     if (uses_array) {
       eq_expr <- as.expression(eq$expr)
       if (isTRUE(eq$rhs$delay)) {

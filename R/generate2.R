@@ -578,8 +578,8 @@ odin_generate2_vars <- function(obj, output=FALSE) {
   }
   i <- used & info$is_array
   if (any(i)) {
-    ret$add("double *%s = %s + %s;", info$order[i], STATE,
-            vcapply(info$offset_use[i], obj$rewrite))
+    ret$add("double *%s = %s%s;", info$order[i], STATE,
+            vcapply(info$offset_use[i], odin_generate2_offset, obj$rewrite))
   }
   ret$get()
 }
@@ -587,18 +587,21 @@ odin_generate2_vars <- function(obj, output=FALSE) {
 odin_generate2_unpack <- function(obj, output=FALSE) {
   info <- obj[[if (output) "output_info" else "variable_info"]]
   if (any(info$is_array)) {
-    offset <- character(info$n)
-    i <- info$is_array & info$offset_is_var
-    if (any(i)) {
-      j <- !vlapply(info$offset_use[i], identical, 0L)
-      offset[i][j] <- sprintf(" + %s", vcapply(info$offset_use[i], obj$rewrite))
-    }
     sprintf("double *%s_%s = %s%s;",
             if (output) "output" else "deriv",
             info$order[info$is_array],
             if (output) OUTPUT else DSTATEDT,
-            offset[info$is_array])
+            vcapply(info$offset_use[info$is_array], odin_generate2_offset,
+                    obj$rewrite))
   } else {
     character(0)
+  }
+}
+
+odin_generate2_offset <- function(x, rewrite) {
+  if (identical(x, 0L)) {
+    ""
+  } else {
+    sprintf(" + %s", rewrite(x))
   }
 }

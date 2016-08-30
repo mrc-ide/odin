@@ -277,7 +277,8 @@ odin_generate1_dim <- function(x, obj) {
     ## TODO: Does this not create some unnecessary offsets?  (e.g., in
     ## the mixed example in test-odin).  I would have thought that the
     ## *first* array would not need an offset; we'd only be interested
-    ## in this if obj$variable_info$offset_is_var[[i]] is TRUE?
+    ## in this if is.language(obj$variable_info$offset_use[[i]]) is
+    ## TRUE?
     nm_offset <- paste0("offset_", nm_target)
     obj$add_element(nm_offset, "int")
     i <- match(nm_target, obj$variable_info$order)
@@ -361,6 +362,11 @@ odin_generate1_array <- function(x, obj, eqs) {
     }
     obj[[st]]$add('%s(%s, "%s", %s, %s);',
                   fn, USER, nm, dn, obj$rewrite(x$name), name=nm)
+  } else if (isTRUE(x$rhs$output_self)) {
+    obj[[st]]$add("memcpy(%s, %s, %s * sizeof(double));",
+                  obj$rewrite(x$name), obj$rewrite(x$lhs$name_target),
+                  obj$rewrite(array_dim_name(x$lhs$name_target)),
+                  name=nm)
   } else {
     obj[[st]]$add(odin_generate1_array_expr(x, obj), name=nm)
   }

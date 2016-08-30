@@ -345,7 +345,6 @@ odin_parse_extract_order <- function(obj, output=FALSE) {
        array=array,
        offset=offset,
        offset_use=offset_use,
-       offset_is_var=offset_is_var,
        len=len,
        len_is_var=len_is_var,
        total=total,
