@@ -286,3 +286,13 @@ test_that("mixed", {
   t <- seq(0, 10, length.out = 100)
   expect_error(mod$run(t), NA)
 })
+
+test_that("output name collision", {
+  expect_error(
+    gen <- odin({
+      deriv(y) <- 1
+      initial(y) <- 1
+      output(y) <- 1
+    }),
+    "same as variable name")
+})

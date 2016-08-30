@@ -10,6 +10,12 @@ odin_parse_output <- function(obj) {
     return(obj)
   }
 
+  err <- obj$traits[, "is_output"] & obj$names_target %in% obj$vars
+  if (any(err)) {
+    odin_error("output() name cannot be the same as variable name",
+               get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
+  }
+
   info <- odin_parse_extract_order(names_if(obj$traits[, "is_output"]), obj)
   info$used <- odin_parse_output_usage(obj)
 
