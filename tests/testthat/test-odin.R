@@ -296,3 +296,45 @@ test_that("output name collision", {
     }),
     "same as variable name")
 })
+
+## TODO: We're ambiguous with output dim.
+##
+## This would probably work but be bad:
+##
+##   output(y[]) <- y[i] * 2
+##   dim(y) <- 10
+##
+## because we'd pick up dim(output(y)) as 10; most of the time this
+## would be correct but sometimes might not be.  The check is:
+##
+## disallow *array* output that is nontrivial that shares a name with
+## any other variable.
+
+## Output array
+##
+## (1) A new array:
+test_that("output array", {
+  gen <- odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- 0.1
+    dim(r) <- 3
+    dim(y) <- 3
+    ## testing below here:
+    output(y2[]) <- y[i] * 2
+    ## NOTE: Not dim(output(y2)) [TODO: should we support this?]
+    dim(y2) <- 3 # length(y) -- TODO -- should be OK?
+  }, verbose=FALSE)
+
+  mod <- gen()
+  tt <- seq(0, 10, length.out=101)
+  yy <- mod$run(tt)
+
+  expect_equal(colnames(yy), c("t",
+                               sprintf("y[%d]", 1:3),
+                               sprintf("y2[%d]", 1:3)))
+
+  ## transform function:
+  zz <- mod$transform_variables(yy)
+  expect_equal(zz$y2, zz$y * 2)
+})

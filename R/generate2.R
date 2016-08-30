@@ -225,6 +225,7 @@ odin_generate2_deriv <- function(obj) {
   output <- obj$output$get()
   if (length(output) > 0L) {
     ret$add("  if (%s != NULL) {", OUTPUT)
+    ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
     ret$add(indent(output, 4))
     ret$add("  }")
   }
@@ -586,11 +587,17 @@ odin_generate2_vars <- function(obj, output=FALSE) {
 odin_generate2_unpack <- function(obj, output=FALSE) {
   info <- obj[[if (output) "output_info" else "variable_info"]]
   if (any(info$is_array)) {
-    sprintf("double *%s_%s = %s + %s;",
+    offset <- character(info$n)
+    i <- info$is_array & info$offset_is_var
+    if (any(i)) {
+      j <- !vlapply(info$offset_use[i], identical, 0L)
+      offset[i][j] <- sprintf(" + %s", vcapply(info$offset_use[i], obj$rewrite))
+    }
+    sprintf("double *%s_%s = %s%s;",
             if (output) "output" else "deriv",
             info$order[info$is_array],
             if (output) OUTPUT else DSTATEDT,
-            vcapply(info$offset_use[info$is_array], obj$rewrite))
+            offset[info$is_array])
   } else {
     character(0)
   }

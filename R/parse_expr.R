@@ -170,10 +170,8 @@ odin_parse_expr_lhs_special <- function(lhs, line, expr) {
     odin_error("Invalid length special function on lhs", line, expr)
   }
   fun <- deparse_str(lhs[[1L]])
-  if (any(find_symbols(lhs[[2L]])$functions %in% SPECIAL_LHS)) {
-    odin_error("lhs functions require exactly one argument", line, expr)
-  }
-  ret <- odin_parse_expr_lhs(lhs[[2L]], line, expr)
+  target <- lhs[[2L]]
+  ret <- odin_parse_expr_lhs(target, line, expr)
   ret$special <- fun
 
   if (fun == "dim" && ret$type != "symbol") {
