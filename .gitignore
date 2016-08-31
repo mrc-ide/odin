@@ -11,3 +11,4 @@ inst/web
 tests/testthat/interpolate/Makevars
 tests/testthat/joel.R
 tests/testthat/joel
+.valgrind_ignore

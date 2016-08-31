@@ -19,3 +19,4 @@
 ^update_web\.sh$
 ^tests/testthat/joel$
 ^appveyor\.yml$
+^\.valgrind_ignore$
