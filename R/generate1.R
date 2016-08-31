@@ -696,6 +696,7 @@ odin_generate1_interpolate <- function(x, obj) {
                obj$rewrite(dest), toupper(interpolation_type),
                obj$rewrite(nt), obj$rewrite(n_target),
                obj$rewrite(nm_t), obj$rewrite(nm_y))
+  obj$free$add('interpolate_free(%s);', obj$rewrite(dest))
 
   ## TODO: These are going to do tricky things with time when delayed.
   ##
