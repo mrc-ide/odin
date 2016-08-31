@@ -57,6 +57,18 @@ test_that("user variables", {
   expect_equal(mod$contents()$N0, 5.0)
 })
 
+test_that("user variables on models with none", {
+  gen <- odin::odin({
+    a <- 1
+    deriv(y) <- 0.5 * a
+    initial(y) <- 1
+  }, verbose=TEST_VERBOSE)
+  expect_error(gen(a=1), "unused argument")
+  mod <- gen()
+  expect_error(mod$set_user(), "This model does not have parameters")
+  expect_error(mod$set_user(a = 1), "This model does not have parameters")
+})
+
 test_that("non-numeric time", {
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
