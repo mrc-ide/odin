@@ -4,120 +4,120 @@ context("parse")
 ## full set of potential parse errors.  Better error messages will be
 ## nice for most of these.
 test_that("some parse errors", {
-  expect_error(odin_parse(as="text", "hello\nfoo"),
+  expect_error(odin_parse("hello\nfoo"),
                "Every line must contain an assignment")
-  expect_error(odin_parse(as="text", "foo ~ bar"),
+  expect_error(odin_parse(quote(foo ~ bar)),
                "Every line must contain an assignment")
 
-  expect_error(odin_parse(as="text", "1[1:4] <- 1"),
+  expect_error(odin_parse(quote(1[1:4] <- 1)),
                "array lhs must be a name")
-  expect_error(odin_parse(as="text", "x[f(1)] <- 1"),
+  expect_error(odin_parse(quote(x[f(1)] <- 1)),
                "Invalid function in array calculation")
-  expect_error(odin_parse(as="text", "x[c(1, 2)] <- 1"),
+  expect_error(odin_parse(quote(x[c(1, 2)] <- 1)),
                "Invalid function in array calculation")
 
-  expect_error(odin_parse(as="text", "x <- 1 + user(2)"),
+  expect_error(odin_parse(quote(x <- 1 + user(2))),
                "user() must be the only call on the rhs", fixed=TRUE)
-  expect_error(odin_parse(as="text", "x <- user(user(2))"),
+  expect_error(odin_parse(quote(x <- user(user(2)))),
                "user() call must not use functions", fixed=TRUE)
 
-  expect_error(odin_parse(as="text", "y <- deriv(x)"),
+  expect_error(odin_parse(quote(y <- deriv(x))),
                "Function deriv is disallowed on rhs")
 
-  expect_error(odin_parse(as="text", "initial(x) <- user()"),
+  expect_error(odin_parse(quote(initial(x) <- user())),
                "user() only valid for non-special variables", fixed=TRUE)
-  expect_error(odin_parse(as="text", "deriv(x) <- user()"),
+  expect_error(odin_parse(quote(deriv(x) <- user())),
                "user() only valid for non-special variables", fixed=TRUE)
   ## TODO: This gives an unhelpful error message
-  ## odin_parse(as="text", "dim(x) <- user()")
+  ## odin_parse(quote(dim(x) <- user()")
 
-  expect_error(odin_parse(as="text", "x[i] <- y[i]"),
+  expect_error(odin_parse(quote(x[i] <- y[i])),
                "Special index variable i may not be used on array lhs")
 
-  expect_error(odin_parse(as="text", "x[1,2,3,4] <- 1"),
+  expect_error(odin_parse(quote(x[1,2,3,4] <- 1)),
                "Arrays must have at most 3 dimensions")
 
-  expect_error(odin_parse(as="text", "x[1:t] <- 1\ndim(x) <- 10"),
+  expect_error(odin_parse("x[1:t] <- 1\ndim(x) <- 10"),
                "Array indices may not be time")
   ## TODO: Arguably an error; requires more general solution probably
   ## expect_error(
-  ##  odin_parse(as="text", "deriv(A) <- 1\ninitial(A) <- 1\nx[1:A] <- 1; dim(x) <- 1"),
+  ##  odin_parse("deriv(A) <- 1\ninitial(A) <- 1\nx[1:A] <- 1; dim(x) <- 1"),
   ##             "Array indices may not be time")
   expect_error(
-    odin_parse(as="text", "a[1] <- 1\nb[a] <- 1\ndim(a) <- 1\ndim(b) <- 1"),
+    odin_parse("a[1] <- 1\nb[a] <- 1\ndim(a) <- 1\ndim(b) <- 1"),
     "Array indices may not be arrays")
 
-  expect_error(odin_parse(as="text", "i <- 1"),
+  expect_error(odin_parse(quote(i <- 1)),
                "Reserved name")
-  expect_error(odin_parse(as="text", "deriv <- 1"),
+  expect_error(odin_parse(quote(deriv <- 1)),
                "Reserved name")
-  expect_error(odin_parse(as="text", "t <- 1"),
+  expect_error(odin_parse(quote(t <- 1)),
                "Reserved name")
-  expect_error(odin_parse(as="text", "dim <- 1"),
+  expect_error(odin_parse(quote(dim <- 1)),
                "Reserved name")
-  expect_error(odin_parse(as="text", "user <- 1"),
+  expect_error(odin_parse(quote(user <- 1)),
                "Reserved name")
 
-  expect_error(odin_parse(as="text", "deriv_x = 1"),
+  expect_error(odin_parse(quote(deriv_x <- 1)),
                "Variable name cannot start with 'deriv_'")
-  expect_error(odin_parse(as="text", "dim_x = 1"),
+  expect_error(odin_parse(quote(dim_x <- 1)),
                "Variable name cannot start with 'dim_'")
-  expect_error(odin_parse(as="text", "initial_x = 1"),
+  expect_error(odin_parse(quote(initial_x <- 1)),
                "Variable name cannot start with 'initial_'")
 
-  expect_error(odin_parse(as="text", "deriv(y) = 1; initial(x) = 2"),
+  expect_error(odin_parse("deriv(y) = 1; initial(x) = 2"),
                "must contain same set of equations")
 
-  expect_error(odin_parse(as="text", "x <- y + z"),
+  expect_error(odin_parse(quote(x <- y + z)),
                "Unknown variables y, z")
 
-  expect_error(odin_parse(as="text", "deriv(y) = 1\ninitial(y) = 1\ny <- 1"),
+  expect_error(odin_parse("deriv(y) = 1\ninitial(y) = 1\ny <- 1"),
                "variables on lhs must be within deriv")
 
-  expect_error(odin_parse(as="text", "x = 1\nx = 2"),
+  expect_error(odin_parse("x = 1\nx = 2"),
                "Duplicate entries must all be array assignments")
-  expect_error(odin_parse(as="text", "x[1] = 1\nx = 2"),
+  expect_error(odin_parse("x[1] = 1\nx = 2"),
                "Duplicate entries must all be array assignments")
-  expect_error(odin_parse(as="text", "deriv(x[1]) = 1\ninitial(x) = 2"),
+  expect_error(odin_parse("deriv(x[1]) = 1\ninitial(x) = 2"),
                "Missing dim() call", fixed=TRUE)
 
   expect_error(
-    odin_parse(as="text", "x[1] <- 1\nx[2,1] <- 2\ndim(x) <- 10"),
+    odin_parse("x[1] <- 1\nx[2,1] <- 2\ndim(x) <- 10"),
     "Array dimensionality is not consistent")
   expect_error(
-    odin_parse(as="text", "x[1] <- 1\ny <- x[2,1]\ndim(x) <- 10"),
+    odin_parse("x[1] <- 1\ny <- x[2,1]\ndim(x) <- 10"),
     "Incorrect dimensionality for x")
 
-  expect_error(odin_parse(as="text", "dim(x[1]) = 1"),
+  expect_error(odin_parse(quote(dim(x[1]) <- 1)),
                "must be applied to a name only")
-  expect_error(odin_parse(as="text", "dim(x[1,2]) = c(1, 2)"),
+  expect_error(odin_parse(quote(dim(x[1,2]) <- c(1, 2))),
                "must be applied to a name only")
 
-  expect_error(odin_parse(as="text", "x <- user(1, 2)"),
+  expect_error(odin_parse(quote(x <- user(1, 2))),
                "user() call must have zero or one argument", fixed=TRUE)
-  expect_error(odin_parse(as="text", "x <- user(a)"),
+  expect_error(odin_parse(quote(x <- user(a))),
                "user() call must not reference variables", fixed=TRUE)
 
-  expect_error(odin_parse(as="text", "y <- x\nx[1] <- 1\ndim(x) <- 10"),
+  expect_error(odin_parse("y <- x\nx[1] <- 1\ndim(x) <- 10"),
                "Array 'x' used without array index")
 
-  expect_error(odin_parse(as="text", "y[] <- 0\ndim(y) <- f(p)"),
+  expect_error(odin_parse("y[] <- 0\ndim(y) <- f(p)"),
                "Invalid dim() rhs", fixed=TRUE)
 
   ## TODO: I don't even remember what the issue is here!
   ## expect_error(
-  ##   odin_parse(as="text", "dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),
+  ##   odin_parse("dim(x) <- c(10, 10)\nx[1:10,1] <- y[i] * z[j]"),
   ##   ".")
 
-  expect_error(odin_parse(as="text", "a = 1 + delay(1)"),
+  expect_error(odin_parse(quote(a <- 1 + delay(1))),
                "delay() must be the only call on the rhs", fixed=TRUE)
-  expect_error(odin_parse(as="text", "a = delay(1)"),
+  expect_error(odin_parse(quote(a <- delay(1))),
                "delay() requires exactly two arguments", fixed=TRUE)
-  expect_error(odin_parse(as="text", "a = delay(1, 2, 3)"),
+  expect_error(odin_parse(quote(a <- delay(1, 2, 3))),
                "delay() requires exactly two arguments", fixed=TRUE)
-  expect_error(odin_parse(as="text", "a = delay(delay(1, 2), 2)"),
+  expect_error(odin_parse(quote(a <- delay(delay(1, 2), 2))),
                "delay() may not be nested", fixed=TRUE)
-  expect_error(odin_parse(as="text", "a = delay(2, delay(1, 2))"),
+  expect_error(odin_parse(quote(a <- delay(2, delay(1, 2)))),
                "delay() may not be nested", fixed=TRUE)
 })
 

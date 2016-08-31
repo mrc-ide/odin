@@ -36,16 +36,20 @@
 ##     variables, outputs, delays and interpolate calls.
 
 ## Read in the file and do the basic classification of all expressions.
-odin_parse <- function(x, as="file") {
+odin_parse <- function(x) {
   ## 1. Basic preparations over the expression list:
-  exprs <- odin_parse_prepare(x, as)
+  exprs <- odin_parse_prepare(x)
 
   ## 2. Prepare each expression:
   eqs <- odin_parse_exprs(exprs)
 
   ## Start building the core object:
-  ret <- list(eqs=eqs,
-              file=if (as == "file") x else basename(tempfile("odin", ".")))
+  if (is.character(x) && length(x) == 1L && file.exists(x)) {
+    file <- x
+  } else {
+    file <- basename(tempfile("odin", "."))
+  }
+  ret <- list(eqs=eqs, file = file)
 
   ## 3. Compute overall information on traits (creates elements $traits
   ## and $info):
@@ -94,18 +98,19 @@ odin_parse <- function(x, as="file") {
   ret
 }
 
-odin_parse_prepare <- function(x, as="file") {
+odin_parse_prepare <- function(x) {
   parse_expression <- function(x) {
     if (inherits(x, "{")) {
-      x <- as.expression(as.list(x[-1L]))
+      as.expression(as.list(x[-1L]))
+    } else {
+      as.expression(x)
     }
-    x
   }
   expr_is_assignment <- function(x) {
     length(x) == 3L &&
       (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
   }
-  exprs <- switch(match.arg(as, c("file", "text", "expression")),
+  exprs <- switch(odin_parse_prepare_detect(x),
                   file=parse(file=x, keep.source=TRUE),
                   text=parse(text=x, keep.source=TRUE),
                   expression=parse_expression(x))
@@ -117,6 +122,24 @@ odin_parse_prepare <- function(x, as="file") {
   }
 
   exprs
+}
+
+odin_parse_prepare_detect <- function(x) {
+  if (is.language(x)) {
+    as <- "expression"
+  } else if (is.character(x)) {
+    ## We're really looking for a separator given that we need
+    if (length(x) > 1L || grepl("[\n;]", x)) {
+      as <- "text"
+    } else if (file.exists(x)) {
+      as <- "file"
+    } else {
+      stop("'x' looks like a filename, but file does not exist")
+    }
+  } else {
+    stop("Invalid type for 'x'")
+  }
+  as
 }
 
 odin_parse_collect_traits <- function(obj) {

@@ -69,7 +69,7 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   }
 
   dat <- lapply(filenames, function(f)
-    odin_generate(odin_parse(f, "file"), package=TRUE))
+    odin_generate(odin_parse(f), package=TRUE))
 
   library_fns <- combine_library(dat)
   struct <- lapply(dat, "[[", "struct")

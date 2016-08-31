@@ -98,25 +98,7 @@ odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
 ##' @export
 ##' @rdname odin
 odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
-  if (is.language(x)) {
-    as <- "expression"
-  } else if (is.character(x)) {
-    ## We're really looking for a separator given that we need
-    if (length(x) > 1L) {
-      as <- "text"
-      x <- paste(x, collapse="\n")
-    } else if (grepl("[\n;]", x)) {
-      as <- "text"
-    } else if (file.exists(x)) {
-      as <- "file"
-    } else {
-      stop("'x' looks like a filename, but file does not exist")
-    }
-  } else {
-    stop("Invalid type for 'x'")
-  }
-
-  dat <- odin_parse(x, as)
+  dat <- odin_parse(x)
   path <- odin_generate(dat, dest)
   ret <- path
   if (build) {
