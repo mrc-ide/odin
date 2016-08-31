@@ -66,9 +66,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
 
   if (package) {
     list(struct=struct, code=txt, library_fns=library_fns, info=obj$info)
-  } else if (is.null(dest)) {
-    ## Here we'll return the actual contents:
-    txt
   } else {
     if (is_directory(dest) || !grepl(".", basename(dest), fixed=TRUE)) {
       dest <- file.path(dest, sprintf("%s.c", obj$info$base))
