@@ -180,13 +180,8 @@ can_compile <- function(verbose=FALSE, skip_cache=FALSE) {
 ##' @param name Name of the model within the shared library
 ##' @keywords internal
 ##' @export
-ode_system_generator <- function(dll, name=NULL) {
+ode_system_generator <- function(dll, name) {
   self <- NULL # for R CMD check
-  ## At present this is not going to work well for constructing custom
-  ## initialisers but we can get there eventually.
-  if (is.null(name)) {
-    name <- basename_no_ext(dll)
-  }
   info <- .Call(paste0(name, "_info"), PACKAGE=dll)
   cl <- R6::R6Class(
     "ode_system",
