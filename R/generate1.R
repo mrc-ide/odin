@@ -99,7 +99,7 @@ odin_generate1_object <- function(dat) {
   self$add_element <- function(name, type, array=0) {
     if (array > 0L) {
       name_dim <- array_dim_name(name, use=FALSE)
-      if (!is.null(name_dim)) {
+      if (nzchar(name_dim)) {
         Recall(name_dim, "int", FALSE)
         if (array > 1L) {
           for (i in seq_len(array)) {

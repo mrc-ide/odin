@@ -43,7 +43,7 @@ array_dim_name <- function(name, sub=NULL, use=TRUE) {
     } else if (use) {
       name_dim <- sub("^delay_", "dim_", name)
     } else {
-      name_dim <- NULL
+      name_dim <- ""
     }
   } else {
     name_dim <- sprintf("dim_%s", name)
