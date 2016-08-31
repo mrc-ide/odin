@@ -101,7 +101,7 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
   nd <- length(index)
   if (nd > 3L) {
     odin_error(
-      sprintf("Arrays must have at at most 3 dimensions (given %d)", nd),
+      sprintf("Arrays must have at most 3 dimensions (given %d)", nd),
       line, as.expression(expr))
   }
 

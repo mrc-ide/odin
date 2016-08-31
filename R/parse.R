@@ -384,21 +384,15 @@ odin_parse_interpolate <- function(obj) {
   }
   process1 <- function(e) {
     rank <- if (e$lhs$type == "symbol") 0L else e$lhs$nd
-    if (rank > 3) {
-      ## TODO: support here requires 4d input y arrays (hard-ish) but
-      ## supplying required 4d arrays is likely to be horrid anyway.
-      odin_error("interpolating 3d arrays not yet supported",
-                 e$line, e$expr)
-    }
-    if (rank == 0L) {
-      value <- e$rhs$value
-    } else {
-      if (length(e$rhs$value) != 1L) {
-        odin_error("Array interpolation requires single assignment",
-                   e$line, e$expr)
-      }
-      value <- e$rhs$value[[1L]]
-    }
+    ## NOTE: interpolating 3d arrays requires 4d input arrays.
+    ## Implementing these is not done and will require a fair bit of
+    ## work and tweakery (we don't have an automatic index array so
+    ## that's not nice).  But *supplying* the required 4d arrays is
+    ## likely to be horrid so it's probably not going to be needed for
+    ## a while.
+    ##
+    ## NOTE: we check for single line assignment in odin_parse_arrays_1
+    value <- if (rank == 0L) e$rhs$value else e$rhs$value[[1L]]
     check_interpolate_arg(value$t, 1L)
     check_interpolate_arg(value$y, rank + 1L)
     value$nd <- rank
