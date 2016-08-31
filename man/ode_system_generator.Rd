@@ -4,7 +4,7 @@
 \alias{ode_system_generator}
 \title{Generate ODE system}
 \usage{
-ode_system_generator(dll, name = NULL)
+ode_system_generator(dll, name)
 }
 \arguments{
 \item{dll}{Name of the shared library (with no extension)}
