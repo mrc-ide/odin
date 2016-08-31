@@ -52,5 +52,34 @@ test_that("interpolation", {
 
   y_c <- mod$run(t, tcrit=max(t))
 
+  ## On windows, these don't agree
   expect_equal(y_c[, 2], y_r[, 2])
+})
+
+test_that("error cases", {
+  name <- "example"
+  pkg <- file.path(tempfile(), name)
+  dir.create(pkg, FALSE, TRUE)
+  expect_error(odin_package(pkg), "Did not find package at")
+
+  for (f in c("DESCRIPTION", "NAMESPACE")) {
+    writeLines(sprintf(readLines(file.path("pkg", f)), name),
+               file.path(pkg, f))
+  }
+  expect_error(odin_package(pkg), "inst/odin must exist")
+  expect_error(odin_package(pkg, character(0)),
+               "At least one filename must be given")
+  dir.create(file.path(pkg, "inst", "odin"), FALSE, TRUE)
+  expect_error(odin_package(pkg), "At least one filename must be given")
+
+  expect_error(odin_package(pkg, "foo.R"),
+               "Input file not found")
+  expect_error(odin_package(pkg, c("foo.R", "bar.R")),
+               "Input files not found")
+
+  files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
+  expect_error(odin_package(pkg, rep(files, 1:2)),
+               "Duplicate file")
+  expect_error(odin_package(pkg, rep(files, 2)),
+               "Duplicate files")
 })

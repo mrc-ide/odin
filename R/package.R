@@ -57,7 +57,15 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   }
   msg <- !file.exists(filenames)
   if (any(msg)) {
-    stop("Input files not found:", paste(filenames[msg], collapse=", "))
+    what <- ngettext(length(msg), "file", "files")
+    stop(sprintf("Input %s not found: %s",
+                 what, paste(filenames[msg], collapse=", ")))
+  }
+  dup <- duplicated(filenames)
+  if (any(dup)) {
+    dups <- unique(filenames[dup])
+    what <- ngettext(length(msg), "file", "files")
+    stop(sprintf("Duplicate %s: %s", what, paste(dups, collapse=", ")))
   }
 
   dat <- lapply(filenames, function(f)
