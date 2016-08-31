@@ -28,6 +28,9 @@ SEXP test_interpolate(SEXP x, SEXP y, SEXP xout, SEXP type) {
     case SPLINE:
       interpolate_spline_run(REAL(xout)[i], obj, tmp);
       break;
+    default:
+      Rf_error("Invalid interpolation type");
+      break;
     }
     for (size_t j = 0; j < ny; ++j) {
       yout[i + j * m] = tmp[j];

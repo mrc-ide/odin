@@ -23,6 +23,10 @@ test_that("interpolation", {
   ##   a. is out of order so excercises the search function
   ##   b. includes all original time points
   xout <- sample(seq(0, 5, length.out=101))
+  ## Overshoot:
+  xout_over <- c(xout, max(x) + 0.5)
+  ## Undershoot
+  xout_under <- c(xout, min(x) - 0.5)
 
   rapprox <- list(
     function(x, y, xout) approx(x, y, xout, "constant"),
@@ -54,6 +58,28 @@ test_that("interpolation", {
     expect_equal(dim(res_c2), c(length(xout), 2))
     expect_equal(res_c3[, 1], res_r, tolerance=1e-12)
     expect_equal(res_c3[, 2], res_r * 2, tolerance=1e-12)
+
+    res_c4 <- .Call("test_interpolate", x, y3, xout_over, type)
+    i <- length(xout_over)
+    if (type == 0L) {
+      expect_equal(res_c4[i, ], y3[nrow(y3),])
+    } else {
+      expect_equal(res_c4[i, ], rep(NA_real_, ncol(y3)))
+    }
+
+    res_c5 <- .Call("test_interpolate", x, y3, xout_under, type)
+    i <- length(xout_under)
+    expect_equal(res_c5[i, ], rep(NA_real_, ncol(y3)))
+
+    res_c6 <- .Call("test_interpolate", x, y3, xout_over[i], type)
+    if (type == 0L) {
+      expect_equal(drop(res_c6), y3[nrow(y3),])
+    } else {
+      expect_equal(drop(res_c6), rep(NA_real_, ncol(y3)))
+    }
+
+    expect_equal(drop(.Call("test_interpolate", x, y3, xout_under[i], type)),
+                 rep(NA_real_, ncol(y3)))
   }
 })
 

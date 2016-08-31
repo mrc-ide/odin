@@ -91,7 +91,9 @@ int interpolate_linear_run(double x, interpolate_data* obj, double *y) {
   // forbid it I think.  In odin we'll do a check that the
   // interpolation times span the entire range of integration times.
   if (i < 0 || i == (int)obj->n) { // off the lhs or rhs
-    y[0] = NA_REAL;
+    for (size_t j = 0; j < obj->ny; ++j) {
+      y[j] = NA_REAL;
+    }
     return -1;
   }
 
@@ -117,7 +119,9 @@ int interpolate_linear_run(double x, interpolate_data* obj, double *y) {
 int interpolate_spline_run(double x, interpolate_data* obj, double *y) {
   int i = interpolate_search(x, obj);
   if (i < 0 || i == (int)obj->n) { // off the lhs or rhs
-    y[0] = NA_REAL;
+    for (size_t j = 0; j < obj->ny; ++j) {
+      y[j] = NA_REAL;
+    }
     return -1;
   }
   double *ys = obj->y, *ks = obj->k;
@@ -136,13 +140,16 @@ int interpolate_search(double target, interpolate_data *obj) {
     if (i0 == (int)n - 1) { // guess is already *at* the top.
       return n;
     }
-    i1 = i0 + 1;
+    i1 = i0 + inc;
     while (x[i1] < target) {
       i0 = i1;
       inc *= 2;
       i1 += inc;
       if (i1 >= (int)n) { // off the end of the buffer
         i1 = n - 1;
+        if (x[i1] < target) {
+          return n;
+        }
         break;
       }
     }
@@ -150,12 +157,15 @@ int interpolate_search(double target, interpolate_data *obj) {
     if (i0 == 0) { // guess is already at the bottom
       return -1;
     }
-    i0 = i0 - 1;
+    i0 = i0 - inc;
     while (x[i0] > target) {
       i1 = i0;
       inc *= 2;
       if (i0 < inc) {
         i0 = 0;
+        if (x[i0] > target) {
+          return -1;
+        }
         break;
       }
       i0 -= inc;
