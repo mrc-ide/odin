@@ -14,7 +14,9 @@ odin_generate1 <- function(dat) {
   ## The dde flag is set at object creation and a default cannot (yet)
   ## be set from within the odin code [TODO]
   obj$add_element("odin_use_dde", "int")
-  obj$add_element(initial_name(TIME), "double")
+  if (obj$info$has_delay) {
+    obj$add_element(initial_name(TIME), "double")
+  }
   odin_generate1_library(obj, dat$eqs)
 
   ## The main loop over all equations:

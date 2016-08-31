@@ -44,6 +44,7 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               odin_generate2_user(obj),
               odin_generate2_finalize(obj),
               odin_generate2_initial(obj),
+              odin_generate2_set_initial(obj),
               odin_generate2_deriv(obj),
               odin_generate2_deriv_r(obj),
               odin_generate2_contents(obj),

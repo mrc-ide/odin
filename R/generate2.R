@@ -199,6 +199,43 @@ odin_generate2_initial <- function(obj) {
   ret$get()
 }
 
+odin_generate2_set_initial <- function(obj) {
+  ret <- collector()
+  ret$add("SEXP %s_set_initial(SEXP %s_ptr, SEXP %s_ptr, SEXP %s_ptr) {",
+          obj$info$base, obj$info$base, TIME, STATE)
+  if (obj$info$has_delay) {
+    ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+            obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
+
+    vars_info <- obj$variable_info
+
+    ret$add("  if (length(%s_ptr) != %s) {",
+            obj$info$base, obj$rewrite(vars_info$total_use))
+    ret$add('    Rf_error("Incorrect length initial conditions");')
+    ret$add("  }")
+    ret$add("  double * %s = REAL(%s_ptr);", STATE, STATE)
+
+    ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
+    ret$add("  %s = %s;", obj$rewrite(initial_name(TIME)), TIME)
+
+    ## NOTE: This is the inverse of generate2_initial() above
+    nm_initial <- vcapply(initial_name(vars_info$order), obj$rewrite)
+    i <- vars_info$is_array
+    copy <- character(vars_info$n)
+    offset <- vcapply(vars_info$offset_use, obj$rewrite)
+
+    copy[i] <- sprintf("  memcpy(%s, %s + %s, %s * sizeof(double));",
+                       nm_initial[i], STATE, offset[i],
+                       vcapply(vars_info$len[i], obj$rewrite))
+    copy[!i] <- sprintf("  %s = %s[%s];",
+                        nm_initial[!i], STATE, offset[!i])
+    ret$add(copy)
+  }
+  ret$add("  return R_NilValue;")
+  ret$add("}")
+  ret$get()
+}
+
 ## OK, this one is slightly complicated because there are *three*
 ## forms of the derivative function.  The base one (that this does)
 ## returns void and takes a pointer.

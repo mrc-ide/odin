@@ -85,6 +85,39 @@ test_that("non-numeric time", {
   expect_silent(mod$run(t))
 })
 
+test_that("delays and initial conditions", {
+  gen <- odin::odin({
+    ylag <- delay(y, 10)
+    initial(y) <- 0.5
+    deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
+  }, verbose=TEST_VERBOSE)
+
+  mod <- gen()
+  t <- as.integer(0:10)
+  res1 <- mod$run(t)
+
+  dat <- mod$contents()
+  expect_equal(dat$initial_t, 0.0)
+  expect_equal(dat$initial_y, 0.5)
+
+  res2 <- mod$run(t + 1)
+  expect_equal(res2[, 2], res1[, 2])
+  expect_equal(mod$contents()$initial_t, 1.0)
+
+  ## Trickier; pass the initial conditions through and have them set
+  ## into the model so delays work correctly.
+  res3 <- mod$run(t + 2, 0.5)
+  expect_equal(res3[, 2], res1[, 2], tolerance=1e-7)
+  expect_equal(mod$contents()$initial_t, 2.0)
+  expect_equal(mod$contents()$initial_y, 0.5)
+
+  res4 <- mod$run(t + 3, 0.6)
+
+  expect_equal(mod$contents()$initial_t, 3.0)
+  expect_equal(mod$contents()$initial_y, 0.6)
+  expect_false(isTRUE(all.equal(res4[, 2], res1[, 2])))
+})
+
 test_that("non-numeric user", {
   gen <- odin::odin({
     deriv(N) <- r * N * (1 - N / K)

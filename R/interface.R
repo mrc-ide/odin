@@ -289,12 +289,11 @@ ode_system_generator <- function(dll, name) {
         t0 <- t[[1L]]
         if (is.null(y)) {
           y <- self$initial(t0)
-        } else if (self$initial_stage == STAGE_TIME) {
-          ## TODO: this is going to initialise the correct starting
-          ## time but also compute and return the y values, which we
-          ## don't need.  Would be nicer to have a set_time target we
-          ## can hit.
-          .Call(self$C$init, self$ptr, as.numeric(t0))
+        } else if (self$has_delay) {
+          ## TODO: If there are models where the intitial conditions
+          ## are referenced on the RHS, then we'll need to call this
+          ## too.
+          .Call(self$C$set_initial, self$ptr, t0, y)
         }
         if (self$has_interpolate) {
           r <- self$interpolate_t
@@ -354,6 +353,7 @@ odin_dll_info <- function(name, dll) {
   ret <- list(
     create=getNativeSymbolInfo(sprintf("%s_create", name), dll),
     init=getNativeSymbolInfo(sprintf("%s_initialise", name), dll),
+    set_initial=getNativeSymbolInfo(sprintf("%s_set_initial", name), dll),
     set_user=getNativeSymbolInfo(sprintf("r_%s_set_user", name), dll),
     deriv=getNativeSymbolInfo(sprintf("r_%s_deriv", name), dll),
     contents=getNativeSymbolInfo(sprintf("%s_contents", name), dll),
