@@ -236,3 +236,66 @@ test_that("spline", {
   cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit=tt[length(tt)])
   expect_equal(yy[, 2], cmp[, 2])
 })
+
+test_that("interpolation parse errors: incorrect array dimension", {
+  expect_error(odin({
+    deriv(y[]) <- pulse[i]
+    initial(y[]) <- 0
+    ##
+    pulse[] <- interpolate(tp, zp, "constant")
+    ##
+    tp[] <- user()
+    zp[] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    dim(pulse) <- 2
+    dim(y) <- 2
+  }, verbose=TEST_VERBOSE),
+  "Expected zp to be a 2 dimensional array")
+
+  expect_error(odin({
+    deriv(y[]) <- pulse[i]
+    initial(y[]) <- 0
+    ##
+    pulse[] <- interpolate(tp, zp, "constant")
+    ##
+    tp[] <- user()
+    zp[,,] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    dim(pulse) <- 2
+    dim(y) <- 2
+  }, verbose=TEST_VERBOSE),
+  "Expected zp to be a 2 dimensional array")
+
+  expect_error(odin({
+    deriv(y[]) <- pulse[i]
+    initial(y[]) <- 0
+    ##
+    pulse[] <- interpolate(tp, zp, "constant")
+    ##
+    tp[,] <- user()
+    zp[,] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    dim(pulse) <- 2
+    dim(y) <- 2
+  }, verbose=TEST_VERBOSE),
+  "Expected tp to be a vector")
+})
+
+test_that("unknown interpolation variable", {
+  ## Processed during the usual dependency checking
+  expect_error(odin({
+    deriv(y[]) <- pulse[i]
+    initial(y[]) <- 0
+    ##
+    pulse[] <- interpolate(tp, zp, "constant")
+    ##
+    tp[] <- user()
+    dim(tp) <- user()
+    dim(pulse) <- 2
+    dim(y) <- 2
+  }, verbose=TEST_VERBOSE),
+  "Unknown variable zp")
+})

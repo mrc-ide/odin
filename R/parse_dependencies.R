@@ -67,8 +67,9 @@ odin_parse_dependencies_deps <- function(obj) {
   msg <- lapply(deps, setdiff, c(nms, vars, TIME))
   i <- lengths(msg) > 0L
   if (any(i)) {
-    odin_error(sprintf("Unknown variables %s",
-                       paste(sort(unique(unlist(msg))), collapse=", ")),
+    msg <- sort(unique(unlist(msg)))
+    fmt <- ngettext(length(msg), "Unknown variable %s",  "Unknown variables %s")
+    odin_error(sprintf(fmt, paste(msg, collapse=", ")),
                get_lines(eqs[i]), get_exprs(eqs[i]))
   }
 
