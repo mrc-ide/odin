@@ -229,12 +229,19 @@ test_that("linear", {
   mod <- gen(tp=tp, zp=zp)
 
   tt <- seq(0, 2, length.out=101)
-  yy <- mod$run(tt, tcrit=2)
+  yy <- mod$run(tt)
 
   f <- approxfun(tp, zp, "linear")
   target <- function(t, x, .) list(f(t))
   cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit=2)
   expect_equal(yy[, 2], cmp[, 2])
+
+  ## We'll set this correctly by default
+  yy <- mod$run(tt, tcrit=3)
+  expect_true(is.na(yy[nrow(yy), 2]))
+
+  expect_error(mod$run(c(tt, max(tp) + 1)),
+               "Integration times do not span interpolation range")
 })
 
 test_that("spline", {

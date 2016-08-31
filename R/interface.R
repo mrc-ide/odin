@@ -285,7 +285,7 @@ ode_system_generator <- function(dll, name) {
         }
       },
 
-      run=function(t, y=NULL, ..., use_names=TRUE) {
+      run=function(t, y=NULL, ..., tcrit = NULL, use_names=TRUE) {
         t0 <- t[[1L]]
         if (is.null(y)) {
           y <- self$initial(t0)
@@ -305,6 +305,9 @@ ode_system_generator <- function(dll, name) {
           if (!is.na(r[[2L]]) && t[[length(t)]] > r[[2L]]) {
             stop("Integration times do not span interpolation range; max: ",
                  r[[2L]])
+          }
+          if (is.null(tcrit) && !is.na(r[[2L]]) && !self$use_dde) {
+            tcrit <- r[[2L]]
           }
         }
         if (self$use_dde) {
@@ -327,7 +330,7 @@ ode_system_generator <- function(dll, name) {
         } else {
           ret <- self$ode(y, t, self$C$ds_deriv, self$ptr,
                           initfunc=self$C$ds_initmod, dllname=self$dll,
-                          nout=self$output_length, ...)
+                          nout=self$output_length, tcrit=tcrit, ...)
         }
         if (use_names) {
           colnames(ret) <- self$names
