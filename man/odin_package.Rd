@@ -13,6 +13,9 @@ contains \code{DESCRIPTION})}
 \item{filenames}{A character vector of filenames containing odin
 sources.  Alternatively, all .R files within the directory
 \code{inst/odin} will be used.}
+
+\item{single_file}{Use a single file for all odin C code.  This is
+the default and the alternative is not well tested!}
 }
 \description{
 Create an odin model within an existing package.

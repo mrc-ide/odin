@@ -35,6 +35,8 @@
 ##' @param filenames A character vector of filenames containing odin
 ##'   sources.  Alternatively, all .R files within the directory
 ##'   \code{inst/odin} will be used.
+##' @param single_file Use a single file for all odin C code.  This is
+##'   the default and the alternative is not well tested!
 ##' @export
 odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   if (!file.exists(file.path(path_package, "DESCRIPTION"))) {
