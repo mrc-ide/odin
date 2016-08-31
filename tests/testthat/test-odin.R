@@ -13,6 +13,9 @@ test_that("constant model", {
   tt <- seq(0, 10, length.out=11)
   yy <- mod$run(tt)
   expect_equal(yy[, 2L], seq(1.0, length.out=length(tt), by=0.5))
+
+  ## Can avoid having column names:
+  expect_null(colnames(mod$run(tt, use_names=FALSE)))
 })
 
 test_that("user variables", {
