@@ -35,8 +35,11 @@
 ##' @param filenames A character vector of filenames containing odin
 ##'   sources.  Alternatively, all .R files within the directory
 ##'   \code{inst/odin} will be used.
-##' @param single_file Use a single file for all odin C code.  This is
-##'   the default and the alternative is not well tested!
+##'
+##' @param single_file Use a single file for all odin C code.  If
+##'   \code{FALSE}, then one .c file will be generated for each model
+##'   listed in \code{filenames}.
+##'
 ##' @export
 odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   if (!file.exists(file.path(path_package, "DESCRIPTION"))) {
@@ -87,7 +90,6 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   if (single_file) {
     struct[-1] <- lapply(struct[-1], function(x) x[!grepl("^//", x)])
     writel(list(header,
-                if (has_interpolate) interpolate$types,
                 if (has_interpolate) interpolate$declarations,
                 unlist(struct),
                 library_fns$declarations,
@@ -97,18 +99,16 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
            "odin.c")
   } else {
     writel(list(header,
-                if (has_interpolate) interpolate$types,
                 if (has_interpolate) interpolate$declarations,
+                if (has_interpolate) interpolate$definitions,
                 library_fns$declarations,
-                library_fns$definitions), "odin.c")
+                library_fns$definitions),
+                "odin.c")
     for (i in seq_along(filenames)) {
       writel(list(header,
-                  if (has_interpolate) interpolate$types,
                   if (has_interpolate) interpolate$declarations,
-                  struct[[i]],
-                  code[[i]],
                   library_fns$declarations,
-                  if (has_interpolate) interpolate$definitions,
+                  struct[[i]],
                   code[[i]]), sprintf("odin_%s.c", base[[i]]))
     }
   }

@@ -2,16 +2,30 @@ context("package")
 
 test_that("generate package", {
   files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
-  res <- odin_create_package("example", files, verbose=TEST_VERBOSE)
-  on.exit(res$cleanup())
+  single_file <- FALSE
+  for (single_file in c(TRUE, FALSE)) {
+    res <- odin_create_package("example", files, single_file = single_file,
+                               verbose = TEST_VERBOSE)
+    on.exit(res$cleanup())
 
-  mod <- res$env$lorenz_odin()
-  cmp <- source1("examples/lorenz_deSolve.R")
+    mod <- res$env$lorenz_odin()
+    cmp <- source1("examples/lorenz_deSolve.R")
 
-  t <- seq(0, 10, length.out=100)
-  y_c <- mod$run(t)
-  y_r <- run_model(cmp, t)
-  expect_equal(y_c[, 2:4], y_r[, 2:4], check.attributes=FALSE)
+    files_src <- dir(file.path(res$path, "src"), pattern="\\.c$")
+    if (single_file) {
+      expect_equal(files_src, "odin.c")
+    } else {
+      expect_equal(length(files_src), length(files) + 1L)
+      expect_true("odin.c" %in% files_src)
+    }
+
+    t <- seq(0, 10, length.out=100)
+    y_c <- mod$run(t)
+    y_r <- run_model(cmp, t)
+    expect_equal(y_c[, 2:4], y_r[, 2:4], check.attributes=FALSE)
+    res$cleanup()
+    on.exit()
+  }
 })
 
 test_that("interpolation", {

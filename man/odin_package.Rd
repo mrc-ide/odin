@@ -14,8 +14,9 @@ contains \code{DESCRIPTION})}
 sources.  Alternatively, all .R files within the directory
 \code{inst/odin} will be used.}
 
-\item{single_file}{Use a single file for all odin C code.  This is
-the default and the alternative is not well tested!}
+\item{single_file}{Use a single file for all odin C code.  If
+\code{FALSE}, then one .c file will be generated for each model
+listed in \code{filenames}.}
 }
 \description{
 Create an odin model within an existing package.

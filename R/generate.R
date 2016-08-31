@@ -37,7 +37,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   ## don't probably *want* to do that?)
   ret <- list(if (!package) odin_header(),
               if (!package) odin_includes(),
-              if (!package) interpolate$types,
               if (!package) interpolate$declarations,
               if (!package) struct,
               if (!package) library_fns$declarations,
