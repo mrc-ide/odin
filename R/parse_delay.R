@@ -69,6 +69,15 @@ odin_parse_delay <- function(obj) {
 odin_parse_delay_1 <- function(idx, obj) {
   x <- obj$eqs[[idx]]
 
+  msg <- setdiff(x$rhs$depends_delay$variables,
+                 c(names(obj$deps_rec), obj$vars, INDEX))
+  if (length(msg) > 0L) {
+    odin_error(sprintf("Missing %s in delay expression: %s",
+                       ngettext(length(msg), "variable", "variables"),
+                       pastec(msg)),
+               x$line, x$expr)
+  }
+
   ## Compute all the dependencies of this equation (and all their
   ## dependencies) filtered by those that depend on time.
   deps <- intersect(x$rhs$depends_delay$variables, names(obj$deps_rec))
