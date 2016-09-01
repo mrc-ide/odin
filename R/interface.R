@@ -420,7 +420,7 @@ make_transform_variables <- function(x) {
       ## but that might complicate things in the way that sapply does.
       ## Probably length1 arrays should be kept as arrays...
       if (any(is_scalar)) {
-        ret[is_scalar] <- lapply(which(is_scalar) + has_time,
+        ret[is_scalar] <- lapply(i0[is_scalar] + has_time,
                                  function(i) y[, i])
       }
       if (any(is_array)) {
@@ -438,7 +438,7 @@ make_transform_variables <- function(x) {
       ret <- setNames(vector("list", n), nms[j])
 
       if (any(is_scalar)) {
-        ret[is_scalar] <- y[which(is_scalar) + has_time]
+        ret[is_scalar] <- y[i0[is_scalar] + has_time]
       }
       if (any(is_array)) {
         shape_array <- function(x, ord) {

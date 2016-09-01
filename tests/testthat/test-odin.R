@@ -507,3 +507,39 @@ test_that("taking size of non-array variable is an error", {
   }, verbose=TEST_VERBOSE),
   "argument to dim must be an array")
 })
+
+## Ideally we'll end up with all combinations of has array/has scalar
+## (there are 15 possible combinations though!)
+test_that("transform variables with output", {
+  gen <- odin::odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- y0[i]
+    r[] <- user()
+    dim(r) <- user()
+    dim(y) <- length(r)
+    y0[] <- user()
+    dim(y0) <- length(r)
+    output(a) <- sum(y)
+  }, verbose=TEST_VERBOSE)
+
+  y0 <- runif(3)
+  r <- runif(3)
+  mod <- gen(y0=y0, r=r)
+
+  tt <- seq(0, 5, length.out = 101)
+  real_y <- t(y0 * exp(outer(r, tt)))
+  real_a <- rowSums(real_y)
+
+  yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
+
+  ## The actual data is correct:
+  expect_equal(unname(yy[, 2:4]), real_y)
+  expect_equal(yy[, 5], real_a)
+
+  zz <- mod$transform_variables(yy)
+  expect_equal(zz$a, real_a)
+
+  z1 <- mod$transform_variables(yy[length(tt),])
+  expect_equal(z1$y, real_y[length(tt), ])
+  expect_equal(z1$a, real_a[length(tt)])
+})
