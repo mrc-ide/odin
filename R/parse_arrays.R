@@ -165,7 +165,24 @@ odin_parse_arrays_nd <- function(obj) {
     ##   x[] <- user()
     ##   dim(x) <- user()
     ## and we're after nd from this.
-    i <- match(obj$names_target[is_dim][nd_user], names(eqs))
+
+    ## First, filter off user sized *variables*, which are not allowed:
+    ##
+    ## NOTE: These are not allowed because I don't allow:
+    ##   initial(y) <- user()
+    ## which is is issue #16
+    nm <- obj$names_target[is_dim][nd_user]
+    err <- nm %in% obj$vars
+    if (any(err)) {
+      tmp <- eqs[c(rbind(match(deriv_name(nm[err]), names(obj$eqs)),
+                         which(is_dim)[nd_user][err]))]
+      odin_error(sprintf("Can't specify user-sized variables (for %s)",
+                         paste(nm[err], collapse=", ")),
+                 get_lines(tmp), get_exprs(tmp))
+    }
+
+    ## Then continue:
+    i <- match(nm, names(eqs))
 
     err <- !obj$traits[i, "uses_user"]
     if (any(err)) {

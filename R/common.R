@@ -61,3 +61,7 @@ delay_name <- function(name) {
 initial_name <- function(name) {
   sprintf("initial_%s", name)
 }
+
+deriv_name <- function(name) {
+  sprintf("deriv_%s", name)
+}

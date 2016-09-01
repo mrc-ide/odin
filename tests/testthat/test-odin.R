@@ -467,3 +467,13 @@ test_that("use dim on rhs", {
   expect_equal(mod$contents()$r, rep(0.1, 3))
   expect_equal(mod$contents()$initial_y, matrix(1, 3, 4))
 })
+
+test_that("user sized variables not allowed", {
+  expect_error(odin({
+    deriv(y[]) <- r * y[i]
+    initial(y[]) <- 1
+    r <- 0.1
+    dim(y) <- user()
+  }, verbose=TEST_VERBOSE),
+  "Can't specify user-sized variables")
+})
