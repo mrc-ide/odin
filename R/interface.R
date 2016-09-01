@@ -441,8 +441,11 @@ make_transform_variables <- function(x) {
         ret[is_scalar] <- y[which(is_scalar) + has_time]
       }
       if (any(is_array)) {
+        shape_array <- function(x, ord) {
+          if (length(ord) == 1L) unname(x) else array(x, ord)
+        }
         ret[is_array] <- lapply(which(is_array), function(i)
-          array(y[i0[[i]]:i1[[i]] + has_time], ord[[i]]))
+          shape_array(y[i0[[i]]:i1[[i]] + has_time], ord[[i]]))
       }
     }
     ret

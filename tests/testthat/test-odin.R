@@ -314,6 +314,13 @@ test_that("3d array", {
   ## Transform for even nicer:
   zz <- mod$transform_variables(yy)
   expect_equal(dim(zz$y), c(c(length(tt), 2, 3, 4)))
+
+  ## Check the automatic variable naming:
+  expect_identical(zz$y[, 1, 2, 4], yy[, "y[1,2,4]"])
+
+  ## Check conversion of single row:
+  y0 <- mod$transform_variables(yy[1,])
+  expect_equal(y0, list(y=array(1, c(2, 3, 4))))
 })
 
 ## I need a system with mixed variables and arrays for testing the
@@ -332,7 +339,15 @@ test_that("mixed", {
   mod <- gen()
   expect_is(mod, "ode_system")
   t <- seq(0, 10, length.out = 100)
-  expect_error(mod$run(t), NA)
+  y <- mod$run(t)
+  expect_error(y, NA)
+
+  yy <- mod$transform_variables(y)
+  expect_equal(sort(names(yy)), sort(c("a", "b", "v")))
+  y0 <- mod$transform_variables(y[1,])
+  expect_equal(names(y0), names(yy))
+  expect_equal(y0,
+               lapply(yy, function(x) if (is.matrix(x)) x[1, ] else x[[1]]))
 })
 
 test_that("output name collision", {
