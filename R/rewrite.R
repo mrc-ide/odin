@@ -22,8 +22,10 @@ rewrite_c <- function(expr, name_pars,
   ## TODO: Need a whole set of translated functions perhaps (e.g., how
   ## sum(x) -> odin_sum(x, dim_x))
   ## TODO: %/% -> ((int) a / (int) b)
-  ## TODO: %% -> a % b
-  rewrite <- c("sum", "dim", "length", "if", "abs", "%%", "log", "min", "max",
+  ## TODO: %% -> a % b (see notes below though)
+  ## TODO: check the number of arguments to all the functions below
+  ## TODO: the actual checking of these functions might want to be elsewhere?
+  rewrite <- c("sum", "dim", "length", "if", "abs", "log", "min", "max",
                "interpolate")
   allowed <- c("(", "[", infix,
                "pow", "exp", "log2", "log10", "sqrt",
@@ -159,8 +161,14 @@ rewrite_c <- function(expr, name_pars,
         stop("invalid input to abs") # TODO: check elsewhere
       }
       value <- sprintf("fabs(%s)", values)
-    } else if (nm == "%%") {
-      value <- sprintf("fmod(%s, %s)", values[[1L]], values[[2L]])
+      ## NOTE: mod can't really be safely supported because it will
+      ## not give sensible results on negative inputs; it says that
+      ## the sign will be the same as the input and that's not the
+      ## behaviour of '%%'.  So until I deal with this it's not
+      ## here...
+      ##
+      ## } else if (nm == "%%") {
+      ##   value <- sprintf("fmod(%s, %s)", values[[1L]], values[[2L]])
     } else if (nm == "log") {
       if (length(values) == 1L) {
         value <- sprintf("log(%s)", values[[1L]])
