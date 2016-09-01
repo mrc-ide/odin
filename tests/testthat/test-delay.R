@@ -87,3 +87,55 @@ test_that("missing variables in delay", {
     deriv(y) <- y + ylag
   }), "Missing variables in delay expression")
 })
+
+test_that("delay array storage", {
+  gen <- odin::odin({
+    ## Exponential growth/decay of 'y'
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- y0[i]
+    r[] <- user()
+
+    ## Drive the system off of given 'y0'
+    y0[] <- user()
+    dim(y0) <- user()
+    dim(y) <- length(y0)
+    dim(r) <- length(y0)
+
+    y2[] <- y[i] * y[i]
+    total2 <- sum(y2)
+    dim(y2) <- length(y0)
+
+    ## Delay the total of all variables
+    a <- delay(total2, 2.5)
+
+    ## And output that for checking
+    output(a) <- a
+  }, verbose = TEST_VERBOSE)
+
+  for (i in 1:2) {
+    y0 <- runif(2 + i)
+    r <- runif(2 + i)
+    if (i == 1) {
+      mod <- gen(y0 = y0, r = r)
+    } else {
+      mod$set_user(y0 = y0, r = r)
+    }
+
+    tt <- seq(0, 5, length.out = 101)
+    real_y <- t(y0 * exp(outer(r, tt)))
+
+    yy <- mod$run(tt, rtol = 1e-8, atol = 1e-8)
+    zz <- mod$transform_variables(yy)
+
+    expect_equal(zz$y, real_y, tolerance = 1e-6)
+
+    dat <- mod$contents()
+    expect_true("delay_state_a" %in% names(dat))
+
+    i <- tt > 2.5
+    real_a <- rep(sum(y0^2), length(i))
+    real_a[i] <- rowSums(t(y0 * exp(outer(r, tt[i] - 2.5)))^2)
+
+    expect_equal(zz$a, real_a, tolerance = 1e-6)
+  }
+})
