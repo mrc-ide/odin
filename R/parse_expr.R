@@ -239,7 +239,7 @@ odin_parse_expr_rhs <- function(rhs, line, expr) {
 
 odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
   deps <- find_symbols(rhs)
-  err <- intersect(SPECIAL_LHS, deps$functions)
+  err <- intersect(setdiff(SPECIAL_LHS, "dim"), deps$functions)
   if (length(err) > 0L) {
     odin_error(sprintf("Function %s is disallowed on rhs",
                        paste(unique(err), collapse=", ")), line, expr)

@@ -491,3 +491,19 @@ test_that("user sized dependent variables are allowed", {
   expect_identical(mod$contents()$r, r)
   expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
 })
+
+test_that("taking size of non-array variable is an error", {
+  expect_error(odin({
+    deriv(y) <- 1
+    initial(y) <- 1
+    x <- length(y)
+  }, verbose=TEST_VERBOSE),
+  "argument to length must be an array")
+
+  expect_error(odin({
+    deriv(y) <- 1
+    initial(y) <- 1
+    x <- dim(y, 2)
+  }, verbose=TEST_VERBOSE),
+  "argument to dim must be an array")
+})

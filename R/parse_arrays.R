@@ -426,11 +426,11 @@ odin_parse_arrays_check_dim <- function(x, nd) {
   }
 
   if (x$lhs$type == "array") {
-    for (i in seq_along(x$expr)) {
-      check(x$expr[[i]], make_throw(x$line[[i]], x$expr[[i]]))
+    for (i in seq_along(x$rhs$value)) {
+      check(x$rhs$value[[i]], make_throw(x$line[[i]], x$rhs$value[[i]]))
     }
   } else {
-    check(x$expr, make_throw(x$line, x$expr))
+    check(x$rhs$value, make_throw(x$line, x$rhs$value))
   }
 }
 

@@ -21,6 +21,9 @@ find_symbols <- function(expr, hide_errors=TRUE) {
           ## pick that up later on.
           variables <<- c(variables, array_dim_name(deparse(e[[2L]])))
         }
+        ## Still need to declare the function as used because we'll
+        ## want to check that later.
+        functions <<- nm
       } else {
         functions <<- c(functions, deparse(e[[1]]))
         for (a in as.list(e[-1])) {
