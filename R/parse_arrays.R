@@ -199,8 +199,10 @@ odin_parse_arrays_nd <- function(obj) {
     nd[nd_user] <- viapply(eqs[i], function(x) x$lhs$nd)
   }
   if (any(nd_dep)) {
-    i <- match(obj$names_target[is_dim][nd_dep], names(eqs))
-    nd[nd_dep] <- viapply(eqs[i], function(x) x$lhs$nd)
+    nm <- obj$names_target[is_dim][nd_dep]
+    i <- nm %in% obj$vars
+    nm[i] <- deriv_name(nm[i])
+    nd[nd_dep] <- viapply(eqs[match(nm, names(eqs))], function(x) x$lhs$nd)
   }
 
   ## Now we have the nd, some checks to make sure it makes sense.

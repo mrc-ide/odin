@@ -477,3 +477,17 @@ test_that("user sized variables not allowed", {
   }, verbose=TEST_VERBOSE),
   "Can't specify user-sized variables")
 })
+
+test_that("user sized dependent variables are allowed", {
+  gen <- odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- user()
+    dim(r) <- user()
+    dim(y) <- length(r)
+  }, verbose=TEST_VERBOSE)
+  r <- runif(3)
+  mod <- gen(r=r)
+  expect_identical(mod$contents()$r, r)
+  expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
+})
