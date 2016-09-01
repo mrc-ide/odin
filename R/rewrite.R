@@ -180,11 +180,11 @@ rewrite_c <- function(expr, name_pars,
     } else if (nm %in% c("min", "max")) {
       if (length(values) < 2L) {
         stop(sprintf("Invalid input to %s; expected at least two arguments",
-                     nm))
+                     nm))  # TODO: check elsewhere
       }
       value <- generate_nary(paste0("f", nm), values)
     } else if (nm == "interpolate") {
-      stop("This is a bug in odin")
+      stop("This is a bug in odin") # nocov
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }

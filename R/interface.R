@@ -152,7 +152,7 @@ can_compile <- function(verbose=FALSE, skip_cache=FALSE) {
                     c("CMD", "SHLIB", "hello.c"),
                     stdout=dest, stderr=dest)
     if (code != 0L && Sys.which("gcc") == "") {
-      message("I don't see gcc on the PATH")
+      message("I don't see gcc on the PATH") # nocov
     }
     options(odin.can_compile=code == 0L)
   }

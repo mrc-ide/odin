@@ -28,7 +28,7 @@ compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
   ok <- system2(file.path(R.home(), "bin", "R"), args,
                 stdout=system_out, stderr=system_out)
   if (ok != 0L) {
-    stop("Error compiling source")
+    stop("Error compiling source") # nocov
   }
   if (load) {
     dyn.load(output)

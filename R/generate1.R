@@ -142,7 +142,7 @@ odin_generate1_loop <- function(obj, eqs) {
     } else if (x$lhs$type == "array") {
       odin_generate1_array(x, obj, eqs)
     } else {
-      stop("Unhandled type")
+      stop("Unhandled type [odin bug]") # nocov
     }
   }
 }
@@ -190,7 +190,7 @@ odin_generate1_dim <- function(x, obj) {
     obj$constant$add("%s = NULL;", obj$rewrite(nm_s))
     obj$user$add("Free(%s);", obj$rewrite(nm_s))
   } else if (x$stage > STAGE_USER) {
-    stop("This should never happen!")
+    stop("This should never happen! [odin bug]") # nocov
   }
 
   if (x$nd > 1L) {

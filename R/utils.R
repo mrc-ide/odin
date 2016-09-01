@@ -26,7 +26,8 @@ collector <- function(init=character(0)) {
 }
 
 ## We'll use this in the main loop.  This could quite happily get out
-## of whack.
+## of whack, so there are some checks here that can be removed in
+## eventual production.
 collector_named <- function(required=FALSE) {
   data <- collector()
   names <- collector()
@@ -35,13 +36,13 @@ collector_named <- function(required=FALSE) {
       n <- max(lengths(list(...)))
       nms <- rep_len(name, n)
       if (required && !all(nzchar(nms))) {
-        stop("required names are missing")
+        stop("required names are missing [odin bug]") # nocov
       }
       names$add(nms)
       n_prev <- data$length()
       data$add(...)
       if (data$length() != n_prev + n) {
-        stop("odin bug")
+        stop("odin bug") # nocov
       }
     },
     get=function() {
