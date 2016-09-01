@@ -575,11 +575,14 @@ odin_parse_expr_check_dim <- function(rhs, line, expr) {
     } else {
       ret <- length(ok)
     }
+  } else if (is_call(rhs$value, quote(length)) ||
+             is_call(rhs$value, quote(dim))) {
+    ret <- DIM_DEPENDENT
   } else if (isTRUE(rhs$user)) {
     if (isTRUE(rhs$default)) {
       odin_error("Default in user dimension size not handled", line, expr)
     }
-    ret <- 0L
+    ret <- DIM_USER
   } else {
     odin_error("Invalid dim() rhs; expected atomic, user or c", line, expr)
   }

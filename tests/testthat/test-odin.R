@@ -440,3 +440,30 @@ test_that("invalid self output", {
   }, verbose=TEST_VERBOSE),
   "Direct output of r only allowed on single-line")
 })
+
+test_that("use length on rhs", {
+  gen <- odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- 0.1
+    dim(y) <- 3
+    dim(r) <- length(y)
+  }, verbose=TEST_VERBOSE)
+
+  mod <- gen()
+  expect_equal(mod$contents()$r, rep(0.1, 3))
+})
+
+test_that("use dim on rhs", {
+  gen <- odin({
+    deriv(y[,]) <- r[i] * y[i,j]
+    initial(y[,]) <- 1
+    r[] <- 0.1
+    dim(y) <- c(3, 4)
+    dim(r) <- dim(y, 1)
+  }, verbose=TEST_VERBOSE)
+
+  mod <- gen()
+  expect_equal(mod$contents()$r, rep(0.1, 3))
+  expect_equal(mod$contents()$initial_y, matrix(1, 3, 4))
+})

@@ -157,7 +157,8 @@ odin_parse_arrays_nd <- function(obj) {
   is_dim <- obj$traits[, "is_dim"]
 
   nd <- viapply(eqs[is_dim], function(x) x$lhs$nd)
-  nd_user <- nd == 0L
+  nd_user <- nd == DIM_USER
+  nd_dep  <- nd == DIM_DEPENDENT
   if (any(nd_user)) {
     ## Then, check for user-driven array sizes; we'll pull nd from the
     ## definition of the variable; it should come in a pair like:
@@ -180,6 +181,10 @@ odin_parse_arrays_nd <- function(obj) {
 
     nd[nd_user] <- viapply(eqs[i], function(x) x$lhs$nd)
   }
+  if (any(nd_dep)) {
+    i <- match(obj$names_target[is_dim][nd_dep], names(eqs))
+    nd[nd_dep] <- viapply(eqs[i], function(x) x$lhs$nd)
+  }
 
   ## Now we have the nd, some checks to make sure it makes sense.
   for (x in eqs[obj$traits[, "is_array"]]) {
@@ -187,7 +192,7 @@ odin_parse_arrays_nd <- function(obj) {
     if (x$lhs$nd != nd_x) {
       odin_error(
         sprintf("Array dimensionality is not consistent (expected %d %s)",
-                nd_x, ngettext(nd_x, "index", "indices")),
+                nd_x, ngettext(abs(nd_x), "index", "indices")),
         x$line, x$expr)
     }
   }

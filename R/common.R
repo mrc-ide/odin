@@ -25,6 +25,9 @@ RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 
+DIM_USER <- -1L
+DIM_DEPENDENT <- -2L
+
 ## Avoid a lot of error print pasting:
 array_dim_name <- function(name, sub=NULL, use=TRUE) {
   if (length(name) > 1L) {
