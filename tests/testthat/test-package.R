@@ -53,7 +53,7 @@ test_that("interpolation", {
   y_c <- mod$run(t, tcrit=max(t))
 
   ## On windows, these don't agree
-  expect_equal(y_c[, 2], y_r[, 2])
+  expect_equal(y_c[, 2], y_r[, 2], tolerance=1e-6)
 })
 
 test_that("error cases", {
