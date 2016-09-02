@@ -35,8 +35,6 @@ beta <- 1
 sigma <- 1 / 30
 delta <- 1 / 60
 
-foo <- length(age_rate)
-bar <- dim(y, 2)
 I_tot <- sum(y[, 2])
 
 deriv(y[1, 1]) <- - beta * y[i, 1] * I_tot / N + delta * y[i, 3] - b * y[i, 1] +

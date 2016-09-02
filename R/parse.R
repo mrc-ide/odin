@@ -95,6 +95,9 @@ odin_parse <- function(x) {
   ret <- odin_parse_delay(ret)
   ret <- odin_parse_interpolate(ret)
 
+  ## 11. Report any unused variables
+  odin_parse_check_unused(ret)
+
   ret
 }
 
@@ -437,13 +440,20 @@ odin_parse_interpolate <- function(obj) {
 ## we can catch these and group them together.  But leaving that for
 ## now.
 odin_error <- function(msg, line, expr) {
+  odin_info(msg, line, expr, function(...) stop(..., call.=FALSE))
+}
+odin_note <- function(msg, line, expr) {
+  odin_info(paste("Note: ", msg), line, expr, message)
+}
+
+odin_info <- function(msg, line, expr, announce) {
   if (is.expression(expr)) {
     expr_str <- vcapply(expr, deparse_str)
   } else {
     expr_str <- deparse_str(expr)
   }
   str <- sprintf(ifelse(is.na(line), "%s", "%s # (line %s)"), expr_str, line)
-  stop(msg, paste0("\n\t", str, collapse=""), call.=FALSE)
+  announce(msg, paste0("\n\t", str, collapse=""))
 }
 
 get_lines <- function(x) {
@@ -504,19 +514,32 @@ odin_parse_user <- function(obj) {
 }
 
 odin_parse_check_unused <- function(obj) {
+  deps <- obj$deps_rec
   ## Check for unused branches:
   v <- c("is_deriv", "is_output", "is_initial")
   endpoints <- names_if(apply(obj$traits[, v], 1, any))
   used <- union(endpoints,
-                unique(unlist(obj$deps_rec[endpoints], use.names=FALSE)))
+                unique(unlist(deps[endpoints], use.names=FALSE)))
+  if (obj$info$has_delay) {
+    delays <- intersect(names_if(obj$traits[, "uses_delay"]), used)
+    delay_vars <- lapply(obj$eqs[delays], function(x)
+      x$rhs$depends_delay$variables)
+    used <- union(used, c(unlist(delay_vars),
+                          unlist(deps[unlist(unique(delay_vars))])))
+  }
+
   unused <- !(names(obj$eqs) %in% used)
   if (any(unused)) {
-    ## TODO: this is disabled for now because it breaks a ton of tests
-    ## that I want to throw earlier.
+    ## NOTE: at this point it would be nicest to unravel the
+    ## dependency graph a bit to find the variables that are really
+    ## never used; these are the ones that that the others come from.
+    ## But at this point all of these can be ripped out so we'll just
+    ## report them all:
     ##
-    ## TODO: perhaps this should be a warning?
-    ## odin_error(sprintf("Unused variables: %s",
-    ##                    paste(names(obj$eqs)[unused], collapse=", ")),
-    ##            get_lines(obj$eqs[unused]), get_exprs(obj$eqs[unused]))
+    ## TODO: We should have this be tuneable; ignore/message/warning/error
+    what <- ngettext(sum(unused), "variable", "variables")
+    odin_note(sprintf("Unused %s: %s",
+                      what, pastec(names(obj$eqs)[unused])),
+              get_lines(obj$eqs[unused]), get_exprs(obj$eqs[unused]))
   }
 }
