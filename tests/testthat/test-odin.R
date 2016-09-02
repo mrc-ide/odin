@@ -588,3 +588,17 @@ test_that("transform variables without time", {
   expect_error(mod$transform_variables(cbind(yy, yy)),
                "Unexpected size input")
 })
+
+test_that("reload", {
+  gen <- odin::odin({
+    deriv(y) <- 0.5
+    initial(y) <- 1
+    config(base) <- "constant"
+  }, verbose=TEST_VERBOSE)
+
+  expect_message(odin::odin({
+    deriv(y) <- 0.5
+    initial(y) <- 1
+    config(base) <- "constant"
+  }, verbose=TEST_VERBOSE), "already loaded")
+})

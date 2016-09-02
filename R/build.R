@@ -13,12 +13,17 @@ compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
   if (load && check_loaded && base %in% names(getLoadedDLLs())) {
     orig <- base
     base <- basename(tempfile(base, "."))
-    if (verbose) {
-      ## Consider not doing this warning if dirname is tmpdir; though
-      ## that requires normalizePath I think.
-      message(sprintf("shared library %s.%s already loaded; using %s.%s",
-                      orig, ext, base, ext))
-    }
+    ## Consider not doing this warning if dirname is tmpdir; though
+    ## that requires normalizePath I think.
+    ##
+    ## NOTE: it might be good to hide this behind verbose, but it's
+    ## hard to test that it works if we do that.  Instead, we could
+    ## make the verbose options more granular, which might happen once
+    ## I start going through and looking for errors in the gcc output;
+    ##
+    ##   http://stackoverflow.com/a/14923025
+    message(sprintf("shared library %s%s already loaded; using %s%s",
+                    orig, ext, base, ext))
   }
 
   output <- paste0(base, ext)
