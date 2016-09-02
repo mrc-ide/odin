@@ -82,9 +82,20 @@ odin_parse_arrays_set_type <- function(obj) {
   ## static(ish) this should be OK...
   if (TIME %in% index_vars) {
     i <- which(is_array)[vlapply(obj$eqs[is_array], function(x)
-      any(TIME %in% x$lhs$depends$variables))]
-    odin_error("Array indices may not be time",
-               get_lines(obj$eqs[i]), get_exprs(obj$eqs[i]))
+      any(TIME %in% x$lhs$depends$variables) ||
+      any(TIME %in% x$rhs$depends$variables))]
+    if (any(i)) {
+      odin_error("Array indices may not be time",
+                 get_lines(obj$eqs[i]), get_exprs(obj$eqs[i]))
+    }
+
+    i <- which(is_dim)[vlapply(obj$eqs[is_dim], function(x)
+      any(TIME %in% x$lhs$depends$variables) ||
+      any(TIME %in% x$rhs$depends$variables))]
+    if (any(i)) {
+      odin_error("Array extent may not be time",
+                 get_lines(obj$eqs[i]), get_exprs(obj$eqs[i]))
+    }
   }
 
   ## Determine which variables are array extents and indices; we'll

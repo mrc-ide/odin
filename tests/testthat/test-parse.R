@@ -241,3 +241,26 @@ test_that("recursive variables", {
   expect_error(odin_parse_expr(quote(foo <- foo + 1), NULL),
                "Self referencing expressions not allowed")
 })
+
+test_that("array extent and time", {
+  expect_error(odin::odin({
+    deriv(y[]) <- 1
+    initial(y[]) <- 0
+    dim(y) <- t
+  }), "Array extent may not be time")
+
+  expect_error(odin::odin({
+    deriv(y[]) <- 1
+    initial(y[]) <- 0
+    a <- t
+    dim(y) <- a
+  }), "Array extent is determined by time")
+
+  expect_error(odin::odin({
+    deriv(y[]) <- 1
+    initial(y[]) <- 0
+    deriv(z) <- 1
+    initial(z) <- 0
+    dim(y) <- z
+  }), "Array extent is determined by time")
+})
