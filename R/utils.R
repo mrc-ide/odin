@@ -69,7 +69,7 @@ indent <- function(x, n=2) {
     if (length(x) > 0L) {
       paste0(strrep(n), x)
     } else {
-      x
+      stop("should never happen [odin bug]") # nocov
     }
   }
 }
