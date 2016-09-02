@@ -551,3 +551,40 @@ test_that("transform variables with output", {
   expect_equal(z1$y, real_y[length(tt), ])
   expect_equal(z1$a, real_a[length(tt)])
 })
+
+test_that("transform variables without time", {
+  gen <- odin::odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- y0[i]
+    r[] <- user()
+    dim(r) <- user()
+    dim(y) <- length(r)
+    y0[] <- user()
+    dim(y0) <- length(r)
+    output(a) <- sum(y)
+  }, verbose=TEST_VERBOSE)
+
+  y0 <- runif(3)
+  r <- runif(3)
+  mod <- gen(y0=y0, r=r)
+
+  tt <- seq(0, 5, length.out = 101)
+  yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
+
+  cmp <- mod$transform_variables(yy)
+  res <- mod$transform_variables(yy[, -1])
+  expect_equal(names(res), names(cmp))
+  expect_equal(res$t, rep(NA_real_, length(tt)))
+  expect_equal(res[names(res) != "t"], cmp[names(cmp) != "t"])
+
+  cmp <- mod$transform_variables(yy[1, ])
+  res <- mod$transform_variables(yy[1, -1])
+  expect_equal(names(res), names(cmp))
+  expect_equal(res$t, NA_real_)
+  expect_equal(res[names(res) != "t"], cmp[names(cmp) != "t"])
+
+  expect_error(mod$transform_variables(yy[, -(1:2)]),
+               "Unexpected size input")
+  expect_error(mod$transform_variables(cbind(yy, yy)),
+               "Unexpected size input")
+})

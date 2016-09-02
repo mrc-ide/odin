@@ -411,6 +411,8 @@ make_transform_variables <- function(x) {
       if (ny != tot - 1L) {
         stop("Unexpected size input")
       }
+      i0 <- i0 - 1L
+      i1 <- i1 - 1L
       i0[1L] <- NA_integer_
       i1[1L] <- NA_integer_
     }
