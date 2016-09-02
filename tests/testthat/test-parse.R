@@ -338,4 +338,13 @@ test_that("interpolation", {
     odin_parse_expr(quote(x <- interpolate(a, b)), NULL)$rhs$value$type,
     "spline")
 
+  expect_error(odin_parse(quote(x <- interpolate(a))),
+               "2 or 3 arguments expected")
+  expect_error(odin_parse(quote(x <- interpolate(a, b, c, d))),
+               "2 or 3 arguments expected")
+
+  expect_error(odin_parse(quote(x <- interpolate(2, x))),
+               "interpolation time argument must be a symbol")
+  expect_error(odin_parse(quote(x <- interpolate(x, 2))),
+               "interpolation target argument must be a symbol")
 })
