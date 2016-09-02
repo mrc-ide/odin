@@ -48,6 +48,9 @@ README.md: README.Rmd
 	sed -i.bak 's/[[:space:]]*$$//' $@
 	rm -f $@.bak
 
+coverage:
+	Rscript -e 'covr::shine(covr::package_coverage(quiet=FALSE))'
+
 vignettes/odin.Rmd: vignettes/src/odin.R
 	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
 vignettes: vignettes/odin.Rmd
