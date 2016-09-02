@@ -271,8 +271,7 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
   ## These will be treated differently depending on which bits are
   ## time sensitive.
   if (!identical(rhs[[1]], quote(delay))) {
-    odin_error("delay() must surround entire rhs [odin bug]",
-               line, expr) # nocov
+    odin_error("[odin bug]", line, expr) # nocov
   }
   if (length(rhs) != 3L) {
     odin_error("delay() requires exactly two arguments", line, expr)
@@ -316,8 +315,7 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
 
 odin_parse_expr_rhs_user <- function(rhs, line, expr) {
   if (!identical(rhs[[1L]], quote(user))) {
-    odin_error("user() must be the only call on the rhs [odin bug]",
-               line, expr) # nocov
+    odin_error("[odin bug]", line, expr) # nocov
   }
   if (length(rhs) > 2L) {
     odin_error("user() call must have zero or one argument", line, expr)
@@ -345,8 +343,7 @@ odin_parse_expr_rhs_user <- function(rhs, line, expr) {
 
 odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
   if (!identical(rhs[[1L]], quote(interpolate))) {
-    odin_error("interpolate() must be the only call on the rhs [odin bug]",
-               line, expr) # nocov
+    odin_error("[odin bug]", line, expr) # nocov
   }
   nargs <- length(rhs) - 1L
   if (nargs == 3L) {
