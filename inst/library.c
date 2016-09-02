@@ -213,6 +213,15 @@ double odin_sum3(double *x, int from_i, int to_i, int from_j, int to_j, int from
   return tot;
 }
 
+// modulo that conforms to (approximately) the same behaviour as R
+double fmodr(double x, double y) {
+  double tmp = fmod(x, y);
+  if (tmp * y < 0) {
+    tmp += y;
+  }
+  return tmp;
+}
+
 void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
   typedef void (*lagvalue_type)(double, int*, int, double*);
   static lagvalue_type fun = NULL;

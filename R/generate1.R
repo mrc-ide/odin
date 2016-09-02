@@ -163,12 +163,15 @@ odin_generate1_library <- function(obj, eqs) {
   obj$library_fns$add("get_ds_pars")
 
   ## Support for sum() of varying orders
-  has_sum <-
-    "sum" %in% unique(unlist(lapply(eqs, function(x) x$depends$functions)))
-  if (has_sum) {
+  ## TODO: this may miss things in delay rhs?
+  used_functions <- unique(unlist(lapply(eqs, function(x) x$depends$functions)))
+  if ("sum" %in% used_functions) {
     obj$library_fns$add("odin_sum1")
     obj$library_fns$add("odin_sum2")
     obj$library_fns$add("odin_sum3")
+  }
+  if ("%%" %in% used_functions) {
+    obj$library_fns$add("fmodr")
   }
 
   ## Support for differential equations:
