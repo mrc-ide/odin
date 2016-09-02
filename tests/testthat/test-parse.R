@@ -119,6 +119,17 @@ test_that("some parse errors", {
                "delay() may not be nested", fixed=TRUE)
   expect_error(odin_parse(quote(a <- delay(2, delay(1, 2)))),
                "delay() may not be nested", fixed=TRUE)
+
+  expect_error(odin_parse(quote(a <- delay(y + t, 2))),
+               "delay() may not refer to time", fixed=TRUE)
+
+  expect_error(odin_parse(quote(a <- user() + 1)),
+               "user() must be the only call on the rhs", fixed=TRUE)
+  expect_error(odin_parse(quote(a <- interpolate() + 1)),
+               "interpolate() must be the only call on the rhs", fixed=TRUE)
+
+  expect_error(odin_parse(quote(a <- deriv)),
+               "Function 'deriv' is disallowed as symbol on rhs")
 })
 
 test_that("RHS array checking", {
@@ -263,4 +274,68 @@ test_that("array extent and time", {
     initial(z) <- 0
     dim(y) <- z
   }), "Array extent is determined by time")
+})
+
+test_that("lhs checking", {
+  expect_error(odin_parse(quote(1 <- 1)),
+               "Invalid left hand side")
+  expect_error(odin_parse(quote(1 + 1 <- 1)),
+               "Unhandled expression + on lhs", fixed=TRUE)
+  expect_error(odin_parse(quote(devs(a) <- 1)),
+               "Unhandled expression devs on lhs", fixed=TRUE)
+
+  expect_error(odin_parse(quote(deriv(a, b) <- 1)),
+               "Invalid length special function on lhs")
+  expect_error(odin_parse(quote(initial(a, b) <- 1)),
+               "Invalid length special function on lhs")
+  expect_error(odin_parse(quote(dim(a, b) <- 1)),
+               "Invalid length special function on lhs")
+
+  expect_error(odin_parse(quote(deriv() <- 1)),
+               "Invalid length special function on lhs")
+  expect_error(odin_parse(quote(initial() <- 1)),
+               "Invalid length special function on lhs")
+  expect_error(odin_parse(quote(dim() <- 1)),
+               "Invalid length special function on lhs")
+
+  expect_error(odin_parse(quote(deriv(deriv(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(deriv(initial(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(deriv(dim(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(initial(deriv(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(initial(initial(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(initial(dim(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(dim(deriv(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(dim(initial(a)) <- 1)),
+               "Invalid nested lhs function usage")
+  expect_error(odin_parse(quote(dim(dim(a)) <- 1)),
+               "Invalid nested lhs function usage")
+})
+
+test_that("delay time handling", {
+  tmp <- odin_parse_expr(quote(a <- delay(b, c + d)), NA_integer_)
+  expect_equal(tmp$rhs$value_time, quote((c + d)))
+
+  tmp <- odin_parse_expr(quote(a <- delay(b, (c + d))), NA_integer_)
+  expect_equal(tmp$rhs$value_time, quote((c + d)))
+})
+
+test_that("interpolation", {
+  expect_error(odin_parse(quote(x <- interpolate(a, b, c))),
+               "Expected a string constant for interpolation type")
+  expect_error(odin_parse(quote(x <- interpolate(a, b, 1L))),
+               "Expected a string constant for interpolation type")
+  expect_error(odin_parse(quote(x <- interpolate(a, b, "lin"))),
+               "Invalid interpolation type")
+
+  expect_equal(
+    odin_parse_expr(quote(x <- interpolate(a, b)), NULL)$rhs$value$type,
+    "spline")
+
 })

@@ -177,9 +177,8 @@ odin_parse_expr_lhs_special <- function(lhs, line, expr) {
   fun <- deparse_str(lhs[[1L]])
   target <- lhs[[2L]]
 
-  ## TODO: this branch not tested.
   if (any(find_symbols(target)$functions %in% SPECIAL_LHS)) {
-    odin_error("invalid lhs function call", line, expr)
+    odin_error("Invalid nested lhs function usage", line, expr)
   }
   ret <- odin_parse_expr_lhs(target, line, expr)
   ret$special <- fun
@@ -212,8 +211,8 @@ odin_parse_expr_rhs <- function(rhs, line, expr) {
     ## variables oin the graph.
     nm <- deparse(rhs)
     if (nm %in% c(SPECIAL_LHS, SPECIAL_RHS)) {
-      odin_error(sprintf("Function %s is disallowed as symbol on rhs",
-                         nm, line, expr))
+      odin_error(sprintf("Function '%s' is disallowed as symbol on rhs", nm),
+                 line, expr)
     }
     ## TODO: consider a special 'symbol' case here?
     ret <- list(type="expression",
@@ -232,7 +231,7 @@ odin_parse_expr_rhs <- function(rhs, line, expr) {
       ret <- odin_parse_expr_rhs_expression(rhs, line, expr)
     }
   } else {
-    odin_error("Unhandled expression on rhs", line, expr)
+    odin_error("Unhandled expression on rhs [odin bug]", line, expr) # nocov
   }
   ret
 }
@@ -272,7 +271,8 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
   ## These will be treated differently depending on which bits are
   ## time sensitive.
   if (!identical(rhs[[1]], quote(delay))) {
-    odin_error("delay() must surround entire rhs", line, expr)
+    odin_error("delay() must surround entire rhs [odin bug]",
+               line, expr) # nocov
   }
   if (length(rhs) != 3L) {
     odin_error("delay() requires exactly two arguments", line, expr)
@@ -283,7 +283,7 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
   if ("delay" %in% fns) {
     odin_error("delay() may not be nested", line, expr)
   }
-  if (TIME %in% deps_delay_expr) {
+  if (TIME %in% deps_delay_expr$variables) {
     ## TODO: This could be relaxed by substituting a different
     ## value of time within the block (say t - delay).
     ##
@@ -296,20 +296,12 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
     ## because "time" there should probably be the original time
     ## not the delayed time (so t - delay).  Can probably just
     ## mask the variables.
-    odin_error("delay() may not refer to time as that's confusing")
+    odin_error("delay() may not refer to time as that's confusing", line, expr)
   }
 
   time <- rhs[[3L]]
   if (is.recursive(time) && !is_call(time, quote(`(`))) {
     time <- call("(", time)
-  }
-
-  ## TODO: Consider checking through the time values and making sure
-  ## we don't include any INDEX variables.  Later they will be
-  ## supported.  I think that time is OK though.
-  if (any(INDEX %in% rhs$depends$variables)) {
-    odin_error("delay expressions may not reference index variables (yet)",
-               line, expr)
   }
 
   list(type="expression",
@@ -324,7 +316,8 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
 
 odin_parse_expr_rhs_user <- function(rhs, line, expr) {
   if (!identical(rhs[[1L]], quote(user))) {
-    odin_error("user() must be the only call on the rhs", line, expr)
+    odin_error("user() must be the only call on the rhs [odin bug]",
+               line, expr) # nocov
   }
   if (length(rhs) > 2L) {
     odin_error("user() call must have zero or one argument", line, expr)
@@ -351,8 +344,9 @@ odin_parse_expr_rhs_user <- function(rhs, line, expr) {
 }
 
 odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
-  if (!is_call(rhs, quote(interpolate))) {
-    stop("interpolate can only be used as a top level expression")
+  if (!identical(rhs[[1L]], quote(interpolate))) {
+    odin_error("interpolate() must be the only call on the rhs [odin bug]",
+               line, expr) # nocov
   }
   nargs <- length(rhs) - 1L
   if (nargs == 3L) {
@@ -368,7 +362,7 @@ odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
         line, expr)
     }
   } else if (nargs == 2L) {
-    rhs[[4L]] <- "spline"
+    type <- rhs[[4L]] <- "spline"
   } else {
     odin_error(sprintf("2 or 3 arguments expected, recieved %d", nargs),
                line, expr)
