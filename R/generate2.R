@@ -466,9 +466,9 @@ odin_generate2_interpolate_t <- function(obj) {
       ret$add("  r[1] = NA_REAL;")
     }
     for (v in names(tmp)[-1]) {
-      ret$add("  r[0] = min(r[0], %s[0]);", obj$rewrite(v))
+      ret$add("  r[0] = fmax(r[0], %s[0]);", obj$rewrite(v))
       if (tmp[[v]] > 0) {
-        ret$add("  r[1] = max(r[1], %s[%s - 1]);",
+        ret$add("  r[1] = fmin(r[1], %s[%s - 1]);",
                 obj$rewrite(v), obj$rewrite(array_dim_name(v)))
       }
     }

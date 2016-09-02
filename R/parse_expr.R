@@ -567,16 +567,15 @@ odin_parse_expr_check_dim <- function(rhs, line, expr) {
     ret <- 1L
   } else if (is_call(rhs$value, quote(c))) {
     ## TODO: what about dim(.) <- c(1.2, 3) -- should error
-    ok <- vlapply(as.list(rhs$value[-1L]),
-                  function(x) is.symbol(x) || is.numeric(x))
+    ok <- vlapply(as.list(rhs$value[-1L]), function(x)
+      is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
     if (!all(ok)) {
       odin_error("Invalid dim() rhs; c() must contain atomics or numbers",
                  line, expr)
     } else {
       ret <- length(ok)
     }
-  } else if (is_call(rhs$value, quote(length)) ||
-             is_call(rhs$value, quote(dim))) {
+  } else if (is_dim_or_length(rhs$value)) {
     ret <- DIM_DEPENDENT
   } else if (isTRUE(rhs$user)) {
     if (isTRUE(rhs$default)) {

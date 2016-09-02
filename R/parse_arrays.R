@@ -66,16 +66,12 @@ odin_parse_arrays_set_type <- function(obj) {
   ## could probably be extended a little bit to pick up on cases where
   ## the calls are dim() and length() calls joined by arithmetic
   ## operators (except '/')
-  is_rhs_dim <- function(x) {
-    is_call(x$rhs$value, quote(dim)) || is_call(x$rhs$value, quote(length))
-  }
-
   is_dim <- obj$traits[, "is_dim"]
   is_array <- obj$traits[, "is_array"]
   index_vars <- unique(unlist(c(
     lapply(obj$eqs[is_dim], function(x) x$rhs$depends$variables),
     lapply(obj$eqs[is_array], function(x) x$lhs$depends$variables),
-    names_if(vlapply(obj$eqs, is_rhs_dim)))))
+    names_if(vlapply(obj$eqs, function(x) is_dim_or_length(x$rhs$value))))))
 
   ## TODO: There are actually times where this might make sense,
   ## especially when applied in a conditional.  Now that array size is

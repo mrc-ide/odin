@@ -366,3 +366,57 @@ test_that("interpolation array assignment error", {
   }, verbose=TEST_VERBOSE),
   "interpolate() may only be used on a single-line array", fixed=TRUE)
 })
+
+test_that("interpolation with two variables", {
+  for (type in INTERPOLATION_TYPES) {
+    gen <- odin_(
+      bquote({
+        deriv(y) <- pulse1 + pulse2
+        initial(y) <- 0
+
+        pulse1 <- interpolate(tp1, zp1, "linear")
+        tp1[] <- user()
+        zp1[] <- user()
+        dim(tp1) <- user()
+        dim(zp1) <- length(tp1)
+
+        pulse2 <- interpolate(tp2, zp2, .(type))
+        tp2[] <- user()
+        zp2[] <- user()
+        dim(tp2) <- user()
+        dim(zp2) <- length(tp2)
+      }, list(type=type)),
+      verbose=TEST_VERBOSE)
+
+    tp1 <- c(-1, 3)
+    zp1 <- c( 0, 1)
+    tp2 <- c(0, 1, 2)
+    zp2 <- c(0, 1, 0)
+    mod <- gen(tp1=tp1, zp1=zp1, tp2=tp2, zp2=zp2)
+
+    t1 <- if (type == "constant") max(tp1) else max(tp2)
+    expect_equal(mod$interpolate_t, c(0, t1))
+
+    tt <- seq(0, t1, length.out=101)
+    res <- mod$run(tt)
+
+    ## and compare with deSolve:
+    pulse1 <- approxfun(tp1, zp1, "linear")
+    if (type == "spline") {
+      pulse2 <- splinefun(tp2, zp2, "natural")
+    } else {
+      pulse2 <- approxfun(tp2, zp2, type, rule=if (type == "constant") 2 else 1)
+    }
+    p <- list(a=pulse1, b=pulse2)
+    deriv <- function(t, y, p) {
+      list(p[[1]](t) + p[[2]](t))
+    }
+    cmp <- deSolve::lsoda(0, tt, deriv, p, tcrit=t1)
+    expect_equal(res[, 2], cmp[, 2])
+
+    expect_error(mod$run(tt + 1),
+                 "Integration times do not span interpolation range")
+    expect_error(mod$run(tt - 1),
+                 "Integration times do not span interpolation range")
+  }
+})

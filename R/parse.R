@@ -543,3 +543,7 @@ odin_parse_check_unused <- function(obj) {
               get_lines(obj$eqs[unused]), get_exprs(obj$eqs[unused]))
   }
 }
+
+is_dim_or_length <- function(x) {
+  is_call(x, quote(dim)) || is_call(x, quote(length))
+}
