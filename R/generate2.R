@@ -568,16 +568,10 @@ odin_generate2_info <- function(obj) {
                 i - 1L, fn, as.integer(x))
       }
     } else {
-      sxp <- switch(storage.mode(x),
-                    logical="LGLSXP",
-                    character="STRSXP")
-      ret$add('  tmp = PROTECT(allocVector(%s, %d));', sxp, length(x))
+      stopifnot(storage.mode(x) == "logical")
+      ret$add('  tmp = PROTECT(allocVector(LGLSXP, %d));', length(x))
       j <- seq_along(x) - 1L
-      if (is.character(x)) {
-        ret$add('  SET_STRING_ELT(tmp, %d, mkChar("%s"));', j, x)
-      } else {
-        ret$add('  INTEGER(tmp)[%d] = %d;', j, as.integer(x))
-      }
+      ret$add('  INTEGER(tmp)[%d] = %d;', j, as.integer(x))
       ret$add('  SET_VECTOR_ELT(ret, %d, tmp);', i - 1L)
       ret$add('  UNPROTECT(1);')
     }
