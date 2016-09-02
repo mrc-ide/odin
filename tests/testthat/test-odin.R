@@ -320,7 +320,8 @@ test_that("3d array", {
 
   ## Check conversion of single row:
   y0 <- mod$transform_variables(yy[1,])
-  expect_equal(y0, list(y=array(1, c(2, 3, 4))))
+  expect_equal(y0,
+               c(setNames(list(tt[1]), TIME), list(y=array(1, c(2, 3, 4)))))
 })
 
 ## I need a system with mixed variables and arrays for testing the
@@ -340,11 +341,18 @@ test_that("mixed", {
   expect_is(mod, "ode_system")
   t <- seq(0, 10, length.out = 100)
   y <- mod$run(t)
-  expect_error(y, NA)
+  expect_error(y, NA) # just test that it doesn't fail
 
   yy <- mod$transform_variables(y)
-  expect_equal(sort(names(yy)), sort(c("a", "b", "v")))
-  y0 <- mod$transform_variables(y[1,])
+  expect_equal(sort(names(yy)), sort(c(TIME, "a", "b", "v")))
+
+  ## Check contents:
+  expect_equal(yy[c(TIME, "a", "b")],
+               as.list(as.data.frame(y[, c(TIME, "a", "b")])))
+  expect_equal(yy$v, unname(y[, sprintf("v[%d]", 1:3)]))
+
+  ## Check scalar:
+  y0 <- mod$transform_variables(y[1, ])
   expect_equal(names(y0), names(yy))
   expect_equal(y0,
                lapply(yy, function(x) if (is.matrix(x)) x[1, ] else x[[1]]))
