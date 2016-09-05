@@ -411,7 +411,7 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
     } else {
       if (is_sum) {
         if (!is_call(x, quote(`[`))) {
-          odin_error("Argument to sum must be an symbol or array index",
+          odin_error("Argument to sum must be a symbol or indexed array",
                      line, expr)
         }
         x <- odin_parse_expr_rhs_replace_empty_index(x)
@@ -437,11 +437,11 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
             sprintf("sum() requires exactly one argument (recieved %d)",
                     length(x) - 1L), line, expr)
         }
-        if (is.symbol(x[[2L]])) {
-          ## sum(foo)
-          ret <- call("sum", x[[2L]], 1, call("length", x[[2L]]))
-        } else {
-          args <- rewrite_sum(x[[2L]], TRUE)
+        target <- x[[2L]]
+        if (is.symbol(target)) { # sum(foo)
+          ret <- call("sum", target, 1, call("length", target))
+        } else if (is.recursive(target)) { # sum(foo[1, ]), etc
+          args <- rewrite_sum(target, TRUE)
           n <- (length(args) - 1L) / 2L
           if (n > 1) {
             args <- c(args,
@@ -449,6 +449,9 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
                       if (n > 2) call("dim", args[[1L]], 2))
           }
           ret <- as.call(c(list(quote(sum)), args))
+        } else { # sum(1), sum(NULL)
+          odin_error("Argument to sum must be a symbol or indexed array",
+                     line, expr)
         }
         ret
       } else {

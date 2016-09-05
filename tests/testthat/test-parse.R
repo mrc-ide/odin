@@ -348,3 +348,14 @@ test_that("interpolation", {
   expect_error(odin_parse(quote(x <- interpolate(x, 2))),
                "interpolation target argument must be a symbol")
 })
+
+test_that("sums", {
+  expect_error(odin_parse_expr(quote(x <- sum(1 + 2)), NULL),
+               "Argument to sum must be a symbol or indexed array")
+  expect_error(odin_parse_expr(quote(x <- sum(1)), NULL),
+               "Argument to sum must be a symbol or indexed array")
+  expect_error(odin_parse_expr(quote(x <- sum(a, b)), NULL),
+               "sum() requires exactly one argument", fixed=TRUE)
+  expect_error(odin_parse_expr(quote(x <- sum()), NULL),
+               "sum() requires exactly one argument", fixed=TRUE)
+})
