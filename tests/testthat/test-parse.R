@@ -194,6 +194,8 @@ test_that("sum rewriting", {
 
   ## Start working through some of the more complex cases:
   ## 1d:
+  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[]))),
+                   quote(sum(a, 1, length(a))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c]))),
                    quote(sum(a, b, c)))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[4:9]))),
