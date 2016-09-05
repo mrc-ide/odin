@@ -67,15 +67,11 @@ odin_parse_config <- function(obj) {
 
 odin_parse_config_check_types <- function(cfg) {
   f_name <- function(x) {
-    if (x$lhs$type != "symbol") {
-      odin_error("config() lhs must be a symbol (not a string)",
-                 x$line, x$expr)
-    }
     x$lhs$name_target
   }
   f_value <- function(x) {
     if (x$rhs$type != "atomic") {
-      odin_error("config() rhs must be a atomic (not an expression)",
+      odin_error("config() rhs must be atomic (not an expression or symbol)",
                  x$line, x$expr)
     }
     list(value=x$rhs$value,

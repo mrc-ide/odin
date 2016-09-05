@@ -176,6 +176,10 @@ odin_parse_expr_lhs_special <- function(lhs, line, expr) {
   }
   fun <- deparse_str(lhs[[1L]])
   target <- lhs[[2L]]
+  if (is.character(target)) {
+    odin_error(sprintf("Argument to %s must be a symbol or expression", fun),
+               line, expr)
+  }
 
   if (any(find_symbols(target)$functions %in% SPECIAL_LHS)) {
     odin_error("Invalid nested lhs function usage", line, expr)

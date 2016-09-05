@@ -482,7 +482,7 @@ is_c_identifier <- function(x) {
       "if", "inline", "int", "long", "register", "restrict", "return",
       "short", "signed", "sizeof", "static", "struct", "switch", "typedef",
       "union", "unsigned", "void", "volatile", "while")
-  grepl("[A-Za-z_][A-Za-z0-9_]*", x) & !(x %in% c_reserved)
+  grepl("^[A-Za-z_][A-Za-z0-9_]*", x) & !(x %in% c_reserved)
 }
 
 
