@@ -472,3 +472,10 @@ test_that("check array rhs", {
     odin_parse("dim(x) <- 10; y <- 1; a <- x[1] + y[1];"),
     "Unknown array variable y in")
 })
+
+## Probably more needed here as there are some special cases...
+test_that("cyclic dependency", {
+  expect_error(
+    odin_parse("a <- b; b <- a"),
+    "A cyclic dependency detected")
+})
