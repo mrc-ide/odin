@@ -419,3 +419,42 @@ test_that("array pathologies", {
     }, verbose=TEST_VERBOSE, build = FALSE)
    , "Duplicate entries may not use user")
 })
+
+test_that("correct dim() use", {
+  expect_error(odin_parse("dim(x) <- 10; a <- length(x, 1)"),
+               "length() requires exactly one argument", fixed=TRUE)
+  expect_error(odin_parse("dim(x) <- 10; a <- length()"),
+               "length() requires exactly one argument", fixed=TRUE)
+  expect_error(odin_parse("dim(x) <- 10; a <- length(1)"),
+               "argument to length must be a symbol", fixed=TRUE)
+  expect_error(odin_parse("x <- 2; a <- length(x)"),
+               "argument to length must be an array", fixed=TRUE)
+  expect_error(odin_parse("dim(x) <- c(2, 10); a <- length(x)"),
+               "argument to length must be a 1-D array", fixed=TRUE)
+
+  expect_error(odin_parse("dim(x) <- 10; a <- dim(x)"),
+               "dim() requires exactly two arguments", fixed=TRUE)
+  expect_error(odin_parse("dim(x) <- 10; a <- dim(x, 1, 2)"),
+               "dim() requires exactly two arguments", fixed=TRUE)
+
+  expect_error(odin_parse("dim(x) <- c(10, 2); a <- dim(1, x)"),
+               "argument to dim must be a symbol", fixed=TRUE)
+
+  expect_error(odin_parse("x <- 2; a <- dim(x, 1)"),
+               "argument to dim must be an array", fixed=TRUE)
+
+  expect_error(odin_parse("dim(x) <- 1; x[] <- 1; a <- dim(x, 1)"),
+               "dim() must not be used for 1D arrays", fixed=TRUE)
+  expect_error(odin_parse("dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, 1.4)"),
+               "second argument to dim() must be an integer", fixed=TRUE)
+  expect_error(odin_parse("dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, b)"),
+               "second argument to dim() must be an integer", fixed=TRUE)
+
+  expect_error(odin_parse("dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, 3)"),
+               "array index out of bounds", fixed=TRUE)
+
+  expect_error(odin_parse("dim(x) <- 10; a <- length(x)"),
+               "array variable is never assigned: x")
+  expect_error(odin_parse("dim(x) <- 10; dim(y) <- 2"),
+               "array variables are never assigned: x, y")
+})

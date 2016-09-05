@@ -321,10 +321,10 @@ odin_parse_array_check <- function(obj) {
   is_dim <- obj$traits[, "is_dim"]
 
   ## Number of dimensions for each variable array variable.
-  nd <- viapply(obj$eqs[is_array], function(x) x$lhs$nd)
-  ## TODO: what about is_initial here?
-  i <- obj$traits[names(nd), "is_deriv"]
-  names(nd)[i] <- obj$names_target[is_array][i]
+  ## TODO: the location of dim's nd has moved and that seems
+  ## pointless; prefer it to be x$lhs$nd perhaps?
+  nd <- setNames(viapply(obj$eqs[is_dim], function(x) x$nd),
+                 obj$names_target[is_dim])
 
   ## need to check all length and dim calls here.  Basically we're
   ## looking for length() to be used with calls on nd==1 arrays and
@@ -372,6 +372,21 @@ odin_parse_array_check <- function(obj) {
                                     as.expression(eq$expr))
       }
     }
+  }
+
+  ## Here, check for non-assigned arrays.  Those are bad news.
+  ## However, it's tricky because of initial/deriv variables that
+  ## require some rewriting and because we can't actually check that
+  ## the variables are written to in their entirity.
+
+  ## We don't need to check this for derivs/initial because they
+  ## should be checked already elsewhere.
+  err <- setdiff(names(nd), c(obj$names_target[is_array], obj$vars))
+  if (length(err) > 0L) {
+    tmp <- obj$eqs[which(is_dim)[match(err, names(nd))]]
+    what <- ngettext(length(err), "variable is", "variables are")
+    odin_error(sprintf("array %s never assigned: %s", what, pastec(err)),
+               get_lines(tmp), get_exprs(tmp))
   }
 
   obj
