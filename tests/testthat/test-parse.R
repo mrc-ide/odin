@@ -162,7 +162,7 @@ test_that("RHS array checking", {
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
   expect_null(odin_parse_arrays_check_rhs(rhs, c(a=1), line, expr))
   expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), line, expr),
-               "Special function sum requires array as first argument")
+               "Function sum requires array as first argument")
 })
 
 test_that("lhs array checking", {
@@ -457,4 +457,18 @@ test_that("correct dim() use", {
                "array variable is never assigned: x")
   expect_error(odin_parse("dim(x) <- 10; dim(y) <- 2"),
                "array variables are never assigned: x, y")
+})
+
+test_that("check array rhs", {
+  expect_error(
+    odin_parse("dim(x) <- 10; x[] <- 1; a <- x[]"),
+    "Empty array index not allowed on rhs")
+
+  expect_error(
+    odin_parse("dim(x) <- 10; x[] <- 1; a <- x[x]"),
+    "Disallowed variables used for x")
+
+  expect_error(
+    odin_parse("dim(x) <- 10; y <- 1; a <- x[1] + y[1];"),
+    "Unknown array variable y in")
 })

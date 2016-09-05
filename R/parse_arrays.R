@@ -466,22 +466,18 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
     odin_error(sprintf(...), line, expr)
   }
 
-  check <- function(e, special) {
+  array_special_function <- c("sum", "length", "dim", "interpolate")
+  check <- function(e, array_special) {
     if (!is.recursive(e)) { # leaf
       if (!is.symbol(e)) { # A literal of some type
         return()
-      } else if (is.null(special) && deparse(e) %in% nms) {
+      } else if (is.null(array_special) && deparse(e) %in% nms) {
         throw("Array '%s' used without array index", deparse(e))
       }
     } else if (is.symbol(e[[1L]])) {
       f_nm <- as.character(e[[1L]])
       if (identical(f_nm, "[")) {
         x <- deparse(e[[2L]])
-        if (!is.null(special)) {
-          throw(
-            "Within special function %s, array %s must be used without '['",
-            special, x)
-        }
         ijk <- as.list(e[-(1:2)])
         if (x %in% nms) {
           if (length(ijk) != nd[[x]]) {
@@ -508,27 +504,18 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
           throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
       } else {
-        if (f_nm %in% c("sum", "length", "dim", "interpolate")) {
-          special <- f_nm
-          if (length(e) < 2L) {
-            throw("Special function %s requires at least 1 argument", special)
-          } else {
-            if (!(deparse(e[[2L]]) %in% nms)) {
-              throw("Special function %s requires array as first argument",
-                    special)
-              ## Don't proceed any further at this point, as we can
-              ## hit generated code, especially when the function is
-              ## 'sum' as by this point it has been expanded by
-              ## rewrite_sum.
-              return()
-            }
+        if (f_nm %in% array_special_function) {
+          array_special <- f_nm
+          if (!(deparse(e[[2L]]) %in% nms)) {
+            throw("Function %s requires array as first argument",
+                  array_special)
           }
         } else {
-          special <- NULL
+          array_special <- NULL
         }
         for (a in as.list(e[-1])) {
           if (!missing(a)) {
-            check(a, special)
+            check(a, array_special)
           }
         }
       }
