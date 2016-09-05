@@ -80,28 +80,22 @@ rewrite_c <- function(expr, name_pars,
       ## NOTE: This skips all entries involving index variables (i, j,
       ## k).  This is because those will be offset appropriately for
       ## us on entry because they are part of a loop.
-      arr <- res[[1L]]$value
       idx <- res[-1L]
       values <- values[-1L]
       nd <- length(idx)
       is_numeric <- vlapply(idx, "[[", "numeric")
-      values[is_numeric] <- vcapply(idx[is_numeric], function(x)
+      is_index <- vlapply(idx, "[[", "is_index")
+      fix_numeric <- !is_index &  is_numeric
+      fix_index   <- !is_index & !is_numeric
+      ## NOTE: Cases that are is_index are already dealt with.
+      values[fix_numeric] <- vcapply(idx[fix_numeric], function(x)
         minus1(x$value_num, rewrite_recall))
-      if (!all(is_numeric)) {
-        if (nd > 1 && is_index) {
-          is_index <- vlapply(res[-1L], "[[", "is_index")
-        }
-        i <- !(is_numeric | is_index)
-        ## TODO: this needs to go through minus1 but not entirely sure
-        ## it's used yet.
-        fmt <- if (n == 1L) "%s - 1" else "(%s - 1)"
-        values[i] <- sprintf(fmt, values[i])
-      }
-      is_index <- FALSE
+      values[fix_index] <- vcapply(expr[-(1:2)][fix_index],
+                                   minus1, rewrite_recall)
 
-      ## TODO: check for no unary indexing in main array checking
-      ## (that's going to require a little work, but perhaps add it to
-      ## the dependency checking functions).
+      ## TODO: check for no unary arithmetic while indexing in main
+      ## array checking (that's going to require a little work, but
+      ## perhaps add it to the dependency checking functions).
 
       ## We'll let
       ##   dim_1 is the number of rows (first dimension)
@@ -116,7 +110,8 @@ rewrite_c <- function(expr, name_pars,
         values[2:nd] <- sprintf("%s * %s", values[2:nd], vcapply(2:nd, r))
         values <- paste(values, collapse=" + ")
       }
-      value <- sprintf("%s[%s]", arr, values)
+      value <- sprintf("%s[%s]", res[[1L]]$value, values)
+      is_index <- FALSE
     } else if (nm == "sum") {
       nd <- (length(expr) - 1L) / 3L
       ii <- seq_len(nd * 2L) + 1L
@@ -193,23 +188,17 @@ minus1 <- function(expr, rewrite) {
   if (is.numeric(expr)) {
     sprintf("%d", expr - 1L)
   } else if (is.character(expr)) {
-    sprintf("%s - 1", expr)
+    ## sprintf("%s - 1", expr)
+    stop("odin bug") # nocov
   } else if (any(INDEX %in% find_symbols(expr)$variables)) {
     rewrite(expr)
-  } else if (is.recursive(expr) && identical(expr[[1L]], quote(`-`))) {
-    if (is.numeric(expr[[3L]])) {
-      expr[[3L]] <- expr[[3L]] + 1L
+  } else if (is_call(expr, quote(`-`)) || is_call(expr, quote(`+`))) {
+    if (is.numeric(expr[[2L]]) && is.numeric(expr[[3L]])) {
+      expr <- eval(expr, .GlobalEnv) - 1L
     } else if (is.numeric(expr[[2L]])) {
       expr[[2L]] <- expr[[2L]] - 1L
-    } else {
-      expr <- call("-", expr, 1)
-    }
-    rewrite(expr)
-  } else if (is.recursive(expr) && identical(expr[[1L]], quote(`+`))) {
-    if (is.numeric(expr[[3L]])) {
-      expr[[3L]] <- expr[[3L]] - 1L
-    } else if (is.numeric(expr[[2L]])) {
-      expr[[2L]] <- expr[[2L]] - 1L
+    } else if (is.numeric(expr[[3L]])) {
+      expr[[3L]] <- expr[[3L]] + if (is_call(expr, quote(`+`))) -1L else 1L
     } else {
       expr <- call("-", expr, 1)
     }
@@ -221,7 +210,11 @@ minus1 <- function(expr, rewrite) {
 
 generate_nary <- function(name, args) {
   if (length(args) == 1L) {
-    sprintf("%s(%s)", name, args[[1L]])
+    ## NOTE: If nary functions that support one arg arg implemented,
+    ## this could work:
+    ##
+    ##     sprintf("%s(%s)", name, args[[1L]])
+    stop("Not supported") # nocov
   } else if (length(args) == 2L) {
     sprintf("%s(%s, %s)", name, args[[1L]], args[[2L]])
   } else {

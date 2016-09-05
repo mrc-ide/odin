@@ -600,5 +600,30 @@ test_that("reload", {
     deriv(y) <- 0.5
     initial(y) <- 1
     config(base) <- "constant"
-  }, verbose=TEST_VERBOSE), "already loaded")
+  }, verbose = TEST_VERBOSE), "already loaded")
+})
+
+test_that("pathalogical array index", {
+  gen <- odin::odin({
+    deriv(z) <- y1 + y2 + y3 + y4 + y5
+    initial(z) <- 0
+
+    y[] <- i + 1
+    dim(y) <- 5
+
+    a <- length(y)
+
+    y1 <- y[a + 1 - a] # y[1] -- first call is '-'
+    y2 <- y[2 - a + a] # y[2] -- first call is '+'
+    y3 <- y[1 + 2] # y[3]
+    y4 <- y[a - 1] # y[4]
+    y5 <- y[5 + (a - a)] # y[5]
+  }, verbose = TEST_VERBOSE)
+
+  dat <- gen()$contents()
+  expect_equal(dat$y1, 1.0)
+  expect_equal(dat$y2, 2.0)
+  expect_equal(dat$y3, 3.0)
+  expect_equal(dat$y4, 4.0)
+  expect_equal(dat$y5, 5.0)
 })
