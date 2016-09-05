@@ -479,3 +479,35 @@ test_that("cyclic dependency", {
     odin_parse("a <- b; b <- a"),
     "A cyclic dependency detected")
 })
+
+## All the tests here are prone to changes because the errors should
+## really be thrown at parse because we'd get better error message
+## generation...
+test_that("rewrite errors", {
+  expect_error(
+    odin({
+      deriv(a) <- 1
+      initial(a) <- 0
+      x <- foo(a)
+      output(x) <- x
+    }, build = FALSE),
+    "Unsupported function 'foo'")
+
+  expect_error(
+    odin({
+      deriv(a) <- 1
+      initial(a) <- 0
+      x <- abs(a, 1)
+      output(x) <- x
+    }, build = FALSE),
+    "invalid input to abs")
+
+  expect_error(
+    odin({
+      deriv(a) <- 1
+      initial(a) <- 0
+      x <- min(a)
+      output(x) <- x
+    }, build = FALSE),
+    "Invalid input to min")
+})
