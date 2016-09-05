@@ -386,3 +386,12 @@ test_that("some dim() pathologies", {
   expect_error(odin_parse_expr(quote(dim(a) <- c(1 + 1, 1)), NULL),
                "must contain symbols, numbers or lengths")
 })
+
+test_that("delay check", {
+  expect_error(odin_parse_expr(quote(deriv(x) <- delay(y, 1)), NULL),
+               "delay() only valid for non-special variables", fixed=TRUE)
+  expect_error(odin_parse_expr(quote(initial(x) <- delay(y, 1)), NULL),
+               "delay() only valid for non-special variables", fixed=TRUE)
+  expect_error(odin_parse_expr(quote(dim(x) <- delay(y, 1)), NULL),
+               "delay() only valid for non-special variables", fixed=TRUE)
+})
