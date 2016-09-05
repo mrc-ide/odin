@@ -7,7 +7,7 @@
 \usage{
 odin(x, dest = tempdir(), build = TRUE, load = TRUE, verbose = TRUE)
 
-odin_(x, dest = ".", build = TRUE, load = TRUE, verbose = TRUE)
+odin_(x, dest = tempdir(), build = TRUE, load = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if

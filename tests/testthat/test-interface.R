@@ -27,3 +27,7 @@ test_that("text", {
   expect_error(odin_parse_prepare(sin), "Invalid type")
   expect_error(odin_parse_prepare(1.0), "Invalid type")
 })
+
+test_that("NSE and SE defaults are the same", {
+  expect_equal(formals(odin), formals(odin_))
+})

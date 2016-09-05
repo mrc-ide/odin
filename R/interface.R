@@ -97,7 +97,7 @@ odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
 
 ##' @export
 ##' @rdname odin
-odin_ <- function(x, dest=".", build=TRUE, load=TRUE, verbose=TRUE) {
+odin_ <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
   dat <- odin_parse(x)
   path <- odin_generate(dat, dest)
   ret <- path
