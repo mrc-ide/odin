@@ -30,7 +30,7 @@ interpolate_data * interpolate_alloc(interpolate_type type,
     double **A = (double**)R_alloc(n, sizeof(double*));
     for (size_t i = 0; i < n; ++i) {
       A[i] = (double*)R_alloc(n + 1, sizeof(double));
-      bzero(A[i], (n + 1) * sizeof(double));
+      memset(A[i], 0, (n + 1) * sizeof(double));
     }
     for (size_t i = 0; i < ny; ++i) {
       spline_knots(n, ret->x, ret->y + i * n, ret->k + i * n, A);
