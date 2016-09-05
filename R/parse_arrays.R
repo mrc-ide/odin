@@ -191,17 +191,15 @@ odin_parse_arrays_nd <- function(obj) {
     ## Then continue:
     i <- match(nm, names(eqs))
 
-    err <- !obj$traits[i, "uses_user"]
-    if (any(err)) {
-      odin_error("user-specified dim() must be used with user-specified array",
-                 get_lines(eqs[i][err]), get_exprs(eqs[i][err]))
-    }
-
-    err <- !obj$traits[i, "is_array"]
-    if (any(err)) {
-      odin_error("user-specified dim() must be used with array",
-                 get_lines(eqs[i][err]), get_exprs(eqs[i][err]))
-    }
+    ## TODO: This one is not possible to throw until we get static arrays
+    ## (see issue #19)
+    ##
+    ## err <- !obj$traits[i, "uses_user"]
+    ## if (any(err)) {
+    ##   odin_error(
+    ##     "user-specified dim() must be used with user-specified array",
+    ##     get_lines(eqs[i][err]), get_exprs(eqs[i][err]))
+    ## }
 
     nd[nd_user] <- viapply(eqs[i], function(x) x$lhs$nd)
   }

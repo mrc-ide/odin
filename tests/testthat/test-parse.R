@@ -395,3 +395,27 @@ test_that("delay check", {
   expect_error(odin_parse_expr(quote(dim(x) <- delay(y, 1)), NULL),
                "delay() only valid for non-special variables", fixed=TRUE)
 })
+
+test_that("array pathologies", {
+  expect_error(
+    gen <- odin::odin({
+      dim(y) <- 2
+      y <- 1
+    }, verbose=TEST_VERBOSE, build = FALSE)
+   , "Array variables must always assign as arrays")
+
+  expect_error(
+    gen <- odin::odin({
+      dim(y) <- user()
+      y <- 1
+    }, verbose=TEST_VERBOSE, build = FALSE)
+   , "Array variables must always assign as arrays")
+
+  expect_error(
+    gen <- odin::odin({
+      dim(y) <- 2
+      y[1] <- user()
+      y[2] <- 1
+    }, verbose=TEST_VERBOSE, build = FALSE)
+   , "Duplicate entries may not use user")
+})
