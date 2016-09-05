@@ -360,7 +360,15 @@ test_that("sums", {
                "sum() requires exactly one argument", fixed=TRUE)
   expect_error(odin_parse_expr(quote(x <- sum()), NULL),
                "sum() requires exactly one argument", fixed=TRUE)
+
+  expect_error(odin_parse_expr(quote(x <- sum(a[f(b)])), NULL),
+               "Invalid array use in sum")
+  expect_error(odin_parse_expr(quote(x <- sum(a[f(b), c])), NULL),
+               "Invalid array use in sum")
+  expect_error(odin_parse_expr(quote(x <- sum(a[f(b), f(c)])), NULL),
+               "Invalid array use in sum")
 })
+
 
 test_that("some dim() pathologies", {
   expect_error(odin_parse_expr(quote(dim(a) <- user(1)), NULL),
