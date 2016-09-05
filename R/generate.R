@@ -109,9 +109,6 @@ odin_interpolate_support <- function() {
 ## be to allow, in addition, arbitrary functions to be listed with the
 ## inclusion of a header file.
 read_user_c <- function(filename) {
-  if (!file.exists(filename)) {
-    stop(sprintf("File '%s' does not exist", filename))
-  }
   d <- readLines(filename)
   re <- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)\\s*\\{$"
   i <- grep(re, d)

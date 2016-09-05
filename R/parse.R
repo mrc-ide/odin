@@ -46,10 +46,12 @@ odin_parse <- function(x) {
   ## Start building the core object:
   if (is.character(x) && length(x) == 1L && file.exists(x)) {
     file <- x
+    path <- c(normalizePath(dirname(x)), normalizePath(getwd()))
   } else {
     file <- basename(tempfile("odin", "."))
+    path <- getwd()
   }
-  ret <- list(eqs=eqs, file = file)
+  ret <- list(eqs=eqs, file = file, path = path)
 
   ## 3. Compute overall information on traits (creates elements $traits
   ## and $info):

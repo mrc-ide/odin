@@ -55,7 +55,7 @@ odin_parse_config <- function(obj) {
     ## Option specific setting
     ret <- list(
       base=odin_parse_config_base(dat[names(dat) == "base"]),
-      include=odin_parse_config_include(dat[names(dat) == "include"]))
+      include=odin_parse_config_include(dat[names(dat) == "include"], obj$path))
 
     config <- modifyList(config, ret[!vlapply(ret, is.null)])
   }
@@ -103,7 +103,7 @@ odin_parse_config_base <- function(base) {
   x
 }
 
-odin_parse_config_include <- function(include) {
+odin_parse_config_include <- function(include, path) {
   if (length(include) == 0) {
     return(NULL)
   }
@@ -114,7 +114,19 @@ odin_parse_config_include <- function(include) {
   }
 
   read1 <- function(i) {
-    tryCatch(read_user_c(include[[i]]$value),
+    filename <- file.path(path, include[[i]]$value)
+    ok <- file.exists(filename)
+    if (any(ok)) {
+      filename <- filename[which(ok)[[1L]]]
+    } else {
+      odin_error(
+        sprintf("Could not find file '%s', after looking in:\n%s",
+                include[[i]]$value,
+                paste(sprintf(" - %s", path), collapse = "\n")),
+        include[[i]]$line,
+        include[[i]]$expr)
+    }
+    tryCatch(read_user_c(filename),
              error=function(e)
                odin_error(paste("Could not read include file:", e$message),
                           include[[i]]$line,

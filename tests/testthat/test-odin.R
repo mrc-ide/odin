@@ -221,6 +221,35 @@ test_that("user c", {
   expect_equal(y[, 2L], cmp, tolerance=1e-5)
 })
 
+test_that("user c in subdir", {
+  dest <- tempfile()
+  dir.create(dest)
+
+  'config(include) <- "myfuns.c"
+z <- squarepulse(t, 1, 2)
+output(z) <- z
+deriv(y) <- z
+initial(y) <- 0' -> expr
+  test <- file.path(dest, "test.R")
+  writeLines(expr, test)
+
+  expect_error(odin_(test), "Could not find file 'myfuns.c'")
+
+  file.copy("user_fns.c", file.path(dest, "myfuns.c"))
+  gen <- odin_(test, verbose = TEST_VERBOSE)
+
+  ## copied from above:
+  mod <- gen()
+  t <- seq(0, 3, length.out=301)
+  y <- mod$run(t)
+
+  expect_equal(y[, 3L], as.numeric(t >= 1 & t < 2))
+  cmp <- -1 + t
+  cmp[t < 1] <- 0
+  cmp[t > 2] <- 1
+  expect_equal(y[, 2L], cmp, tolerance=1e-5)
+})
+
 test_that("time dependent initial conditions", {
   gen <- odin::odin({
     y1 <- cos(t)

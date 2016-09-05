@@ -40,7 +40,7 @@ test_that("config(include)", {
                "config(include) must be a character", fixed=TRUE)
 
   expect_error(odin_parse(quote(config(include) <- "no file.c")),
-               "File 'no file.c' does not exist", fixed=TRUE)
+               "Could not find file 'no file.c'", fixed=TRUE)
 
   expect_error(odin_parse(
     'config(include) <- "user_fns.c"; config(include) <- "user_fns.c"'),
