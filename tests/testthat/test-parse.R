@@ -361,3 +361,20 @@ test_that("sums", {
   expect_error(odin_parse_expr(quote(x <- sum()), NULL),
                "sum() requires exactly one argument", fixed=TRUE)
 })
+
+test_that("some dim() pathologies", {
+  expect_error(odin_parse_expr(quote(dim(a) <- user(1)), NULL),
+               "Default in user dimension size not handled")
+  expect_error(odin_parse_expr(quote(dim(a) <- "foo"), NULL),
+               "expected numeric, symbol, user or c")
+  expect_error(odin_parse_expr(quote(dim(a) <- NULL), NULL),
+               "expected numeric, symbol, user or c")
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1, "foo")), NULL),
+               "must contain symbols, numbers or lengths")
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1, c(2, 3))), NULL),
+               "must contain symbols, numbers or lengths")
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1, NULL)), NULL),
+               "must contain symbols, numbers or lengths")
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1 + 1, 1)), NULL),
+               "must contain symbols, numbers or lengths")
+})

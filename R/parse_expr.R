@@ -557,27 +557,31 @@ odin_parse_expr_lhs_check_index <- function(x) {
 }
 
 odin_parse_expr_check_dim <- function(rhs, line, expr) {
-  if (rhs$type == "atomic" || is.name(rhs$value)) {
+  if (isTRUE(rhs$user)) {
+    if (isTRUE(rhs$default)) {
+      odin_error("Default in user dimension size not handled", line, expr)
+    }
+    ret <- DIM_USER
+  } else if (is.symbol(rhs$value) || is.numeric(rhs$value)) {
     ret <- 1L
   } else if (is_call(rhs$value, quote(c))) {
     ## TODO: what about dim(.) <- c(1.2, 3) -- should error
+    ##
+    ## TODO: what about 1 + 2 -- could be OK?
     ok <- vlapply(as.list(rhs$value[-1L]), function(x)
       is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
     if (!all(ok)) {
-      odin_error("Invalid dim() rhs; c() must contain atomics or numbers",
-                 line, expr)
+      odin_error(
+        "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
+        line, expr)
     } else {
       ret <- length(ok)
     }
   } else if (is_dim_or_length(rhs$value)) {
     ret <- DIM_DEPENDENT
-  } else if (isTRUE(rhs$user)) {
-    if (isTRUE(rhs$default)) {
-      odin_error("Default in user dimension size not handled", line, expr)
-    }
-    ret <- DIM_USER
   } else {
-    odin_error("Invalid dim() rhs; expected atomic, user or c", line, expr)
+    odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
+               line, expr)
   }
   ret
 }
