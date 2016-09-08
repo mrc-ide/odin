@@ -206,6 +206,7 @@ odin_generate1_dim <- function(x, obj) {
     ## length, copy out integers.
     fn <- sprintf("get_user_array_dim%d", x$nd)
     obj$library_fns$add(fn)
+    obj$library_fns$add("copy_user_double")
     ## We really need to do this in a scoped block I think as we need
     ## to set a few things all at once.
     obj[[st]]$add("{")

@@ -716,3 +716,81 @@ test_that("two output arrays", {
   res <- mod2$run(tt, atol = 1e-8, rtol = 1e-8)
   expect_equal(res, yy)
 })
+
+## TODO: This still needs harmonising with get_user_array1 functions
+## (non user dimensions) as they use coerceVector still.
+test_that("non-numeric input", {
+  gen <- odin::odin({
+    deriv(y) <- 1
+    initial(y) <- 1
+    scalar <- user()
+    vector[] <- user()
+    dim(vector) <- user()
+    matrix[,] <- user()
+    dim(matrix) <- user()
+    array[,,] <- user()
+    dim(array) <- user()
+  }, verbose = TEST_VERBOSE)
+
+  scalar <- 1
+  vector <- as.numeric(1:3)
+  matrix <- matrix(as.numeric(1:6), 2L, 3L)
+  array <- array(as.numeric(1:12), c(2L, 3L, 4L))
+
+  convert <- function(x, to = "integer") {
+    storage.mode(x) <- to
+    if (to == "character") {
+      x[] <- paste(x, "number")
+    }
+    x
+  }
+
+  ## First, this is all easy and has been well tested already:
+  mod <- gen(scalar=scalar,
+             vector=vector,
+             matrix=matrix,
+             array=array)
+  dat <- mod$contents()
+
+  expect_equal(dat$scalar, scalar)
+  expect_equal(dat$vector, vector)
+  expect_equal(dat$matrix, matrix)
+  expect_equal(dat$array,  array)
+
+  ## Then to integer first:
+  mod <- gen(scalar=convert(scalar),
+             vector=convert(vector),
+             matrix=convert(matrix),
+             array=convert(array))
+  dat <- mod$contents()
+  expect_equal(dat$scalar, scalar)
+  expect_equal(dat$vector, vector)
+  expect_equal(dat$matrix, matrix)
+  expect_equal(dat$array,  array)
+
+  ## Then test for errors on each as we convert to character:
+  expect_error(
+    gen(scalar=convert(scalar, "character"),
+        vector=vector,
+        matrix=matrix,
+        array=array),
+    "Expected a numeric value for scalar")
+  expect_error(
+    gen(scalar=scalar,
+        vector=convert(vector, "character"),
+        matrix=matrix,
+        array=array),
+    "Expected a numeric value for vector")
+  expect_error(
+    gen(scalar=scalar,
+        vector=vector,
+        matrix=convert(matrix, "character"),
+        array=array),
+    "Expected a numeric value for matrix")
+  expect_error(
+    gen(scalar=scalar,
+        vector=vector,
+        matrix=matrix,
+        array=convert(array, "character")),
+    "Expected a numeric value for array")
+})
