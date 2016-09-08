@@ -68,6 +68,7 @@ odin_parse_dependencies_deps <- function(obj) {
   i <- lengths(msg) > 0L
   if (any(i)) {
     msg <- sort(unique(unlist(msg)))
+    ## TODO: this is not *variable* as such.
     fmt <- ngettext(length(msg), "Unknown variable %s",  "Unknown variables %s")
     odin_error(sprintf(fmt, paste(msg, collapse=", ")),
                get_lines(eqs[i]), get_exprs(eqs[i]))

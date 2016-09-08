@@ -29,6 +29,8 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
     interpolate <- NULL
   }
 
+  discrete <- obj$info$discrete
+
   ## Then attempt to make some sense out of the things that we have
   ## collected:
   ##
@@ -45,15 +47,18 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               odin_generate2_finalize(obj),
               odin_generate2_initial(obj),
               odin_generate2_set_initial(obj),
-              odin_generate2_deriv(obj),
-              odin_generate2_deriv_r(obj),
+              if (!discrete) odin_generate2_deriv(obj),
+              if (!discrete) odin_generate2_deriv_r(obj),
+              if (!discrete) odin_generate2_deriv_desolve(obj),
+              if (!discrete) odin_generate2_deriv_dde(obj),
+              if (!discrete) odin_generate2_output(obj),
+              if ( discrete) odin_generate2_update(obj),
+              if ( discrete) odin_generate2_update_dde(obj),
+              if ( discrete) odin_generate2_update_r(obj),
               odin_generate2_contents(obj),
               odin_generate2_order(obj),
               odin_generate2_order(obj, TRUE),
-              odin_generate2_output(obj),
               odin_generate2_interpolate_t(obj),
-              odin_generate2_desolve(obj),
-              odin_generate2_dde(obj),
               odin_generate2_info(obj),
               odin_generate2_support_defns(obj),
               if (!package) library_fns$definitions,

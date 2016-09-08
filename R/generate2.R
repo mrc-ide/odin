@@ -243,9 +243,14 @@ odin_generate2_deriv <- function(obj) {
   info <- obj$variable_info
 
   ret <- collector()
+
+  ## OK, this one is totally identical between continuous and discrete
+  ## time except that we unconditionally pass output through.
+
   ret$add(
     "void %s_deriv(%s *%s, double %s, double *%s, double *%s, double *%s) {",
-    obj$info$base, obj$type_pars, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
+    obj$info$base, obj$type_pars, obj$name_pars,
+    TIME, STATE, DSTATEDT, OUTPUT)
 
   ret$add(indent(odin_generate2_vars(obj), 2))
   ret$add(indent(odin_generate2_unpack(obj), 2))
@@ -270,9 +275,81 @@ odin_generate2_deriv <- function(obj) {
   ret$get()
 }
 
+odin_generate2_update <- function(obj) {
+  info <- obj$variable_info
+  ret <- collector()
+
+  ret$add(
+    "void %s_update(%s *%s, size_t %s, double %s, double *%s, double *%s, double *%s) {",
+    obj$info$base, obj$type_pars, obj$name_pars,
+    STEP, TIME, STATE, STATE_NEXT, OUTPUT)
+  ret$add(indent(odin_generate2_vars(obj), 2))
+  ret$add(indent(odin_generate2_unpack(obj), 2))
+
+  time <- obj$time$get()
+  if (length(time) > 0L) {
+    ret$add(indent(time, 2))
+  }
+
+  output <- obj$output$get()
+  if (length(output) > 0L) {
+    ret$add("  if (%s != NULL) {", OUTPUT)
+    ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
+    ret$add(indent(output, 4))
+    ret$add("  }")
+  }
+  ret$add("}")
+  ret$get()
+}
+
+odin_generate2_update_dde <- function(obj) {
+  ret <- collector()
+  ret$add(
+    "void %s_update_dde(size_t n, size_t %s, double %s, double *%s, double *%s,",
+    obj$info$base, STEP, TIME, STATE, STATE_NEXT)
+  ret$add(
+    "               size_t n_out, double *%s, void *%s) {",
+    OUTPUT, obj$name_pars)
+  ret$add("  %s_update((%s*)%s, %s, %s, %s, %s, %s);",
+          obj$info$base, obj$type_pars, obj$name_pars,
+          STEP, TIME, STATE, STATE_NEXT, OUTPUT)
+  ret$add("}")
+  ret$get()
+}
+
+odin_generate2_update_r <- function(obj) {
+  ret <- collector()
+  ret$add("SEXP %s_update_r(SEXP %s_ptr, SEXP %s, SEXP %s, SEXP %s) {",
+          obj$info$base, obj$info$base, STEP, TIME, STATE)
+  ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
+          STATE_NEXT, STATE)
+  ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
+
+  if (obj$info$has_output) {
+    ret$add("  SEXP %s_ptr = PROTECT(allocVector(REALSXP, %s));",
+            OUTPUT, obj$rewrite(obj$output_info$total_use))
+    ret$add('  setAttrib(%s, install("%s"), %s_ptr);',
+            STATE_NEXT, OUTPUT, OUTPUT)
+    ret$add("  double *%s = REAL(%s_ptr);", OUTPUT, OUTPUT)
+    np <- 2L
+  } else {
+    ret$add("  double *%s = NULL;", OUTPUT)
+    np <- 1L
+  }
+
+  ret$add(
+    "  %s_update(%s, INTEGER(%s)[0], REAL(%s)[0], REAL(%s), REAL(%s), %s);",
+    obj$info$base, obj$name_pars, STEP, TIME, STATE, STATE_NEXT, OUTPUT)
+  ret$add("  UNPROTECT(%d);", np)
+  ret$add("  return %s;", STATE_NEXT)
+  ret$add("}")
+  ret$get()
+}
+
 odin_generate2_deriv_r <- function(obj) {
   ret <- collector()
-  ret$add("SEXP r_%s_deriv(SEXP %s_ptr, SEXP %s, SEXP %s) {",
+  ret$add("SEXP %s_deriv_r(SEXP %s_ptr, SEXP %s, SEXP %s) {",
           obj$info$base, obj$info$base, TIME, STATE)
   ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
           DSTATEDT, STATE)
@@ -282,7 +359,8 @@ odin_generate2_deriv_r <- function(obj) {
   if (obj$info$has_output) {
     ret$add("  SEXP %s_ptr = PROTECT(allocVector(REALSXP, %s));",
             OUTPUT, obj$rewrite(obj$output_info$total_use))
-    ret$add('  setAttrib(%s, install("%s"), %s_ptr);', DSTATEDT, OUTPUT, OUTPUT)
+    ret$add('  setAttrib(%s, install("%s"), %s_ptr);',
+            DSTATEDT, OUTPUT, OUTPUT)
     ret$add("  double *%s = REAL(%s_ptr);", OUTPUT, OUTPUT)
     np <- 2L
   } else {
@@ -481,18 +559,18 @@ odin_generate2_interpolate_t <- function(obj) {
   ret$get()
 }
 
-odin_generate2_desolve <- function(obj) {
+odin_generate2_deriv_desolve <- function(obj) {
   ret <- collector()
   ret$add("// deSolve interface")
   ret$add("// Global variable set on initmod, as per deSolve design")
   ret$add("static %s *%s;", obj$type_pars, obj$name_pars)
-  ret$add("void %s_ds_initmod(void(* odeparms) (int *, double *)) {",
+  ret$add("void %s_initmod_ds(void(* odeparms) (int *, double *)) {",
           obj$info$base)
   ret$add('  DL_FUNC get_deSolve_gparms = R_GetCCallable("deSolve", "get_deSolve_gparms");')
   ret$add("  %s = %s_get_pointer(get_deSolve_gparms(), 1);",
           obj$name_pars, obj$info$base)
   ret$add("}")
-  ret$add("void %s_ds_derivs(int *neq, double *%s, double *%s,",
+  ret$add("void %s_deriv_ds(int *neq, double *%s, double *%s,",
           obj$info$base, TIME, STATE)
   ret$add("%sdouble *%s, double *%s, int *np) {",
           strrep(nchar(obj$info$base) + 15L), DSTATEDT, OUTPUT)
@@ -502,10 +580,13 @@ odin_generate2_desolve <- function(obj) {
   ret$get()
 }
 
-odin_generate2_dde <- function(obj) {
+## I will need a different interface here using my ring buffer to do a
+## discrete time model.  That will probably want to be written into
+## this package, so I can exploit ring directly.  For now leave it...
+odin_generate2_deriv_dde <- function(obj) {
   ret <- collector()
   ret$add("// dde interface")
-  ret$add("void %s_dde_derivs(size_t n_eq, double %s, double *%s,",
+  ret$add("void %s_deriv_dde(size_t n_eq, double %s, double *%s,",
           obj$info$base, TIME, STATE)
   ret$add("%sdouble *%s, void *%s) {",
           strrep(nchar(obj$info$base) + 17L), DSTATEDT, obj$name_pars)
@@ -522,7 +603,7 @@ odin_generate2_dde <- function(obj) {
     ## functions, which requires another trip through the DAG too.
 
     ## Here, we'll need to have done some output processing.
-    ret$add("\nvoid %s_dde_output(size_t n_eq, double %s, double *%s,",
+    ret$add("\nvoid %s_output_dde(size_t n_eq, double %s, double *%s,",
             obj$info$base, TIME, STATE)
     ret$add("%ssize_t dim_%s, double *%s, void *%s) {",
             strrep(nchar(obj$info$base) + 17L), OUTPUT, OUTPUT, obj$name_pars)
@@ -624,9 +705,9 @@ odin_generate2_unpack <- function(obj, output=FALSE) {
   info <- obj[[if (output) "output_info" else "variable_info"]]
   if (any(info$is_array)) {
     sprintf("double *%s_%s = %s%s;",
-            if (output) "output" else "deriv",
+            if (output) "output" else obj$core$target_name,
             info$order[info$is_array],
-            if (output) OUTPUT else DSTATEDT,
+            if (output) OUTPUT else obj$core$state2,
             vcapply(info$offset_use[info$is_array], odin_generate2_offset,
                     obj$rewrite))
   } else {

@@ -171,6 +171,9 @@ can_compile <- function(verbose=FALSE, skip_cache=FALSE) {
 ## unload the DLL and void all the pointers?  That requires that we
 ## keep a pointer cache here, but that's easy enough.  We can register
 ## this for eventual garbage collection too, so that's nice.
+##
+## When doing codegen we can build out interfaces that don't include
+## much R switching, can get the code bits dealt with correctly.
 
 ##' Generate an ODE interface from an odin shared library.  This is
 ##' used internally when generating packages, and should not be used
@@ -190,7 +193,8 @@ ode_system_generator <- function(dll, name) {
       ## Bunch of stored stuff:
       name=name,
       dll=dll,
-      C=odin_dll_info(name, dll),
+      C=odin_dll_info(name, dll, info$discrete),
+      discrete=info$discrete,
       has_delay=info$has_delay,
       has_user=length(info$user) > 0L,
       has_output=info$has_output,
@@ -228,7 +232,10 @@ ode_system_generator <- function(dll, name) {
           self$init <- .Call(self$C$init, self$ptr, NA_real_)
         }
         self$update_cache()
-        if (self$use_dde) {
+        if (self$discrete) {
+          loadNamespace("dde")
+          self$ode <- dde::difeq
+        } else if (self$use_dde) {
           loadNamespace("dde")
           self$ode <- dde::dopri
         } else if (self$has_delay) {
@@ -309,7 +316,22 @@ ode_system_generator <- function(dll, name) {
             tcrit <- r[[2L]]
           }
         }
-        if (self$use_dde) {
+        if (self$discrete) {
+          ## TODO: this doesn't allow for n_history to be tweaked by
+          ## the calling function, which would be useful if we want to
+          ## exploit the history.  That also requires passing in
+          ## return_history=TRUE.
+          n_history <- if (self$has_delay) 1000L else 0L
+          n_out <- self$output_length
+          output <- if (n_out > 0L) self$C$output_dde else NULL
+          ret <- self$ode(y, t, self$C$deriv_dde, self$ptr,
+                          dllname=self$dll, n_out=n_out, output=output,
+                          n_history=n_history, return_history=FALSE,
+                          parms_are_real=FALSE,
+                          ## Try and preserve some compatibility with deSolve:
+                          by_column=TRUE, return_initial=TRUE,
+                          ...)
+        } else if (self$use_dde) {
           ## TODO: this doesn't allow for n_history to be tweaked by
           ## the calling function, which would be useful if we want to
           ## exploit the history.  That also requires passing in
@@ -317,8 +339,8 @@ ode_system_generator <- function(dll, name) {
           n_history <- if (self$has_delay) 1000L else 0L
           ## NOTE: This is a bit shit, but does the job for now:
           n_out <- self$output_length
-          output <- if (n_out > 0L) self$C$dde_output else NULL
-          ret <- self$ode(y, t, self$C$dde_deriv, self$ptr,
+          output <- if (n_out > 0L) self$C$output_dde else NULL
+          ret <- self$ode(y, t, self$C$deriv_dde, self$ptr,
                           dllname=self$dll, n_out=n_out, output=output,
                           n_history=n_history, return_history=FALSE,
                           parms_are_real=FALSE,
@@ -327,8 +349,8 @@ ode_system_generator <- function(dll, name) {
                           ...)
           ret <- cbind(t, ret, attr(ret, "output"), deparse.level=0)
         } else {
-          ret <- self$ode(y, t, self$C$ds_deriv, self$ptr,
-                          initfunc=self$C$ds_initmod, dllname=self$dll,
+          ret <- self$ode(y, t, self$C$deriv_ds, self$ptr,
+                          initfunc=self$C$initmod_ds, dllname=self$dll,
                           nout=self$output_length, tcrit=tcrit, ...)
         }
         if (use_names) {
@@ -347,7 +369,13 @@ ode_system_generator <- function(dll, name) {
   make_user_collector(info$user, quote(cl$new), environment(), FALSE)
 }
 
-odin_dll_info <- function(name, dll) {
+discrete_system_generator <- function(dll, name) {
+  self <- NULL
+}
+
+## This is going to change, probably for a code-gen approach, as this
+## is a bit rubbish and quite confusing for me.  #technicaldebt
+odin_dll_info <- function(name, dll, discrete) {
   ## TODO: Something indicating how many parameters we are willing to
   ## take for the initialisation part.
   ret <- list(
@@ -355,16 +383,26 @@ odin_dll_info <- function(name, dll) {
     init=getNativeSymbolInfo(sprintf("%s_initialise", name), dll),
     set_initial=getNativeSymbolInfo(sprintf("%s_set_initial", name), dll),
     set_user=getNativeSymbolInfo(sprintf("r_%s_set_user", name), dll),
-    deriv=getNativeSymbolInfo(sprintf("r_%s_deriv", name), dll),
     contents=getNativeSymbolInfo(sprintf("%s_contents", name), dll),
     variable_order=getNativeSymbolInfo(sprintf("%s_variable_order", name), dll),
     output_order=getNativeSymbolInfo(sprintf("%s_output_order", name), dll),
-    interpolate_t=getNativeSymbolInfo(sprintf("%s_interpolate_t", name), dll),
-    ## deSolve does not support this (yet)
-    ds_deriv=sprintf("%s_ds_derivs", name),
-    ds_initmod=sprintf("%s_ds_initmod", name),
-    dde_deriv=sprintf("%s_dde_derivs", name),
-    dde_output=sprintf("%s_dde_output", name))
+    interpolate_t=getNativeSymbolInfo(sprintf("%s_interpolate_t", name), dll))
+  if (discrete) {
+    ret <-
+      c(ret,
+        list(
+          update=getNativeSymbolInfo(sprintf("%s_update_r", name), dll),
+          update_dde=getNativeSymbolInfo(sprintf("%s_update_dde", name), dll)))
+  } else {
+    ret <- c(ret,
+             list(
+               deriv=getNativeSymbolInfo(sprintf("%s_deriv_r", name), dll),
+               deriv_ds=sprintf("%s_deriv_ds", name),
+               initmod_ds=sprintf("%s_initmod_ds", name),
+               deriv_dde=sprintf("%s_deriv_dde", name),
+               output_dde=sprintf("%s_output_dde", name)))
+  }
+  ret
 }
 
 ## TODO: depending on the dimensionality stage we will want to run

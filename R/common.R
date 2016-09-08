@@ -8,16 +8,18 @@ STAGE_USER <- 2L
 STAGE_TIME <- 3L
 STAGE_OUTPUT <- 4L
 STAGES <- c("constant", "user", "time", "output")
+STEP <- "step"
 TIME <- "t"
 STATE <- "state"
 DSTATEDT <- "dstatedt"
+STATE_NEXT <- "state_next"
 OUTPUT <- "output"
 USER <- "user"
 ## TODO: None of these deal with the use of these as functions (only
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some
 ## point.
-SPECIAL_LHS <- c("initial", "deriv", "output", "dim", "config")
+SPECIAL_LHS <- c("initial", "deriv", "update", "output", "dim", "config")
 SPECIAL_RHS <- c("user", "interpolate", "delay")
 INDEX <- c("i", "j", "k")
 RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
@@ -72,4 +74,8 @@ offset_name <- function(name, output = FALSE) {
 
 output_name <- function(name) {
   sprintf("output_%s", name)
+}
+
+update_name <- function(name) {
+  sprintf("update_%s", name)
 }

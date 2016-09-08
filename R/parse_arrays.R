@@ -181,7 +181,8 @@ odin_parse_arrays_nd <- function(obj) {
     nm <- obj$names_target[is_dim][nd_user]
     err <- nm %in% obj$vars
     if (any(err)) {
-      tmp <- eqs[c(rbind(match(deriv_name(nm[err]), names(obj$eqs)),
+      tmp <- eqs[c(rbind(match(obj$info$target_name_fn(nm[err]),
+                               names(obj$eqs)),
                          which(is_dim)[nd_user][err]))]
       odin_error(sprintf("Can't specify user-sized variables (for %s)",
                          paste(nm[err], collapse=", ")),
@@ -206,7 +207,7 @@ odin_parse_arrays_nd <- function(obj) {
   if (any(nd_dep)) {
     nm <- obj$names_target[is_dim][nd_dep]
     i <- nm %in% obj$vars
-    nm[i] <- deriv_name(nm[i])
+    nm[i] <- obj$info$target_name_fn(nm[i])
 
     i <- nm %in% setdiff(obj$names_target[obj$traits[, "is_output"]],
                          names(eqs))
@@ -227,6 +228,7 @@ odin_parse_arrays_nd <- function(obj) {
   for (x in eqs[obj$traits[, "is_array"]]) {
     nd_x <- nd[[x$lhs$name_dim]]
     if (x$lhs$nd != nd_x) {
+      ## TODO: here, show the dim() command?
       odin_error(
         sprintf("Array dimensionality is not consistent (expected %d %s)",
                 nd_x, ngettext(abs(nd_x), "index", "indices")),

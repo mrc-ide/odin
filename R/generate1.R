@@ -49,6 +49,8 @@ odin_generate1_object <- function(dat) {
   self <- list(base=base)
 
   self$info <- list(base=base,
+                    ## Model type
+                    discrete=dat$info$discrete,
                     ## Core traits
                     has_delay=dat$info$has_delay,
                     has_output=dat$info$has_output,
@@ -59,6 +61,17 @@ odin_generate1_object <- function(dat) {
                     dim_stage=dat$dim_stage,
                     ## User variables
                     user=dat$user_default)
+
+  ## TODO: This might change once I get the proof of concept working.
+  ## This could also be the core of customising output things a bit.
+  ##
+  ## TODO: I really don't think that target_name is good here
+  self$core <- dat$info[c("target_name", "target_name_fn")]
+  if (self$info$discrete) {
+    self$core$state2 <- STATE_NEXT
+  } else {
+    self$core$state2 <- DSTATEDT
+  }
 
   self$variable_info <- dat$variable_info
   self$output_info <- dat$output_info
@@ -340,11 +353,12 @@ odin_generate1_symbol_expr <- function(x, obj) {
   is_initial <- identical(x$lhs$special, "initial")
   if (x$stage < STAGE_TIME || is_initial) {
     ret <- sprintf("%s = %s;", obj$rewrite(nm), value)
-  } else if (identical(x$lhs$special, "deriv")) {
+  } else if (identical(x$lhs$special, "deriv") ||
+             identical(x$lhs$special, "update")) {
     ## NOTE: offset guaranteed to be OK, but should probably rewrite?
     i <- match(x$lhs$name_target, obj$variable_info$order)
     offset <- obj$rewrite(obj$variable_info$offset_use[[i]])
-    ret <- sprintf("%s[%s] = %s;", DSTATEDT, offset, value)
+    ret <- sprintf("%s[%s] = %s;", obj$core$state2, offset, value)
   } else if (identical(x$lhs$special, "output")) {
     i <- match(x$lhs$name_target, obj$output_info$order)
     offset <- obj$rewrite(obj$output_info$offset_use[[i]])

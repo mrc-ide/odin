@@ -58,7 +58,7 @@ odin_parse <- function(x) {
   ret <- odin_parse_collect_traits(ret)
 
   ## 4. Identify all ODE variables:
-  ret$vars <- odin_parse_find_vars(ret$eqs, ret$traits)
+  ret$vars <- odin_parse_find_vars(ret$eqs, ret$traits, ret$info)
 
   ## Then below here everything is done via modifying the object
   ## directly.  Things may (and do) modify more than one element of
@@ -155,9 +155,20 @@ odin_parse_collect_traits <- function(obj) {
   special <- vcapply(eqs, function(x) x$lhs$special %||% "")
   is_dim <- special == "dim"
   is_deriv <- special == "deriv"
+  is_update <- special == "update"
   is_initial <- special == "initial"
   is_output <- special == "output"
   is_config <- special == "config"
+
+  discrete <- any(is_update)
+  if (discrete && any(is_deriv)) {
+    tmp <- eqs[is_deriv | is_update]
+    odin_error("Cannot mix deriv() and update()",
+               get_lines(tmp), get_exprs(tmp))
+  }
+  if (discrete) {
+    is_deriv <- is_update
+  }
 
   ## core rhs:
   is_array <- vcapply(eqs, function(x) x$lhs$type) == "array"
@@ -177,7 +188,12 @@ odin_parse_collect_traits <- function(obj) {
   rownames(traits) <- names(eqs)
 
   obj$traits <- traits
-  obj$info <- list(has_array=any(is_array), # || any(is_dim)
+  obj$info <- list(discrete=discrete,
+                   ## internal really, and may change
+                   target_name=if (discrete) "update" else "deriv",
+                   target_name_fn=if (discrete) update_name else deriv_name,
+                   ## external again
+                   has_array=any(is_array) || any(is_dim),
                    has_output=any(is_output),
                    has_user=any(uses_user),
                    has_delay=any(uses_delay),
@@ -185,7 +201,7 @@ odin_parse_collect_traits <- function(obj) {
                    has_sum=any(uses_sum))
 
   nms_target <- names(eqs)
-  i <- is_deriv | is_initial | is_dim | is_output
+  i <- is_deriv | is_update | is_initial | is_dim | is_output
   nms_target[i] <- vcapply(eqs[i], function(x) x$lhs$name_target)
   obj$names_target <- nms_target
 
@@ -194,7 +210,7 @@ odin_parse_collect_traits <- function(obj) {
 
 ## Identfying variables is straightforward; they have deriv() and
 ## initial() calls.  It is an error not to have both.
-odin_parse_find_vars <- function(eqs, traits) {
+odin_parse_find_vars <- function(eqs, traits, info) {
   is_deriv <- traits[, "is_deriv"]
   is_initial <- traits[, "is_initial"]
 
@@ -207,22 +223,24 @@ odin_parse_find_vars <- function(eqs, traits) {
     msg <- collector()
     msg_initial <- setdiff(vars, vars_initial)
     if (length(msg_initial) > 0L) {
-      msg$add("\tin deriv() but not initial(): %s",
-              paste(msg_initial, collapse=", "))
+      msg$add("\tin %s() but not initial(): %s",
+              info$target_name, paste(msg_initial, collapse=", "))
     }
     msg_vars <- setdiff(vars_initial, vars)
     if (length(msg_vars) > 0L) {
-      msg$add("\tin initial() but not deriv(): %s",
-              paste(msg_vars, collapse=", "))
+      msg$add("\tin initial() but not %s(): %s",
+              info$target_name, paste(msg_vars, collapse=", "))
     }
-    stop("derivs() and initial() must contain same set of equations:\n",
-         paste(msg$get(), collapse="\n"), call.=FALSE)
+    ## TODO: should this not use odin_error?
+    stop("%s() and initial() must contain same set of equations:\n",
+         info$target_name, paste(msg$get(), collapse="\n"), call.=FALSE)
   }
 
   err <- names(is_deriv) %in% vars
   if (any(err)) {
     odin_error(
-      sprintf("variables on lhs must be within deriv() or initial() (%s)",
+      sprintf("variables on lhs must be within %s() or initial() (%s)",
+              info$target_name,
               paste(intersect(vars, names(eqs)), collapse=", ")),
       get_lines(eqs[err]), get_exprs(eqs[err]))
   }
@@ -302,7 +320,7 @@ odin_parse_extract_order <- function(obj, output=FALSE) {
   if (output) {
     names <- names_if(obj$traits[, "is_output"])
   } else {
-    names <- paste0("deriv_", obj$vars)
+    names <- obj$info$target_name_fn(obj$vars)
   }
 
   n <- length(names)

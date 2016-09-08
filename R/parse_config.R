@@ -12,6 +12,11 @@
 ## Hopefully all the additional bits can get routed into the
 ## odin_parse_config_xxx lines.
 
+## TODO: some of this could happily be processed in the parse_expr
+## section; as very little depends on more than one line.  Though we
+## don't tend to have both the rhs and lhs together through most of
+## that.
+
 ## Previous note about config scope:
 ##
 ##   These all need support on the C side.
