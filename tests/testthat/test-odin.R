@@ -691,10 +691,28 @@ test_that("two output arrays", {
   r <- runif(3)
   mod <- gen(r = r)
   tt <- seq(0, 10, length.out = 101)
-  yy <- mod$run(tt)
+  yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
   zz <- mod$transform_variables(yy)
 
   expect_equal(zz$y, t(1:3 * exp(outer(r, tt))), tolerance = 1e-6)
   expect_equal(zz$r, matrix(r, length(tt), 3, TRUE))
   expect_equal(zz$yr, t(t(zz$y) / (1:3)))
+
+  ## An extension of the above that tickles an array size problem
+  gen2 <- odin::odin({
+    deriv(y[]) <- y[i] * r[i]
+    initial(y[]) <- y0[i]
+    dim(y) <- length(y0)
+    dim(r) <- length(y0)
+    y0[] <- user()
+    r[] <- user()
+    dim(y0) <- user()
+    output(yr[]) <- y[i] / y0[i]
+    dim(yr) <- length(y0)
+    output(r[]) <- TRUE
+  }, verbose = TEST_VERBOSE)
+
+  mod2 <- gen2(y0 = as.numeric(1:3), r = r)
+  res <- mod2$run(tt, atol = 1e-8, rtol = 1e-8)
+  expect_equal(res, yy)
 })

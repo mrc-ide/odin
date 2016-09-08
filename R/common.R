@@ -69,3 +69,7 @@ deriv_name <- function(name) {
 offset_name <- function(name, output = FALSE) {
   sprintf(if (output) "offset_output_%s" else "offset_%s", name)
 }
+
+output_name <- function(name) {
+  sprintf("output_%s", name)
+}

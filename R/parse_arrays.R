@@ -207,6 +207,11 @@ odin_parse_arrays_nd <- function(obj) {
     nm <- obj$names_target[is_dim][nd_dep]
     i <- nm %in% obj$vars
     nm[i] <- deriv_name(nm[i])
+
+    i <- nm %in% setdiff(obj$names_target[obj$traits[, "is_output"]],
+                         names(eqs))
+    nm[i] <- output_name(nm[i])
+
     j <- match(nm, names(eqs))
     if (any(is.na(j))) {
       k <- which(is_dim)[nd_dep][is.na(j)]
