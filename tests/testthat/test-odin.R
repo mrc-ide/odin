@@ -656,3 +656,22 @@ test_that("pathalogical array index", {
   expect_equal(dat$y4, 4.0)
   expect_equal(dat$y5, 5.0)
 })
+
+test_that("dependent dim never assigned", {
+  ## I have no idea how common this is, but this is to prevent a
+  ## regression.
+  ##
+  ## The issue here is that we say that dim(r) is dependent on dim(y0)
+  ## but we never actually assign it, so we don't *know* that it's a
+  ## 1d array or not.
+  expect_error(
+    gen <- odin::odin({
+      deriv(y[]) <- y[i] * r[i]
+      initial(y[]) <- y0[i]
+      dim(y) <- length(y0)
+      dim(r) <- length(y0)
+      y0[] <- user()
+      dim(y0) <- user()
+    })
+  , "Array variable r is never assigned; can't work out rank")
+})

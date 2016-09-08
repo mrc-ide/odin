@@ -207,6 +207,14 @@ odin_parse_arrays_nd <- function(obj) {
     nm <- obj$names_target[is_dim][nd_dep]
     i <- nm %in% obj$vars
     nm[i] <- deriv_name(nm[i])
+    j <- match(nm, names(eqs))
+    if (any(is.na(j))) {
+      k <- which(is_dim)[nd_dep][is.na(j)]
+      odin_error(sprintf(
+        "Array variable %s is never assigned; can't work out rank",
+        pastec(obj$names_target[k])),
+        get_lines(eqs[k]), get_exprs(eqs[k]))
+    }
     nd[nd_dep] <- viapply(eqs[match(nm, names(eqs))], function(x) x$lhs$nd)
   }
 
