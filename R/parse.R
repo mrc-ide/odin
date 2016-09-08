@@ -328,7 +328,7 @@ odin_parse_extract_order <- function(obj, output=FALSE) {
   }
 
   names_target <- obj$names_target[match(names, names(obj$eqs))]
-  names_offset <- sprintf("offset_%s", names_target)
+  names_offset <- offset_name(names_target, output)
 
   len <- rep_len(list(1L), n)
   len[is_array] <- vcapply(names_target[is_array], array_dim_name)

@@ -185,6 +185,7 @@ odin_generate1_dim <- function(x, obj) {
   nm <- x$name
   nm_target <- x$lhs$name_target
   is_var <- nm_target %in% obj$variable_info$order
+  is_output <- nm_target %in% obj$output_info$order
   nm_s <- if (is_var) initial_name(nm_target) else nm_target
   st <- STAGES[[x$stage]]
 
@@ -284,10 +285,18 @@ odin_generate1_dim <- function(x, obj) {
     ## *first* array would not need an offset; we'd only be interested
     ## in this if is.language(obj$variable_info$offset_use[[i]]) is
     ## TRUE?
-    nm_offset <- paste0("offset_", nm_target)
+    nm_offset <- offset_name(nm_target)
     obj$add_element(nm_offset, "int")
     i <- match(nm_target, obj$variable_info$order)
     offset <- obj$variable_info$offset[[i]]
+    obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset), obj$rewrite(offset))
+  }
+
+  if (is_output) {
+    nm_offset <- offset_name(nm_target, TRUE)
+    obj$add_element(nm_offset, "int")
+    i <- match(nm_target, obj$output_info$order)
+    offset <- obj$output_info$offset[[i]]
     obj[[st]]$add("%s = %s;", obj$rewrite(nm_offset), obj$rewrite(offset))
   }
 }

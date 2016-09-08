@@ -675,3 +675,26 @@ test_that("dependent dim never assigned", {
     })
   , "Array variable r is never assigned; can't work out rank")
 })
+
+test_that("two output arrays", {
+  gen <- odin::odin({
+    deriv(y[]) <- y[i] * r[i]
+    initial(y[]) <- i + 1
+    dim(y) <- 3
+    dim(r) <- 3
+    r[] <- user()
+    output(yr[]) <- y[i] / (i + 1)
+    dim(yr) <- 3
+    output(r[]) <- TRUE
+  }, verbose = TEST_VERBOSE)
+
+  r <- runif(3)
+  mod <- gen(r = r)
+  tt <- seq(0, 10, length.out = 101)
+  yy <- mod$run(tt)
+  zz <- mod$transform_variables(yy)
+
+  expect_equal(zz$y, t(1:3 * exp(outer(r, tt))), tolerance = 1e-6)
+  expect_equal(zz$r, matrix(r, length(tt), 3, TRUE))
+  expect_equal(zz$yr, t(t(zz$y) / (1:3)))
+})
