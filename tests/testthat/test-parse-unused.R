@@ -53,3 +53,21 @@ test_that("delayed non-unused variables", {
     a <- 1
   }, verbose=TEST_VERBOSE, build = FALSE))
 })
+
+test_that("dimension names get cleaned", {
+  expect_message(
+    gen <- odin::odin({
+      deriv(y[]) <- y[i] * r[i]
+      initial(y[]) <- i + 1
+      y0[] <- i + 1
+      dim(y0) <- 3
+      dim(y) <- 3
+      dim(r) <- 3
+      r[] <- user()
+      output(yr[]) <- y[i] / (i + 1)
+      dim(yr) <- 3
+      output(r[]) <- TRUE
+      config(base) <- "mod"
+    }, verbose = TEST_VERBOSE, build=FALSE),
+    "Unused variable: y0")
+})

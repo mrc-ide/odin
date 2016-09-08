@@ -539,9 +539,9 @@ odin_parse_check_unused <- function(obj) {
     ## report them all:
     ##
     ## TODO: We should have this be tuneable; ignore/message/warning/error
-    what <- ngettext(sum(unused), "variable", "variables")
-    odin_note(sprintf("Unused %s: %s",
-                      what, pastec(names(obj$eqs)[unused])),
+    nms <- unique(obj$names_target[unused])
+    what <- ngettext(length(nms), "variable", "variables")
+    odin_note(sprintf("Unused %s: %s", what, pastec(nms)),
               get_lines(obj$eqs[unused]), get_exprs(obj$eqs[unused]))
   }
 }
