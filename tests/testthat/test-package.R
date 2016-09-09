@@ -2,7 +2,6 @@ context("package")
 
 test_that("generate package", {
   files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
-  single_file <- FALSE
   for (single_file in c(TRUE, FALSE)) {
     res <- odin_create_package("example", files, single_file = single_file,
                                verbose = TEST_VERBOSE)

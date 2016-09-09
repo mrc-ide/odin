@@ -66,6 +66,7 @@ odin_parse_config <- function(obj) {
   }
 
   obj$config <- config
+  obj$info$base <- config$base
 
   obj
 }

@@ -10,10 +10,10 @@ odin_parse_dependencies <- function(obj) {
   }
 
   ## Compute the overall stage for computing dimensions:
-  obj$dim_stage <- max(c(STAGE_CONSTANT,
-                         obj$stage[names_if(obj$traits[, "is_dim"])]))
+  dim_stage <- max(c(STAGE_CONSTANT,
+                     obj$stage[names_if(obj$traits[, "is_dim"])]))
 
-  if (obj$dim_stage >= STAGE_TIME) {
+  if (dim_stage >= STAGE_TIME) {
     err <- obj$stage[obj$traits[, "is_dim"]] == STAGE_TIME
     odin_error("Array extent is determined by time",
                get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
@@ -29,6 +29,7 @@ odin_parse_dependencies <- function(obj) {
   obj$eqs <- obj$eqs[i]
   obj$traits <- obj$traits[i, ]
   obj$names_target <- obj$names_target[i]
+  obj$info$dim_stage <- dim_stage
 
   ## TODO: The other thing that is needed through here is going to be
   ## information about _exactly_ which variables need unpacking from

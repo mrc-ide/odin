@@ -520,14 +520,15 @@ odin_parse_initial <- function(obj) {
   initial_exprs <- unique(unlist(obj$deps_rec[nms_initial], use.names=FALSE))
   used <- list(exprs=intersect(names(obj$eqs), initial_exprs))
 
-  obj$initial_info <- list(used=used, stage=initial_stage)
+  obj$initial_exprs <- used
+  obj$info$initial_stage <- initial_stage
   obj
 }
 
 odin_parse_user <- function(obj) {
   ## We need to filter the dimensions off here for user arrays:
   is_user <- obj$traits[, "uses_user"] & !obj$traits[, "is_dim"]
-  obj$user_default <-
+  obj$info$user_default <-
     setNames(!vlapply(obj$eqs[is_user], function(x) x$rhs$default),
              obj$names_target[is_user])
   obj

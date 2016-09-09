@@ -164,7 +164,7 @@ odin_generate2_initial <- function(obj) {
 
     ## Dependencies of any initial expressions, filtered by time dependency:
     time <- obj$time$get()
-    time <- time[names(time) %in% obj$initial_info$used$exprs]
+    time <- time[names(time) %in% obj$initial_exprs$exprs]
     if (length(time) > 0L) {
       ret$add(indent(time, 2))
     }
@@ -611,69 +611,6 @@ odin_generate2_deriv_dde <- function(obj) {
             obj$info$base, obj$type_pars, obj$name_pars, TIME, STATE, OUTPUT)
     ret$add("}")
   }
-  ret$get()
-}
-
-odin_generate2_info <- function(obj) {
-  info <- obj$info
-  ret <- collector()
-  ret$add("// Report back to R some key features of the system of ODEs")
-  ret$add("// These are truely constant features of the model -- not to do")
-  ret$add("// with any specific realisation of the model, so we don't need")
-  ret$add("// or want a pointer here.  Things like output length, variable")
-  ret$add("// length etc might vary depending on parameters used to generate")
-  ret$add("// the model so we'll pull those elsewhere")
-  ret$add("SEXP %s_info() {", obj$info$base)
-  ret$add("  SEXP ret = PROTECT(allocVector(VECSXP, %d));", length(info))
-  ret$add("  SEXP nms = PROTECT(allocVector(STRSXP, %d));", length(info))
-  as_vector <- vlapply(info, function(x)
-                       length(x) > 1 || (length(x) > 0 && !is.null(names(x))))
-  if (any(as_vector)) {
-    ret$add("  SEXP tmp;")
-  }
-  for (i in seq_along(info)) {
-    x <- info[[i]]
-    ret$add('  SET_STRING_ELT(nms, %d, mkChar("%s"));',
-            i - 1L, names(info)[[i]])
-    if (length(x) == 0L) {
-      ret$add('  SET_VECTOR_ELT(ret, %d, R_NilValue);', i - 1L)
-    } else if (!as_vector[[i]]) {
-      ## The names length check is required to avoid a weirdness in
-      ## the R API here:
-      ## https://stat.ethz.ch/pipermail/r-devel/2014-October/070010.html
-      if (is.character(x)) {
-        ret$add('  SET_VECTOR_ELT(ret, %d, mkString("%s"));', i - 1L, x)
-      } else {
-        fn <- if (is.logical(x)) "ScalarLogical" else "ScalarInteger"
-        ret$add('  SET_VECTOR_ELT(ret, %d, %s(%d));',
-                i - 1L, fn, as.integer(x))
-      }
-    } else {
-      stopifnot(storage.mode(x) == "logical")
-      ret$add('  tmp = PROTECT(allocVector(LGLSXP, %d));', length(x))
-      j <- seq_along(x) - 1L
-      ret$add('  INTEGER(tmp)[%d] = %d;', j, as.integer(x))
-      ret$add('  SET_VECTOR_ELT(ret, %d, tmp);', i - 1L)
-      ret$add('  UNPROTECT(1);')
-    }
-    if (length(x) > 0L && !is.null(names(x))) {
-      if (length(x) == 1L) {
-        ret$add(
-          '  setAttrib(VECTOR_ELT(ret, %d), R_NamesSymbol, mkString("%s"));',
-          i - 1L, names(x))
-      } else {
-        ret$add('  tmp = PROTECT(allocVector(STRSXP, %d));', length(x))
-        ret$add('  SET_STRING_ELT(tmp, %d, mkChar("%s"));', j, names(x))
-        ret$add('  setAttrib(VECTOR_ELT(ret, %d), R_NamesSymbol, tmp);',
-                i - 1L)
-        ret$add('  UNPROTECT(1);')
-      }
-    }
-  }
-  ret$add("  setAttrib(ret, R_NamesSymbol, nms);")
-  ret$add("  UNPROTECT(2);")
-  ret$add("  return ret;")
-  ret$add("}")
   ret$get()
 }
 

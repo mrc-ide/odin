@@ -85,29 +85,30 @@
 ##'
 ##' ## Lots of code:
 ##' cat(paste0(readLines(path), "\n"))
-odin <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
+odin <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
   ## TODO: It might be worth adding a check for missing-ness here in
   ## order to generate a sensible error message?
+  ##
+  ## TODO: It might be worth clarifying that build = FALSE is only used
+  ## for testing.
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
   }
-  odin_(xx, dest, build, load, verbose)
+  odin_(xx, dest, build, verbose)
 }
 
 ##' @export
 ##' @rdname odin
-odin_ <- function(x, dest=tempdir(), build=TRUE, load=TRUE, verbose=TRUE) {
+odin_ <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
   dat <- odin_parse(x)
   path <- odin_generate(dat, dest)
   ret <- path
   if (build) {
-    dll <- compile(path, verbose, load)
-    if (load) {
-      ret <- ode_system_generator(dll, dat$config$base)
-    }
+    dll <- compile(path, verbose, TRUE)
+    r_code <- odin_generate_r(dat$info, dll)
+    ret <- eval(parse(text = r_code, keep.source = FALSE), environment())
   }
-
   ret
 }
 
@@ -159,261 +160,16 @@ can_compile <- function(verbose=FALSE, skip_cache=FALSE) {
   getOption("odin.can_compile", FALSE)
 }
 
-## Generate an interface.  This is a bit tricky as we want to generate
-## very slightly different interfaces based on the options in info.
-## For now this is done sub-optimally but I think it's fine for now at
-## least.
-##
-## TODO: Consider an option here to return either the generator or the
-## function that tries to collect the variables up and skip $new.
-##
-## TODO: Do we also want something that will act as "destroy" and
-## unload the DLL and void all the pointers?  That requires that we
-## keep a pointer cache here, but that's easy enough.  We can register
-## this for eventual garbage collection too, so that's nice.
-##
-## When doing codegen we can build out interfaces that don't include
-## much R switching, can get the code bits dealt with correctly.
-
-##' Generate an ODE interface from an odin shared library.  This is
-##' used internally when generating packages, and should not be used
-##' by end users.
-##' @title Generate ODE system
-##' @param dll Name of the shared library (with no extension)
-##' @param name Name of the model within the shared library
-##' @keywords internal
-##' @export
-ode_system_generator <- function(dll, name) {
-  self <- NULL # for R CMD check
-  info <- .Call(paste0(name, "_info"), PACKAGE=dll)
-  cl <- R6::R6Class(
-    "ode_system",
-    public=list(
-
-      ## Bunch of stored stuff:
-      name=name,
-      dll=dll,
-      C=odin_dll_info(name, dll, info$discrete),
-      discrete=info$discrete,
-      has_delay=info$has_delay,
-      has_user=length(info$user) > 0L,
-      has_output=info$has_output,
-      has_interpolate=info$has_interpolate,
-      has_array=info$has_array,
-      ## TODO: make this configurable as info$use_dde
-      use_dde=FALSE,
-      user=info$user,
-      initial_stage=info$initial_stage,
-      dim_stage=info$dim_stage,
-      interpolate_t=NULL,
-
-      ## More volitile:
-      ptr=NULL,
-      ode=NULL,
-
-      ## Cache:
-      init=NULL,
-      variable_order=NULL,
-      output_order=NULL,
-      names=NULL,
-      transform_variables=NULL,
-      output_length=NULL,
-
-      ## TODO: both initialize and set_user should optionally be fully
-      ## generated to take a proper argument lists derived from
-      ## info$user.
-      initialize=function(user=NULL, dde=FALSE) {
-        ## TODO: check that dde is a non-missing logical scalar
-        self$use_dde <- dde
-        self$ptr <- .Call(self$C$create, user, self$use_dde)
-        if (self$initial_stage < STAGE_TIME) {
-          ## NOTE: Because we never use time in this case it's safe to
-          ## pass anything at all through here.
-          self$init <- .Call(self$C$init, self$ptr, NA_real_)
-        }
-        self$update_cache()
-        if (self$discrete) {
-          loadNamespace("dde")
-          self$ode <- dde::difeq
-        } else if (self$use_dde) {
-          loadNamespace("dde")
-          self$ode <- dde::dopri
-        } else if (self$has_delay) {
-          self$ode <- deSolve::dede
-        } else {
-          self$ode <- deSolve::ode
-        }
-      },
-
-      ## This function is problematic because it's fairly hard to
-      ## check the arguments safely.  I want to run the arguments
-      ## through a sanitiser first.
-      set_user=function(..., user=list(...)) {
-        if (self$has_user) {
-          .Call(self$C$set_user, self$ptr, user)
-          if (self$initial_stage == STAGE_USER) {
-            self$init <- .Call(self$C$init, self$ptr, NA_real_)
-          }
-          if (self$dim_stage == STAGE_USER) {
-            self$update_cache()
-          }
-        } else {
-          stop("This model does not have parameters")
-        }
-        invisible(self$init)
-      },
-
-      update_cache=function() {
-        self$variable_order <- .Call(self$C$variable_order, self$ptr)
-        self$output_order <- .Call(self$C$output_order, self$ptr)
-        self$output_length <- as.integer(
-          sum(vnapply(self$output_order, function(x)
-            if (is.null(x)) 1 else prod(x))))
-        self$names <- make_names(c(self$variable_order, self$output_order))
-        self$transform_variables <- make_transform_variables(self)
-        if (self$has_interpolate) {
-          self$interpolate_t <- .Call(self$C$interpolate_t, self$ptr)
-        }
-      },
-
-      deriv=function(t, y) {
-        if (self$has_delay) {
-          stop("deriv() is not supported in delay models")
-        }
-        .Call(self$C$deriv, self$ptr, t, y)
-      },
-
-      initial=function(t0) {
-        if (self$initial_stage < STAGE_TIME) {
-          self$init
-        } else {
-          ## TODO: is length checked before dereferencing in C?
-          .Call(self$C$init, self$ptr, as.numeric(t0))
-        }
-      },
-
-      run=function(t, y=NULL, ..., tcrit = NULL, use_names=TRUE) {
-        t0 <- t[[1L]]
-        if (is.null(y)) {
-          y <- self$initial(t0)
-        } else if (self$has_delay) {
-          ## TODO: If there are models where the intitial conditions
-          ## are referenced on the RHS, then we'll need to call this
-          ## too.
-          .Call(self$C$set_initial, self$ptr, t0, y)
-        }
-        if (self$has_interpolate) {
-          r <- self$interpolate_t
-          if (t0 < r[[1L]]) {
-            stop("Integration times do not span interpolation range; min: ",
-                 r[[1L]])
-          }
-          if (!is.na(r[[2L]]) && t[[length(t)]] > r[[2L]]) {
-            stop("Integration times do not span interpolation range; max: ",
-                 r[[2L]])
-          }
-          if (is.null(tcrit) && !is.na(r[[2L]]) && !self$use_dde) {
-            tcrit <- r[[2L]]
-          }
-        }
-        if (self$discrete) {
-          ## TODO: this doesn't allow for n_history to be tweaked by
-          ## the calling function, which would be useful if we want to
-          ## exploit the history.  That also requires passing in
-          ## return_history=TRUE.
-          n_history <- if (self$has_delay) 1000L else 0L
-          n_out <- self$output_length
-          output <- if (n_out > 0L) self$C$output_dde else NULL
-          ret <- self$ode(y, t, self$C$deriv_dde, self$ptr,
-                          dllname=self$dll, n_out=n_out, output=output,
-                          n_history=n_history, return_history=FALSE,
-                          parms_are_real=FALSE,
-                          ## Try and preserve some compatibility with deSolve:
-                          by_column=TRUE, return_initial=TRUE,
-                          ...)
-        } else if (self$use_dde) {
-          ## TODO: this doesn't allow for n_history to be tweaked by
-          ## the calling function, which would be useful if we want to
-          ## exploit the history.  That also requires passing in
-          ## return_history=TRUE.
-          n_history <- if (self$has_delay) 1000L else 0L
-          ## NOTE: This is a bit shit, but does the job for now:
-          n_out <- self$output_length
-          output <- if (n_out > 0L) self$C$output_dde else NULL
-          ret <- self$ode(y, t, self$C$deriv_dde, self$ptr,
-                          dllname=self$dll, n_out=n_out, output=output,
-                          n_history=n_history, return_history=FALSE,
-                          parms_are_real=FALSE,
-                          ## Try and preserve some compatibility with deSolve:
-                          by_column=TRUE, return_initial=TRUE,
-                          ...)
-          ret <- cbind(t, ret, attr(ret, "output"), deparse.level=0)
-        } else {
-          ret <- self$ode(y, t, self$C$deriv_ds, self$ptr,
-                          initfunc=self$C$initmod_ds, dllname=self$dll,
-                          nout=self$output_length, tcrit=tcrit, ...)
-        }
-        if (use_names) {
-          colnames(ret) <- self$names
-        } else {
-          colnames(ret) <- NULL
-        }
-        ret
-      },
-
-      contents=function() {
-        .Call(self$C$contents, self$ptr)
-      }
-    ))
-
-  make_user_collector(info$user, quote(cl$new), environment(), FALSE)
-}
-
-discrete_system_generator <- function(dll, name) {
-  self <- NULL
-}
-
-## This is going to change, probably for a code-gen approach, as this
-## is a bit rubbish and quite confusing for me.  #technicaldebt
-odin_dll_info <- function(name, dll, discrete) {
-  ## TODO: Something indicating how many parameters we are willing to
-  ## take for the initialisation part.
-  ret <- list(
-    create=getNativeSymbolInfo(sprintf("%s_create", name), dll),
-    init=getNativeSymbolInfo(sprintf("%s_initialise", name), dll),
-    set_initial=getNativeSymbolInfo(sprintf("%s_set_initial", name), dll),
-    set_user=getNativeSymbolInfo(sprintf("r_%s_set_user", name), dll),
-    contents=getNativeSymbolInfo(sprintf("%s_contents", name), dll),
-    variable_order=getNativeSymbolInfo(sprintf("%s_variable_order", name), dll),
-    output_order=getNativeSymbolInfo(sprintf("%s_output_order", name), dll),
-    interpolate_t=getNativeSymbolInfo(sprintf("%s_interpolate_t", name), dll))
-  if (discrete) {
-    ret <-
-      c(ret,
-        list(
-          update=getNativeSymbolInfo(sprintf("%s_update_r", name), dll),
-          update_dde=getNativeSymbolInfo(sprintf("%s_update_dde", name), dll)))
-  } else {
-    ret <- c(ret,
-             list(
-               deriv=getNativeSymbolInfo(sprintf("%s_deriv_r", name), dll),
-               deriv_ds=sprintf("%s_deriv_ds", name),
-               initmod_ds=sprintf("%s_initmod_ds", name),
-               deriv_dde=sprintf("%s_deriv_dde", name),
-               output_dde=sprintf("%s_output_dde", name)))
+odin_prepare <- function(obj) {
+  if (!is.null(obj$output_order)) {
+    obj$output_length <- as.integer(
+      sum(vnapply(obj$output_order,
+                  function(x) if (is.null(x)) 1 else prod(x))))
   }
-  ret
+  obj$names <- make_names(c(obj$variable_order, obj$output_order))
+  obj$transform_variables <- make_transform_variables(obj)
+  obj
 }
-
-## TODO: depending on the dimensionality stage we will want to run
-## this at other times; that needs to be added to the interface bits
-## as soon as variable sized arrays are handled (I have most of the
-## ingredients for this now, I think).
-
-## The issue here is that in the case of purely scalar variables we
-## really want to return a matrix not a vector.  Matrices are heaps
-## faster dto deal with (especially row-wise access) so we should make
-## that an option I think.
 
 ## At the same time, things like row-wise access of the list based
 ## form is basically impossible so we should consider classing this
@@ -483,25 +239,6 @@ make_transform_variables <- function(x) {
     }
     ret
   }
-}
-
-make_user_collector <- function(user, call, env, dde) {
-  if (is.null(user)) {
-    args <- c(list(dde=dde),
-              bquote(.(call)(NULL, dde)))
-  } else {
-    req <- names(user)[user]
-    opt <- names(user)[!user]
-    collect <- as.call(c(list(quote(list)),
-                         setNames(lapply(req, as.symbol), req),
-                         setNames(lapply(opt, as.symbol), opt)))
-    args <- c(setNames(rep(alist(user=), length(req)), req),
-              setNames(rep(alist(user=NULL), length(opt)), opt),
-              list(user=collect, dde=dde),
-              ## Body:
-              bquote(.(call)(user, dde)))
-  }
-  as.function(args, env)
 }
 
 make_names <- function(ord) {

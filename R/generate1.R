@@ -45,10 +45,10 @@ odin_generate1 <- function(dat) {
 ## types that we can reference everywhere.  But that might just be
 ## more complicated than it needs to be?
 odin_generate1_object <- function(dat) {
-  base <- dat$config$base
+  base <- dat$info$base
   self <- list(base=base)
 
-  self$info <- list(base=base,
+  self$info <- list(base=dat$info$base,
                     ## Model type
                     discrete=dat$info$discrete,
                     ## Core traits
@@ -56,11 +56,10 @@ odin_generate1_object <- function(dat) {
                     has_output=dat$info$has_output,
                     has_interpolate=dat$info$has_interpolate,
                     has_array=dat$info$has_array,
+                    has_user=dat$info$has_user,
                     ## Initialisation stages
-                    initial_stage=dat$initial_info$stage,
-                    dim_stage=dat$dim_stage,
-                    ## User variables
-                    user=dat$user_default)
+                    initial_stage=dat$info$initial_stage,
+                    dim_stage=dat$info$dim_stage)
 
   ## TODO: This might change once I get the proof of concept working.
   ## This could also be the core of customising output things a bit.
@@ -75,7 +74,7 @@ odin_generate1_object <- function(dat) {
 
   self$variable_info <- dat$variable_info
   self$output_info <- dat$output_info
-  self$initial_info <- dat$initial_info
+  self$initial_exprs <- dat$initial_exprs
 
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)

@@ -42,7 +42,8 @@
 ##'
 ##' @export
 odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
-  if (!file.exists(file.path(path_package, "DESCRIPTION"))) {
+  desc <- file.path(path_package, "DESCRIPTION")
+  if (!file.exists(desc)) {
     stop("Did not find package at ", path_package)
   }
   if (is.null(filenames)) {
@@ -76,6 +77,14 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   code <- vcapply(dat, "[[", "code")
   info <- lapply(dat, "[[", "info")
   base <- vcapply(info, "[[", "base")
+
+  ## We can only generate the R code once we have the dll name
+  name <- as.vector(read.dcf(desc, "Package"))
+  if (is.na(name)) {
+    ## This might be overly cautious.
+    stop("Failed to get package name from DESCRIPTION")
+  }
+  r_code <- lapply(info, odin_generate_r, name)
 
   header <- c(odin_header(), odin_includes())
 
@@ -121,11 +130,16 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
     }
   }
 
-  r_code <- sprintf(
-    'delayedAssign("%s", odin::ode_system_generator(.packageName, "%s"))',
-    base, base)
-  writeLines(c(sub("^//", "##", odin_header()), r_code),
-             file.path(path_package, "R", "odin.R"))
+  header_r <- sub("^//", "##", odin_header())
+  if (single_file) {
+    filename_r <- file.path(path_package, "R", "odin.R")
+    writeLines(c(header_r, unlist(r_code)), filename_r)
+  } else {
+    filenames_r <- file.path(path_package, "R", sprintf("odin_%s.R", base))
+    for (i in seq_along(filenames)) {
+      writeLines(c(header_r, r_code[[i]]), filenames_r[[i]])
+    }
+  }
 }
 
 combine_library <- function(dat) {

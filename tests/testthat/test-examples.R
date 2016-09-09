@@ -39,35 +39,38 @@ test_that("basic interface", {
     t <- seq_range(mod_r$t, 300)
     t0 <- mod_r$t[[1L]]
 
+    has_delay <- b %in% c("seir", "seir_array")
+
     gen <- odin(filename_o, verbose=TEST_VERBOSE)
     ## NOTE: this is a bit ugly; I'm really not sure what the right
     ## thing to do here is, but it might be to add an R6 option to
     ## odin() that would return the class (for use with inheritence
     ## etc) rather that the generating function here.
-    expect_is(environment(gen)$cl, "R6ClassGenerator")
     mod_c <- gen()
-    expect_is(mod_c, "ode_system")
+    expect_is(mod_c, "odin_model")
 
     expect_equal(mod_c$init,
-                 if (mod_c$has_delay) NULL else unname(mod_r$initial(t0)))
+                 if (has_delay) NULL else unname(mod_r$initial(t0)))
     expect_equal(mod_c$initial(t0), unname(mod_r$initial(t0)))
 
-    if (mod_c$has_delay) {
-      expect_error(mod_c$deriv(t0, mod_c$init), "not supported in delay")
+    has_output <- !is.null(mod_c$output_length)
+
+    if (has_delay) {
+      expect_error(mod_c$deriv(t0, mod_c$init), "attempt to apply non-function")
     } else {
       deriv_c <- mod_c$deriv(t0, mod_c$init)
       deriv_r <- mod_r$derivs(t0, mod_c$init)
       expect_equal(deriv_c, deriv_r[[1L]], check.attributes=FALSE)
 
-      if (mod_c$output_length == 0L) {
-        expect_null(attr(deriv_c, "output"))
-      } else {
+      if (has_output) {
         ## The check.attributes is necessary because otherwise testthat
         ## gives entirely meaningless error messages on attribute
         ## differences (as it looks for differences in the values
         ## themselves).
         expect_equal(attr(deriv_c, "output", exact=TRUE), deriv_r[[2L]],
                      check.attributes=FALSE)
+      } else {
+        expect_null(attr(deriv_c, "output"))
       }
     }
 
@@ -84,7 +87,7 @@ test_that("basic interface", {
     y <- mod_c$transform_variables(res_c)
     expect_is(y, "list")
 
-    if (mod_c$has_output) {
+    if (has_output) {
       order <- c(mod_c$variable_order, mod_c$output_order)
     } else {
       order <- mod_c$variable_order
@@ -129,17 +132,9 @@ test_that("user arrays", {
   res2 <- mod2$run(t)
   expect_equal(res1, res2)
 
-  expect_equal(mod1$dim_stage, STAGE_CONSTANT)
-  expect_equal(mod2$dim_stage, STAGE_CONSTANT)
-  expect_equal(mod1$initial_stage, STAGE_USER)
-  expect_equal(mod2$initial_stage, STAGE_USER)
-
   ## User *sized* arrays.
   gen3 <- odin("examples/array_odin_user2.R", verbose=TEST_VERBOSE)
   mod3 <- gen3(age_width)
-
-  expect_equal(mod3$dim_stage, STAGE_USER)
-  expect_equal(mod3$initial_stage, STAGE_USER)
 
   dat3 <- mod3$contents()
   dat1 <- mod1$contents()
@@ -200,7 +195,7 @@ test_that("lv", {
   t <- seq_range(mod_r$t, 10000)
   t0 <- mod_r$t[[1L]]
 
-  expect_is(mod_c, "ode_system")
+  expect_is(mod_c, "odin_model")
   expect_equal(mod_c$init, pars$y0)
 
   deriv_c <- mod_c$deriv(t0, mod_c$init)
@@ -239,15 +234,11 @@ test_that("dde", {
 
     gen <- odin(filename_o, verbose=TEST_VERBOSE)
     mod_ds <- gen()
-    mod_dde <- gen(dde=TRUE)
+    mod_dde <- gen(use_dde=TRUE)
 
     ## Looks good:
     expect_false(mod_ds$use_dde)
     expect_true(mod_dde$use_dde)
-
-    ## Correct function found:
-    expect_equal(environmentName(environment(mod_ds$ode)), "deSolve")
-    expect_equal(mod_dde$ode, dde::dopri)
 
     ## Let's go.
     res_ds <- mod_ds$run(t)

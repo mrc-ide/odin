@@ -45,10 +45,6 @@ test_that("user variables", {
   expect_equal(dat$K, 100.0)
 
   ## Now, try setting one of these:
-  ## TODO:
-  ##   mod$set_user(list(N0=5))
-  ## gives the entirely unuseful error message:
-  ##   STRING_ELT() can only be applied to a 'character vector', not a 'NULL'
   mod$set_user(N0=5)
   dat <- mod$contents()
   expect_equal(dat$r, pi)
@@ -68,8 +64,9 @@ test_that("user variables on models with none", {
   }, verbose=TEST_VERBOSE)
   expect_error(gen(a=1), "unused argument")
   mod <- gen()
-  expect_error(mod$set_user(), "This model does not have parameters")
-  expect_error(mod$set_user(a = 1), "This model does not have parameters")
+  ## NOTE: This is a change of behaviour, but that's probably OK
+  expect_error(mod$set_user(), "attempt to apply non-function")
+  expect_error(mod$set_user(a = 1), "attempt to apply non-function")
 })
 
 test_that("non-numeric time", {
@@ -82,6 +79,7 @@ test_that("non-numeric time", {
   }, verbose=TEST_VERBOSE)
   mod <- gen()
   t <- as.integer(0:10)
+  expect_equal(mod$initial(t), 0.5)
   expect_silent(mod$run(t))
 })
 
@@ -320,7 +318,7 @@ test_that("unused variable in output", {
     output(tot) <- S + E1 + E2 + I1 + I2 + R
   }, verbose=TEST_VERBOSE)
   mod <- gen()
-  expect_is(mod, "ode_system")
+  expect_is(mod, "odin_model")
   t <- seq(0, 10, length.out = 100)
   expect_error(mod$run(t), NA)
 })
@@ -367,7 +365,7 @@ test_that("mixed", {
     r <- 0.1
   }, verbose=TEST_VERBOSE)
   mod <- gen()
-  expect_is(mod, "ode_system")
+  expect_is(mod, "odin_model")
   t <- seq(0, 10, length.out = 100)
   y <- mod$run(t)
   expect_error(y, NA) # just test that it doesn't fail
