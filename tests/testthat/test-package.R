@@ -84,4 +84,10 @@ test_that("error cases", {
                "Duplicate file")
   expect_error(odin_package(pkg, rep(files, 2)),
                "Duplicate files")
+
+  desc <- file.path(pkg, "DESCRIPTION")
+  tmp <- tolower(readLines(desc))
+  writeLines(tmp, desc)
+  expect_error(odin_package(pkg, files),
+               "Failed to get package name from DESCRIPTION")
 })

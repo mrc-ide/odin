@@ -67,6 +67,11 @@ test_that("some parse errors", {
 
   expect_error(odin_parse("deriv(y) = 1; initial(x) = 2"),
                "must contain same set of equations")
+  expect_error(odin_parse("update(y) = 1; initial(x) = 2"),
+               "must contain same set of equations")
+
+  expect_error(odin_parse("deriv(y) = 1; update(z) = 1; initial(y) = 1; initial(z) = 1;"),
+               "Cannot mix deriv() and update()", fixed=TRUE)
 
   expect_error(odin_parse(quote(x <- y + z)),
                "Unknown variables y, z")
