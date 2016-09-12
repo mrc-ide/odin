@@ -51,18 +51,7 @@ odin_generate1_object <- function(dat) {
   base <- dat$info$base
   self <- list(base=base)
 
-  self$info <- list(base=dat$info$base,
-                    ## Model type
-                    discrete=dat$info$discrete,
-                    ## Core traits
-                    has_delay=dat$info$has_delay,
-                    has_output=dat$info$has_output,
-                    has_interpolate=dat$info$has_interpolate,
-                    has_array=dat$info$has_array,
-                    has_user=dat$info$has_user,
-                    ## Initialisation stages
-                    initial_stage=dat$info$initial_stage,
-                    dim_stage=dat$info$dim_stage)
+  self$info <- dat$info
 
   ## TODO: This might change once I get the proof of concept working.
   ## This could also be the core of customising output things a bit.
