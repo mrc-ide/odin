@@ -5,9 +5,9 @@
 \alias{odin_}
 \title{Create an odin model}
 \usage{
-odin(x, dest = tempdir(), build = TRUE, load = TRUE, verbose = TRUE)
+odin(x, dest = tempdir(), build = TRUE, verbose = TRUE)
 
-odin_(x, dest = tempdir(), build = TRUE, load = TRUE, verbose = TRUE)
+odin_(x, dest = tempdir(), build = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -19,19 +19,18 @@ default is the temporary directory, but \code{"."} is
 another useful value.}
 
 \item{build}{Logical scalar indicating if we should build the
-model (i.e. compile the dll).}
-
-\item{load}{Logical scalar indicating if the dll should be loaded
-and an \code{ode_generator} object returned.  Only used if
-\code{build} is \code{TRUE}.}
+model (i.e. compile the dll).  Using \code{build = FALSE} is
+primarily for internal use, because the model can't be easily
+used without some generated R code and that is not returned.}
 
 \item{verbose}{Logical scalar indicating if the compilation should
 be verbose.  In future versions this may also make the
 parse/generate step be verbose too.}
 }
 \value{
-If \code{load} is \code{TRUE}, an \code{ode_generator}
-  object, otherwise the filename of the generated C file.
+If \code{build} is \code{TRUE}, an function that can
+  generate the model, otherwise the filename of the generated C
+  file.
 }
 \description{
 Create an odin model from a file, text string(s) or expression.

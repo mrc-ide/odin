@@ -34,24 +34,32 @@
 ##' very likely to outperform the simple solver implemented.
 ##'
 ##' @title Create an odin model
+##'
 ##' @param x Either the name of a file to read, a text string (if
 ##'   length is greater than 1 elements will be joined with newlines)
 ##'   or an expression.
+##'
 ##' @param dest Destination \emph{directory} for generated files.  The
 ##'   default is the temporary directory, but \code{"."} is
 ##'   another useful value.
+##'
 ##' @param build Logical scalar indicating if we should build the
-##'   model (i.e. compile the dll).
-##' @param load Logical scalar indicating if the dll should be loaded
-##'   and an \code{ode_generator} object returned.  Only used if
-##'   \code{build} is \code{TRUE}.
+##'   model (i.e. compile the dll).  Using \code{build = FALSE} is
+##'   primarily for internal use, because the model can't be easily
+##'   used without some generated R code and that is not returned.
+##'
 ##' @param verbose Logical scalar indicating if the compilation should
 ##'   be verbose.  In future versions this may also make the
 ##'   parse/generate step be verbose too.
-##' @return If \code{load} is \code{TRUE}, an \code{ode_generator}
-##'   object, otherwise the filename of the generated C file.
+##'
+##' @return If \code{build} is \code{TRUE}, an function that can
+##'   generate the model, otherwise the filename of the generated C
+##'   file.
+##'
 ##' @author Rich FitzJohn
 ##' @export
+##' @importFrom R6 R6Class
+##' @importFrom deSolve ode dede
 ##' @examples
 ##' if (can_compile()) { # only run this if a system is set up to compile
 ##'
