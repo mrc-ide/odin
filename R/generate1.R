@@ -13,7 +13,9 @@ odin_generate1 <- function(dat) {
   ##
   ## The dde flag is set at object creation and a default cannot (yet)
   ## be set from within the odin code [TODO]
-  obj$add_element("odin_use_dde", "int")
+  if (!dat$info$discrete) {
+    obj$add_element("odin_use_dde", "int")
+  }
   if (obj$info$has_delay) {
     obj$add_element(initial_name(TIME), "double")
   }
@@ -188,8 +190,12 @@ odin_generate1_library <- function(obj, eqs) {
 
   ## Support for differential equations:
   if (obj$info$has_delay) {
-    obj$library_fns$add("lagvalue_dde")
-    obj$library_fns$add("lagvalue_ds")
+    if (obj$info$discrete) {
+      obj$library_fns$add("lagvalue_discrete")
+    } else {
+      obj$library_fns$add("lagvalue_dde")
+      obj$library_fns$add("lagvalue_ds")
+    }
   }
 }
 
@@ -618,11 +624,15 @@ odin_generate1_delay <- function(x, obj, eqs) {
                        obj$rewrite(delay_idx),
                        obj$rewrite(delay_dim),
                        obj$rewrite(delay_state))
-  obj[[st]]$add("    if (%s) {", obj$rewrite("odin_use_dde"), name=nm)
-  obj[[st]]$add(lagvalue, "dde", name=nm)
-  obj[[st]]$add("    } else {", name=nm)
-  obj[[st]]$add(lagvalue, "ds", name=nm)
-  obj[[st]]$add("    }", name=nm)
+  if (obj$info$discrete) {
+    obj[[st]]$add(lagvalue, "discrete", name=nm)
+  } else {
+    obj[[st]]$add("    if (%s) {", obj$rewrite("odin_use_dde"), name=nm)
+    obj[[st]]$add(lagvalue, "dde", name=nm)
+    obj[[st]]$add("    } else {", name=nm)
+    obj[[st]]$add(lagvalue, "ds", name=nm)
+    obj[[st]]$add("    }", name=nm)
+  }
   obj[[st]]$add("    %s = %s;", x$delay$extract, delay_access, name=nm)
   obj[[st]]$add("  }", name=nm)
 

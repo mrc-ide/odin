@@ -128,7 +128,7 @@ odin_generate_r_update_cache <- function(info, dll) {
   ## this is OK via the parent env flag but this could cause trouble
   ## with R CMD check in generated packages which I would rather
   ## avoid.
-  ret$add("  odin_prepare(self)")
+  ret$add("  odin_prepare(self, %s)", info$discrete)
   ret$add("}")
   ret$get()
 }
@@ -137,10 +137,6 @@ odin_generate_r_initialize <- function(info, dll) {
   ret <- collector()
   base <- info$base
   if (info$discrete) {
-    ## TODO: fix generation of create for the discrete case so dde is
-    ## not passed through here.  At the same time, need to tweak where
-    ## 'odin_use_dde' is used so that lagvalue is defined differently.
-    ## It's not actually _that_ much hassle.
     ret <- collector()
     ret$add("initialize = function(user=NULL) {")
     ret$add("  self$ptr <- %s", dot_call(base, dll, "%s_create", "user"))
@@ -259,7 +255,21 @@ odin_generate_r_run <- function(info, dll) {
     ret$add(indent(odin_generate_r_run_interpolate_check(info), 2))
   }
   if (discrete) {
-    stop("writeme") # depends on breaking the time/step bit a little
+    ret$add('  ret <- dde::difeq(y, %s, "%s_update_dde", self$ptr,',
+            time, base)
+    ret$add(indent(sprintf('dllname="%s",', dll), 20))
+    if (info$has_output) {
+      ret$add(indent(sprintf('n_out=self$output_length,', base), 20))
+    }
+    if (info$has_delay) {
+      ## TODO: make this a default like tcrit is; that's *much* easier
+      ## now that we're doing codegen.  Wait until I factor this out
+      ## into its own function though.
+      ret$add(indent("n_history=1000L, return_history=FALSE,", 20))
+    }
+    ret$add(indent("parms_are_real=FALSE,", 20))
+    ## Try and preserve some compatibility with deSolve:
+    ret$add(indent("deSolve_compatible=TRUE, ...)", 20))
   } else {
     ## OK throughout here I think I'll break this up a little and do
     ## it as argument collection / formatting.

@@ -77,7 +77,11 @@ odin_generate2_create <- function(obj) {
   ret$add("// constant variables")
   ## NOTE: finalize definition in odin_generate2_finalize()
   ret$add("static void %s_finalize(SEXP %s_ptr);", obj$info$base, obj$info$base)
-  ret$add("SEXP %s_create(SEXP %s, SEXP odin_use_dde) {", obj$info$base, USER)
+  if (obj$info$discrete) {
+    ret$add("SEXP %s_create(SEXP %s) {", obj$info$base, USER)
+  } else {
+    ret$add("SEXP %s_create(SEXP %s, SEXP odin_use_dde) {", obj$info$base, USER)
+  }
   ret$add("  %s *%s = (%s*) Calloc(1, %s);",
           obj$type_pars, obj$name_pars, obj$type_pars, obj$type_pars)
   constant <- obj$constant$get()
@@ -94,7 +98,9 @@ odin_generate2_create <- function(obj) {
   ## failing (as it throws on failure so the Free()'s would never
   ## happen).
   ret$add("  %s_set_user(%s, %s);", obj$info$base, obj$name_pars, USER)
-  ret$add("  %s = INTEGER(odin_use_dde)[0];", obj$rewrite("odin_use_dde"))
+  if (!obj$info$discrete) {
+    ret$add("  %s = INTEGER(odin_use_dde)[0];", obj$rewrite("odin_use_dde"))
+  }
   ret$add("  UNPROTECT(1);")
   ret$add("  return %s_ptr;", obj$info$base)
   ret$add("}")
@@ -280,9 +286,9 @@ odin_generate2_update <- function(obj) {
   ret <- collector()
 
   ret$add(
-    "void %s_update(%s *%s, size_t %s, double %s, double *%s, double *%s, double *%s) {",
+    "void %s_update(%s *%s, size_t %s, double *%s, double *%s, double *%s) {",
     obj$info$base, obj$type_pars, obj$name_pars,
-    STEP, TIME, STATE, STATE_NEXT, OUTPUT)
+    STEP, STATE, STATE_NEXT, OUTPUT)
   ret$add(indent(odin_generate2_vars(obj), 2))
   ret$add(indent(odin_generate2_unpack(obj), 2))
 
@@ -305,22 +311,22 @@ odin_generate2_update <- function(obj) {
 odin_generate2_update_dde <- function(obj) {
   ret <- collector()
   ret$add(
-    "void %s_update_dde(size_t n, size_t %s, double %s, double *%s, double *%s,",
-    obj$info$base, STEP, TIME, STATE, STATE_NEXT)
+    "void %s_update_dde(size_t n, size_t %s, double *%s, double *%s,",
+    obj$info$base, STEP, STATE, STATE_NEXT)
   ret$add(
     "               size_t n_out, double *%s, void *%s) {",
     OUTPUT, obj$name_pars)
-  ret$add("  %s_update((%s*)%s, %s, %s, %s, %s, %s);",
+  ret$add("  %s_update((%s*)%s, %s, %s, %s, %s);",
           obj$info$base, obj$type_pars, obj$name_pars,
-          STEP, TIME, STATE, STATE_NEXT, OUTPUT)
+          STEP, STATE, STATE_NEXT, OUTPUT)
   ret$add("}")
   ret$get()
 }
 
 odin_generate2_update_r <- function(obj) {
   ret <- collector()
-  ret$add("SEXP %s_update_r(SEXP %s_ptr, SEXP %s, SEXP %s, SEXP %s) {",
-          obj$info$base, obj$info$base, STEP, TIME, STATE)
+  ret$add("SEXP %s_update_r(SEXP %s_ptr, SEXP %s, SEXP %s) {",
+          obj$info$base, obj$info$base, STEP, STATE)
   ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
           STATE_NEXT, STATE)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
@@ -338,9 +344,11 @@ odin_generate2_update_r <- function(obj) {
     np <- 1L
   }
 
+  ## TODO: coerce any real given as arg 2 into an int (similar thing
+  ## needed for the continuous case so add a support function).
   ret$add(
-    "  %s_update(%s, INTEGER(%s)[0], REAL(%s)[0], REAL(%s), REAL(%s), %s);",
-    obj$info$base, obj$name_pars, STEP, TIME, STATE, STATE_NEXT, OUTPUT)
+    "  %s_update(%s, INTEGER(%s)[0], REAL(%s), REAL(%s), %s);",
+    obj$info$base, obj$name_pars, STEP, STATE, STATE_NEXT, OUTPUT)
   ret$add("  UNPROTECT(%d);", np)
   ret$add("  return %s;", STATE_NEXT)
   ret$add("}")

@@ -160,13 +160,13 @@ can_compile <- function(verbose=FALSE, skip_cache=FALSE) {
   getOption("odin.can_compile", FALSE)
 }
 
-odin_prepare <- function(obj) {
+odin_prepare <- function(obj, discrete) {
   if (!is.null(obj$output_order)) {
     obj$output_length <- as.integer(
       sum(vnapply(obj$output_order,
                   function(x) if (is.null(x)) 1 else prod(x))))
   }
-  obj$names <- make_names(c(obj$variable_order, obj$output_order))
+  obj$names <- make_names(c(obj$variable_order, obj$output_order), discrete)
   obj$transform_variables <- make_transform_variables(obj)
   obj
 }
@@ -241,7 +241,7 @@ make_transform_variables <- function(x) {
   }
 }
 
-make_names <- function(ord) {
+make_names <- function(ord, discrete = FALSE) {
   if (all(vlapply(ord, is.null))) {
     nms <- names(ord)
   } else {
@@ -255,5 +255,5 @@ make_names <- function(ord) {
     idx <- unname(lapply(ord, f))
     nms <- sprintf("%s%s", rep(names(ord), lengths(idx)), unlist(idx))
   }
-  c(TIME, nms)
+  c(if (discrete) STEP else TIME, nms)
 }

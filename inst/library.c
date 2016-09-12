@@ -252,6 +252,15 @@ void lagvalue_dde(double t, int *idx, size_t dim_idx, double *state) {
   return fun(t, idx, dim_idx, state);
 }
 
+void lagvalue_discrete(int step, int *idx, size_t dim_idx, double *state) {
+  typedef void (*lagvalue_type)(double, int*, size_t, double*);
+  static lagvalue_type fun = NULL;
+  if (fun == NULL) {
+    fun = (lagvalue_type)R_GetCCallable("dde", "yprev_vec_int");
+  }
+  return fun(step, idx, dim_idx, state);
+}
+
 void odin_set_dim2(SEXP target, int nr, int nc) {
   SEXP dim = PROTECT(allocVector(INTSXP, 2));
   INTEGER(dim)[0] = nr;
