@@ -746,7 +746,8 @@ odin_generate1_interpolate <- function(x, obj) {
   ## do is not go further than the end?
   target <- sprintf(if (x$lhs$type == "array") "%s" else "&(%s)",
                     obj$rewrite(nm))
+  time_name <- if (obj$info$discrete) STEP else TIME
   obj$time$add("interpolate_%s_run(%s, %s, %s);",
-               interpolation_type, TIME, obj$rewrite(dest), target,
+               interpolation_type, time_name, obj$rewrite(dest), target,
                name=nm)
 }

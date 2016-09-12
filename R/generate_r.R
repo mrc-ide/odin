@@ -322,22 +322,25 @@ odin_generate_r_run <- function(info, dll) {
 ## TODO: Some care will be needed when dealing with discrete
 ## models here
 odin_generate_r_run_interpolate_check <- function(info) {
-  time <- if (info$discrete) STEP else TIME
+  time_name <- if (info$discrete) STEP else TIME
   ret <- collector()
   ret$add("r <- self$interpolate_t")
-  ret$add("if (%s[[1L]] < r[[1L]]) {", time)
+  ret$add("if (%s[[1L]] < r[[1L]]) {", time_name)
   ret$add('  stop("Integration times do not span interpolation range; min: ",')
   ret$add("        r[[1L]])")
   ret$add("}")
-  ret$add("if (!is.na(r[[2L]]) && %s[[length(%s)]] > r[[2L]]) {", time, time)
+  ## TODO: we can look at the max order of the interpolation and
+  ## decide whether this clause needs to be added.
+  ret$add("if (!is.na(r[[2L]]) && %s[[length(%s)]] > r[[2L]]) {",
+          time_name, time_name)
   ret$add('  stop("Integration times do not span interpolation range; max: ",')
   ret$add("        r[[2L]])")
   ret$add("}")
-  ## This will need some work:
-  if (info$discrete) stop("FIXME")
-  ret$add("if (is.null(tcrit) && !is.na(r[[2L]]) && !self$use_dde) {")
-  ret$add("  tcrit <- r[[2L]]")
-  ret$add("}")
+  if (!info$discrete) {
+    ret$add("if (is.null(tcrit) && !is.na(r[[2L]]) && !self$use_dde) {")
+    ret$add("  tcrit <- r[[2L]]")
+    ret$add("}")
+  }
   ret$get()
 }
 
