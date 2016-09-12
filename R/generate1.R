@@ -17,7 +17,8 @@ odin_generate1 <- function(dat) {
     obj$add_element("odin_use_dde", "int")
   }
   if (obj$info$has_delay) {
-    obj$add_element(initial_name(TIME), "double")
+    time_name <- if (obj$info$discrete) STEP else TIME
+    obj$add_element(initial_name(time_name), "double")
   }
   odin_generate1_library(obj, dat$eqs)
 
@@ -476,6 +477,7 @@ odin_generate1_delay <- function(x, obj, eqs) {
   delay_is_array <- x$delay$is_array
   ## This one is nasty:
   deps_is_array <- x$delay$deps_is_array
+  time_name <- if (obj$info$discrete) STEP else TIME
 
   delay_size <- vcapply(x$delay$size, obj$rewrite)
   ## Need to compute total array size here, with the 3 options of all
@@ -519,7 +521,7 @@ odin_generate1_delay <- function(x, obj, eqs) {
   delay_idx <- delay_name(sprintf("%s_%s", INDEX[[1L]], nm))
   delay_state <- delay_name(sprintf("%s_%s", STATE, nm))
   delay_dim <- array_dim_name(delay_idx)
-  delay_time <- delay_name(TIME)
+  delay_time <- delay_name(time_name)
 
   ## If there are any arrays here we'll need to organise offsets.
   ## Rather than store the full offset vector I'll do this one by hand
@@ -610,16 +612,18 @@ odin_generate1_delay <- function(x, obj, eqs) {
   ## TODO: if time is used in the time calculation it will need
   ## rewriting.  But I believe that parse prohibits that in the
   ## meantime.
-  obj[[st]]$add("  const double %s = %s - %s;",
-                delay_time, TIME, obj$rewrite(x$delay$time), name=nm)
+  obj[[st]]$add("  const %s %s = %s - %s;",
+                if (obj$info$discrete) "int" else "double",
+                delay_time, time_name, obj$rewrite(x$delay$time), name=nm)
   obj[[st]]$add("  if (%s <= %s) {",
-                delay_time, obj$rewrite(initial_name(TIME)), name=nm)
+                delay_time, obj$rewrite(initial_name(time_name)), name=nm)
   obj[[st]]$add("    %s = %s;",
                 x$delay$extract,
                 vcapply(initial_name(x$delay$extract),
                         obj$rewrite, USE.NAMES=FALSE), name=nm)
   obj[[st]]$add("  } else {", name=nm)
-  lagvalue <-  sprintf("      lagvalue_%%s(%s, %s, %s, %s);",
+  lagvalue <-  sprintf(indent("lagvalue_%%s(%s, %s, %s, %s);",
+                       if (obj$info$discrete) 4 else 6),
                        delay_time,
                        obj$rewrite(delay_idx),
                        obj$rewrite(delay_dim),

@@ -245,8 +245,6 @@ odin_generate_r_run <- function(info, dll) {
   }
   if (info$has_delay) {
     ret$add("  } else {")
-    ## TODO: work to do here with discrete cases.
-    if (discrete) stop("FIXME")
     ret$add("    %s",
             dot_call(base, dll, "%s_set_initial", "self$ptr", time, "y"))
   }

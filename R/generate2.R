@@ -152,9 +152,12 @@ odin_generate2_finalize <- function(obj) {
 }
 
 odin_generate2_initial <- function(obj) {
+  discrete <- obj$info$discrete
+  time_name <- if (discrete) STEP else TIME
+  time_type <- if (discrete) "int" else "double"
   ret <- collector()
   ret$add("SEXP %s_initialise(SEXP %s_ptr, SEXP %s_ptr) {",
-          obj$info$base, obj$info$base, TIME)
+          obj$info$base, obj$info$base, time_name)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
           obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
 
@@ -162,10 +165,12 @@ odin_generate2_initial <- function(obj) {
 
   if (obj$info$has_delay || length(initial) > 0L) {
     if (obj$info$has_delay || obj$info$initial_stage >= STAGE_TIME) {
-      ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
+      time_access <- if (discrete) "INTEGER" else "REAL"
+      ret$add("  const %s %s = %s(%s_ptr)[0];",
+              time_type, time_name, time_access, time_name)
     }
     if (obj$info$has_delay) {
-      ret$add("  %s = %s;", obj$rewrite(initial_name(TIME)), TIME)
+      ret$add("  %s = %s;", obj$rewrite(initial_name(time_name)), time_name)
     }
 
     ## Dependencies of any initial expressions, filtered by time dependency:
@@ -206,9 +211,18 @@ odin_generate2_initial <- function(obj) {
 }
 
 odin_generate2_set_initial <- function(obj) {
+  if (obj$info$discrete) {
+    time_name <- STEP
+    time_type <- "int"
+    time_access <- "INTEGER"
+  } else {
+    time_name <- TIME
+    time_type <- "double"
+    time_access <- "REAL"
+  }
   ret <- collector()
   ret$add("SEXP %s_set_initial(SEXP %s_ptr, SEXP %s_ptr, SEXP %s_ptr) {",
-          obj$info$base, obj$info$base, TIME, STATE)
+          obj$info$base, obj$info$base, time_name, STATE)
   if (obj$info$has_delay) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
             obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
@@ -221,8 +235,9 @@ odin_generate2_set_initial <- function(obj) {
     ret$add("  }")
     ret$add("  double * %s = REAL(%s_ptr);", STATE, STATE)
 
-    ret$add("  const double %s = REAL(%s_ptr)[0];", TIME, TIME)
-    ret$add("  %s = %s;", obj$rewrite(initial_name(TIME)), TIME)
+    ret$add("  const %s %s = %s(%s_ptr)[0];",
+            time_type, time_name, time_access, time_name)
+    ret$add("  %s = %s;", obj$rewrite(initial_name(time_name)), time_name)
 
     ## NOTE: This is the inverse of generate2_initial() above
     nm_initial <- vcapply(initial_name(vars_info$order), obj$rewrite)

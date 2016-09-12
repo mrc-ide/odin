@@ -253,7 +253,7 @@ void lagvalue_dde(double t, int *idx, size_t dim_idx, double *state) {
 }
 
 void lagvalue_discrete(int step, int *idx, size_t dim_idx, double *state) {
-  typedef void (*lagvalue_type)(double, int*, size_t, double*);
+  typedef void (*lagvalue_type)(int, int*, size_t, double*);
   static lagvalue_type fun = NULL;
   if (fun == NULL) {
     fun = (lagvalue_type)R_GetCCallable("dde", "yprev_vec_int");

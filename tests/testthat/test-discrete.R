@@ -42,3 +42,18 @@ test_that("output", {
   expect_equal(zz$x, t(outer(r, tt) + x0))
   expect_equal(zz$total, rowSums(zz$x))
 })
+
+test_that("delays", {
+  gen <- odin::odin({
+    initial(y) <- 1
+    update(y) <- y + yprev
+    yprev <- delay(y, 1)
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen()
+  expect_null(mod$update) # no update function in a delay model
+
+  tt <- seq(0:10)
+  yy <- mod$run(tt)
+  expect_equal(yy[, "y"], c(1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144))
+})
