@@ -4,7 +4,6 @@ test_that("basic", {
   gen <- odin::odin({
     initial(x) <- 1
     update(x) <- x + 1
-    config(base) <- "discrete"
   }, verbose = TEST_VERBOSE)
 
   mod <- gen()
@@ -17,4 +16,29 @@ test_that("basic", {
   res <- mod$run(tt)
 
   expect_equal(res, cbind(step = tt, x = 1:11))
+})
+
+test_that("output", {
+  gen <- odin::odin({
+    initial(x[]) <- x0[i]
+    update(x[]) <- x[i] + r[i]
+    x0[] <- user()
+    r[] <- user()
+    dim(x0) <- user()
+    dim(x) <- length(x0)
+    dim(r) <- length(x)
+    output(total) <- sum(x)
+  }, verbose = TEST_VERBOSE)
+
+  x0 <- runif(10)
+  r <- runif(length(x0))
+
+  mod <- gen(x0 = x0, r = r)
+
+  tt <- 0:10
+  yy <- mod$run(tt)
+  zz <- mod$transform_variables(yy)
+
+  expect_equal(zz$x, t(outer(r, tt) + x0))
+  expect_equal(zz$total, rowSums(zz$x))
 })
