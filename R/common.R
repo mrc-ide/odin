@@ -30,6 +30,109 @@ INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 DIM_USER <- -1L
 DIM_DEPENDENT <- -2L
 
+## These are going to be in a list of 0, 1, 2, ... arguments.  The
+## last category will be nary.
+
+FUNCTIONS_INFIX <- c("+", "/", "-", "*", ">", "<", ">=", "<=", "==", "!=")
+## TODO: add "&&", "||"
+FUNCTIONS_UNARY <- c("+", "-") # TODO: add "!"?
+
+## TODO:
+##
+## gamma -> gammafn
+## lgamma -> lgammafn
+
+FUNCTIONS_RENAME <- c(
+  "%%" = "fmodr",
+  "^" = "pow",
+  abs = "fabs",
+  max = "odin_max",
+  min = "odin_min"
+)
+
+FUNCTIONS <- list(
+  ## Things that get special treatment
+  "[" = NA,   # checked in the array code
+  "sum" = NA, # checked and rewritten in odin_parse_expr_rhs_rewrite_sum
+  interpolate = NA, # dealt with elsewhere
+
+  ## General
+  "(" = 1L,
+  length = 1L,
+  dim = 2L,
+  "if" = 3L,
+  ## Mathematical operations
+  pow = 2L,
+  fabs = 1L,
+  fmodr = 2L,
+  odin_min = c(2L, Inf),
+  odin_max = c(2L, Inf),
+  exp = 1L,
+  log = c(1L, 2L),
+  log2 = 1L,
+  log10 = 1L,
+  sqrt = 1L,
+  ## Big pile of trig:
+  cos = 1L,   sin = 1L,   tan = 1L,
+  acos = 1L,  asin = 1L,  atan = 1L,  atan2 = 2L,
+  cosh = 1L,  sinh = 1L,  tanh = 1L,
+  acosh = 1L, asinh = 1L, atanh = 1L
+)
+
+FUNCTIONS_RANDOM <- list(
+  ## Support the standard distribution functions (faster than below)
+  unif_rand = 0L,
+  norm_rand = 0L,
+  exp_rand = 0L,
+  ## And support many different distributions
+  rbeta = 2L, # a, b
+  rbinom = 2L, # n, p
+  rcauchy = 2L, # location, scale
+  rchisq = 1L, # df
+  rexp = 1L, # scale (and not rate) TODO: rewrite
+  rf = 2L, # n1, n2
+  rgamma = 2L, # shape, scale
+  rgeom = 1L, # p
+  rhyper = 3L, # NR, NB, n
+  rlogis = 2L, # location, scale
+  rlnorm = 2L, #	logmean, logsd
+  rnbinom = 2L, # size, prob
+  rnorm = 2L, # mu, sigma
+  rpois = 1L, # lambda
+  rt = 1L, # n
+  runif = 2L, # a, b
+  rweibull = 2L, # shape, scale
+  rwilcox = 2L, # m, n
+  rsignrank = 1L # n
+)
+
+## Here we need to do a bit of a faff because unary functions need
+## adding.  This may get tightened up later to either use local() or
+## to expand the amount of bits here that a more involved approach is
+## required (TODO).
+.join <- function(a, b, ...) {
+  range1 <- function(x, y) {
+    if (x == y) x else range(x, y)
+  }
+  overlap <- intersect(names(a), names(b))
+  if (length(overlap) > 0L) {
+    a[overlap] <- lapply(overlap, function(i) range1(a[[i]], b[[i]]))
+    ret <- c(a, b[setdiff(names(b), overlap)])
+  } else {
+    ret <- c(a, b)
+  }
+  if (length(list(...)) > 0L) {
+    ret <- .join(ret, ...)
+  }
+  ret
+}
+
+FUNCTIONS <-
+  .join(FUNCTIONS,
+        setNames(rep(list(1L), length(FUNCTIONS_UNARY)), FUNCTIONS_UNARY),
+        setNames(rep(list(2L), length(FUNCTIONS_INFIX)), FUNCTIONS_INFIX))
+rm(.join)
+
 ## Avoid a lot of error print pasting:
 array_dim_name <- function(name, sub=NULL, use=TRUE) {
   if (length(name) > 1L) {

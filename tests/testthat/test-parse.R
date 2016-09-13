@@ -427,9 +427,9 @@ test_that("array pathologies", {
 
 test_that("correct dim() use", {
   expect_error(odin_parse("dim(x) <- 10; a <- length(x, 1)"),
-               "length() requires exactly one argument", fixed=TRUE)
+               "Expected 1 argument in length", fixed=TRUE)
   expect_error(odin_parse("dim(x) <- 10; a <- length()"),
-               "length() requires exactly one argument", fixed=TRUE)
+               "Expected 1 argument in length", fixed=TRUE)
   expect_error(odin_parse("dim(x) <- 10; a <- length(1)"),
                "argument to length must be a symbol", fixed=TRUE)
   expect_error(odin_parse("x <- 2; a <- length(x)"),
@@ -438,9 +438,9 @@ test_that("correct dim() use", {
                "argument to length must be a 1-D array", fixed=TRUE)
 
   expect_error(odin_parse("dim(x) <- 10; a <- dim(x)"),
-               "dim() requires exactly two arguments", fixed=TRUE)
+               "Expected 2 arguments in dim call", fixed=TRUE)
   expect_error(odin_parse("dim(x) <- 10; a <- dim(x, 1, 2)"),
-               "dim() requires exactly two arguments", fixed=TRUE)
+               "Expected 2 arguments in dim call", fixed=TRUE)
 
   expect_error(odin_parse("dim(x) <- c(10, 2); a <- dim(1, x)"),
                "argument to dim must be a symbol", fixed=TRUE)
@@ -485,9 +485,9 @@ test_that("cyclic dependency", {
     "A cyclic dependency detected")
 })
 
-## All the tests here are prone to changes because the errors should
-## really be thrown at parse because we'd get better error message
-## generation...
+## TODO: these (except the first) can all be simplified down to a
+## parse_expr call as they no longer need to go all the way through
+## odin to get to rewrite to throw the error.
 test_that("rewrite errors", {
   expect_error(
     odin({
@@ -505,7 +505,7 @@ test_that("rewrite errors", {
       x <- abs(a, 1)
       output(x) <- x
     }, build = FALSE),
-    "invalid input to abs")
+    "Expected 1 argument in abs call")
 
   expect_error(
     odin({
@@ -514,5 +514,5 @@ test_that("rewrite errors", {
       x <- min(a)
       output(x) <- x
     }, build = FALSE),
-    "Invalid input to min")
+    "Expected 2 or more arguments in min call")
 })

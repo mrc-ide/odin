@@ -31,7 +31,9 @@ rewrite_c <- function(expr, name_pars,
                "cos", "sin", "tan", "acos", "asin", "atan",
                "cosh", "sinh", "tanh", "acosh", "asinh", "atanh",
                rewrite, custom)
-  rewrite_recall <- function(x) rewrite_c(x, name_pars, lookup, index, custom)
+  rewrite_recall <- function(x) {
+    rewrite_c(x, name_pars, lookup, index, custom)
+  }
 
   ## Possibly:
   ##
@@ -74,43 +76,9 @@ rewrite_c <- function(expr, name_pars,
     is_index <- any(vlapply(res, "[[", "is_index"))
 
     if (nm == "(") {
-      stopifnot(n == 1L)
       value <- sprintf("(%s)", values)
     } else if (nm == "[") {
-      ## NOTE: This skips all entries involving index variables (i, j,
-      ## k).  This is because those will be offset appropriately for
-      ## us on entry because they are part of a loop.
-      idx <- res[-1L]
-      values <- values[-1L]
-      nd <- length(idx)
-      is_numeric <- vlapply(idx, "[[", "numeric")
-      is_index <- vlapply(idx, "[[", "is_index")
-      fix_numeric <- !is_index &  is_numeric
-      fix_index   <- !is_index & !is_numeric
-      ## NOTE: Cases that are is_index are already dealt with.
-      values[fix_numeric] <- vcapply(idx[fix_numeric], function(x)
-        minus1(x$value_num, rewrite_recall))
-      values[fix_index] <- vcapply(expr[-(1:2)][fix_index],
-                                   minus1, rewrite_recall)
-
-      ## TODO: check for no unary arithmetic while indexing in main
-      ## array checking (that's going to require a little work, but
-      ## perhaps add it to the dependency checking functions).
-
-      ## We'll let
-      ##   dim_1 is the number of rows (first dimension)
-      ##   dim_2 is the number of columns (second dimension)
-      ##   but what we really need is the product there (dim_12)
-      ##   dim_3 is never used here but would be the third dimension.
-      if (nd > 1L) {
-        r <- function(i) {
-          rewrite_recall(
-            array_dim_name(as.character(expr[[2L]]), c("", "1", "12")[[i]]))
-        }
-        values[2:nd] <- sprintf("%s * %s", values[2:nd], vcapply(2:nd, r))
-        values <- paste(values, collapse=" + ")
-      }
-      value <- sprintf("%s[%s]", res[[1L]]$value, values)
+      value <- rewrite_array(expr, res, values, rewrite_recall)
       is_index <- FALSE
     } else if (nm == "sum") {
       nd <- (length(expr) - 1L) / 3L
@@ -128,7 +96,7 @@ rewrite_c <- function(expr, name_pars,
         ##   (1 + 2) / (3 + 4)
         ## which would be integer division still.  So we'd be looking
         ## for any of the constituent bits to be non-integer, or a
-        ## symbol that is not an integer.
+        ## symbol that is not an integer.  Or I could just do it *always*.
         is_numeric <- vlapply(res, "[[", "numeric")
         i <- is_numeric & !grepl(".", values, fixed=TRUE)
         if (any(i)) {
@@ -179,6 +147,36 @@ rewrite_c <- function(expr, name_pars,
   }
 
   rewrite_expr(expr)$value
+}
+
+rewrite_array <- function(expr, res, values, rewrite) {
+  ## NOTE: This skips all entries involving index variables (i, j,
+  ## k).  This is because those will be offset appropriately for
+  ## us on entry because they are part of a loop.
+  idx <- res[-1L]
+  values <- values[-1L]
+  nd <- length(idx)
+  is_numeric <- vlapply(idx, "[[", "numeric")
+  is_index <- vlapply(idx, "[[", "is_index")
+  fix_numeric <- !is_index &  is_numeric
+  fix_index   <- !is_index & !is_numeric
+  ## NOTE: Cases that are is_index are already dealt with.
+  values[fix_numeric] <- vcapply(idx[fix_numeric],
+                                 function(x) minus1(x$value_num, rewrite))
+  values[fix_index] <- vcapply(expr[-(1:2)][fix_index], minus1, rewrite)
+
+  ## TODO: check for no unary arithmetic while indexing in main
+  ## array checking (that's going to require a little work, but
+  ## perhaps add it to the dependency checking functions).
+
+  if (nd > 1L) {
+    r <- function(i) {
+      rewrite(array_dim_name(as.character(expr[[2L]]), c("", "1", "12")[[i]]))
+    }
+    values[2:nd] <- sprintf("%s * %s", values[2:nd], vcapply(2:nd, r))
+    values <- paste(values, collapse=" + ")
+  }
+  sprintf("%s[%s]", res[[1L]]$value, values)
 }
 
 ## The rewrite function here must be a parameterised version of the

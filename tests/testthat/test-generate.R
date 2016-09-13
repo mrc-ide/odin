@@ -41,16 +41,17 @@ test_that("rewrite functions", {
   expect_equal(yy[, "b"], log2(tt))
   expect_equal(yy[, "c"], log10(tt))
 
+  ## TODO: can be done with parse_expr now
   expect_error(odin::odin({
     deriv(y) <- 0
     initial(y) <- 0
     output(a) <- log()
-  }), "invalid input to log")
+  }), "Expected 1-2 arguments in log call")
   expect_error(odin::odin({
     deriv(y) <- 0
     initial(y) <- 0
     output(a) <- log(1, 2, 3)
-  }), "invalid input to log")
+  }), "Expected 1-2 arguments in log call")
 
   gen <- odin::odin({
     deriv(y) <- 0

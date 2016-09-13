@@ -252,6 +252,9 @@ odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
     odin_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
                line, expr)
   }
+
+  odin_parse_expr_rhs_check_usage(rhs, line, expr)
+
   if ("if" %in% deps$functions) {
     odin_parse_expr_rhs_check_if(rhs, line, expr)
   }
@@ -491,6 +494,65 @@ odin_parse_expr_rhs_check_if <- function(rhs, line, expr) {
     invisible(NULL)
   }
   check_if(rhs)
+}
+
+odin_parse_expr_rhs_check_usage <- function(rhs, line, expr) {
+  ## TODO: it would be nice to restrict the functions used here to
+  ## exclude the stochastic ones when making a discrete time model,
+  ## but that's not going to be be easy and won't work for the
+  ## single-expression focus here.  So
+  len <- c(FUNCTIONS,
+           setNames(FUNCTIONS[FUNCTIONS_RENAME], names(FUNCTIONS_RENAME)))
+
+  throw <- function(...) {
+    odin_error(sprintf(...), line, expr)
+  }
+
+  check_usage <- function(x) {
+    if (is.recursive(x)) {
+      fn <- x[[1L]]
+      if (!is.name(fn)) {
+        throw("Cannot process statement")
+      }
+      nm <- deparse(fn)
+      ## I can't throw this here because it causes trouble with c()
+      ## and with any user function.
+      ##
+      ## So later we need to go through and pick these up.
+      ##
+      ## if (!(nm %in% names(len))) {
+      ##   throw("Unsupported function '%s'", nm)
+      ## }
+
+      n <- len[[nm]]
+      nargs <- length(x) - 1L
+
+      if (length(n) > 1L) {
+        if (nargs < n[[1L]] || nargs > n[[2L]]) {
+          if (is.finite(n[[2L]])) {
+            throw("Expected %d-%d arguments in %s call, but recieved %d",
+                  n[[1L]], n[[2L]], nm, nargs)
+          } else {
+            throw("Expected %d or more arguments in %s call, but recieved %d",
+                  n[[1L]], nm, nargs)
+          }
+        }
+      } else if (!is.null(n) && is.finite(n)) {
+        if (nargs != n) {
+          if (nm == "if") {
+            ## NOTE: slightly different wording here to make the
+            ## problem a little clearer.
+            throw("All if statements must have an else clause")
+          } else {
+            throw("Expected %d %s in %s call, but recieved %d",
+                  n, ngettext(n, "argument", "arguments"), nm, nargs)
+          }
+        }
+      }
+      lapply(as.list(x[-1L]), check_usage)
+    }
+  }
+  check_usage(rhs)
 }
 
 odin_parse_expr_rhs_replace_empty_index <- function(x) {
