@@ -119,23 +119,15 @@ rewrite_c <- function(expr, name_pars,
       value <- sprintf("(%s ? %s : %s)",
                        values[[1L]], values[[2L]], values[[3L]])
     } else if (nm == "abs") {
-      if (length(values) != 1L) {
-        stop("invalid input to abs") # TODO: check elsewhere
-      }
       value <- sprintf("fabs(%s)", values)
     } else if (nm == "log") {
       if (length(values) == 1L) {
         value <- sprintf("log(%s)", values[[1L]])
-      } else if (length(values) == 2L) {
-        value <- sprintf("log(%s) / log(%s)", values[[1L]], values[[2L]])
       } else {
-        stop("invalid input to log") # TODO: check elsewhere
+        value <- sprintf("log(%s) / log(%s)", values[[1L]], values[[2L]])
       }
     } else if (nm %in% c("min", "max")) {
-      if (length(values) < 2L) {
-        stop(sprintf("Invalid input to %s; expected at least two arguments",
-                     nm))  # TODO: check elsewhere
-      }
+      ## TODO: use FUNCTIONS_NARY?
       value <- generate_nary(paste0("f", nm), values)
     } else if (nm == "interpolate") {
       stop("This is a bug in odin") # nocov

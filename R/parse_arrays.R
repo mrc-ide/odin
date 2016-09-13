@@ -414,10 +414,7 @@ odin_parse_arrays_check_dim <- function(x, nd) {
     if (is.recursive(x)) {
       call <- x[[1L]]
       if (identical(call, quote(length))) {
-        if (length(x) != 2L) {
-          throw("length() requires exactly one argument (recieved %d)",
-                  length(x) - 1L)
-        } else if (!is.symbol(x[[2L]])) {
+        if (!is.symbol(x[[2L]])) {
           throw("argument to length must be a symbol")
         } else {
           nm <- as.character(x[[2L]])
@@ -429,10 +426,7 @@ odin_parse_arrays_check_dim <- function(x, nd) {
           }
         }
       } else if (identical(call, quote(dim))) {
-        if (length(x) != 3L) {
-          throw("dim() requires exactly two arguments (recieved %d)",
-                  length(x) - 1L)
-        } else if (!is.symbol(x[[2L]])) {
+        if (!is.symbol(x[[2L]])) {
           throw("first argument to dim must be a symbol")
         } else {
           nm <- as.character(x[[2L]])
