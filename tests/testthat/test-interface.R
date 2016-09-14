@@ -31,3 +31,12 @@ test_that("text", {
 test_that("NSE and SE defaults are the same", {
   expect_equal(formals(odin), formals(odin_))
 })
+
+test_that("Missing directory", {
+  expect_error(
+    odin::odin({
+      deriv(y) <- 0.5
+      initial(y) <- 1
+    }, tempfile()),
+    "'dest' must be an existing directory")
+})

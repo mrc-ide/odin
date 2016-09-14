@@ -109,6 +109,9 @@ odin <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
 ##' @export
 ##' @rdname odin
 odin_ <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
+  if (!is_directory(dest)) {
+    stop("'dest' must be an existing directory")
+  }
   dat <- odin_parse(x)
   path <- odin_generate(dat, dest)
   ret <- path
