@@ -52,10 +52,13 @@ odin_parse_expr <- function(expr, line) {
                line, expr)
   }
 
+  stochastic <- any(depends$functions %in% names(FUNCTIONS_STOCHASTIC))
+
   list(name=lhs$name,
        lhs=lhs,
        rhs=rhs,
        depends=depends,
+       stochastic=stochastic,
        expr=expr,
        line=line)
 }
@@ -154,6 +157,7 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
       sprintf("Special index variable %s may not be used on array lhs",
               pastec(err)), line, as.expression(expr))
   }
+
   ## The dimension for this array:
   name_dim <- array_dim_name(name)
   ## ...which must be a dependency:

@@ -571,7 +571,7 @@ odin_parse_check_functions <- function(obj) {
   all_used_functions <- unique(unlist(used_functions))
 
   if (!obj$info$discrete) {
-    err <- intersect(all_used_functions, names(FUNCTIONS_RANDOM))
+    err <- intersect(all_used_functions, names(FUNCTIONS_STOCHASTIC))
     if (length(err) > 0L) {
       tmp <- obj$eqs[vlapply(used_functions, function(x) any(x %in% err))]
       odin_error(sprintf(
@@ -585,7 +585,7 @@ odin_parse_check_functions <- function(obj) {
                names(FUNCTIONS_INFIX),
                names(FUNCTIONS_UNARY),
                names(FUNCTIONS_RENAME),
-               if (obj$info$discrete) names(FUNCTIONS_RANDOM),
+               if (obj$info$discrete) names(FUNCTIONS_STOCHASTIC),
                names(obj$config$include$declarations))
 
   err <- setdiff(all_used_functions, allowed)

@@ -90,7 +90,7 @@ FUNCTIONS <- list(
   acosh = 1L, asinh = 1L, atanh = 1L
 )
 
-FUNCTIONS_RANDOM <- list(
+FUNCTIONS_STOCHASTIC <- list(
   ## Support the standard distribution functions (faster than below)
   unif_rand = 0L,
   norm_rand = 0L,
