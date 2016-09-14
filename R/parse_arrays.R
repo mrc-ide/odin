@@ -243,19 +243,19 @@ odin_parse_arrays_1 <- function(idx, obj) {
   eqs <- obj$eqs
   x <- eqs[[idx[[1L]]]]
 
-  x$depends <- join_deps(lapply(eqs[idx], function(x) x[["depends"]]))
+  x$depends <- join_deps(lapply(eqs[idx], function(x) x$depends))
   x$expr <- lapply(eqs[idx], "[[", "expr")
   x$line <- viapply(eqs[idx], "[[", "line")
 
   ## TODO: some of the lhs depends stuff will not matter so much now.
-  x$lhs$index <- lapply(eqs[idx], function(x) x[["lhs"]][["index"]])
+  x$lhs$index <- lapply(eqs[idx], function(x) x$lhs$index)
   x$lhs$depends <-
-    join_deps(lapply(eqs[idx], function(x) x[["lhs"]][["depends"]]))
+    join_deps(lapply(eqs[idx], function(x) x$lhs$depends))
 
-  x$rhs$type <- vcapply(eqs[idx], function(x) x[["rhs"]][["type"]])
+  x$rhs$type <- vcapply(eqs[idx], function(x) x$rhs$type)
   x$rhs$depends <-
-    join_deps(lapply(eqs[idx], function(x) x[["rhs"]][["depends"]]))
-  x$rhs$value <- lapply(eqs[idx], function(x) x[["rhs"]][["value"]])
+    join_deps(lapply(eqs[idx], function(x) x$rhs$depends))
+  x$rhs$value <- lapply(eqs[idx], function(x) x$rhs$value)
 
   ## TODO: All these sanity checks need major overhauls, I think;
   ## these are just here to make sure that we hit all the
