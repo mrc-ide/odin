@@ -285,8 +285,9 @@ odin_generate2_deriv <- function(obj) {
   ret$add(indent(odin_generate2_unpack(obj), 2))
 
   time <- obj$time$get()
-  if (length(time) > 0L) {
-    ret$add(indent(time, 2))
+  time_deriv <- time[names(time) %in% obj$info$eqs_used$deriv]
+  if (length(time_deriv) > 0L) {
+    ret$add(indent(time_deriv, 2))
   }
 
   ## The conditional here means that we'll be able to be compatible
@@ -295,9 +296,10 @@ odin_generate2_deriv <- function(obj) {
   ## dde so this will skip pretty happily.
   output <- obj$output$get()
   if (length(output) > 0L) {
+    time_output <- time[names(time) %in% obj$info$eqs_used$output]
     ret$add("  if (%s != NULL) {", OUTPUT)
     ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
-    ret$add(indent(output, 4))
+    ret$add(indent(c(time_output, output), 4))
     ret$add("  }")
   }
   ret$add("}")
