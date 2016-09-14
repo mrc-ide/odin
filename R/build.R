@@ -1,6 +1,7 @@
 compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
                     check_loaded=TRUE) {
-  system_out <- if (isTRUE(verbose)) "" else verbose
+  ## The actual compilation step should be very quick, so it's going
+  ## to be OK to record the entire stream of output.
   Sys.setenv(R_TESTS="")
   owd <- setwd(dirname(filename))
   on.exit(setwd(owd))
@@ -26,17 +27,29 @@ compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
                     orig, ext, base, ext))
   }
 
-  output <- paste0(base, ext)
+  dll <- paste0(base, ext)
   args <- c("CMD", "SHLIB", basename(filename),
-            "-o", output, if (preclean) "--preclean")
+            "-o", dll, if (preclean) "--preclean")
 
-  ok <- system2(file.path(R.home(), "bin", "R"), args,
-                stdout=system_out, stderr=system_out)
-  if (ok != 0L) {
+  output <- suppressWarnings(system2(file.path(R.home(), "bin", "R"), args,
+                                     stdout=TRUE, stderr=TRUE))
+
+  ## TODO: classify the output here, and provide information about
+  ## warnings in general.  This could be done with crayon for nicer
+  ## colours on a terminal too.  It'd need some serious work to get
+  ## things working with both clang and gcc too, and no idea what we'd
+  ## get going on other systems.  It would actually be something nice
+  ## to get working across other packages...
+  ok <- attr(output, "status")
+  error <- !is.null(ok) && ok != 0L
+  if (error || verbose) {
+    cat(paste(output, "\n"), sep="")
+  }
+  if (error) {
     stop("Error compiling source") # nocov
   }
   if (load) {
-    dyn.load(output)
+    dyn.load(dll)
   }
   base
 }

@@ -40,3 +40,12 @@ test_that("Missing directory", {
     }, tempfile()),
     "'dest' must be an existing directory")
 })
+
+test_that("verbose", {
+  expect_output(odin::odin({
+    initial(x) <- 0
+    update(x) <- x + norm_rand()
+    config(base) <- "mycrazymodel"
+  }, verbose = TRUE),
+  "mycrazymodel.o", fixed=TRUE)
+})
