@@ -257,12 +257,14 @@ odin_parse_arrays_1 <- function(idx, obj) {
     join_deps(lapply(eqs[idx], function(x) x$rhs$depends))
   x$rhs$value <- lapply(eqs[idx], function(x) x$rhs$value)
 
+  x$stochastic <- any(vlapply(eqs[idx], "[[", "stochastic"))
+
   ## TODO: All these sanity checks need major overhauls, I think;
   ## these are just here to make sure that we hit all the
 
   ## Sanity check (needs overhaul I think).  The stopifnot ones guard
   ## against implementation details changing.
-  ok <- c("name", "lhs", "rhs", "depends", "expr", "line")
+  ok <- c("name", "lhs", "rhs", "depends", "expr", "line", "stochastic")
   stopifnot(length(setdiff(unlist(lapply(eqs[idx], names)), ok)) == 0L)
   ## NOTE: mixed type specials are dealt with elsewhere.  By this I
   ## mean that a variable is more than one of initial(), deriv(),

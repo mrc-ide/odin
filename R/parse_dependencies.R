@@ -107,11 +107,11 @@ odin_parse_dependencies_stage <- function(obj) {
   stage <- setNames(rep(STAGE_CONSTANT, n), names(deps_rec))
   stage[names(which(obj$traits[, "uses_user"]))] <- STAGE_USER
 
-  v <- c("is_output", "is_deriv", "uses_delay", "uses_interpolate")
+  v <- c("is_output", "is_deriv", "uses_delay",
+         "uses_interpolate", "uses_stochastic")
   stage[names(which(apply(obj$traits[, v], 1, any)))] <- STAGE_TIME
   stage[TIME] <- STAGE_TIME
   stage[obj$vars] <- STAGE_TIME
-  stage[vlapply(obj$eqs, "[[", "stochastic")] <- STAGE_TIME
 
   ## In topological order, determine inherited stage (a initial/time stage
   ## anywhere in a chain implies a initial/time stage).

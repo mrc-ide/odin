@@ -42,6 +42,48 @@ test_that("stochastic variables are time dependent", {
   expect_equal(cumsum(c(0, cmp)), yy1[, "x"])
 })
 
+test_that("stochastic initial conditions don't get called every step", {
+  ## There is quite a few nasty little conditions that are tested
+  ## here.
+  gen <- odin::odin({
+    v <- norm_rand() # this variable is implicitly time dependent.
+    initial(x) <- v
+    update(x) <- x + 1
+    config(base) <- "stoch"
+  }, "stoch", verbose = TEST_VERBOSE)
+
+  cmp <- .Random.seed
+  mod <- gen()
+  expect_equal(.Random.seed, cmp)
+
+  ## Initial conditions (why is $init even a member here?)
+  expect_null(mod$init)
+
+  ## Re-running the initial conditions gives different answers:
+  x0 <- mod$initial(0L)
+  expect_false(identical(.Random.seed, cmp))
+  expect_true(mod$initial(0L) != x0)
+
+  ## Run the model from scratch
+  tt <- 0:20
+  set.seed(1)
+  yy1 <- mod$run(tt)
+  z <- rnorm(1)
+
+  ## First number drawn from distribution, leaving RNG moved forward
+  ## by a single normal draw:
+  set.seed(1)
+  cmp <- rnorm(2)
+  expect_equal(yy1[, "x"], cmp[[1]] + tt)
+  expect_equal(z, cmp[[2]])
+
+  ## Don't advance the seed if not hitting the initial conditions.
+  cmp <- .Random.seed
+  expect_equal(mod$run(tt, 0)[, "x"], as.numeric(0:20))
+  expect_equal(mod$run(tt, 1)[, "x"], as.numeric(1:21))
+  expect_equal(.Random.seed, cmp)
+})
+
 test_that("disallow stochastic functions in ODEs", {
   ## Here's a stochastic random walk:
   expect_error(odin::odin({

@@ -91,6 +91,7 @@ odin_parse <- function(x) {
 
   ## 10. Collect some information about initial conditions, user
   ## variables, outputs, delays and interpolate calls.
+  ret <- odin_parse_usage(ret)
   ret <- odin_parse_initial(ret)
   ret <- odin_parse_user(ret)
   ret <- odin_parse_output(ret)
@@ -181,11 +182,12 @@ odin_parse_collect_traits <- function(obj) {
   uses_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
   uses_interpolate <- vlapply(eqs, function(x) isTRUE(x$rhs$interpolate))
   uses_sum <- vlapply(eqs, function(x) isTRUE(x$rhs$sum))
+  uses_stochastic <- vlapply(eqs, "[[", "stochastic")
 
   traits <- cbind(is_dim, is_deriv, is_initial, is_output, is_config,
                   is_array, is_symbol,
                   uses_atomic, uses_user, uses_delay,
-                  uses_interpolate, uses_sum)
+                  uses_interpolate, uses_sum, uses_stochastic)
   rownames(traits) <- names(eqs)
 
   obj$traits <- traits
@@ -199,7 +201,8 @@ odin_parse_collect_traits <- function(obj) {
                    has_user=any(uses_user),
                    has_delay=any(uses_delay),
                    has_interpolate=any(uses_interpolate),
-                   has_sum=any(uses_sum))
+                   has_sum=any(uses_sum),
+                   has_stochastic=any(uses_stochastic))
 
   nms_target <- names(eqs)
   i <- is_deriv | is_update | is_initial | is_dim | is_output
@@ -596,6 +599,37 @@ odin_parse_check_functions <- function(obj) {
                        pastec(err)),
                get_lines(tmp), get_exprs(tmp))
   }
+
+  obj
+}
+
+## This is going to extend the information in info$used a bit.
+odin_parse_usage <- function(obj) {
+  deps_rec <- obj$deps_rec
+
+  nms_initial <- names_if(obj$traits[, "is_initial"])
+  nms_deriv <- names_if(obj$traits[, "is_deriv"])
+  nms_output <- names_if(obj$traits[, "is_output"])
+  nms_delay <- names_if(obj$traits[, "uses_delay"])
+
+  get_used <- function(x) {
+    res <- unique(c(unlist(obj$deps_rec[x], use.names=FALSE), x))
+    ## Re-order to put time and variables first
+    c(setdiff(res, names(obj$eqs)), intersect(names(obj$eqs), res))
+    ## Possibly we should also be subsetting by time dependence?
+    ## intersect(res, names_if(obj$stage == STAGE_TIME))
+  }
+
+  used <- list(initial = get_used(nms_initial),
+               deriv   = get_used(nms_deriv),
+               output  = get_used(nms_output),
+               delay   = get_used(nms_delay))
+  if (obj$info$discrete) {
+    names(used)[names(used) == "deriv"] <- "update"
+  }
+
+  ## NOTE: putting this into info so that it's available in generate2
+  obj$info$eqs_used <- used
 
   obj
 }

@@ -155,16 +155,20 @@ odin_generate2_initial <- function(obj) {
   discrete <- obj$info$discrete
   time_name <- if (discrete) STEP else TIME
   time_type <- if (discrete) "int" else "double"
+  use_rng <- discrete && obj$info$has_stochastic
   ret <- collector()
   ret$add("SEXP %s_initialise(SEXP %s_ptr, SEXP %s_ptr) {",
           obj$info$base, obj$info$base, time_name)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
           obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
+  if (use_rng) {
+    ret$add("  GetRNGstate();")
+  }
 
   initial <- obj$initial$get()
 
   if (obj$info$has_delay || length(initial) > 0L) {
-    if (obj$info$has_delay || obj$info$initial_stage >= STAGE_TIME) {
+    if (obj$info$has_delay || time_name %in% obj$info$eqs_used$initial) {
       time_access <- if (discrete) "INTEGER" else "REAL"
       ret$add("  const %s %s = %s(%s_ptr)[0];",
               time_type, time_name, time_access, time_name)
@@ -204,6 +208,10 @@ odin_generate2_initial <- function(obj) {
     ret$add('  setAttrib(%s, install("%s_len"), ScalarInteger(%s));',
             STATE, OUTPUT, obj$rewrite(obj$output_info$total_use))
   }
+  if (use_rng) {
+    ret$add("  PutRNGstate();")
+  }
+
   ret$add("  UNPROTECT(1);")
   ret$add("  return %s;", STATE)
   ret$add("}")
@@ -308,6 +316,7 @@ odin_generate2_update <- function(obj) {
   ret$add(indent(odin_generate2_unpack(obj), 2))
 
   time <- obj$time$get()
+  time <- time[names(time) %in% obj$info$eqs_used$update]
   if (length(time) > 0L) {
     ret$add(indent(time, 2))
   }
@@ -459,9 +468,9 @@ odin_generate2_contents <- function(obj) {
 odin_generate2_order <- function(obj, output=FALSE) {
   ret <- collector()
   if (output) {
-  ret$add("// Report back to R information on output variable ordering")
-  ret$add("// Like the variable order above, but for any output vars")
-  ret$add("// If no output variables are used, return an R NULL")
+    ret$add("// Report back to R information on output variable ordering")
+    ret$add("// Like the variable order above, but for any output vars")
+    ret$add("// If no output variables are used, return an R NULL")
   } else {
     ret$add("// Report back to R information on variable ordering")
     ret$add("// The reported information includes position and length of each")
