@@ -84,3 +84,33 @@ test_that("interpolate", {
   zz <- cumsum(ifelse(tt <= 10 | tt > 20, 0, 1))
   expect_equal(yy[, 2], zz)
 })
+
+test_that("stochastic", {
+  ## Here's a stochastic random walk:
+  gen <- odin::odin({
+    initial(x) <- 0
+    update(x) <- x + norm_rand()
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen()
+  tt <- 0:20
+  set.seed(1)
+  yy1 <- mod$run(tt)
+
+  set.seed(1)
+  cmp <- rnorm(length(tt) - 1L)
+  expect_equal(cumsum(c(0, cmp)), yy1[, "x"])
+
+  ## Repeatable
+  set.seed(1)
+  yy2 <- mod$run(tt)
+  expect_equal(yy1, yy2)
+})
+
+test_that("disallow stochastic functions in ODEs", {
+  ## Here's a stochastic random walk:
+  expect_error(odin::odin({
+    initial(x) <- 0
+    deriv(x) <- x + norm_rand()
+  }), "Stochastic functions not allowed in ODE models")
+})
