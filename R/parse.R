@@ -518,13 +518,6 @@ odin_parse_initial <- function(obj) {
   initial_stage <- (if (obj$info$has_delay) STAGE_TIME
                     else max(c(STAGE_CONSTANT, obj$stage[nms_initial])))
 
-  ## Determine all dependencies of initial conditions.  This is a bit
-  ## less roundabout than the equivalent code in
-  ## odin_parse_output_usage()
-  initial_exprs <- unique(unlist(obj$deps_rec[nms_initial], use.names=FALSE))
-  used <- list(exprs=intersect(names(obj$eqs), initial_exprs))
-
-  obj$initial_exprs <- used
   obj$info$initial_stage <- initial_stage
   obj
 }

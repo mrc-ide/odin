@@ -66,7 +66,6 @@ odin_generate1_object <- function(dat) {
 
   self$variable_info <- dat$variable_info
   self$output_info <- dat$output_info
-  self$initial_exprs <- dat$initial_exprs
 
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)

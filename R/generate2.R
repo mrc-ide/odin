@@ -179,7 +179,7 @@ odin_generate2_initial <- function(obj) {
 
     ## Dependencies of any initial expressions, filtered by time dependency:
     time <- obj$time$get()
-    time <- time[names(time) %in% obj$initial_exprs$exprs]
+    time <- time[names(time) %in% obj$info$eqs_used$initial]
     if (length(time) > 0L) {
       ret$add(indent(time, 2))
     }
