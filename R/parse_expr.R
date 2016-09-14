@@ -16,7 +16,7 @@ odin_parse_expr <- function(expr, line) {
   line <- line %||% NA_integer_
   lhs <- odin_parse_expr_lhs(expr[[2L]], line, expr)
   rhs <- odin_parse_expr_rhs(expr[[3L]], line, expr)
-  deps <- join_deps(list(lhs$depends, rhs$depends))
+  depends <- join_deps(list(lhs$depends, rhs$depends))
 
   ## Below here uses both the lhs and rhs:
   if (isTRUE(rhs$user) &&
@@ -32,6 +32,10 @@ odin_parse_expr <- function(expr, line) {
 
   if (identical(lhs$special, "dim")) {
     lhs$nd <- odin_parse_expr_check_dim(rhs, line, expr)
+    ## This is neeeded because at this point we've dealt with 'c()'
+    ## and it's not supported as an actual function.
+    rhs$depends$functions <- setdiff(rhs$depends$functions, "c")
+    depends$functions <- setdiff(depends$functions, "c")
   }
 
   if (identical(lhs$special, "output")) {
@@ -43,7 +47,7 @@ odin_parse_expr <- function(expr, line) {
   ## are allowed.  For arrays, there's no checking here and things like
   ##   x[i] = x[i] * 2
   ## will cause a crash or nonsense behaviour.
-  if (lhs$type != "array" && lhs$name %in% deps$variables) {
+  if (lhs$type != "array" && lhs$name %in% depends$variables) {
     odin_error("Self referencing expressions not allowed (except for arrays)",
                line, expr)
   }
@@ -51,7 +55,7 @@ odin_parse_expr <- function(expr, line) {
   list(name=lhs$name,
        lhs=lhs,
        rhs=rhs,
-       depends=deps,
+       depends=depends,
        expr=expr,
        line=line)
 }
@@ -154,6 +158,7 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
   name_dim <- array_dim_name(name)
   ## ...which must be a dependency:
   deps$variables <- union(deps$variables, name_dim)
+  deps$functions <- setdiff(deps$functions, ":")
 
   ## Build a big data structure out of all the index stuff; it's
   ## going to be heaps easier to deal with later.
@@ -260,6 +265,10 @@ odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
   }
   if ("sum" %in% deps$functions) {
     rhs <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
+  }
+
+  if (":" %in% deps$functions) {
+    odin_error("Range operator ':' may not be used on rhs", line, expr)
   }
 
   list(type="expression",

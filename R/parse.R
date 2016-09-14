@@ -96,6 +96,7 @@ odin_parse <- function(x) {
   ret <- odin_parse_output(ret)
   ret <- odin_parse_delay(ret)
   ret <- odin_parse_interpolate(ret)
+  ret <- odin_parse_check_functions(ret)
 
   ## 11. Report any unused variables
   odin_parse_check_unused(ret)
@@ -563,6 +564,40 @@ odin_parse_check_unused <- function(obj) {
     odin_note(sprintf("Unused %s: %s", what, pastec(nms)),
               get_lines(obj$eqs[unused]), get_exprs(obj$eqs[unused]))
   }
+}
+
+odin_parse_check_functions <- function(obj) {
+  used_functions <- lapply(obj$eqs, function(x) x$depends$functions)
+  all_used_functions <- unique(unlist(used_functions))
+
+  if (!obj$info$discrete) {
+    err <- intersect(all_used_functions, names(FUNCTIONS_RANDOM))
+    if (length(err) > 0L) {
+      tmp <- obj$eqs[vlapply(used_functions, function(x) any(x %in% err))]
+      odin_error(sprintf(
+        "Stochastic functions not allowed in ODE models (used: %s)",
+        pastec(err)),
+        get_lines(tmp), get_exprs(tmp))
+    }
+  }
+
+  allowed <- c(names(FUNCTIONS),
+               names(FUNCTIONS_INFIX),
+               names(FUNCTIONS_UNARY),
+               names(FUNCTIONS_RENAME),
+               if (obj$info$discrete) names(FUNCTIONS_RANDOM),
+               names(obj$config$include$declarations))
+
+  err <- setdiff(all_used_functions, allowed)
+  if (length(err) > 0L) {
+    tmp <- obj$eqs[vlapply(used_functions, function(x) any(x %in% err))]
+    odin_error(sprintf("Unsupported %s: %s",
+                       ngettext(length(err), "function", "functions"),
+                       pastec(err)),
+               get_lines(tmp), get_exprs(tmp))
+  }
+
+  obj
 }
 
 is_dim_or_length <- function(x) {

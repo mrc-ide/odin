@@ -485,6 +485,12 @@ test_that("cyclic dependency", {
     "A cyclic dependency detected")
 })
 
+test_that("range operator on RHS", {
+  expect_error(
+    odin_parse_expr(quote(a <- x[1:2]), NULL),
+    "Range operator ':' may not be used on rhs")
+})
+
 ## TODO: these (except the first) can all be simplified down to a
 ## parse_expr call as they no longer need to go all the way through
 ## odin to get to rewrite to throw the error.
@@ -496,7 +502,7 @@ test_that("rewrite errors", {
       x <- foo(a)
       output(x) <- x
     }, build = FALSE),
-    "Unsupported function 'foo'")
+    "Unsupported function: foo")
 
   expect_error(
     odin({
