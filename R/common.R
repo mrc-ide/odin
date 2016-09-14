@@ -46,8 +46,10 @@ FUNCTIONS_RENAME <- c(
   "%%" = "fmodr",
   "^" = "pow",
   abs = "fabs",
-  max = "odin_max",
-  min = "odin_min"
+  max = "fmax",
+  min = "fmin",
+  gamma = "gammafn",
+  lgamma = "lgammafn"
 )
 
 FUNCTIONS <- list(
@@ -65,13 +67,22 @@ FUNCTIONS <- list(
   pow = 2L,
   fabs = 1L,
   fmodr = 2L,
-  odin_min = c(2L, Inf),
-  odin_max = c(2L, Inf),
+  fmin = c(2L, Inf),
+  fmax = c(2L, Inf),
   exp = 1L,
   log = c(1L, 2L),
   log2 = 1L,
   log10 = 1L,
+  log1p = 1L,
+  expm1 = 1L,
   sqrt = 1L,
+  lgammafn = 1L,
+  gammafn = 1L,
+  beta = 2L,
+  lbeta = 2L,
+  choose = 2L,
+  lchoose = 2L,
+  sign = 1L,
   ## Big pile of trig:
   cos = 1L,   sin = 1L,   tan = 1L,
   acos = 1L,  asin = 1L,  atan = 1L,  atan2 = 2L,
@@ -132,6 +143,9 @@ FUNCTIONS <-
         setNames(rep(list(1L), length(FUNCTIONS_UNARY)), FUNCTIONS_UNARY),
         setNames(rep(list(2L), length(FUNCTIONS_INFIX)), FUNCTIONS_INFIX))
 rm(.join)
+
+FUNCTIONS_NARY <-
+  names(which(vapply(FUNCTIONS, function(x) x[[length(x)]] == Inf, logical(1))))
 
 ## Avoid a lot of error print pasting:
 array_dim_name <- function(name, sub=NULL, use=TRUE) {

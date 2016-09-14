@@ -1,38 +1,14 @@
 ## This will rewrite the core C bits:
 ##
-## * do not do integer division by casting to double
-## * swap
-##    - ^ to pow
-##    - %% to %
-##    - %/% to (int) x / (int) y
-## we really need type information to do the divisions correctly.
+## TODO:
+##    - %/% to (int) x / (int) y [but check as for %%]
 ##
-## TODO: do the checking for validity elsewhere, whcih means
-## publishing that here perhaps
-##
-## sum
-## sin &c
 rewrite_c <- function(expr, name_pars,
                       lookup=character(0), index=character(0)) {
-  tr <- c("^"="pow", "%%"="fmodr")
-  unary <- c("+", "-")
-  infix <- c("+", "/", "-", "*",
-             ">", "<", ">=", "<=", "==", "!=")
-  ## TODO: Need a whole set of translated functions perhaps (e.g., how
-  ## sum(x) -> odin_sum(x, dim_x))
-  ## TODO: %/% -> ((int) a / (int) b)
-  ## TODO: check the number of arguments to all the functions below
-  ## TODO: the actual checking of these functions might want to be elsewhere?
-  rewrite <- c("sum", "dim", "length", "if", "abs", "%%", "log", "min", "max",
-               "interpolate")
+
   rewrite_recall <- function(x) {
     rewrite_c(x, name_pars, lookup, index)
   }
-
-  ## Possibly:
-  ##
-  ## * gamma -> gammafn
-  ## * lgamma -> lgammafn
 
   ## * pi (#define pi M_PI) or translate to M_PI
   rewrite_expr <- function(expr) {
@@ -57,8 +33,8 @@ rewrite_c <- function(expr, name_pars,
                   is_index=is_index))
     }
     nm <- deparse(expr[[1L]])
-    if (nm %in% names(tr)) {
-      nm <- tr[[nm]]
+    if (nm %in% names(FUNCTIONS_RENAME)) {
+      nm <- FUNCTIONS_RENAME[[nm]]
     }
 
     res <- lapply(as.list(expr[-1L]), rewrite_expr)
@@ -76,9 +52,9 @@ rewrite_c <- function(expr, name_pars,
       ii <- seq_len(nd * 2L) + 1L
       values[ii] <- vcapply(as.list(expr[ii + 1L]), minus1, rewrite_recall)
       value <- sprintf("odin_sum%d(%s)", nd, paste(values, collapse=", "))
-    } else if (n == 1L && nm %in% unary) {
+    } else if (n == 1L && nm %in% FUNCTIONS_UNARY) {
       value <- sprintf("%s%s", nm, values)
-    } else if (n == 2L && nm %in% infix) {
+    } else if (n == 2L && nm %in% FUNCTIONS_INFIX) {
       if (nm == "/") {
         ## Special snowflake treatment for division to avoid integer
         ## division.
@@ -109,19 +85,12 @@ rewrite_c <- function(expr, name_pars,
       ## parens for now.
       value <- sprintf("(%s ? %s : %s)",
                        values[[1L]], values[[2L]], values[[3L]])
-    } else if (nm == "abs") {
-      value <- sprintf("fabs(%s)", values)
-    } else if (nm == "log") {
-      if (length(values) == 1L) {
-        value <- sprintf("log(%s)", values[[1L]])
-      } else {
-        value <- sprintf("log(%s) / log(%s)", values[[1L]], values[[2L]])
-      }
-    } else if (nm %in% c("min", "max")) {
-      ## TODO: use FUNCTIONS_NARY?
-      value <- generate_nary(paste0("f", nm), values)
-    } else if (nm == "interpolate") {
-      stop("This is a bug in odin") # nocov
+    } else if (nm == "log" && length(values) == 2L) {
+      ## This is sort of an odd one to support, but it does seem
+      ## potentially useful.
+      value <- sprintf("log(%s) / log(%s)", values[[1L]], values[[2L]])
+    } else if (nm %in% FUNCTIONS_NARY) {
+      value <- generate_nary(nm, values)
     } else {
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }
