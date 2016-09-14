@@ -123,11 +123,10 @@ odin_generate1_object <- function(dat) {
 
   ## Custom functions, defined in .c files:
   self$custom <- dat$config$include
-  custom_functions <- names(self$custom$declarations)
 
   ## Rewrite based on all the above; only lookup is modified as we go.
   self$rewrite <- function(x) {
-    rewrite_c(x, self$name_pars, self$lookup$get(), INDEX, custom_functions)
+    rewrite_c(x, self$name_pars, self$lookup$get(), INDEX)
   }
 
   self
