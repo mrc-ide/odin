@@ -42,6 +42,25 @@ test_that("stochastic variables are time dependent", {
   expect_equal(cumsum(c(0, cmp)), yy1[, "x"])
 })
 
+test_that("array stochastic variables are time dependent", {
+  ## This checks that even in the absence of array indexing on the RHS
+  ## array variables are set correctly when stochastic.
+  gen <- odin::odin({
+    initial(x[]) <- 0
+    update(x[]) <- norm_rand()
+    dim(x) <- 3
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen()
+  tt <- 0:20
+  set.seed(1)
+  yy <- mod$run(tt)
+  zz <- mod$transform_variables(yy)
+  set.seed(1)
+  cmp <- rbind(0, matrix(rnorm(3 * 20), 20, 3, TRUE))
+  expect_equal(zz$x, cmp)
+})
+
 test_that("stochastic initial conditions don't get called every step", {
   ## There is quite a few nasty little conditions that are tested
   ## here.
