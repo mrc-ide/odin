@@ -264,9 +264,6 @@ odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
 
   odin_parse_expr_rhs_check_usage(rhs, line, expr)
 
-  if ("if" %in% deps$functions) {
-    odin_parse_expr_rhs_check_if(rhs, line, expr)
-  }
   if ("sum" %in% deps$functions) {
     rhs <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
   }
@@ -487,27 +484,6 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
 ######################################################################
 
 ## Support functions below here
-
-odin_parse_expr_rhs_check_if <- function(rhs, line, expr) {
-  ## Rules:
-  ##   - all conditionals must have an else branch
-  throw <- function(...) {
-    odin_error(sprintf(...), line, expr)
-  }
-  check_if <- function(x) {
-    if (is_call(x, quote(`if`))) {
-      if (length(x) != 4L) {
-        throw("All if statements must have an else clause")
-      } else {
-        lapply(as.list(x[-1L]), check_if)
-      }
-    } else if (is.recursive(x)) {
-      lapply(as.list(x), check_if)
-    }
-    invisible(NULL)
-  }
-  check_if(rhs)
-}
 
 odin_parse_expr_rhs_check_usage <- function(rhs, line, expr) {
   ## TODO: it would be nice to restrict the functions used here to
