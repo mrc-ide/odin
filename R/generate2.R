@@ -269,23 +269,25 @@ odin_generate2_set_initial <- function(obj) {
 ## forms of the derivative function.  The base one (that this does)
 ## returns void and takes a pointer.
 odin_generate2_deriv <- function(obj) {
-  info <- obj$variable_info
-
   ret <- collector()
 
-  ## OK, this one is totally identical between continuous and discrete
-  ## time except that we unconditionally pass output through.
+  discrete <- obj$info$discrete
+  core_name <- if (discrete) "update" else "deriv"
+  time_name <- if (discrete) STEP else TIME
+  time_type <- if (discrete) "size_t" else "double"
+  ret_name <- if (discrete) STATE_NEXT else DSTATEDT
+
+  info <- obj$variable_info
 
   ret$add(
-    "void %s_deriv(%s *%s, double %s, double *%s, double *%s, double *%s) {",
-    obj$info$base, obj$type_pars, obj$name_pars,
-    TIME, STATE, DSTATEDT, OUTPUT)
-
+    "void %s_%s(%s *%s, %s %s, double *%s, double *%s, double *%s) {",
+    obj$info$base, core_name, obj$type_pars, obj$name_pars,
+    time_type, time_name, STATE, ret_name, OUTPUT)
   ret$add(indent(odin_generate2_vars(obj), 2))
   ret$add(indent(odin_generate2_unpack(obj), 2))
 
   time <- obj$time$get()
-  time_deriv <- time[names(time) %in% obj$info$eqs_used$deriv]
+  time_deriv <- time[names(time) %in% obj$info$eqs_used[[core_name]]]
   if (length(time_deriv) > 0L) {
     ret$add(indent(time_deriv, 2))
   }
@@ -295,36 +297,7 @@ odin_generate2_deriv <- function(obj) {
   ## variables are computed.  We pass a NULL through for output for
   ## dde so this will skip pretty happily.
   if (obj$info$has_output) {
-    keep <- setdiff(obj$info$eqs_used$output, obj$info$eqs_used$deriv)
-    time_output <- time[names(time) %in% keep]
-    ret$add("  if (%s != NULL) {", OUTPUT)
-    ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
-    ret$add(indent(time_output, 4))
-    ret$add("  }")
-  }
-  ret$add("}")
-  ret$get()
-}
-
-odin_generate2_update <- function(obj) {
-  info <- obj$variable_info
-  ret <- collector()
-
-  ret$add(
-    "void %s_update(%s *%s, size_t %s, double *%s, double *%s, double *%s) {",
-    obj$info$base, obj$type_pars, obj$name_pars,
-    STEP, STATE, STATE_NEXT, OUTPUT)
-  ret$add(indent(odin_generate2_vars(obj), 2))
-  ret$add(indent(odin_generate2_unpack(obj), 2))
-
-  time <- obj$time$get()
-  time_update <- time[names(time) %in% obj$info$eqs_used$update]
-  if (length(time_update) > 0L) {
-    ret$add(indent(time_update, 2))
-  }
-
-  if (obj$info$has_output) {
-    keep <- setdiff(obj$info$eqs_used$output, obj$info$eqs_used$update)
+    keep <- setdiff(obj$info$eqs_used$output, obj$info$eqs_used[[core_name]])
     time_output <- time[names(time) %in% keep]
     ret$add("  if (%s != NULL) {", OUTPUT)
     ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
@@ -350,44 +323,20 @@ odin_generate2_update_dde <- function(obj) {
   ret$get()
 }
 
-odin_generate2_update_r <- function(obj) {
-  ret <- collector()
-  ret$add("SEXP %s_update_r(SEXP %s_ptr, SEXP %s, SEXP %s) {",
-          obj$info$base, obj$info$base, STEP, STATE)
-  ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
-          STATE_NEXT, STATE)
-  ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
-
-  if (obj$info$has_output) {
-    ret$add("  SEXP %s_ptr = PROTECT(allocVector(REALSXP, %s));",
-            OUTPUT, obj$rewrite(obj$output_info$total_use))
-    ret$add('  setAttrib(%s, install("%s"), %s_ptr);',
-            STATE_NEXT, OUTPUT, OUTPUT)
-    ret$add("  double *%s = REAL(%s_ptr);", OUTPUT, OUTPUT)
-    np <- 2L
-  } else {
-    ret$add("  double *%s = NULL;", OUTPUT)
-    np <- 1L
-  }
-
-  ## TODO: coerce any real given as arg 2 into an int (similar thing
-  ## needed for the continuous case so add a support function).
-  ret$add(
-    "  %s_update(%s, INTEGER(%s)[0], REAL(%s), REAL(%s), %s);",
-    obj$info$base, obj$name_pars, STEP, STATE, STATE_NEXT, OUTPUT)
-  ret$add("  UNPROTECT(%d);", np)
-  ret$add("  return %s;", STATE_NEXT)
-  ret$add("}")
-  ret$get()
-}
-
 odin_generate2_deriv_r <- function(obj) {
   ret <- collector()
-  ret$add("SEXP %s_deriv_r(SEXP %s_ptr, SEXP %s, SEXP %s) {",
-          obj$info$base, obj$info$base, TIME, STATE)
+
+  discrete <- obj$info$discrete
+  core_name <- if (discrete) "update" else "deriv"
+  time_name <- if (discrete) STEP else TIME
+  time_type <- if (discrete) "size_t" else "double"
+  time_access <- if (discrete) "INTEGER" else "REAL"
+  ret_name <- if (discrete) STATE_NEXT else DSTATEDT
+
+  ret$add("SEXP %s_%s_r(SEXP %s_ptr, SEXP %s, SEXP %s) {",
+          obj$info$base, core_name, obj$info$base, time_name, STATE)
   ret$add("  SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
-          DSTATEDT, STATE)
+          ret_name, STATE)
   ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
           obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
 
@@ -395,7 +344,7 @@ odin_generate2_deriv_r <- function(obj) {
     ret$add("  SEXP %s_ptr = PROTECT(allocVector(REALSXP, %s));",
             OUTPUT, obj$rewrite(obj$output_info$total_use))
     ret$add('  setAttrib(%s, install("%s"), %s_ptr);',
-            DSTATEDT, OUTPUT, OUTPUT)
+            ret_name, OUTPUT, OUTPUT)
     ret$add("  double *%s = REAL(%s_ptr);", OUTPUT, OUTPUT)
     np <- 2L
   } else {
@@ -403,10 +352,11 @@ odin_generate2_deriv_r <- function(obj) {
     np <- 1L
   }
 
-  ret$add("  %s_deriv(%s, REAL(%s)[0], REAL(%s), REAL(%s), %s);",
-          obj$info$base, obj$name_pars, TIME, STATE, DSTATEDT, OUTPUT)
+  ret$add("  %s_%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
+          obj$info$base, core_name, obj$name_pars, time_access, time_name,
+          STATE, ret_name, OUTPUT)
   ret$add("  UNPROTECT(%d);", np)
-  ret$add("  return %s;", DSTATEDT)
+  ret$add("  return %s;", ret_name)
   ret$add("}")
   ret$get()
 }
