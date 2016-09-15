@@ -34,9 +34,6 @@ test_that("some parse errors", {
   expect_error(odin_parse(quote(x[i] <- y[i])),
                "Special index variable i may not be used on array lhs")
 
-  expect_error(odin_parse(quote(x[1,2,3,4] <- 1)),
-               "Arrays must have at most 3 dimensions")
-
   expect_error(odin_parse("x[1:t] <- 1\ndim(x) <- 10"),
                "Array indices may not be time")
   ## TODO: Arguably an error; requires more general solution probably

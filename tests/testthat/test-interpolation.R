@@ -334,6 +334,7 @@ test_that("unknown interpolation variable", {
 })
 
 test_that("unknown interpolation variable", {
+  skip("Being reworked")
   expect_error(odin({
     deriv(y[,,]) <- pulse[i,j,k]
     initial(y[,,]) <- 0
@@ -344,8 +345,8 @@ test_that("unknown interpolation variable", {
     zp[,,,] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
-    dim(pulse) <- c(2, 2)
-    dim(y) <- c(2, 2)
+    dim(pulse) <- c(2, 2, 2)
+    dim(y) <- c(2, 2, 2)
     config(base) <- "ic2"
   }, verbose=TEST_VERBOSE),
   "Arrays must have at most 3 dimensions")

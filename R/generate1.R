@@ -109,8 +109,11 @@ odin_generate1_object <- function(dat) {
           for (i in seq_len(array)) {
             Recall(array_dim_name(name, i, use=FALSE), "int")
           }
-          if (array == 3L) {
-            Recall(array_dim_name(name, "12", use=FALSE), "int")
+          if (array >= 3) {
+            for (i in 3:array) {
+              tmp <- paste(seq_len(i - 1), collapse="")
+              Recall(array_dim_name(name, tmp, use=FALSE), "int")
+            }
           }
         }
       }
@@ -203,7 +206,7 @@ odin_generate1_dim <- function(x, obj) {
   }
 
   if (x$nd > 1L) {
-    obj$library_fns$add(sprintf("odin_set_dim%d", x$nd))
+    obj$library_fns$add("odin_set_dim")
   }
 
   if (isTRUE(x$rhs$user)) {
@@ -229,10 +232,12 @@ odin_generate1_dim <- function(x, obj) {
     ## dimensions, but until I get test cases in that's probably the
     ## simplest for now (note it differs in indent though).
     if (x$nd > 1L) {
-      if (x$nd == 3L) {
-        obj[[st]]$add("  %s = %s;",
-                      obj$rewrite(array_dim_name(nm_target, "12")),
-                      paste(nm_i[1:2], collapse=" * "))
+      if (x$nd >= 3L) {
+        for (j in 3:x$nd) {
+          k <- seq_len(j - 1)
+          dn <- obj$rewrite(array_dim_name(nm_target, paste(k, collapse="")))
+          obj[[st]]$add("  %s = %s;", dn, paste(nm_i[k], collapse=" * "))
+        }
       }
       obj[[st]]$add("  %s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
     }
@@ -252,10 +257,12 @@ odin_generate1_dim <- function(x, obj) {
       ## Little extra work for the 3d case.  If we were allowing
       ## arbitrary matrices here this would be heaps more complicated
       ## but we only need the special case here.
-      if (x$nd == 3L) {
-        obj[[st]]$add("%s = %s;",
-                      obj$rewrite(array_dim_name(nm_target, "12")),
-                      paste(nm_i[1:2], collapse=" * "))
+      if (x$nd >= 3L) {
+        for (j in 3:x$nd) {
+          k <- seq_len(j - 1)
+          dn <- obj$rewrite(array_dim_name(nm_target, paste(k, collapse="")))
+          obj[[st]]$add("%s = %s;", dn, paste(nm_i[k], collapse=" * "))
+        }
       }
       obj[[st]]$add("%s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
     } else {

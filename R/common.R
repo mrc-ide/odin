@@ -20,7 +20,7 @@ USER <- "user"
 ## point.
 SPECIAL_LHS <- c("initial", "deriv", "update", "output", "dim", "config")
 SPECIAL_RHS <- c("user", "interpolate", "delay")
-INDEX <- c("i", "j", "k")
+INDEX <- c("i", "j", "k", "l", "i5", "i6", "i7", "i8") # TODO: make open
 RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim")

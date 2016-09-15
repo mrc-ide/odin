@@ -393,10 +393,10 @@ odin_generate2_contents <- function(obj) {
               raccess[[type]], STATE, i - 1L, obj$rewrite(name),
               obj$rewrite(name_dim), type)
       if (array > 1L) {
-        ret$add("  odin_set_dim%d(VECTOR_ELT(%s, %d), %s);",
-                array, STATE, i - 1L,
-                paste(vcapply(seq_len(array), function(j)
-                  obj$rewrite(array_dim_name(name, j))), collapse=", "))
+        args <- vcapply(seq_len(array), function(j)
+          obj$rewrite(array_dim_name(name, j)))
+        ret$add("  odin_set_dim(VECTOR_ELT(%s, %d), %d, %s);",
+                STATE, i - 1L, array, paste(args, collapse=", "))
       }
     } else {
       type <- if (type == "int") "Integer" else "Real"

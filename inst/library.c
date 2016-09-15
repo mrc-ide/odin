@@ -261,19 +261,19 @@ void lagvalue_discrete(int step, int *idx, size_t dim_idx, double *state) {
   return fun(step, idx, dim_idx, state);
 }
 
-void odin_set_dim2(SEXP target, int nr, int nc) {
-  SEXP dim = PROTECT(allocVector(INTSXP, 2));
-  INTEGER(dim)[0] = nr;
-  INTEGER(dim)[1] = nc;
-  setAttrib(target, R_DimSymbol, dim);
-  UNPROTECT(1);
-}
+// Variadic functions are not the most lovely, but this avoids the big
+// hassle of generating an array, passing it through and copying
+void odin_set_dim(SEXP target, int nd, ...) {
+  SEXP r_dim = PROTECT(allocVector(INTSXP, nd));
+  int *dim = INTEGER(r_dim);
 
-void odin_set_dim3(SEXP target, int nr, int nc, int nz) {
-  SEXP dim = PROTECT(allocVector(INTSXP, 3));
-  INTEGER(dim)[0] = nr;
-  INTEGER(dim)[1] = nc;
-  INTEGER(dim)[2] = nz;
-  setAttrib(target, R_DimSymbol, dim);
+  va_list ap;
+  va_start(ap, nd);
+  for (size_t i = 0; i < nd; ++i) {
+    dim[i] = va_arg(ap, int);
+  }
+  va_end(ap);
+
+  setAttrib(target, R_DimSymbol, r_dim);
   UNPROTECT(1);
 }

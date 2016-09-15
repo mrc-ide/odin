@@ -123,7 +123,8 @@ rewrite_array <- function(expr, res, values, rewrite) {
 
   if (nd > 1L) {
     r <- function(i) {
-      rewrite(array_dim_name(as.character(expr[[2L]]), c("", "1", "12")[[i]]))
+      rewrite(array_dim_name(as.character(expr[[2L]]),
+                             paste(seq_len(i - 1), collapse="")))
     }
     values[2:nd] <- sprintf("%s * %s", values[2:nd], vcapply(2:nd, r))
     values <- paste(values, collapse=" + ")

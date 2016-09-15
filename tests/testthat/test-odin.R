@@ -351,6 +351,20 @@ test_that("3d array", {
                c(setNames(list(tt[1]), TIME), list(y=array(1, c(2, 3, 4)))))
 })
 
+test_that("4d array", {
+  ## TODO: offset_y is saved here and is not really needed.
+  gen <- odin::odin({
+    initial(y[,,,]) <- 1
+    deriv(y[,,,]) <- y[i,j,k,l] * 0.1
+    dim(y) <- c(2, 3, 4, 5)
+  }, verbose=TEST_VERBOSE)
+
+  mod <- gen()
+  expect_equal(mod$initial(), rep(1.0, 2 * 3 * 4 * 5))
+  dat <- mod$contents()
+  expect_equal(dat$initial_y, array(1, c(2, 3, 4, 5)))
+})
+
 ## I need a system with mixed variables and arrays for testing the
 ## parse code.  This is going to be a really stupid system!
 test_that("mixed", {
