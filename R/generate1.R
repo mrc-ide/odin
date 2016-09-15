@@ -75,7 +75,6 @@ odin_generate1_object <- function(dat) {
   self$constant <- collector_named()
   self$user <- collector_named()
   self$time <- collector_named(TRUE)
-  self$output <- collector_named(TRUE)
 
   ## Used on initialisation/freeing
   self$initial <- collector()

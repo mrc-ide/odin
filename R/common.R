@@ -6,7 +6,6 @@
 STAGE_CONSTANT <- 1L
 STAGE_USER <- 2L
 STAGE_TIME <- 3L
-STAGE_OUTPUT <- 4L
 STAGES <- c("constant", "user", "time", "output")
 STEP <- "step"
 TIME <- "t"

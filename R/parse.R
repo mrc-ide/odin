@@ -235,9 +235,11 @@ odin_parse_find_vars <- function(eqs, traits, info) {
       msg$add("\tin initial() but not %s(): %s",
               info$target_name, paste(msg_vars, collapse=", "))
     }
-    ## TODO: should this not use odin_error?
-    stop("%s() and initial() must contain same set of equations:\n",
-         info$target_name, paste(msg$get(), collapse="\n"), call.=FALSE)
+    tmp <- eqs[is_deriv | is_initial]
+    odin_error(sprintf(
+      "%s() and initial() must contain same set of equations:\n%s\n",
+      info$target_name, paste(msg$get(), collapse="\n")),
+      get_lines(tmp), get_exprs(tmp))
   }
 
   err <- names(is_deriv) %in% vars

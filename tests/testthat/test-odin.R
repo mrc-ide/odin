@@ -813,3 +813,26 @@ test_that("only used in output", {
   expect_equal(res$ytot, rowSums(res$y))
   expect_equal(res$y2, res$y * 2)
 })
+
+test_that("overlapping graph", {
+  gen <- odin({
+    deriv(y) <- y * p
+    initial(y) <- 1
+    r <- -0.5
+    p <- r * sqrt(t) # used in both deriv and output
+    p2 <- p * 2 # used in output only
+    output(p3) <- p + p2
+  }, verbose = FALSE)
+
+  mod <- gen()
+  tt <- seq(0, 10, length.out = 101)
+
+  f <- function(t, y, p) {
+    r <- -0.5
+    p <- r * sqrt(t)
+    p2 <- p * 2
+    list(y * p, p + p2)
+  }
+  cmp <- deSolve::ode(1, tt, f, NULL)
+  expect_equal(mod$run(tt), cmp, check.attributes = FALSE)
+})

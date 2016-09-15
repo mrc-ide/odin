@@ -294,12 +294,12 @@ odin_generate2_deriv <- function(obj) {
   ## with both dde and deSolve, as they totally differ in how output
   ## variables are computed.  We pass a NULL through for output for
   ## dde so this will skip pretty happily.
-  output <- obj$output$get()
-  if (length(output) > 0L) {
-    time_output <- time[names(time) %in% obj$info$eqs_used$output]
+  if (obj$info$has_output) {
+    keep <- setdiff(obj$info$eqs_used$output, obj$info$eqs_used$deriv)
+    time_output <- time[names(time) %in% keep]
     ret$add("  if (%s != NULL) {", OUTPUT)
     ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
-    ret$add(indent(c(time_output, output), 4))
+    ret$add(indent(time_output, 4))
     ret$add("  }")
   }
   ret$add("}")
@@ -318,16 +318,17 @@ odin_generate2_update <- function(obj) {
   ret$add(indent(odin_generate2_unpack(obj), 2))
 
   time <- obj$time$get()
-  time <- time[names(time) %in% obj$info$eqs_used$update]
-  if (length(time) > 0L) {
-    ret$add(indent(time, 2))
+  time_update <- time[names(time) %in% obj$info$eqs_used$update]
+  if (length(time_update) > 0L) {
+    ret$add(indent(time_update, 2))
   }
 
-  output <- obj$output$get()
-  if (length(output) > 0L) {
+  if (obj$info$has_output) {
+    keep <- setdiff(obj$info$eqs_used$output, obj$info$eqs_used$update)
+    time_output <- time[names(time) %in% keep]
     ret$add("  if (%s != NULL) {", OUTPUT)
     ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
-    ret$add(indent(output, 4))
+    ret$add(indent(time_output, 4))
     ret$add("  }")
   }
   ret$add("}")
@@ -549,8 +550,6 @@ odin_generate2_output <- function(obj) {
     ret$add(indent(time, 2))
   }
 
-  ## 3. the actual output calculations:
-  ret$add(indent(obj$output$get(), 2))
   ret$add("}")
   ret$get()
 }

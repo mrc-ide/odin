@@ -21,12 +21,5 @@ odin_parse_output <- function(obj) {
   ## Modify the input here only:
   obj$output_info <- info
 
-  ## Hmm, I'm not sure that we need or want to do this any more?
-  tmp <- names_if(obj$traits[, "is_output"])
-  obj$stage[tmp] <- STAGE_OUTPUT
-  for (i in tmp) {
-    obj$eqs[[i]]$stage <- STAGE_OUTPUT
-  }
-
   obj
 }
