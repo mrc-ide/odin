@@ -59,6 +59,10 @@ odin_generate2_library_fns <- function(obj) {
     fns <- c(fns, "get_list_element")
   }
   fns <- unique(fns)
+  err <- setdiff(fns, names(dat$declarations))
+  if (length(err) > 0L) {
+    stop("library function not found [odin bug]: ", pastec(err)) # nocov
+  }
   ret <- list(declarations=c(unname(dat$declarations[fns]),
                              unname(obj$custom$declarations)),
               definitions=c(unname(dat$definitions[fns]),
