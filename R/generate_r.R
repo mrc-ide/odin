@@ -67,11 +67,11 @@ odin_generate_r <- function(info, dll) {
           collapse=",\n\n")
   ret$add(methods)
   ret$add("  ))")
-  ret$add(odin_generate_r_function(info, dll))
+  ret$add(odin_generate_r_constructor(info, dll))
   ret$get()
 }
 
-odin_generate_r_function <- function(info, dll) {
+odin_generate_r_constructor <- function(info, dll) {
   ret <- collector()
   base <- info$base
   if (info$has_user) {
@@ -136,15 +136,16 @@ odin_generate_r_update_cache <- function(info, dll) {
 odin_generate_r_initialize <- function(info, dll) {
   ret <- collector()
   base <- info$base
-  if (info$discrete) {
-    ret <- collector()
-    ret$add("initialize = function(user=NULL) {")
-    ret$add("  self$ptr <- %s", dot_call(base, dll, "%s_create", "user"))
-  } else {
-    ret$add("initialize = function(user=NULL, use_dde=FALSE) {")
+  args <- c(character(),
+            if (info$has_user) setNames("NULL", USER),
+            if (!info$discrete) c(use_dde="FALSE"))
+
+  ret$add("initialize = function(%s) {",
+          pastec(sprintf("%s = %s", names(args), unname(args))))
+  ret$add("  self$ptr <- %s",
+          dot_call(base, dll, "%s_create", args = names(args)))
+  if (!info$discrete) {
     ret$add("  self$use_dde <- use_dde")
-    ret$add("  self$ptr <- %s",
-            dot_call(base, dll, "%s_create", "user", "use_dde"))
   }
   if (info$initial_stage < STAGE_TIME) {
     ret$add("  self$init <- %s",
@@ -352,9 +353,7 @@ odin_generate_r_contents <- function(info, dll) {
   ret$get()
 }
 
-dot_call <- function(base, dll, fmt, ...) {
-  args <- paste(..., sep=", ")
-  stopifnot(length(args) > 0 && nzchar(args))
-  sprintf('.Call("%s", %s, PACKAGE="%s")',
-          sprintf(fmt, base), args, dll)
+dot_call <- function(base, dll, fmt, ..., args = c(...)) {
+  args <- c(args, sprintf('PACKAGE = "%s"', dll))
+  sprintf('.Call("%s", %s)', sprintf(fmt, base), paste(args, collapse=", "))
 }

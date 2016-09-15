@@ -29,8 +29,10 @@ odin_generate2_support_decls <- function(obj) {
   ret <- collector()
   ret$add("%s* %s_get_pointer(SEXP %s_ptr, int closed_error);",
           obj$type_pars, obj$info$base, obj$info$base)
-  ret$add("SEXP %s_set_user(%s *%s, SEXP %s);",
-          obj$info$base, obj$type_pars, obj$name_pars, USER)
+  if (obj$info$has_user) {
+    ret$add("SEXP %s_set_user(%s *%s, SEXP %s);",
+            obj$info$base, obj$type_pars, obj$name_pars, USER)
+  }
   ret$get()
 }
 
@@ -81,11 +83,14 @@ odin_generate2_create <- function(obj) {
   ret$add("// constant variables")
   ## NOTE: finalize definition in odin_generate2_finalize()
   ret$add("static void %s_finalize(SEXP %s_ptr);", obj$info$base, obj$info$base)
-  if (obj$info$discrete) {
-    ret$add("SEXP %s_create(SEXP %s) {", obj$info$base, USER)
-  } else {
-    ret$add("SEXP %s_create(SEXP %s, SEXP odin_use_dde) {", obj$info$base, USER)
-  }
+
+  ## NOTE: This is somewhat duplicated in odin_generate_r_initialize
+  args <- c(character(),
+            if (obj$info$has_user) USER,
+            if (!obj$info$discrete) "odin_use_dde")
+
+  ret$add("SEXP %s_create(%s) {", obj$info$base,
+          pastec(sprintf("SEXP %s", args)))
   ret$add("  %s *%s = (%s*) Calloc(1, %s);",
           obj$type_pars, obj$name_pars, obj$type_pars, obj$type_pars)
   constant <- obj$constant$get()
@@ -101,7 +106,9 @@ odin_generate2_create <- function(obj) {
   ## finaliser to avoid any memory leak in the case of set_user
   ## failing (as it throws on failure so the Free()'s would never
   ## happen).
-  ret$add("  %s_set_user(%s, %s);", obj$info$base, obj$name_pars, USER)
+  if (obj$info$has_user) {
+    ret$add("  %s_set_user(%s, %s);", obj$info$base, obj$name_pars, USER)
+  }
   if (!obj$info$discrete) {
     ret$add("  %s = INTEGER(odin_use_dde)[0];", obj$rewrite("odin_use_dde"))
   }
@@ -112,6 +119,9 @@ odin_generate2_create <- function(obj) {
 }
 
 odin_generate2_user <- function(obj) {
+  if (!obj$info$has_user) {
+    return(NULL)
+  }
   ret <- collector()
   ret$add("// Set user-supplied parameter values.")
   ret$add("SEXP %s_set_user(%s *%s, SEXP %s) {",
@@ -423,11 +433,13 @@ odin_generate2_contents <- function(obj) {
 }
 
 odin_generate2_order <- function(obj, output=FALSE) {
+  if (output && !obj$info$has_output) {
+    return(NULL)
+  }
   ret <- collector()
   if (output) {
     ret$add("// Report back to R information on output variable ordering")
     ret$add("// Like the variable order above, but for any output vars")
-    ret$add("// If no output variables are used, return an R NULL")
   } else {
     ret$add("// Report back to R information on variable ordering")
     ret$add("// The reported information includes position and length of each")
