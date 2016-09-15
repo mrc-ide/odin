@@ -300,24 +300,7 @@ odin_parse_rewrite_initial <- function(obj) {
 }
 
 odin_parse_variable_info <- function(obj) {
-  ## Within these classes, is it best to put them in topological order
-  ## or in lexical order?  Start with lexical order as we can always
-  ## tweak that later.
-  ##
-  ## I think it should be sorted by stage within the arrays though,
-  ## and stage added here.
-  vars <- obj$vars
-  variable_info <- odin_parse_extract_order(obj)
-
-  ## TODO: Expand this to include things like output perhaps?  I could
-  ## probably use this elsewhere (such as in output).
-
-  ## Check whether variables are actually used in the time equations:
-  used_vars <- unlist(lapply(obj$eqs, function(x)
-    if (x$stage >= STAGE_TIME) x$depends$variables), use.names=FALSE)
-  variable_info$used <- setNames(vars %in% used_vars, vars)
-
-  obj$variable_info <- variable_info
+  obj$variable_info <- odin_parse_extract_order(obj)
   obj
 }
 
@@ -598,7 +581,6 @@ odin_parse_check_functions <- function(obj) {
   obj
 }
 
-## This is going to extend the information in info$used a bit.
 odin_parse_usage <- function(obj) {
   deps_rec <- obj$deps_rec
 

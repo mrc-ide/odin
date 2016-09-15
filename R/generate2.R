@@ -652,10 +652,13 @@ odin_generate2_vars <- function(obj, output=FALSE) {
   info <- obj$variable_info
 
   if (output) {
-    used <- info$order %in% obj$info$eqs_used$output
+    used_eqs <- obj$info$eqs_used$output
   } else {
-    used <- info$used
+    used_eqs <-
+      union(obj$info$eqs_used[[if (obj$info$discrete) "update" else "deriv"]],
+            obj$info$eqs_used$output)
   }
+  used <- info$order %in% used_eqs
 
   ret <- collector()
   i <- used & !info$is_array
