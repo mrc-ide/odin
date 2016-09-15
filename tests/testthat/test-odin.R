@@ -792,3 +792,24 @@ test_that("non-numeric input", {
         array=convert(array, "character")),
     "Expected a numeric value for array")
 })
+
+test_that("only used in output", {
+  gen <- odin({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- 0.1
+    dim(r) <- 3
+    dim(y) <- 3
+    ## output only:
+    tot <- sum(y)
+    output(ytot) <- tot
+    output(y2[]) <- y[i] * 2
+    dim(y2) <- length(y)
+  }, verbose=TEST_VERBOSE)
+
+  mod <- gen()
+  tt <- seq(0, 10, length.out = 101)
+  res <- mod$transform_variables(mod$run(tt))
+  expect_equal(res$ytot, rowSums(res$y))
+  expect_equal(res$y2, res$y * 2)
+})

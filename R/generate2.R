@@ -544,7 +544,7 @@ odin_generate2_output <- function(obj) {
 
   ## 2. dependent calculations
   time <- obj$time$get()
-  time <- time[names(time) %in% obj$output_info$used$exprs]
+  time <- time[names(time) %in% obj$info$eqs_used$output]
   if (length(time) > 0L) {
     ret$add(indent(time, 2))
   }
@@ -653,7 +653,7 @@ odin_generate2_vars <- function(obj, output=FALSE) {
   info <- obj$variable_info
 
   if (output) {
-    used <- info$order %in% obj$output_info$used$output
+    used <- info$order %in% obj$info$eqs_used$output
   } else {
     used <- info$used
   }
