@@ -888,6 +888,9 @@ test_that("sum over one dimension", {
     dim(v3) <- length(v1)
     v4[] <- sum(m[2:4, i])
     dim(v4) <- length(v2)
+
+    tot1 <- sum(m)
+    tot2 <- sum(m[,])
   }, verbose = FALSE)
 
   nr <- 5
@@ -902,7 +905,7 @@ test_that("sum over one dimension", {
   expect_equal(dat$v3, rowSums(m[, 2:4]))
   expect_equal(dat$v4, colSums(m[2:4, ]))
 
-  ## expect_equal(dat$tot1, sum(m))
+  expect_equal(dat$tot1, sum(m))
   expect_equal(dat$tot2, sum(m))
 })
 
@@ -932,8 +935,7 @@ test_that("sum over two dimensions", {
     dim(v2) <- dim(a, 2)
     dim(v3) <- dim(a, 3)
 
-    ## TODO: this does not work; I would like it to though.
-    ## tot1 <- sum(a)
+    tot1 <- sum(a)
     tot2 <- sum(a[,,]) # TODO: sum(a[,]) compiles, but badly: enforce dim
   }, verbose = FALSE)
 
@@ -952,6 +954,6 @@ test_that("sum over two dimensions", {
   expect_equal(dat$v2, apply(a, 2, sum))
   expect_equal(dat$v3, apply(a, 3, sum))
 
-  ## expect_equal(dat$tot1, sum(a))
+  expect_equal(dat$tot1, sum(a))
   expect_equal(dat$tot2, sum(a))
 })

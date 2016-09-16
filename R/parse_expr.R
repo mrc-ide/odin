@@ -451,7 +451,9 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
         target <- x[[2L]]
         if (is.symbol(target)) { # sum(foo)
           fn <- "odin_sum1"
-          ret <- call(fn, target, 1, call("length", target))
+          ## This will work for both vectors and matrices/arrays
+          len <- as.name(array_dim_name(as.character(target)))
+          ret <- call(fn, target, 1, len)
         } else if (is.recursive(target)) { # sum(foo[1, ]), etc
           args <- rewrite_sum(target, TRUE)
           n <- (length(args) - 1L) / 2L
