@@ -441,8 +441,6 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
         }
         c(list(x[[2L]]), unlist(lapply(tmp, f), FALSE))
       } else if (is_call(x, quote(sum))) {
-        ## TODO: I don't know that we check the variables here are
-        ## actually arrays.
         if (length(x) != 2L) {
           odin_error(
             sprintf("sum() requires exactly one argument (recieved %d)",

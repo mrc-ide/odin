@@ -66,50 +66,6 @@ SEXP get_list_element(SEXP list, const char *name) {
   return ret;
 }
 
-// NOTE: all sums are over _inclusive_ ranges, rather than the more
-// typically C _exclusive_ range, for consistency with how these
-// functions will be used.  In particular while we take care of the
-// base1 to base0 mapping of most expressions, things that come in as
-// index varibles (i, j, k) do not get subtracted as they are dealt
-// with elsewhere.  So we can't just knock one off the "from" index
-// and have things work because then a sum over an index (e.g.,
-// sum(foo[i, ])) won't work because the limits would translate as
-// {(i,i), (0, dim2)}.  Instead, using an inclusive range we can apply
-// the transformation consistently and get {(i,i), (0, dim2-1)} which
-// looks weird but should work everywhere.
-double odin_sum1(double *x, int from_i, int to_i) {
-  double tot = 0.0;
-  for (int i = from_i; i <= to_i; ++i) {
-    tot += x[i];
-  }
-  return tot;
-}
-
-double odin_sum2(double *x, int from_i, int to_i, int from_j, int to_j, int dim_1) {
-  double tot = 0.0;
-  for (int j = from_j; j <= to_j; ++j) {
-    int jj = j * dim_1;
-    for (int i = from_i; i <= to_i; ++i) {
-      tot += x[i + jj];
-    }
-  }
-  return tot;
-}
-
-double odin_sum3(double *x, int from_i, int to_i, int from_j, int to_j, int from_k, int to_k, int dim_1, int dim_12) {
-  double tot = 0.0;
-  for (int k = from_k; k <= to_k; ++k) {
-    int kk = k * dim_12;
-    for (int j = from_j; j <= to_j; ++j) {
-      int jj = j * dim_1 + kk;
-      for (int i = from_i; i <= to_i; ++i) {
-        tot += x[i + jj];
-      }
-    }
-  }
-  return tot;
-}
-
 // modulo that conforms to (approximately) the same behaviour as R
 double fmodr(double x, double y) {
   double tmp = fmod(x, y);

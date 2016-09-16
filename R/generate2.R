@@ -60,16 +60,80 @@ odin_generate2_library_fns <- function(obj) {
   if (any(grepl("^get_user_", fns))) {
     fns <- c(fns, "get_list_element")
   }
+
   fns <- unique(fns)
+  fns_sum <- intersect(FUNCTIONS_SUM, fns)
+  fns <- setdiff(fns, fns_sum)
+
   err <- setdiff(fns, names(dat$declarations))
   if (length(err) > 0L) {
     stop("library function not found [odin bug]: ", pastec(err)) # nocov
   }
-  ret <- list(declarations=c(unname(dat$declarations[fns]),
-                             unname(obj$custom$declarations)),
-              definitions=c(unname(dat$definitions[fns]),
-                            unname(obj$custom$definitions)))
-  ret
+  lib <- list(declarations=dat$declarations[fns],
+              definitions=dat$definitions[fns])
+  lib_sum <- odin_generate2_library_sum(fns_sum)
+
+  join_library(list(lib, lib_sum, obj$custom))
+}
+
+odin_generate2_library_sum <- function(fns) {
+  nd <- setNames(match(fns, FUNCTIONS_SUM), fns)
+  join_library(lapply(nd, odin_generate2_sum))
+}
+
+## NOTE: all sums are over _inclusive_ ranges, rather than the more
+## typically C _exclusive_ range, for consistency with how these
+## functions will be used.  In particular while we take care of the
+## base1 to base0 mapping of most expressions, things that come in as
+## index varibles (i, j, k) do not get subtracted as they are dealt
+## with elsewhere.  So we can't just knock one off the "from" index
+## and have things work because then a sum over an index (e.g.,
+## sum(foo[i, ])) won't work because the limits would translate as
+## {(i,i), (0, dim2)}.  Instead, using an inclusive range we can apply
+## the transformation consistently and get {(i,i), (0, dim2-1)} which
+## looks weird but should work everywhere.
+odin_generate2_sum <- function(nd) {
+  i <- seq_len(nd)
+  dim <- vcapply(seq_len(nd), function(x)
+    array_dim_name("x", paste(seq_len(x - 1), collapse="")))
+
+  args_idx <- sprintf("int from_%s, int to_%s", INDEX[i], INDEX[i])
+
+  decl <- sprintf("double odin_sum%d(double *x, %s)",
+                   nd, pastec(c(args_idx, sprintf("int %s", dim[-1L]))))
+
+  ret <- collector()
+
+  ret$add("%s {", decl)
+  ret$add("  double tot = 0.0;")
+  idt <- rev(seq(2, by = 2, length.out = nd))
+  counter <- vcapply(INDEX[i], strrep, n = 2)
+
+  for (j in rev(i)) {
+    idx <- INDEX[j]
+    ret$add(indent(sprintf("for (int %s = from_%s; %s <= to_%s; ++%s) {",
+                           idx, idx, idx, idx, idx), idt[[j]]))
+    if (j > 1) {
+      start <- (if (j == nd) sprintf("%s * %s", INDEX[j], dim[j])
+                else sprintf("%s * %s + %s", INDEX[j], dim[j], counter[[j+1]]))
+      ret$add(indent(sprintf("int %s = %s;", counter[[j]], start),
+                     idt[[j]] + 2))
+    } else {
+      idx <- (if (nd == 1L) INDEX[[1L]]
+              else sprintf("%s + %s", INDEX[[1L]], counter[[2L]]))
+      ret$add(indent(sprintf("tot += x[%s];", idx), idt[[j]] + 2L))
+
+    }
+  }
+
+  ## Close all braces:
+  ret$add(vcapply(idt, indent, x = "}"))
+
+  ret$add("  return tot;")
+  ret$add("}")
+
+  list(declarations=sprintf("%s;", decl),
+       definitions=paste(ret$get(), collapse="\n"))
 }
 
 ## TODO: For now, odin_interpolate_support is elsewhere.

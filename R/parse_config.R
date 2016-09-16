@@ -138,13 +138,16 @@ odin_parse_config_include <- function(include, path) {
                           include[[i]]$line,
                           include[[i]]$expr))
   }
-  tmp <- lapply(seq_along(include), read1)
-  res <- list(declarations=unlist(lapply(tmp, "[[", "declarations")),
-              definitions=unlist(lapply(tmp, "[[", "definitions")))
+  res <- join_library(lapply(seq_along(include), read1))
   if (any(duplicated(res$declarations))) {
     odin_error("Duplicate declarations while reading includes",
                get_lines(include), get_exprs(include))
   }
 
   res
+}
+
+join_library <- function(x) {
+  list(declarations=unlist(lapply(x, "[[", "declarations")),
+       definitions=unlist(lapply(x, "[[", "definitions")))
 }
