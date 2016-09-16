@@ -512,13 +512,6 @@ odin_generate2_order <- function(obj, output=FALSE) {
   ret$add("SEXP %s_%s_order(SEXP %s_ptr) {",
           obj$info$base, if (output) "output" else "variable", obj$info$base)
 
-  ## Early exit if we have nothing to generate:
-  if (output && !obj$info$has_output) {
-    ret$add("  return R_NilValue;", STATE)
-    ret$add("}")
-    return(ret$get())
-  }
-
   info <- obj[[if (output) "output_info" else "variable_info"]]
   if (any(info$is_array)) {
     ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",

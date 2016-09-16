@@ -441,11 +441,6 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
         }
         c(list(x[[2L]]), unlist(lapply(tmp, f), FALSE))
       } else if (is_call(x, quote(sum))) {
-        if (length(x) != 2L) {
-          odin_error(
-            sprintf("sum() requires exactly one argument (recieved %d)",
-                    length(x) - 1L), line, expr)
-        }
         target <- x[[2L]]
         if (is.symbol(target)) { # sum(foo)
           ret <- x

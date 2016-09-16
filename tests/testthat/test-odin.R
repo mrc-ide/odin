@@ -980,3 +980,36 @@ test_that("sum over two dimensions", {
   expect_equal(dat$tot1, sum(a))
   expect_equal(dat$tot2, sum(a))
 })
+
+test_that("sum for a 4d array", {
+  ## I don't want to check absolutely everything here, so hopefully if
+  ## these few go OK then given the more exhaustive tests above we'll
+  ## be OK
+  gen <- odin({
+    deriv(y) <- 0
+    initial(y) <- 1
+
+    a[,,,] <- user()
+    dim(a) <- user()
+
+    m12[,] <- sum(a[i, j, , ])
+    m23[,] <- sum(a[, i, j, ])
+    m24[,] <- sum(a[, i, , j])
+
+    dim(m12) <- c(dim(a, 1), dim(a, 2))
+    dim(m23) <- c(dim(a, 2), dim(a, 3))
+    dim(m24) <- c(dim(a, 2), dim(a, 4))
+
+    tot1 <- sum(a)
+    tot2 <- sum(a[,,,])
+  }, verbose = FALSE)
+
+  dim <- c(3, 5, 7, 9)
+  a <- array(runif(prod(dim)), dim)
+  dat <- gen(a = a)$contents()
+
+  expect_equal(dat$a, a)
+  expect_equal(dat$m12, apply(a, 1:2, sum))
+  expect_equal(dat$m23, apply(a, c(2, 3), sum))
+  expect_equal(dat$m24, apply(a, c(2, 4), sum))
+})

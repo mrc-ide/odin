@@ -132,6 +132,9 @@ test_that("some parse errors", {
 
   expect_error(odin_parse(quote(a <- deriv)),
                "Function 'deriv' is disallowed as symbol on rhs")
+
+  expect_error(odin_parse_expr(quote(x <- 1(2)), NULL),
+               "Cannot process statement")
 })
 
 test_that("RHS array checking", {
@@ -163,6 +166,10 @@ test_that("RHS array checking", {
 
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
   expect_null(odin_parse_arrays_check_rhs(rhs, c(a=1), line, expr))
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), line, expr),
+               "Function 'sum' requires array as first argument")
+
+  rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a[])))
   expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), line, expr),
                "Function 'sum' requires array as first argument")
 
@@ -202,8 +209,8 @@ test_that("sum rewriting", {
   ## This form is not rewritten:
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a)), line, expr),
                    quote(sum(a)))
-  expect_error(odin_parse_expr_rhs_rewrite_sum(quote(sum(a, b)), line, expr),
-               "sum() requires exactly one argument", fixed=TRUE)
+  expect_error(odin_parse_expr(quote(x <- sum(a, b)), NULL),
+               "Expected 1 argument in sum call")
 
   ## Start working through some of the more complex cases:
   ## 1d:
