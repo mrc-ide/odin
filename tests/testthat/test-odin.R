@@ -901,4 +901,57 @@ test_that("sum over one dimension", {
 
   expect_equal(dat$v3, rowSums(m[, 2:4]))
   expect_equal(dat$v4, colSums(m[2:4, ]))
+
+  ## expect_equal(dat$tot1, sum(m))
+  expect_equal(dat$tot2, sum(m))
+})
+
+test_that("sum over two dimensions", {
+  ## This is where things get a bit more horrid:
+  gen <- odin({
+    deriv(y) <- 0
+    initial(y) <- 1
+
+    a[,,] <- user()
+    dim(a) <- user()
+
+    ## These collapse one dimension
+    m12[,] <- sum(a[i, j, ])
+    m13[,] <- sum(a[i, , j])
+    m23[,] <- sum(a[, i, j])
+
+    dim(m12) <- c(dim(a, 1), dim(a, 2))
+    dim(m13) <- c(dim(a, 1), dim(a, 3))
+    dim(m23) <- c(dim(a, 2), dim(a, 3))
+
+    ## These collapse two
+    v1[] <- sum(a[i, , ])
+    v2[] <- sum(a[, i, ])
+    v3[] <- sum(a[, , i])
+    dim(v1) <- dim(a, 1)
+    dim(v2) <- dim(a, 2)
+    dim(v3) <- dim(a, 3)
+
+    ## TODO: this does not work; I would like it to though.
+    ## tot1 <- sum(a)
+    tot2 <- sum(a[,,]) # TODO: sum(a[,]) compiles, but badly: enforce dim
+  }, verbose = FALSE)
+
+  nr <- 3
+  nc <- 5
+  nz <- 7
+  a <- array(runif(nr * nc * nz), c(nr, nc, nz))
+  dat <- gen(a = a)$contents()
+
+  expect_equal(dat$a, a)
+  expect_equal(dat$m12, apply(a, 1:2, sum))
+  expect_equal(dat$m13, apply(a, c(1, 3), sum))
+  expect_equal(dat$m23, apply(a, 2:3, sum))
+
+  expect_equal(dat$v1, apply(a, 1, sum))
+  expect_equal(dat$v2, apply(a, 2, sum))
+  expect_equal(dat$v3, apply(a, 3, sum))
+
+  ## expect_equal(dat$tot1, sum(a))
+  expect_equal(dat$tot2, sum(a))
 })
