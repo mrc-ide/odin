@@ -478,7 +478,8 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
   }
 
   ## TODO: check that the right number of indices are used when using sum?
-  array_special_function <- c(FUNCTIONS_SUM, "length", "dim", "interpolate")
+  array_special_function <-
+    c(FUNCTIONS_SUM, "sum", "length", "dim", "interpolate")
   check <- function(e, array_special) {
     if (!is.recursive(e)) { # leaf
       if (!is.symbol(e)) { # A literal of some type
@@ -494,7 +495,7 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
         if (x %in% nms) {
           if (length(ijk) != nd[[x]]) {
             throw(
-              "Incorrect dimensionality for %s in '%s' (expected %d)",
+              "Incorrect dimensionality for '%s' in '%s' (expected %d)",
               x, deparse_str(e), nd[[x]])
           }
           sym <- find_symbols(ijk)
@@ -517,11 +518,22 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
         }
       } else {
         if (f_nm %in% array_special_function) {
-          array_special <- f_nm
-          if (!(deparse(e[[2L]]) %in% nms)) {
-            throw("Function %s requires array as first argument",
-                  array_special)
+          is_sum <- f_nm %in% FUNCTIONS_SUM
+          arr <- deparse(e[[2L]])
+          if (!(arr %in% nms)) {
+            if (is_sum) {
+              f_nm <- "sum" # For better error messages, rewrite back
+            }
+            throw("Function '%s' requires array as first argument", f_nm)
           }
+          if (is_sum) {
+            nd_sum <- (length(e) - 1L) / 3L
+            if (length(e) != 1 && nd_sum != nd[[arr]]) {
+              throw("Incorrect dimensionality for '%s' in 'sum' (expected %d)",
+                    arr, nd[[arr]])
+            }
+          }
+          array_special <- f_nm
         } else {
           array_special <- NULL
         }

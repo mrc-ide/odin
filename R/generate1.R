@@ -171,6 +171,9 @@ odin_generate1_library <- function(obj, eqs) {
   used_functions <- unique(unlist(lapply(eqs, function(x) x$depends$functions)))
 
   obj$library_fns$add(intersect(FUNCTIONS_SUM, used_functions))
+  if ("sum" %in% used_functions) {
+    obj$library_fns$add("odin_sum1")
+  }
   if ("%%" %in% used_functions) {
     obj$library_fns$add("fmodr")
   }

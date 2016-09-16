@@ -88,7 +88,7 @@ test_that("some parse errors", {
     "Array dimensionality is not consistent")
   expect_error(
     odin_parse("x[1] <- 1\ny <- x[2,1]\ndim(x) <- 10"),
-    "Incorrect dimensionality for x")
+    "Incorrect dimensionality for 'x'")
 
   expect_error(odin_parse(quote(dim(x[1]) <- 1)),
                "must be applied to a name only")
@@ -142,10 +142,10 @@ test_that("RHS array checking", {
   ## This needs expanding as I find more corner cases
   expect_null(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=1), line, expr))
   expect_error(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=2), line, expr),
-               "Incorrect dimensionality for b")
+               "Incorrect dimensionality for 'b'")
   expect_error(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=2),
                                            line, expr),
-               "Incorrect dimensionality for b")
+               "Incorrect dimensionality for 'b'")
   expect_null(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=3),
                                           line, expr))
   expect_error(odin_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b=1),
@@ -164,7 +164,17 @@ test_that("RHS array checking", {
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
   expect_null(odin_parse_arrays_check_rhs(rhs, c(a=1), line, expr))
   expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), line, expr),
-               "Function sum requires array as first argument")
+               "Function 'sum' requires array as first argument")
+
+  expr <- quote(sum(a[,]))
+  rhs <- odin_parse_expr_rhs_rewrite_sum(expr)
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 1), line, expr),
+               "Incorrect dimensionality for 'a' in 'sum' (expected 1)",
+               fixed = TRUE)
+  expect_silent(odin_parse_arrays_check_rhs(rhs, c(a = 2), line, expr))
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 3), line, expr),
+               "Incorrect dimensionality for 'a' in 'sum' (expected 3)",
+               fixed = TRUE)
 })
 
 test_that("lhs array checking", {
@@ -189,50 +199,52 @@ test_that("sum rewriting", {
   ## Dummy args:
   line <- 1
   expr <- quote(x)
+  ## This form is not rewritten:
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a)), line, expr),
-                   quote(sum(a, 1, length(a))))
+                   quote(sum(a)))
   expect_error(odin_parse_expr_rhs_rewrite_sum(quote(sum(a, b)), line, expr),
                "sum() requires exactly one argument", fixed=TRUE)
 
   ## Start working through some of the more complex cases:
   ## 1d:
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[]))),
-                   quote(sum(a, 1, length(a))))
+                   quote(odin_sum1(a, 1, length(a))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c]))),
-                   quote(sum(a, b, c)))
+                   quote(odin_sum1(a, b, c)))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[4:9]))),
-                   quote(sum(a, 4, 9)))
+                   quote(odin_sum1(a, 4, 9)))
 
   ## 2d:
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[,]))),
-                   quote(sum(a, 1, dim(a, 1), 1, dim(a, 2), dim(a, 1))))
+                   quote(odin_sum2(a, 1, dim(a, 1), 1, dim(a, 2), dim(a, 1))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c,]))),
-                   quote(sum(a, b, c, 1, dim(a, 2), dim(a, 1))))
+                   quote(odin_sum2(a, b, c, 1, dim(a, 2), dim(a, 1))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[,d:e]))),
-                   quote(sum(a, 1, dim(a, 1), d, e, dim(a, 1))))
+                   quote(odin_sum2(a, 1, dim(a, 1), d, e, dim(a, 1))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c,d:e]))),
-                   quote(sum(a, b, c, d, e, dim(a, 1))))
+                   quote(odin_sum2(a, b, c, d, e, dim(a, 1))))
 
   ## 3d:
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, , ]))),
-                   quote(sum(a, 1, dim(a, 1), 1, dim(a, 2), 1, dim(a, 3),
+                   quote(odin_sum3(a, 1, dim(a, 1), 1, dim(a, 2), 1, dim(a, 3),
                              dim(a, 1), dim(a, 2))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c, , ]))),
-                   quote(sum(a, b, c, 1, dim(a, 2), 1, dim(a, 3),
+                   quote(odin_sum3(a, b, c, 1, dim(a, 2), 1, dim(a, 3),
                              dim(a, 1), dim(a, 2))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, d:e, ]))),
-                   quote(sum(a, 1, dim(a, 1), d, e, 1, dim(a, 3),
+                   quote(odin_sum3(a, 1, dim(a, 1), d, e, 1, dim(a, 3),
                              dim(a, 1), dim(a, 2))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, , f:g]))),
-                   quote(sum(a, 1, dim(a, 1), 1, dim(a, 2), f, g,
+                   quote(odin_sum3(a, 1, dim(a, 1), 1, dim(a, 2), f, g,
                              dim(a, 1), dim(a, 2))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(
     quote(sum(a[b:c, d:e, f:g]))),
-    quote(sum(a, b, c, d, e, f, g,dim(a, 1), dim(a, 2))))
+    quote(odin_sum3(a, b, c, d, e, f, g, dim(a, 1), dim(a, 2))))
 
   ## Within a statement:
-  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a) + sum(b))),
-                   quote(sum(a, 1, length(a)) + sum(b, 1, length(b))))
+  expect_identical(
+    odin_parse_expr_rhs_rewrite_sum(quote(sum(a[]) + sum(b[]))),
+    quote(odin_sum1(a, 1, length(a)) + odin_sum1(b, 1, length(b))))
 })
 
 test_that("conditinals need else clause", {
@@ -357,9 +369,9 @@ test_that("sums", {
   expect_error(odin_parse_expr(quote(x <- sum(1)), NULL),
                "Argument to sum must be a symbol or indexed array")
   expect_error(odin_parse_expr(quote(x <- sum(a, b)), NULL),
-               "sum() requires exactly one argument", fixed=TRUE)
+               "Expected 1 argument in sum call, but recieved 2")
   expect_error(odin_parse_expr(quote(x <- sum()), NULL),
-               "sum() requires exactly one argument", fixed=TRUE)
+               "Expected 1 argument in sum call, but recieved 0")
 
   expect_error(odin_parse_expr(quote(x <- sum(a[f(b)])), NULL),
                "Invalid array use in sum")

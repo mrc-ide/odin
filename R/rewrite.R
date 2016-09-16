@@ -47,6 +47,15 @@ rewrite_c <- function(expr, name_pars,
     } else if (nm == "[") {
       value <- rewrite_array(expr, res, values, rewrite_recall)
       is_index <- FALSE
+    } else if (nm == "sum") {
+      ## Or:
+      ##
+      ##   rewrite_recall(array_dim_name(deparse(expr[[2L]])))
+      ##
+      ## and - 1 in the format string
+      len <- minus1(as.name(array_dim_name(deparse(expr[[2L]]))),
+                    rewrite_recall)
+      value <- sprintf("odin_sum1(%s, 0, %s)", values[[1L]], len)
     } else if (nm %in% FUNCTIONS_SUM) {
       nd <- (length(expr) - 1L) / 3L
       ii <- seq_len(nd * 2L) + 1L

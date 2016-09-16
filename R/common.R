@@ -58,6 +58,7 @@ FUNCTIONS <- list(
   ## Things that get special treatment
   "[" = NA,   # checked in the array code
   interpolate = NA, # dealt with elsewhere
+  sum = 1L,
 
   ## General
   "(" = 1L,
