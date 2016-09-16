@@ -68,8 +68,7 @@ test_that("stochastic initial conditions don't get called every step", {
     v <- norm_rand() # this variable is implicitly time dependent.
     initial(x) <- v
     update(x) <- x + 1
-    config(base) <- "stoch"
-  }, "stoch", verbose = TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   cmp <- .Random.seed
   mod <- gen()
