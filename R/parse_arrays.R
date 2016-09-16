@@ -527,7 +527,7 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
             throw("Function '%s' requires array as first argument", f_nm)
           }
           if (is_sum) {
-            nd_sum <- (length(e) - 1L) / 3L
+            nd_sum <- (length(e) - 2L) / 2L
             if (length(e) != 1 && nd_sum != nd[[arr]]) {
               throw("Incorrect dimensionality for '%s' in 'sum' (expected %d)",
                     arr, nd[[arr]])

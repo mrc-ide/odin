@@ -57,9 +57,14 @@ rewrite_c <- function(expr, name_pars,
                     rewrite_recall)
       value <- sprintf("odin_sum1(%s, 0, %s)", values[[1L]], len)
     } else if (nm %in% FUNCTIONS_SUM) {
-      nd <- (length(expr) - 1L) / 3L
-      ii <- seq_len(nd * 2L) + 1L
-      values[ii] <- vcapply(as.list(expr[ii + 1L]), minus1, rewrite_recall)
+      nd <- (length(expr) - 2L) / 2L
+      values[-1L] <- vcapply(as.list(expr[-(1:2)]), minus1, rewrite_recall)
+      if (nd > 1L) {
+        ## TODO: This appears all over the show, and is harder than ideal
+        arr <- as.character(expr[[2L]])
+        values <- c(values, vcapply(seq_len(nd - 1), function(x)
+          rewrite_recall(array_dim_name(arr, paste(seq_len(x), collapse="")))))
+      }
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     } else if (n == 1L && nm %in% FUNCTIONS_UNARY) {
       value <- sprintf("%s%s", nm, values)

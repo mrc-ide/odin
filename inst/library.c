@@ -96,9 +96,8 @@ double odin_sum2(double *x, int from_i, int to_i, int from_j, int to_j, int dim_
   return tot;
 }
 
-double odin_sum3(double *x, int from_i, int to_i, int from_j, int to_j, int from_k, int to_k, int dim_1, int dim_2) {
+double odin_sum3(double *x, int from_i, int to_i, int from_j, int to_j, int from_k, int to_k, int dim_1, int dim_12) {
   double tot = 0.0;
-  const int dim_12 = dim_1 * dim_2;
   for (int k = from_k; k <= to_k; ++k) {
     int kk = k * dim_12;
     for (int j = from_j; j <= to_j; ++j) {

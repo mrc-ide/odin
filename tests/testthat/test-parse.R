@@ -216,30 +216,28 @@ test_that("sum rewriting", {
 
   ## 2d:
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[,]))),
-                   quote(odin_sum2(a, 1, dim(a, 1), 1, dim(a, 2), dim(a, 1))))
+                   quote(odin_sum2(a, 1, dim(a, 1), 1, dim(a, 2))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c,]))),
-                   quote(odin_sum2(a, b, c, 1, dim(a, 2), dim(a, 1))))
+                   quote(odin_sum2(a, b, c, 1, dim(a, 2))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[,d:e]))),
-                   quote(odin_sum2(a, 1, dim(a, 1), d, e, dim(a, 1))))
+                   quote(odin_sum2(a, 1, dim(a, 1), d, e)))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c,d:e]))),
-                   quote(odin_sum2(a, b, c, d, e, dim(a, 1))))
+                   quote(odin_sum2(a, b, c, d, e)))
 
   ## 3d:
-  expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, , ]))),
-                   quote(odin_sum3(a, 1, dim(a, 1), 1, dim(a, 2), 1, dim(a, 3),
-                             dim(a, 1), dim(a, 2))))
+  expect_identical(
+    odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, , ]))),
+    quote(odin_sum3(a, 1, dim(a, 1), 1, dim(a, 2), 1, dim(a, 3))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[b:c, , ]))),
-                   quote(odin_sum3(a, b, c, 1, dim(a, 2), 1, dim(a, 3),
-                             dim(a, 1), dim(a, 2))))
+                   quote(odin_sum3(a, b, c, 1, dim(a, 2), 1, dim(a, 3))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, d:e, ]))),
-                   quote(odin_sum3(a, 1, dim(a, 1), d, e, 1, dim(a, 3),
-                             dim(a, 1), dim(a, 2))))
+                   quote(odin_sum3(a, 1, dim(a, 1), d, e, 1, dim(a, 3))))
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a[, , f:g]))),
-                   quote(odin_sum3(a, 1, dim(a, 1), 1, dim(a, 2), f, g,
-                             dim(a, 1), dim(a, 2))))
+                   quote(odin_sum3(a, 1, dim(a, 1), 1, dim(a, 2), f, g)))
+
   expect_identical(odin_parse_expr_rhs_rewrite_sum(
     quote(sum(a[b:c, d:e, f:g]))),
-    quote(odin_sum3(a, b, c, d, e, f, g, dim(a, 1), dim(a, 2))))
+    quote(odin_sum3(a, b, c, d, e, f, g)))
 
   ## Within a statement:
   expect_identical(

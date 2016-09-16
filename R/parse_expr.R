@@ -455,11 +455,6 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
           args <- rewrite_sum(target, TRUE)
           n <- (length(args) - 1L) / 2L
           fn <- FUNCTIONS_SUM[n]
-          if (n > 1) {
-            args <- c(args,
-                      call("dim", args[[1L]], 1),
-                      if (n > 2) call("dim", args[[1L]], 2))
-          }
           ret <- as.call(c(list(as.name(fn)), args))
         } else { # sum(1), sum(NULL)
           odin_error("Argument to sum must be a symbol or indexed array",
