@@ -23,7 +23,7 @@ find_symbols <- function(expr, hide_errors=TRUE) {
         }
         ## Still need to declare the function as used because we'll
         ## want to check that later.
-        functions <<- nm
+        functions <<- c(functions, nm)
       } else {
         functions <<- c(functions, deparse(e[[1]]))
         for (a in as.list(e[-1])) {

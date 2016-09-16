@@ -260,9 +260,8 @@ odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
   odin_parse_expr_rhs_check_usage(rhs, line, expr)
 
   if ("sum" %in% depends$functions) {
-    tmp <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
-    rhs <- tmp$rhs
-    depends$functions <- union(setdiff(depends$functions, "sum"), tmp$sum)
+    rhs <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
+    depends <- find_symbols(rhs)
   }
 
   if (":" %in% depends$functions) {
@@ -397,10 +396,8 @@ odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
 ## NOTE: The sum() calls aren't real; they are translated at this
 ## point (though it could just as easily be later but it's pretty
 ## straightforward to do it here) into calls that we can actually use.
-## We don't complete the rewrite here, but instead collect all the
-## appropriate arguments.  We'll do the function name rewrite (from
-## sum to one of odin_sum1, odin_sum2 or odin_sum3 in the rewrite
-## function when we tackle the minus1 from indices.
+## In the rewrite function later we also tackle the minus1 from
+## indices.
 odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
   ## TODO: It would be so much nicer if by the time this rolls
   ## around we could have already determined the number of
@@ -419,7 +416,6 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
   ## NOTE: This needs to be recursive because we're looking through
   ## all the calls here for the `sum` call, then checking that it's
   ## not calling itself.  Things like sum(a) + sum(b) are allowed.
-  seen <- collector()
   rewrite_sum <- function(x, is_sum=FALSE) {
     if (!is.recursive(x)) {
       x
@@ -470,7 +466,6 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
           odin_error("Argument to sum must be a symbol or indexed array",
                      line, expr)
         }
-        seen$add(fn)
         ret
       } else {
         args <- lapply(as.list(x[-1L]), rewrite_sum, FALSE)
@@ -479,7 +474,7 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
     }
   }
 
-  list(rhs=rewrite_sum(rhs), sum=unique(seen$get()))
+  rewrite_sum(rhs)
 }
 
 ######################################################################

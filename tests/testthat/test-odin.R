@@ -868,3 +868,37 @@ test_that("overlapping graph", {
   cmp <- deSolve::ode(1, tt, f, NULL)
   expect_equal(mod$run(tt), cmp, check.attributes = FALSE)
 })
+
+test_that("sum over one dimension", {
+  ## This does rowSums / colSums and will be important for building up
+  ## towards a general sum.
+  gen <- odin({
+    deriv(y) <- 0
+    initial(y) <- 1
+
+    m[,] <- user()
+    dim(m) <- user()
+
+    v1[] <- sum(m[i, ])
+    dim(v1) <- dim(m, 1)
+    v2[] <- sum(m[, i])
+    dim(v2) <- dim(m, 2)
+
+    v3[] <- sum(m[i, 2:4])
+    dim(v3) <- length(v1)
+    v4[] <- sum(m[2:4, i])
+    dim(v4) <- length(v2)
+  }, verbose = FALSE)
+
+  nr <- 5
+  nc <- 7
+  m <- matrix(runif(nr * nc), nr, nc)
+  dat <- gen(m = m)$contents()
+
+  expect_equal(dat$m, m)
+  expect_equal(dat$v1, rowSums(m))
+  expect_equal(dat$v2, colSums(m))
+
+  expect_equal(dat$v3, rowSums(m[, 2:4]))
+  expect_equal(dat$v4, colSums(m[2:4, ]))
+})
