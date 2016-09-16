@@ -927,7 +927,7 @@ test_that("sum over two dimensions", {
     dim(m13) <- c(dim(a, 1), dim(a, 3))
     dim(m23) <- c(dim(a, 2), dim(a, 3))
 
-    ## These collapse two
+    ## These collapse two dimensions
     v1[] <- sum(a[i, , ])
     v2[] <- sum(a[, i, ])
     v3[] <- sum(a[, , i])
@@ -935,13 +935,28 @@ test_that("sum over two dimensions", {
     dim(v2) <- dim(a, 2)
     dim(v3) <- dim(a, 3)
 
+    mm12[,] <- sum(a[i, j, 2:4])
+    mm13[,] <- sum(a[i, 2:4, j])
+    mm23[,] <- sum(a[2:4, i, j])
+    ## TODO: dim(mm12) <- dim(m12) will not work, but that would be nice
+    dim(mm12) <- c(dim(a, 1), dim(a, 2))
+    dim(mm13) <- c(dim(a, 1), dim(a, 3))
+    dim(mm23) <- c(dim(a, 2), dim(a, 3))
+
+    vv1[] <- sum(a[i, 2:4, 2:4])
+    vv2[] <- sum(a[2:4, i, 2:4])
+    vv3[] <- sum(a[2:4, 2:4, i])
+    dim(vv1) <- dim(a, 1)
+    dim(vv2) <- dim(a, 2)
+    dim(vv3) <- dim(a, 3)
+
     tot1 <- sum(a)
-    tot2 <- sum(a[,,]) # TODO: sum(a[,]) compiles, but badly: enforce dim
+    tot2 <- sum(a[,,])
   }, verbose = FALSE)
 
-  nr <- 3
-  nc <- 5
-  nz <- 7
+  nr <- 5
+  nc <- 7
+  nz <- 9
   a <- array(runif(nr * nc * nz), c(nr, nc, nz))
   dat <- gen(a = a)$contents()
 
@@ -953,6 +968,14 @@ test_that("sum over two dimensions", {
   expect_equal(dat$v1, apply(a, 1, sum))
   expect_equal(dat$v2, apply(a, 2, sum))
   expect_equal(dat$v3, apply(a, 3, sum))
+
+  expect_equal(dat$mm12, apply(a[,,2:4], 1:2, sum))
+  expect_equal(dat$mm13, apply(a[,2:4,], c(1, 3), sum))
+  expect_equal(dat$mm23, apply(a[2:4,,], 2:3, sum))
+
+  expect_equal(dat$vv1, apply(a[,2:4,2:4], 1, sum))
+  expect_equal(dat$vv2, apply(a[2:4,,2:4], 2, sum))
+  expect_equal(dat$vv3, apply(a[2:4,2:4,], 3, sum))
 
   expect_equal(dat$tot1, sum(a))
   expect_equal(dat$tot2, sum(a))
