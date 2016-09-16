@@ -51,10 +51,12 @@ FUNCTIONS_RENAME <- c(
   lgamma = "lgammafn"
 )
 
+## TODO: if INDEX is open-ended, this becomes open-ended too
+FUNCTIONS_SUM <- sprintf("odin_sum%d", seq_along(INDEX))
+
 FUNCTIONS <- list(
   ## Things that get special treatment
   "[" = NA,   # checked in the array code
-  "sum" = NA, # checked and rewritten in odin_parse_expr_rhs_rewrite_sum
   interpolate = NA, # dealt with elsewhere
 
   ## General

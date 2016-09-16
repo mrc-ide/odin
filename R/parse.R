@@ -567,6 +567,7 @@ odin_parse_check_functions <- function(obj) {
                names(FUNCTIONS_UNARY),
                names(FUNCTIONS_RENAME),
                if (obj$info$discrete) names(FUNCTIONS_STOCHASTIC),
+               FUNCTIONS_SUM,
                names(obj$config$include$declarations))
 
   err <- setdiff(all_used_functions, allowed)

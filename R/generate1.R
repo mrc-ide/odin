@@ -169,11 +169,8 @@ odin_generate1_library <- function(obj, eqs) {
   ## Support for sum() of varying orders
   ## TODO: this may miss things in delay rhs?
   used_functions <- unique(unlist(lapply(eqs, function(x) x$depends$functions)))
-  if ("sum" %in% used_functions) {
-    obj$library_fns$add("odin_sum1")
-    obj$library_fns$add("odin_sum2")
-    obj$library_fns$add("odin_sum3")
-  }
+
+  obj$library_fns$add(intersect(FUNCTIONS_SUM, used_functions))
   if ("%%" %in% used_functions) {
     obj$library_fns$add("fmodr")
   }

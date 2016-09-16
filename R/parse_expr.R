@@ -245,13 +245,13 @@ odin_parse_expr_rhs <- function(rhs, line, expr) {
 }
 
 odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
-  deps <- find_symbols(rhs)
-  err <- intersect(setdiff(SPECIAL_LHS, "dim"), deps$functions)
+  depends <- find_symbols(rhs)
+  err <- intersect(setdiff(SPECIAL_LHS, "dim"), depends$functions)
   if (length(err) > 0L) {
     odin_error(sprintf("Function %s is disallowed on rhs",
                        paste(unique(err), collapse=", ")), line, expr)
   }
-  err <- intersect(SPECIAL_RHS, deps$functions)
+  err <- intersect(SPECIAL_RHS, depends$functions)
   if (length(err) > 0L) {
     odin_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
                line, expr)
@@ -259,16 +259,18 @@ odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
 
   odin_parse_expr_rhs_check_usage(rhs, line, expr)
 
-  if ("sum" %in% deps$functions) {
-    rhs <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
+  if ("sum" %in% depends$functions) {
+    tmp <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
+    rhs <- tmp$rhs
+    depends$functions <- union(setdiff(depends$functions, "sum"), tmp$sum)
   }
 
-  if (":" %in% deps$functions) {
+  if (":" %in% depends$functions) {
     odin_error("Range operator ':' may not be used on rhs", line, expr)
   }
 
   list(type="expression",
-       depends=deps,
+       depends=depends,
        value=rhs)
 }
 
@@ -417,6 +419,7 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
   ## NOTE: This needs to be recursive because we're looking through
   ## all the calls here for the `sum` call, then checking that it's
   ## not calling itself.  Things like sum(a) + sum(b) are allowed.
+  seen <- collector()
   rewrite_sum <- function(x, is_sum=FALSE) {
     if (!is.recursive(x)) {
       x
@@ -451,20 +454,23 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
         }
         target <- x[[2L]]
         if (is.symbol(target)) { # sum(foo)
-          ret <- call("sum", target, 1, call("length", target))
+          fn <- "odin_sum1"
+          ret <- call(fn, target, 1, call("length", target))
         } else if (is.recursive(target)) { # sum(foo[1, ]), etc
           args <- rewrite_sum(target, TRUE)
           n <- (length(args) - 1L) / 2L
+          fn <- FUNCTIONS_SUM[n]
           if (n > 1) {
             args <- c(args,
                       call("dim", args[[1L]], 1),
                       if (n > 2) call("dim", args[[1L]], 2))
           }
-          ret <- as.call(c(list(quote(sum)), args))
+          ret <- as.call(c(list(as.name(fn)), args))
         } else { # sum(1), sum(NULL)
           odin_error("Argument to sum must be a symbol or indexed array",
                      line, expr)
         }
+        seen$add(fn)
         ret
       } else {
         args <- lapply(as.list(x[-1L]), rewrite_sum, FALSE)
@@ -473,7 +479,7 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
     }
   }
 
-  rewrite_sum(rhs)
+  list(rhs=rewrite_sum(rhs), sum=unique(seen$get()))
 }
 
 ######################################################################

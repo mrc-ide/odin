@@ -477,7 +477,8 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
     odin_error(sprintf(...), line, expr)
   }
 
-  array_special_function <- c("sum", "length", "dim", "interpolate")
+  ## TODO: check that the right number of indices are used when using sum?
+  array_special_function <- c(FUNCTIONS_SUM, "length", "dim", "interpolate")
   check <- function(e, array_special) {
     if (!is.recursive(e)) { # leaf
       if (!is.symbol(e)) { # A literal of some type

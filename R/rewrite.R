@@ -47,11 +47,11 @@ rewrite_c <- function(expr, name_pars,
     } else if (nm == "[") {
       value <- rewrite_array(expr, res, values, rewrite_recall)
       is_index <- FALSE
-    } else if (nm == "sum") {
+    } else if (nm %in% FUNCTIONS_SUM) {
       nd <- (length(expr) - 1L) / 3L
       ii <- seq_len(nd * 2L) + 1L
       values[ii] <- vcapply(as.list(expr[ii + 1L]), minus1, rewrite_recall)
-      value <- sprintf("odin_sum%d(%s)", nd, paste(values, collapse=", "))
+      value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     } else if (n == 1L && nm %in% FUNCTIONS_UNARY) {
       value <- sprintf("%s%s", nm, values)
     } else if (n == 2L && nm %in% FUNCTIONS_INFIX) {
