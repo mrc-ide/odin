@@ -212,61 +212,54 @@ odin_generate1_dim <- function(x, obj) {
   if (isTRUE(x$rhs$user)) {
     ## Here, we'll need to a little extra work; get the value, check
     ## length, copy out integers.
-    fn <- sprintf("get_user_array_dim%d", x$nd)
-    obj$library_fns$add(fn)
-    obj$library_fns$add("copy_user_double")
+    obj$library_fns$add("get_user_array_dim")
+    obj$library_fns$add("get_user_array_check_rank")
+    obj$library_fns$add("get_user_array_copy")
+
     ## We really need to do this in a scoped block I think as we need
     ## to set a few things all at once.
     obj[[st]]$add("{")
 
-    if (x$nd > 1L) {
+    if (x$nd == 1L) {
+      ## For the 1d/vector case we can just pass in the address of the single
+      ## dimension.
+      nm_i <- obj$rewrite(nm)
+      obj[[st]]$add('  double *tmp = get_user_array_dim(%s, "%s", %d, &%s);',
+                    USER, nm_s, x$nd, nm_i)
+    } else {
+      ## TODO: Here and elsewhere, should all 'tmp' variables be
+      ## odin_tmp?
+      ##
+      ## But for the matrix/array case we need to pass in space for
+      ## all the dimensions.
+      obj[[st]]$add("  int tmp_dim[%d];", x$nd)
+      obj[[st]]$add(
+                 '  double *tmp = get_user_array_dim(%s, "%s", %d, tmp_dim);',
+                 USER, nm_s, x$nd)
+
       nm_i <- vcapply(seq_len(x$nd),
                       function(i) obj$rewrite(array_dim_name(nm_target, i)))
-    } else {
-      nm_i <- obj$rewrite(nm)
+      obj[[st]]$add('  %s = tmp_dim[%d];', nm_i, seq_len(x$nd) - 1L)
+      obj[[st]]$add(indent(
+                 odin_generate1_dim_array_dimensions(x, obj$rewrite), 2L))
     }
 
-    obj[[st]]$add('  double *tmp = %s(%s, "%s", %s);',
-                  fn, USER, nm_s, paste0("&", nm_i, collapse=", "))
-    ## TODO: This duplicates the code below for computing compound
-    ## dimensions, but until I get test cases in that's probably the
-    ## simplest for now (note it differs in indent though).
-    if (x$nd > 1L) {
-      if (x$nd >= 3L) {
-        for (j in 3:x$nd) {
-          k <- seq_len(j - 1)
-          dn <- obj$rewrite(array_dim_name(nm_target, paste(k, collapse="")))
-          obj[[st]]$add("  %s = %s;", dn, paste(nm_i[k], collapse=" * "))
-        }
-      }
-      obj[[st]]$add("  %s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
-    }
     obj[[st]]$add("  %s = (double*) Calloc(%s, double);",
                   obj$rewrite(nm_s), obj$rewrite(nm))
     obj[[st]]$add("  memcpy(%s, tmp, %s * sizeof(double));",
                   obj$rewrite(nm_s), obj$rewrite(nm))
     obj[[st]]$add("}")
   } else {
-    if (x$nd > 1L) {
-      size <- as.list(x$rhs$value[-1L])
-      nm_i <- vcapply(seq_len(x$nd),
-                      function(i) obj$rewrite(array_dim_name(nm_target, i)))
-      for (i in seq_len(x$nd)) {
-        obj[[st]]$add("%s = %s;", nm_i[[i]], obj$rewrite(size[[i]]))
-      }
-      ## Little extra work for the 3d case.  If we were allowing
-      ## arbitrary matrices here this would be heaps more complicated
-      ## but we only need the special case here.
-      if (x$nd >= 3L) {
-        for (j in 3:x$nd) {
-          k <- seq_len(j - 1)
-          dn <- obj$rewrite(array_dim_name(nm_target, paste(k, collapse="")))
-          obj[[st]]$add("%s = %s;", dn, paste(nm_i[k], collapse=" * "))
-        }
-      }
-      obj[[st]]$add("%s = %s;", obj$rewrite(nm), paste(nm_i, collapse=" * "))
-    } else {
+    if (x$nd == 1) {
       obj[[st]]$add("%s = %s;", obj$rewrite(nm), obj$rewrite(x$rhs$value))
+    } else {
+      size <- as.list(x$rhs$value[-1L])
+      for (i in seq_len(x$nd)) {
+        obj[[st]]$add("%s = %s;",
+                      obj$rewrite(array_dim_name(nm_target, i)),
+                      obj$rewrite(size[[i]]))
+      }
+      obj[[st]]$add(odin_generate1_dim_array_dimensions(x, obj$rewrite))
     }
     obj[[st]]$add("%s = (double*) Calloc(%s, double);",
                   obj$rewrite(nm_s), obj$rewrite(nm))
@@ -379,8 +372,9 @@ odin_generate1_array <- function(x, obj, eqs) {
       return()
     }
     nd <- dim$nd
-    fn <- sprintf("get_user_array%d", nd)
-    obj$library_fns$add(fn)
+    obj$library_fns$add("get_user_array")
+    obj$library_fns$add("get_user_array_check_rank")
+    obj$library_fns$add("get_user_array_copy")
 
     if (nd == 1) {
       dn <- obj$rewrite(dim$name)
@@ -388,8 +382,8 @@ odin_generate1_array <- function(x, obj, eqs) {
       dn <- paste(vcapply(seq_len(nd), function(i)
         obj$rewrite(array_dim_name(x$name, i)), USE.NAMES=FALSE), collapse=", ")
     }
-    obj[[st]]$add('%s(%s, "%s", %s, %s);',
-                  fn, USER, nm, dn, obj$rewrite(x$name), name=nm)
+    obj[[st]]$add('get_user_array(%s, "%s", %s, %d, %s);',
+                  USER, nm, obj$rewrite(x$name), nd, dn, name=nm)
   } else if (isTRUE(x$rhs$output_self)) {
     obj[[st]]$add("memcpy(%s, %s, %s * sizeof(double));",
                   obj$rewrite(x$name), obj$rewrite(x$lhs$name_target),
@@ -743,4 +737,27 @@ odin_generate1_interpolate <- function(x, obj) {
   obj$time$add("interpolate_%s_run(%s, %s, %s);",
                interpolation_type, time_name, obj$rewrite(dest), target,
                name=nm)
+}
+
+odin_generate1_dim_array_dimensions <- function(x, rewrite) {
+  ret <- collector()
+
+  if (x$nd == 1) {
+    stop("[odin bug]") # nocov
+  }
+
+  nm <- x$name
+  nm_target <- x$lhs$name_target
+  nm_i <- vcapply(seq_len(x$nd),
+                  function(i) rewrite(array_dim_name(nm_target, i)))
+  if (x$nd >= 3L) {
+    for (j in 3:x$nd) {
+      k <- seq_len(j - 1)
+      dn <- rewrite(array_dim_name(nm_target, paste(k, collapse="")))
+      ret$add("%s = %s;", dn, paste(nm_i[k], collapse=" * "))
+    }
+  }
+  ret$add("%s = %s;", rewrite(nm), paste(nm_i, collapse=" * "))
+
+  ret$get()
 }

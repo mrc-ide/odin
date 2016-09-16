@@ -27,120 +27,6 @@ double get_user_double(SEXP user, const char *name, double default_value) {
   return ret;
 }
 
-void get_user_array1(SEXP user, const char *name, int len, double *dest) {
-  SEXP el = get_list_element(user, name);
-  if (el == R_NilValue) {
-    Rf_error("Expected value for %s", name);
-  } else {
-    if (LENGTH(el) != len) {
-      Rf_error("Expected length %d value for %s", len, name);
-    }
-    el = PROTECT(coerceVector(el, REALSXP));
-    memcpy(dest, REAL(el), len * sizeof(double));
-    UNPROTECT(1);
-  }
-}
-
-void get_user_array2(SEXP user, const char *name, int nr, int nc, double *dest) {
-  SEXP el = get_list_element(user, name);
-  if (el == R_NilValue) {
-    Rf_error("Expected value for %s", name);
-  } else {
-    SEXP dim = getAttrib(el, R_DimSymbol);
-    if (dim == R_NilValue || LENGTH(dim) != 2) {
-      Rf_error("Expected a matrix for %s", name);
-    }
-    dim = PROTECT(coerceVector(dim, INTSXP));
-    if (INTEGER(dim)[0] != nr || INTEGER(dim)[1] != nc) {
-      Rf_error("Expected a matrix of dimensions %d x %d for %s", nr, nc, name);
-    }
-    el = PROTECT(coerceVector(el, REALSXP));
-    memcpy(dest, REAL(el), nr * nc * sizeof(double));
-    UNPROTECT(2);
-  }
-}
-
-void get_user_array3(SEXP user, const char *name, int nr, int nc, int nz, double *dest) {
-  SEXP el = get_list_element(user, name);
-  if (el == R_NilValue) {
-    Rf_error("Expected value for %s", name);
-  } else {
-    SEXP dim = getAttrib(el, R_DimSymbol);
-    if (dim == R_NilValue || LENGTH(dim) != 3) {
-      Rf_error("Expected a 3d array for %s", name);
-    }
-    dim = PROTECT(coerceVector(dim, INTSXP));
-    if (INTEGER(dim)[0] != nr ||
-        INTEGER(dim)[1] != nc ||
-        INTEGER(dim)[2] != nz) {
-      Rf_error("Expected an array of dimensions [%d, %d, %d] for %s",
-               nr, nc, nz, name);
-    }
-    el = PROTECT(coerceVector(el, REALSXP));
-    memcpy(dest, REAL(el), nr * nc * nz * sizeof(double));
-    UNPROTECT(2);
-  }
-}
-
-double* get_user_array_dim1(SEXP user, const char *name, int *len) {
-  SEXP el = get_list_element(user, name);
-  if (el == R_NilValue) {
-    Rf_error("Expected value for %s", name);
-  } else if (isArray(el)) {
-    // this may be too strict as a length-1 dim here will fail
-    Rf_error("Expected a vector for %s", name);
-  }
-  *len = LENGTH(el);
-  size_t n = (size_t) *len;
-  return copy_user_double(el, n, name);
-}
-
-double* get_user_array_dim2(SEXP user, const char *name, int *nr, int *nc) {
-  SEXP el = get_list_element(user, name);
-  if (el == R_NilValue) {
-    Rf_error("Expected value for %s", name);
-  } else if (!isMatrix(el)) {
-    Rf_error("Expected a matrix for %s", name);
-  }
-  int *dim = INTEGER(getAttrib(el, R_DimSymbol));
-  *nr = dim[0];
-  *nc = dim[1];
-  size_t n = *nr * *nc;
-  return copy_user_double(el, n, name);
-}
-
-double* get_user_array_dim3(SEXP user, const char *name, int *nr, int *nc, int *nz) {
-  SEXP el = get_list_element(user, name);
-  if (el == R_NilValue) {
-    Rf_error("Expected value for %s", name);
-  }
-
-  SEXP dim = getAttrib(el, R_DimSymbol);
-  if (dim == R_NilValue || LENGTH(dim) != 3) {
-    Rf_error("Expected a 3d array for %s", name);
-  }
-  *nr = INTEGER(dim)[0];
-  *nc = INTEGER(dim)[1];
-  *nz = INTEGER(dim)[2];
-  size_t n = *nr * *nc * *nz;
-  return copy_user_double(el, n, name);
-}
-
-double* copy_user_double(SEXP el, size_t n, const char *name) {
-  int given_int = TYPEOF(el) == INTSXP;
-  if (given_int) {
-    el = PROTECT(coerceVector(el, REALSXP));
-  } else if (TYPEOF(el) != REALSXP) {
-    Rf_error("Expected a numeric value for %s", name);
-  }
-  double *ret = (double*) Calloc(n, double);
-  memcpy(ret, REAL(el), n * sizeof(double));
-  if (given_int) {
-    UNPROTECT(1);
-  }
-  return ret;
-}
-
 int get_user_int(SEXP user, const char *name, int default_value) {
   int ret = default_value;
   SEXP el = get_list_element(user, name);
@@ -269,11 +155,107 @@ void odin_set_dim(SEXP target, int nd, ...) {
 
   va_list ap;
   va_start(ap, nd);
-  for (size_t i = 0; i < nd; ++i) {
+  for (size_t i = 0; i < (size_t)nd; ++i) {
     dim[i] = va_arg(ap, int);
   }
   va_end(ap);
 
   setAttrib(target, R_DimSymbol, r_dim);
   UNPROTECT(1);
+}
+
+// The ScalarInteger bit below feels unnecessarily rubbish, but avoids
+// duplicating the variadic arg loop at the cost of a slightly odd R
+// object creation.
+//
+// TODO: can I get nd here to be size_t? (and elsewhere below)
+void get_user_array(SEXP user, const char *name, double *dest, int nd, ...) {
+  SEXP el = get_user_array_check_rank(user, name, nd);
+  SEXP r_dim;
+  int *dim;
+
+  if (nd == 1) {
+    r_dim = PROTECT(ScalarInteger(LENGTH(el)));
+  } else {
+    r_dim = PROTECT(coerceVector(getAttrib(el, R_DimSymbol), INTSXP));
+  }
+  dim = INTEGER(r_dim);
+
+  va_list ap;
+  va_start(ap, nd);
+  for (size_t i = 0; i < (size_t) nd; ++i) {
+    int dim_expected = va_arg(ap, int);
+    if (dim[i] != dim_expected) {
+      va_end(ap); // avoid a leak
+      if (nd == 1) {
+        Rf_error("Expected length %d value for %s", dim_expected, name);
+      } else {
+        Rf_error("Incorrect size of dimension %d of %s (expected %d)",
+                 i + 1, name, dim_expected);
+      }
+    }
+  }
+  va_end(ap);
+  UNPROTECT(1);
+
+  get_user_array_copy(el, name, dest);
+}
+
+double* get_user_array_dim(SEXP user, const char *name, int nd, int *dest_dim) {
+  SEXP el = get_user_array_check_rank(user, name, nd);
+
+  if (nd == 1) {
+    dest_dim[0] = LENGTH(el);
+  } else {
+    SEXP r_dim = PROTECT(coerceVector(getAttrib(el, R_DimSymbol), INTSXP));
+    int *dim = INTEGER(r_dim);
+
+    for (size_t i = 0; i < (size_t) nd; ++i) {
+      dest_dim[i] = dim[i];
+    }
+
+    UNPROTECT(1);
+  }
+
+  double *dest = (double*) Calloc(length(el), double);
+  get_user_array_copy(el, name, dest);
+  return dest;
+}
+
+SEXP get_user_array_check_rank(SEXP user, const char *name, int nd) {
+  SEXP el = get_list_element(user, name);
+  if (el == R_NilValue) {
+    Rf_error("Expected value for %s", name);
+  } else {
+    if (nd == 1) {
+      if (isArray(el)) {
+        // this may be too strict as a length-1 dim here will fail
+        Rf_error("Expected a vector for %s", name);
+      }
+    } else {
+      SEXP r_dim = getAttrib(el, R_DimSymbol);
+      if (r_dim == R_NilValue || LENGTH(r_dim) != nd) {
+        if (nd == 2) {
+          Rf_error("Expected a matrix for %s", name);
+        } else {
+          Rf_error("Expected a %dd array for %s", nd, name);
+        }
+      }
+    }
+  }
+  return el;
+}
+
+void get_user_array_copy(SEXP el, const char *name, double *dest) {
+  int given_int = TYPEOF(el) == INTSXP;
+  if (given_int) {
+    el = PROTECT(coerceVector(el, REALSXP));
+  } else if (TYPEOF(el) != REALSXP) {
+    Rf_error("Expected a numeric value for %s", name);
+  }
+  size_t n = (size_t) length(el);
+  memcpy(dest, REAL(el), n * sizeof(double));
+  if (given_int) {
+    UNPROTECT(1);
+  }
 }
