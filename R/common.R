@@ -32,8 +32,8 @@ DIM_DEPENDENT <- -2L
 ## These are going to be in a list of 0, 1, 2, ... arguments.  The
 ## last category will be nary.
 
-FUNCTIONS_INFIX <- c("+", "/", "-", "*", ">", "<", ">=", "<=", "==", "!=")
-## TODO: add "&&", "||"
+FUNCTIONS_INFIX <- c("+", "/", "-", "*", ">", "<", ">=", "<=", "==", "!=",
+                     "&&", "||")
 FUNCTIONS_UNARY <- c("+", "-") # TODO: add "!"?
 
 ## TODO:

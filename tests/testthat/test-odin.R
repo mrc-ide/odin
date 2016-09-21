@@ -1038,4 +1038,30 @@ test_that("non-time sentsitive output", {
   expect_equal(gen()$run(tt)[, "x"], rep(1, length(tt)))
 })
 
+test_that("logical operations", {
+  gen <- odin({
+    initial(a) <- 1
+    deriv(a) <- 0
+
+    ## These ones are easy
+    output(x1) <- t > 1 && t < 3
+    output(x2) <- t > 1 || t < 3
+
+    ## These ones may differ; note that parens are suggested by the
+    ## compiler for this line.
+    output(x3) <- t > 8 || t > 1 && t < 3 # should equal x4
+    output(x4) <- t > 8 || (t > 1 && t < 3)
+    output(x5) <- (t > 8 || t > 1) && t < 3
+  }, verbose = TEST_VERBOSE)
+
+  t <- seq(0, 10, length.out = 101)
+  y <- gen()$run(t)
+
+  expect_equal(y[, "x1"], as.numeric(t > 1 & t < 3))
+  expect_equal(y[, "x2"], as.numeric(t > 1 | t < 3))
+  expect_equal(y[, "x3"], as.numeric(t > 8 | t > 1 & t < 3))
+  expect_equal(y[, "x4"], as.numeric(t > 8 | (t > 1 & t < 3)))
+  expect_equal(y[, "x5"], as.numeric((t > 8 | t > 1) & t < 3))
+})
+
 unload_dlls()
