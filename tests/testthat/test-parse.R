@@ -114,9 +114,9 @@ test_that("some parse errors", {
   expect_error(odin_parse(quote(a <- 1 + delay(1))),
                "delay() must be the only call on the rhs", fixed=TRUE)
   expect_error(odin_parse(quote(a <- delay(1))),
-               "delay() requires exactly two arguments", fixed=TRUE)
-  expect_error(odin_parse(quote(a <- delay(1, 2, 3))),
-               "delay() requires exactly two arguments", fixed=TRUE)
+               "delay() requires two or three arguments", fixed=TRUE)
+  expect_error(odin_parse(quote(a <- delay(1, 2, 3, 4))),
+               "delay() requires two or three arguments", fixed=TRUE)
   expect_error(odin_parse(quote(a <- delay(delay(1, 2), 2))),
                "delay() may not be nested", fixed=TRUE)
   expect_error(odin_parse(quote(a <- delay(2, delay(1, 2)))),

@@ -286,12 +286,22 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
   if (!identical(rhs[[1]], quote(delay))) {
     odin_error("[odin bug]", line, expr) # nocov
   }
-  if (length(rhs) != 3L) {
-    odin_error("delay() requires exactly two arguments", line, expr)
+  na <- length(rhs) - 1L
+  if (na < 2 || na > 3) {
+    odin_error("delay() requires two or three arguments", line, expr)
   }
   deps_delay_expr <- find_symbols(rhs[[2L]])
   deps_delay_time <- find_symbols(rhs[[3L]])
-  fns <- c(deps_delay_expr$functions, deps_delay_time$functions)
+  if (na == 3) {
+    default <- rhs[[4L]]
+    deps_delay_default <- find_symbols(rhs[[4L]])
+  } else {
+    default <- deps_delay_default <- NULL
+  }
+
+  fns <- c(deps_delay_expr$functions,
+           deps_delay_time$functions,
+           deps_delay_default$functions)
   if ("delay" %in% fns) {
     odin_error("delay() may not be nested", line, expr)
   }
@@ -319,11 +329,13 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
   list(type="expression",
        delay=TRUE,
        ## resolved at the same time as everything else:
-       depends=deps_delay_time,
+       depends=join_deps(list(deps_delay_time, deps_delay_default)),
        ## resolved independently in the previous time:
        depends_delay=deps_delay_expr,
+       depends_default=deps_delay_default,
        value_expr=rhs[[2L]],
-       value_time=time)
+       value_time=time,
+       value_default=default)
 }
 
 odin_parse_expr_rhs_user <- function(rhs, line, expr) {

@@ -58,7 +58,7 @@ odin_parse_delay <- function(obj) {
   ## of these.
   delay_array_deps <-
     unique(unlist(lapply(obj$eqs[uses_delay],
-                         function(x) names_if(x$delay$deps_is_array))))
+                         function(x) names_if(x$delay$expr$deps_is_array))))
   for (nm in delay_array_deps) {
     obj$eqs[[array_dim_name(nm)]]$used_in_delay <- TRUE
   }
@@ -69,8 +69,12 @@ odin_parse_delay <- function(obj) {
 odin_parse_delay_1 <- function(idx, obj) {
   x <- obj$eqs[[idx]]
 
-  msg <- setdiff(x$rhs$depends_delay$variables,
-                 c(names(obj$deps_rec), obj$vars, INDEX))
+  ## TODO: why is this separate from the ordinary checks?  Do we need
+  ## to do the same thing for the time check?  What about the default
+  ## once that turns up?  It's all so confusing.
+  tmp <- join_deps(list(x$rhs$depends_delay, x$rhs$depends_default,
+                        x$rhs$depends_time))
+  msg <- setdiff(tmp$variables, c(names(obj$deps_rec), obj$vars, INDEX))
   if (length(msg) > 0L) {
     odin_error(sprintf("Missing %s in delay expression: %s",
                        ngettext(length(msg), "variable", "variables"),
@@ -78,9 +82,41 @@ odin_parse_delay_1 <- function(idx, obj) {
                x$line, x$expr)
   }
 
+  ## TODO: probably time needs processing, but it should be processed
+  ## in the same way as the main expression because it's processed at
+  ## the top level (ish) of the function.
+  expr <- odin_parse_delay_1_depends(x$rhs$depends_delay$variables, obj)
+
+  ## This is very similar, but also quite different, to
+  ## variable_offsets, but because we know we need everything always
+  ## we don't need to store and track new offsets.  Instead we'll
+  ## unpack and move the pointer along from the last array.  This does
+  ## exploit that scalars are packed in first.
+  delay_offset <- function(i) {
+    if (identical(expr$offset[[i]], 0L) && expr$is_array[[i]]) {
+      NULL # special treatment to avoid (foo + 0)
+    } else if (is.numeric(expr$offset[[i]])) {
+      ## This is going to exploit the fact that all non-array cases
+      ## are going to be straight-up numbers.
+      expr$offset[[i]]
+    } else if (expr$is_array[[i]] && i > 1L && expr$is_array[[i - 1L]]) {
+      call("+", as.name(expr$order[[i - 1L]]), as.name(expr$len[[i - 1L]]))
+    } else {
+      stop("odin bug") # nocov
+    }
+  }
+  expr$access <- lapply(seq_len(expr$n), delay_offset)
+
+  x$delay <- list(time = x$rhs$value_time,
+                  expr = expr,
+                  default = x$rhs$value_default)
+  x
+}
+
+odin_parse_delay_1_depends <- function(variables, obj) {
   ## Compute all the dependencies of this equation (and all their
   ## dependencies) filtered by those that depend on time.
-  deps <- intersect(x$rhs$depends_delay$variables, names(obj$deps_rec))
+  deps <- intersect(variables, names(obj$deps_rec))
   deps <- unique(c(deps, unlist(obj$deps_rec[deps], use.names=FALSE)))
   ## NOTE: We have to exclude delayed values from the dependencies
   ## here, even though they are time dependent (*different* sort
@@ -92,48 +128,33 @@ odin_parse_delay_1 <- function(idx, obj) {
                   c(TIME, names_if(obj$traits[, "uses_delay"])))
   deps <- deps[order(match(deps, names(obj$deps_rec)))]
 
-  ## TODO: this overlaps with the new function "odin_parse_extract_order".
-  ## Here, it's really important to pull these out with the scalars
-  ## first, then the arrays.
-  var_extract <- intersect(obj$variable_info$order, deps) # retains ordering
-  var_is_array <-
-    obj$variable_info$is_array[match(var_extract, obj$variable_info$order)]
-
-  len <- length(var_extract)
-  var_size <- vector("list", len)
-  var_offset <- vector("list", len)
-  for (j in seq_len(len)) {
-    if (!var_is_array[[j]]) {
-      var_size[[j]] <- 1L
-      var_offset[[j]] <- j - 1L
-    } else {
-      var_size[[j]] <- array_dim_name(var_extract[[j]])
-      if (j == 1L || !var_is_array[[j - 1L]]) {
-        var_offset[[j]] <- j - 1L
-      } else {
-        var_offset[[j]] <- var_size[[j - 1L]]
-      }
-    }
-  }
-  names(var_size) <- names(var_offset) <- var_extract
-
-  ## Non-variable dependencies:
-  deps <- setdiff(deps, var_extract)
-  ## NOTE: setNames is needed here because they may otherwise be
-  ## dropped.  This might cause bugs elsewhere so watch for usage of
-  ## indexing traits when names are required...
+  deps_vars <- intersect(obj$vars, deps)
+  deps <- setdiff(deps, deps_vars)
+  ## I don't think this is really needed here?
   deps_is_array <- setNames(obj$traits[deps, "is_array"], deps)
 
-  x$delay <- list(idx=idx,
-                  time=x$rhs$value_time,
-                  ## variables:
-                  ## TODO: in generate, shift to the var_ prefix (or nest)
-                  extract=var_extract,
-                  is_array=var_is_array,
-                  size=var_size,
-                  offset=var_offset,
-                  ## other dependencies:
-                  deps=deps,
-                  deps_is_array=deps_is_array)
-  x
+  ## TODO: I think that it will be worthwhile flagging in some cases
+  ## that *all* variables are used and then using a shortcut when
+  ## generating the delay.  That's easy enough to detect because it's
+  ##
+  ##   all(obj$vars %in% deps)
+  ##
+  ## In that case we'd skip over a bunch of stuff, get the entire
+  ## vector (which in the case of the discrete model is one big memcpy
+  ## and so possibly more efficient).
+  ret <- odin_parse_extract_order(obj, subset = deps_vars)
+  ret$deps <- deps
+  ret$deps_is_array <- deps_is_array
+  ret
+}
+## TODO: this might be nicer than the accumulator I used in parse.R
+symbol_sum <- function(x) {
+  n <- length(x)
+  xn <- x[[n]]
+  xn <- if (is.character(xn)) as.name(xn) else xn
+  if (length(x) == 1L) {
+    xn
+  } else {
+    call("+", symbol_sum(x[-n]), xn)
+  }
 }

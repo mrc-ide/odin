@@ -305,11 +305,15 @@ odin_parse_variable_info <- function(obj) {
 }
 
 ## Given a vector of equation naems, let's unpack things:
-odin_parse_extract_order <- function(obj, output=FALSE) {
+odin_parse_extract_order <- function(obj, output = FALSE, subset = NULL) {
+  ## TODO: we'll need to test this in a case where a subset of
+  ## variables are pulled out.  Joel's will make a nice integration
+  ## test though I believe.
   if (output) {
     names <- names_if(obj$traits[, "is_output"])
   } else {
-    names <- obj$info$target_name_fn(obj$vars)
+    vars <- if (is.null(subset)) obj$vars else intersect(obj$vars, subset)
+    names <- obj$info$target_name_fn(vars)
   }
 
   n <- length(names)
@@ -341,36 +345,20 @@ odin_parse_extract_order <- function(obj, output=FALSE) {
   len[is_array] <- vcapply(names_target[is_array], array_dim_name)
   len_is_var <- vlapply(len, is.language)
 
-  offset <- as.list(seq_len(n) - 1L)
-  accumulate_offset <- function(i) {
-    if (i == 1L) {
-      0L
-    } else if (!is_array[[i - 1L]]) {
-      offset[[i - 1L]] + 1L
-    } else if (identical(offset[[i - 1L]], 0L)) {
-      as.name(array_dim_name(names_target[[i - 1L]]))
-    } else {
-      prev <- offset[[i - 1L]]
-      if (is.language(prev)) {
-        prev <- as.name(names_offset[[i - 1L]])
-      }
-      call("+", prev, as.name(len[[i - 1L]]))
-    }
-  }
-  for (i in which(is_array)) {
-    offset[[i]] <- accumulate_offset(i)
-  }
+  tmp <- variable_offsets(names_target, is_array, len, output)
+  offset <- tmp$offset
+  total <- tmp$total
 
   offset_is_var <- vlapply(offset, is.language)
-  offset_use <- ifelse(offset_is_var, as.list(names_offset), offset)
-
-  total <- accumulate_offset(n + 1L)
   total_is_var <- is.language(total)
+
+  offset_use <- ifelse(offset_is_var, as.list(names(offset)), offset)
   if (total_is_var) {
     total_use <- if (output) "dim_output" else "dim"
   } else {
     total_use <- total
   }
+
   total_stage <- max(stage_dim)
 
   list(order=names_target,
@@ -542,8 +530,9 @@ odin_parse_check_unused <- function(obj) {
     ## TODO: We should have this be tuneable; ignore/message/warning/error
     nms <- unique(obj$names_target[unused])
     what <- ngettext(length(nms), "variable", "variables")
+    tmp <- obj$eqs[sort(which(unused))]
     odin_note(sprintf("Unused %s: %s", what, pastec(nms)),
-              get_lines(obj$eqs[unused]), get_exprs(obj$eqs[unused]))
+              get_lines(tmp), get_exprs(tmp))
   }
 }
 
@@ -614,4 +603,32 @@ odin_parse_usage <- function(obj) {
 
 is_dim_or_length <- function(x) {
   is_call(x, quote(dim)) || is_call(x, quote(length))
+}
+
+variable_offsets <- function(names, is_array, len, output = FALSE) {
+  n <- length(names)
+  names_offset <- offset_name(names, output)
+  offset <- setNames(as.list(seq_len(n) - 1L), names_offset)
+  accumulate_offset <- function(i) {
+    if (i == 1L) {
+      0L
+    } else if (!is_array[[i - 1L]]) {
+      offset[[i - 1L]] + 1L
+    } else if (identical(offset[[i - 1L]], 0L)) {
+      as.name(array_dim_name(names[[i - 1L]]))
+    } else {
+      prev <- offset[[i - 1L]]
+      if (is.language(prev)) {
+        prev <- as.name(names_offset[[i - 1L]])
+      }
+      call("+", prev, as.name(len[[i - 1L]]))
+    }
+  }
+  for (i in which(is_array)) {
+    offset[[i]] <- accumulate_offset(i)
+  }
+
+  total <- accumulate_offset(n + 1L)
+
+  list(offset = offset, total = total)
 }
