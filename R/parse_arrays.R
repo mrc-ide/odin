@@ -384,6 +384,10 @@ odin_parse_array_check <- function(obj) {
                                     as.expression(eq$expr))
         odin_parse_arrays_check_rhs(eq$rhs$value_time, nd, eq$line,
                                     as.expression(eq$expr))
+        if (!is.null(eq$rhs$value_default)) {
+          odin_parse_arrays_check_rhs(eq$rhs$value_default$value, nd, eq$line,
+                                      as.expression(eq$expr))
+        }
       } else {
         odin_parse_arrays_check_rhs(eq$rhs$value, nd, eq$line,
                                     as.expression(eq$expr))

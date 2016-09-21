@@ -592,10 +592,12 @@ odin_generate1_delay <- function(x, obj, eqs) {
     ## really simple at least and removes all the faff.  So we still
     ## need to inject the appropriate bits there.
     if (x$lhs$type == "array") {
-      ret$add(indent(odin_generate1_array_expr(x, obj), 4))
+      xd <- x
+      xd$rhs <- x$delay$default
+      xd$rhs$value <- list(xd$rhs$value)
+      ret$add(indent(odin_generate1_array_expr(xd, obj), 4))
     } else {
-      ret$add(indent("%s = %s;", 4),
-                    nm, obj$rewrite(x$rhs$value_default))
+      ret$add(indent("%s = %s;", 4), nm, obj$rewrite(x$delay$default$value))
     }
   } else {
     ret$add("    %s = %s;",
@@ -668,6 +670,9 @@ odin_generate1_delay <- function(x, obj, eqs) {
       x
     }
   } else {
+    if (x$lhs$type == "array") {
+      x$rhs$value <- list(x$rhs$value_expr)
+    }
     tr <- identity
   }
 

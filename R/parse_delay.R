@@ -68,7 +68,6 @@ odin_parse_delay <- function(obj) {
 
 odin_parse_delay_1 <- function(idx, obj) {
   x <- obj$eqs[[idx]]
-
   ## TODO: why is this separate from the ordinary checks?  Do we need
   ## to do the same thing for the time check?  What about the default
   ## once that turns up?  It's all so confusing.
@@ -146,15 +145,4 @@ odin_parse_delay_1_depends <- function(variables, obj) {
   ret$deps <- deps
   ret$deps_is_array <- deps_is_array
   ret
-}
-## TODO: this might be nicer than the accumulator I used in parse.R
-symbol_sum <- function(x) {
-  n <- length(x)
-  xn <- x[[n]]
-  xn <- if (is.character(xn)) as.name(xn) else xn
-  if (length(x) == 1L) {
-    xn
-  } else {
-    call("+", symbol_sum(x[-n]), xn)
-  }
 }

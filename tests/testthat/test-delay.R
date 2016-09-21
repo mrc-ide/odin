@@ -88,6 +88,26 @@ test_that("missing variables in delay", {
   }), "Missing variables in delay expression")
 })
 
+test_that("use subset of variables", {
+  gen <- odin::odin({
+    deriv(a) <- 1
+    deriv(b) <- 2
+    deriv(c) <- 3
+    initial(a) <- 0.1
+    initial(b) <- 0.2
+    initial(c) <- 0.3
+    ## TODO: output(tmp) <- delay(...) should be ok
+    tmp <- delay(b + c, 2)
+    output(tmp) <- tmp
+  }, verbose = TEST_VERBOSE)
+
+  tt <- seq(0, 10, length.out = 101)
+  mod <- gen()
+  yy <- mod$run(tt)
+  expect_equal(yy[, "tmp"],
+               0.5 + ifelse(tt <= 2, 0, (tt - 2)) * 5)
+})
+
 test_that("delay array storage", {
   gen <- odin::odin({
     ## Exponential growth/decay of 'y'
@@ -148,8 +168,8 @@ test_that("3 arg delay", {
     output(ylag) <- ylag
     config(base) <- "delay3"
   }, verbose=TEST_VERBOSE)
-  mod <- gen()
 
+  mod <- gen()
   tt <- seq(0, 3, length.out = 101)
   yy <- mod$run(tt)
   expect_equal(yy[, "ylag"], rep(2.0, length(tt)))
@@ -161,4 +181,31 @@ test_that("3 arg delay", {
   ylag <- yy[, "ylag"]
   expect_true(all(ylag[tt <= 3] == 2))
   expect_true(all(ylag[tt > 3] < 1)) # quite a big jump at first
+})
+
+test_that("3 arg delay with array", {
+  gen <- odin::odin({
+    deriv(a[]) <- i + 1
+    initial(a[]) <- i / 10
+    dim(a) <- 5
+    alt[] <- user()
+    dim(alt) <- length(a)
+    tmp[] <- delay(a[i], 2, alt[i])
+    dim(tmp) <- length(a)
+    output(tmp[]) <- tmp[i] # TRUE does not work here!
+  }, verbose = TEST_VERBOSE)
+
+  tt <- seq(0, 2, length.out = 11)
+  x <- -runif(5, 2, 3)
+  mod <- gen(alt = x)
+  yy <- mod$transform_variables(mod$run(tt))
+  expect_equal(yy$tmp, matrix(x, length(tt), length(x), TRUE))
+
+  tt <- seq(0, 10, length.out = 101)
+  yy <- mod$transform_variables(mod$run(tt))
+  i <- tt <= 2
+
+  expect_equal(yy$tmp[i, ], matrix(x, sum(i), length(x), TRUE))
+  expect_equal(yy$tmp[!i, ],
+               t(outer(1:5, tt[!i] - 2) + (0:4) / 10))
 })
