@@ -338,6 +338,8 @@ odin_generate1_symbol_expr <- function(x, obj) {
     get_user <- sprintf("get_user_%s", type)
     obj$library_fns$add(get_user)
     value <- sprintf("%s(%s, \"%s\", %s)", get_user, USER, nm, obj$rewrite(nm))
+  } else if (isTRUE(x$rhs$output_self)) {
+    value <- obj$rewrite(x$lhs$name_target)
   } else {
     value <- obj$rewrite(x$rhs$value)
   }

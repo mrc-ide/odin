@@ -1014,4 +1014,28 @@ test_that("sum for a 4d array", {
   expect_equal(dat$m24, apply(a, c(2, 4), sum))
 })
 
+test_that("self output for scalar", {
+  gen <- odin({
+    initial(a) <- 1
+    deriv(a) <- 0
+    x <- t
+    output(x) <- TRUE
+  }, verbose = TEST_VERBOSE)
+
+  tt <- seq(0, 10, length.out = 11)
+  expect_equal(gen()$run(tt)[, "x"], tt)
+})
+
+test_that("non-time sentsitive output", {
+  gen <- odin({
+    initial(a) <- 1
+    deriv(a) <- 0
+    x <- 1
+    output(x) <- TRUE
+  }, verbose = TEST_VERBOSE)
+
+  tt <- seq(0, 10, length.out = 11)
+  expect_equal(gen()$run(tt)[, "x"], rep(1, length(tt)))
+})
+
 unload_dlls()
