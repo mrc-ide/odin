@@ -139,3 +139,26 @@ test_that("delay array storage", {
     expect_equal(zz$a, real_a, tolerance = 1e-6)
   }
 })
+
+test_that("3 arg delay", {
+  gen <- odin::odin({
+    ylag <- delay(y, 3, 2) # lag time 3, default value 2
+    initial(y) <- 0.5
+    deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
+    output(ylag) <- ylag
+    config(base) <- "delay3"
+  }, verbose=TEST_VERBOSE)
+  mod <- gen()
+
+  tt <- seq(0, 3, length.out = 101)
+  yy <- mod$run(tt)
+  expect_equal(yy[, "ylag"], rep(2.0, length(tt)))
+
+  ## OK, this is not actually working; ylag never moves off of 2.
+  tt <- seq(0, 10, length.out = 101)
+  yy <- mod$run(tt)
+
+  ylag <- yy[, "ylag"]
+  expect_true(all(ylag[tt <= 3] == 2))
+  expect_true(all(ylag[tt > 3] < 1)) # quite a big jump at first
+})
