@@ -636,10 +636,9 @@ odin_generate1_delay <- function(x, obj, eqs) {
       obj$rewrite(ai)
     }
   }
-  ret$add("    %s = %s;",
-                x$delay$expr$order,
-                vcapply(seq_len(x$delay$expr$n), delay_access),
-                name = nm)
+  ret$add(indent("%s = %s;", 4),
+          x$delay$expr$order,
+          vcapply(seq_len(x$delay$expr$n), delay_access))
 
   ## This is where the two routes (with- and without-default) start
   ## diverging more markedly.

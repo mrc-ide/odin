@@ -192,7 +192,7 @@ test_that("3 arg delay with array", {
     dim(alt) <- length(a)
     tmp[] <- delay(a[i], 2, alt[i])
     dim(tmp) <- length(a)
-    output(tmp[]) <- tmp[i] # TRUE does not work here!
+    output(tmp[]) <- TRUE # or tmp[i]
   }, verbose = TEST_VERBOSE)
 
   tt <- seq(0, 2, length.out = 11)
