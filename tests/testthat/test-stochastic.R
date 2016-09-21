@@ -121,3 +121,5 @@ test_that("disallow stochastic functions on array rhs", {
     }, verbose = TEST_VERBOSE),
     "Invalid array use on lhs")
 })
+
+unload_dlls()

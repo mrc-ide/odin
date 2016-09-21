@@ -50,6 +50,9 @@ compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
   }
   if (load) {
     dyn.load(dll)
+    ## I would *much* rather do this with trace but I can't get it
+    ## working.
+    .dlls$add(normalizePath(dll))
   }
   base
 }

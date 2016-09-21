@@ -209,3 +209,5 @@ test_that("3 arg delay with array", {
   expect_equal(yy$tmp[!i, ],
                t(outer(1:5, tt[!i] - 2) + (0:4) / 10))
 })
+
+unload_dlls()

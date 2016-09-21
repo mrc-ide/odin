@@ -49,3 +49,5 @@ test_that("verbose", {
   }, verbose = TRUE),
   "mycrazymodel.o", fixed=TRUE)
 })
+
+unload_dlls()

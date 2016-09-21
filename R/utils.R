@@ -124,4 +124,5 @@ rbind_as_df <- function(x) {
           quote=TRUE)
 }
 
-self <- NULL
+## This is going to be used to keep track of dlls that we load
+.dlls <- collector()

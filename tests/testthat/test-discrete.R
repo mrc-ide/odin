@@ -84,3 +84,5 @@ test_that("interpolate", {
   zz <- cumsum(ifelse(tt <= 10 | tt > 20, 0, 1))
   expect_equal(yy[, 2], zz)
 })
+
+unload_dlls()

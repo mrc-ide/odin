@@ -402,3 +402,5 @@ test_that("interpolation with two variables", {
                  "Integration times do not span interpolation range")
   }
 })
+
+unload_dlls()

@@ -93,3 +93,5 @@ test_that("rewrite functions", {
   expect_equal(res[, "q3"],  tt %% -q)
   expect_equal(res[, "q4"], -tt %% -q)
 })
+
+unload_dlls()

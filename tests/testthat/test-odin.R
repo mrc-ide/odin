@@ -1013,3 +1013,5 @@ test_that("sum for a 4d array", {
   expect_equal(dat$m23, apply(a, c(2, 3), sum))
   expect_equal(dat$m24, apply(a, c(2, 4), sum))
 })
+
+unload_dlls()

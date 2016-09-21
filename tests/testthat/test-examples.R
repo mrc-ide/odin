@@ -258,3 +258,5 @@ test_that("dde", {
     expect_equal(res_ds, res_dde, tolerance=tol)
   }
 })
+
+unload_dlls()
