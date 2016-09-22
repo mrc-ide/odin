@@ -1,8 +1,4 @@
 ## This will rewrite the core C bits:
-##
-## TODO:
-##    - %/% to (int) x / (int) y [but check as for %%]
-##
 rewrite_c <- function(expr, name_pars,
                       lookup=character(0), index=character(0)) {
 

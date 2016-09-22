@@ -177,6 +177,9 @@ odin_generate1_library <- function(obj, eqs) {
   if ("%%" %in% used_functions) {
     obj$library_fns$add("fmodr")
   }
+  if ("%/%" %in% used_functions) {
+    obj$library_fns$add("fintdiv")
+  }
 
   ## Support for differential equations:
   if (obj$info$has_delay) {

@@ -75,6 +75,14 @@ double fmodr(double x, double y) {
   return tmp;
 }
 
+// this probably does not need to be done separately (could be
+// inlined) but we'll let the compiler do that for us.  Keeping it out
+// means if I find out that it's really platform dependent we can
+// tweak that here.
+double fintdiv(double x, double y) {
+  return floor(x / y);
+}
+
 void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
   typedef void (*lagvalue_type)(double, int*, int, double*);
   static lagvalue_type fun = NULL;

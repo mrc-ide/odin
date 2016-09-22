@@ -43,6 +43,7 @@ FUNCTIONS_UNARY <- c("+", "-") # TODO: add "!"?
 
 FUNCTIONS_RENAME <- c(
   "%%" = "fmodr",
+  "%/%"= "fintdiv",
   "^" = "pow",
   abs = "fabs",
   max = "fmax",

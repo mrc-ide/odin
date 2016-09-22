@@ -92,6 +92,37 @@ test_that("rewrite functions", {
   expect_equal(res[, "q2"], -tt %%  q)
   expect_equal(res[, "q3"],  tt %% -q)
   expect_equal(res[, "q4"], -tt %% -q)
+
+  ## As above, but for %/% not %%
+  gen <- odin::odin({
+    deriv(y) <- 0
+    initial(y) <- 0
+    s <- sin(1) # does not appear exactly
+    q <- 1.0    # appears exactly
+    output(s1) <-  t %/%  s
+    output(s2) <- -t %/%  s
+    output(s3) <-  t %/% -s
+    output(s4) <- -t %/% -s
+    output(q1) <-  t %/%  q
+    output(q2) <- -t %/%  q
+    output(q3) <-  t %/% -q
+    output(q4) <- -t %/% -q
+  }, verbose = TEST_VERBOSE)
+  tt <- seq(-5, 5, length.out = 101)
+  mod <- gen()
+  res <- mod$run(tt)
+  s <- mod$contents()[["s"]]
+  q <- mod$contents()[["q"]]
+
+  expect_equal(res[, "s1"],  tt %/%  s)
+  expect_equal(res[, "s2"], -tt %/%  s)
+  expect_equal(res[, "s3"],  tt %/% -s)
+  expect_equal(res[, "s4"], -tt %/% -s)
+
+  expect_equal(res[, "q1"],  tt %/%  q)
+  expect_equal(res[, "q2"], -tt %/%  q)
+  expect_equal(res[, "q3"],  tt %/% -q)
+  expect_equal(res[, "q4"], -tt %/% -q)
 })
 
 unload_dlls()
