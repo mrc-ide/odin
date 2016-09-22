@@ -584,36 +584,34 @@ odin_generate2_interpolate_t <- function(obj) {
   ret <- collector()
   ret$add("// Report back to R information about interpolating functions")
   ret$add("SEXP %s_interpolate_t(SEXP %s_ptr) {", obj$info$base, obj$info$base)
-  if (obj$info$has_interpolate) {
-    ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
-            obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
-    dat <- unique(obj$interpolate$get())
-    dat_type <- vcapply(dat, "[[", "interpolation_type")
-    dat_time <- vcapply(dat, "[[", "t")
-    tmp <- sort(tapply(dat_type != "constant", dat_time, any), decreasing=TRUE)
 
-    ret$add("  SEXP ret = PROTECT(allocVector(REALSXP, 2));")
-    ret$add("  double *r = REAL(ret);")
-    v <- names(tmp)[[1L]]
-    ret$add("  r[0] = %s[0];", obj$rewrite(v))
-    if (tmp[[v]] > 0L) {
-      ret$add("  r[1] = %s[%s - 1];",
-              obj$rewrite(v), obj$rewrite(array_dim_name(v)))
-    } else {
-      ret$add("  r[1] = NA_REAL;")
-    }
-    for (v in names(tmp)[-1]) {
-      ret$add("  r[0] = fmax(r[0], %s[0]);", obj$rewrite(v))
-      if (tmp[[v]] > 0) {
-        ret$add("  r[1] = fmin(r[1], %s[%s - 1]);",
-                obj$rewrite(v), obj$rewrite(array_dim_name(v)))
-      }
-    }
-    ret$add("  UNPROTECT(1);")
-    ret$add("  return ret;")
+  ret$add("  %s *%s = %s_get_pointer(%s_ptr, 1);",
+          obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
+  dat <- unique(obj$interpolate$get())
+  dat_type <- vcapply(dat, "[[", "interpolation_type")
+  dat_time <- vcapply(dat, "[[", "t")
+  tmp <- sort(tapply(dat_type != "constant", dat_time, any), decreasing=TRUE)
+
+  ret$add("  SEXP ret = PROTECT(allocVector(REALSXP, 2));")
+  ret$add("  double *r = REAL(ret);")
+  v <- names(tmp)[[1L]]
+  ret$add("  r[0] = %s[0];", obj$rewrite(v))
+  if (tmp[[v]] > 0L) {
+    ret$add("  r[1] = %s[%s - 1];",
+            obj$rewrite(v), obj$rewrite(array_dim_name(v)))
   } else {
-    ret$add("  return R_NilValue;")
+    ret$add("  r[1] = NA_REAL;")
   }
+  for (v in names(tmp)[-1]) {
+    ret$add("  r[0] = fmax(r[0], %s[0]);", obj$rewrite(v))
+    if (tmp[[v]] > 0) {
+      ret$add("  r[1] = fmin(r[1], %s[%s - 1]);",
+              obj$rewrite(v), obj$rewrite(array_dim_name(v)))
+    }
+  }
+  ret$add("  UNPROTECT(1);")
+  ret$add("  return ret;")
+
   ret$add("}")
   ret$get()
 }
