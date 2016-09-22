@@ -35,26 +35,7 @@ compile <- function(filename, verbose = TRUE, load = TRUE, preclean = FALSE,
   output <- suppressWarnings(system2(file.path(R.home(), "bin", "R"), args,
                                      stdout=TRUE, stderr=TRUE))
 
-  ok <- attr(output, "status")
-  error <- !is.null(ok) && ok != 0L
-  if (error) {
-    cat(paste(output, "\n"), sep="")
-  }
-  if (error) {
-    stop("Error compiling source") # nocov
-  }
-
-  out <- classify_compiler_output(output)
-  i <- vlapply(seq_along(out$type), function(i)
-    out$type[i] == "info" && attr(out$value[[i]], "type") == "warning")
-  if (compiler_warnings && any(i)) {
-    str <- ngettext(sum(i),
-                    "There was 1 compiler warning:\n",
-                    sprintf("There were %d compiler warnings:\n", sum(i)))
-    warning(str, format(out), call. = FALSE)
-  } else if (verbose) {
-    cat(format(out))
-  }
+  handle_compiler_output(output, verbose, compiler_warnings)
 
   if (load) {
     dyn.load(dll)
@@ -69,7 +50,11 @@ compile <- function(filename, verbose = TRUE, load = TRUE, preclean = FALSE,
 ## *generated* a warning error comes from in the R and report that
 ## too.
 classify_compiler_output <- function(x) {
-  compiler <- sub("^(.+?)\\s.*$", "\\1", x[[1]])
+  if (length(x) > 0) {
+    compiler <- sub("^(.+?)\\s.*$", "\\1", x[[1]])
+  } else {
+    compiler <- "gcc"
+  }
 
   ## We really should not be getting here if an error is thrown, so
   ## don't worry too much about that.
@@ -152,5 +137,27 @@ format.compiler_output <- function(x, ...) {
       }
     }
   }
-  paste0(str$get(), "\n", collapse = "")
+  paste(sprintf("%s\n", str$get()), collapse = "")
+}
+
+handle_compiler_output <- function(output, verbose, compiler_warnings) {
+  out <- classify_compiler_output(output)
+
+  ok <- attr(output, "status")
+  error <- !is.null(ok) && ok != 0L
+  if (error) {
+    message(format(out))
+    stop("Error compiling source")
+  }
+
+  i <- vlapply(seq_along(out$type), function(i)
+    out$type[i] == "info" && attr(out$value[[i]], "type") == "warning")
+  if (compiler_warnings && any(i)) {
+    str <- ngettext(sum(i),
+                    "There was 1 compiler warning:\n",
+                    sprintf("There were %d compiler warnings:\n", sum(i)))
+    warning(str, format(out), call. = FALSE)
+  } else if (verbose) {
+    cat(format(out))
+  }
 }

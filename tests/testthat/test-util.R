@@ -23,4 +23,25 @@ test_that("parse gcc warnings", {
                c("command", "context", "info", "context", "info", "command"))
   expect_equal(attr(ret$value[[3]], "type"), "warning")
   expect_equal(attr(ret$value[[5]], "type"), "warning")
+  format(ret)
+})
+
+test_that("empty compiler output", {
+  expect_equal(classify_compiler_output(character(0)),
+               structure(list(type = character(0), value = list()),
+                         class = "compiler_output"))
+  expect_equal(format(classify_compiler_output(character(0))), "")
+})
+
+test_that("compilation warning", {
+  expect_warning(
+    handle_compiler_output(readLines("logs/gcc_warnings.txt"), TRUE, TRUE),
+    "There were 2 compiler warnings")
+})
+
+test_that("compilation failure", {
+  path <- tempfile(fileext = ".c")
+  writeLines("this is a test", path)
+  expect_error(compile(path),
+               "Error compiling source")
 })
