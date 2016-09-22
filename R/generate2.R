@@ -195,7 +195,7 @@ odin_generate2_user <- function(obj) {
     ret$add(indent(user, 2))
   }
   ret$add("  return R_NilValue;")
-  ret$add("};")
+  ret$add("}")
   ret$add("// Wrapper around this for use from R.")
   ret$add("SEXP r_%s_set_user(SEXP %s_ptr, SEXP %s) {",
           obj$info$base, obj$info$base, USER)
@@ -203,7 +203,7 @@ odin_generate2_user <- function(obj) {
           obj$type_pars, obj$name_pars, obj$info$base, obj$info$base)
   ret$add("  %s_set_user(%s, %s);", obj$info$base, obj$name_pars, USER)
   ret$add("  return R_NilValue;")
-  ret$add("};")
+  ret$add("}")
   ret$get()
 }
 

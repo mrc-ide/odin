@@ -81,7 +81,7 @@ void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
   if (fun == NULL) {
     fun = (lagvalue_type)R_GetCCallable("deSolve", "lagvalue");
   }
-  return fun(t, idx, dim_idx, state);
+  fun(t, idx, dim_idx, state);
 }
 
 void lagvalue_dde(double t, int *idx, size_t dim_idx, double *state) {
@@ -90,7 +90,7 @@ void lagvalue_dde(double t, int *idx, size_t dim_idx, double *state) {
   if (fun == NULL) {
     fun = (lagvalue_type)R_GetCCallable("dde", "ylag_vec_int");
   }
-  return fun(t, idx, dim_idx, state);
+  fun(t, idx, dim_idx, state);
 }
 
 void lagvalue_discrete(int step, int *idx, size_t dim_idx, double *state) {
@@ -99,7 +99,7 @@ void lagvalue_discrete(int step, int *idx, size_t dim_idx, double *state) {
   if (fun == NULL) {
     fun = (lagvalue_type)R_GetCCallable("dde", "yprev_vec_int");
   }
-  return fun(step, idx, dim_idx, state);
+  fun(step, idx, dim_idx, state);
 }
 
 // Variadic functions are not the most lovely, but this avoids the big
