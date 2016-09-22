@@ -1,0 +1,10 @@
+gcc -std=gnu99 -I/usr/share/R/include -DNDEBUG      -fpic  -Wall -Wextra -Wno-unused-parameter -O2 -c odin741363c295f8.c -o odin741363c295f8.o
+odin741363c295f8.c: In function ‘odin741363c295f8_deriv’:
+odin741363c295f8.c:62:32: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+     output[2] = t > 8 || t > 1 && t < 3;
+                                ^
+odin741363c295f8.c: In function ‘odin741363c295f8_output’:
+odin741363c295f8.c:71:30: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+   output[2] = t > 8 || t > 1 && t < 3;
+                              ^
+gcc -std=gnu99 -shared -L/usr/lib/R/lib -Wl,-Bsymbolic-functions -Wl,-z,relro -o odin741363c295f8.so odin741363c295f8.o -L/usr/lib/R/lib -lR

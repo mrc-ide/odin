@@ -1,3 +1,4 @@
+## NOTE: this whole file may move into its own package
 compile <- function(filename, verbose = TRUE, load = TRUE, preclean = FALSE,
                     check_loaded = TRUE, compiler_warnings = FALSE) {
   ## The actual compilation step should be very quick, so it's going
@@ -34,12 +35,6 @@ compile <- function(filename, verbose = TRUE, load = TRUE, preclean = FALSE,
   output <- suppressWarnings(system2(file.path(R.home(), "bin", "R"), args,
                                      stdout=TRUE, stderr=TRUE))
 
-  ## TODO: classify the output here, and provide information about
-  ## warnings in general.  This could be done with crayon for nicer
-  ## colours on a terminal too.  It'd need some serious work to get
-  ## things working with both clang and gcc too, and no idea what we'd
-  ## get going on other systems.  It would actually be something nice
-  ## to get working across other packages...
   ok <- attr(output, "status")
   error <- !is.null(ok) && ok != 0L
   if (error) {
