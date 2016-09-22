@@ -73,7 +73,8 @@ test_that("warnings", {
     options(odin.compiler_warnings = TRUE)
     expect_warning(odin::odin_(code, verbose = FALSE), re)
   } else {
-    expect_warning(odin::odin_(code, compiler_warnings = TRUE), NA) # none
+    expect_warning(odin::odin_(code, compiler_warnings = TRUE,
+                               verbose = FALSE), NA) # none
   }
 })
 
