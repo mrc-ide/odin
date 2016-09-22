@@ -1,5 +1,5 @@
-compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
-                    check_loaded=TRUE) {
+compile <- function(filename, verbose = TRUE, load = TRUE, preclean = FALSE,
+                    check_loaded = TRUE, compiler_warnings = FALSE) {
   ## The actual compilation step should be very quick, so it's going
   ## to be OK to record the entire stream of output.
   Sys.setenv(R_TESTS="")
@@ -42,12 +42,25 @@ compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
   ## to get working across other packages...
   ok <- attr(output, "status")
   error <- !is.null(ok) && ok != 0L
-  if (error || verbose) {
+  if (error) {
     cat(paste(output, "\n"), sep="")
   }
   if (error) {
     stop("Error compiling source") # nocov
   }
+
+  out <- classify_compiler_output(output)
+  i <- vlapply(seq_along(out$type), function(i)
+    out$type[i] == "info" && attr(out$value[[i]], "type") == "warning")
+  if (compiler_warnings && any(i)) {
+    str <- ngettext(sum(i),
+                    "There was 1 compiler warning:\n",
+                    sprintf("There were %d compiler warnings:\n", sum(i)))
+    warning(str, format(out), call. = FALSE)
+  } else if (verbose) {
+    cat(format(out))
+  }
+
   if (load) {
     dyn.load(dll)
     ## I would *much* rather do this with trace but I can't get it
@@ -55,4 +68,89 @@ compile <- function(filename, verbose=TRUE, load=TRUE, preclean=FALSE,
     .dlls$add(normalizePath(dll))
   }
   base
+}
+
+## TODO: an extension of this will be to work out where the code that
+## *generated* a warning error comes from in the R and report that
+## too.
+classify_compiler_output <- function(x) {
+  compiler <- sub("^(.+?)\\s.*$", "\\1", x[[1]])
+
+  ## We really should not be getting here if an error is thrown, so
+  ## don't worry too much about that.
+  re_command <- sprintf("^%s\\s", compiler)
+  re_context <- '^([[:alnum:]._]+): In ([[:alnum:]]+)\\s.*:$'
+  re_info <- '^([[:alnum:]._]+):([0-9]+)(:[0-9]+)?: (warning|error|note):.*$'
+  is_continue <- grepl('^\\s+', x)
+
+  ## For our case, I think it's only that the first and last line are
+  ## going to be the actual command.
+  type <- rep_len(NA_character_, length(x))
+  n <- length(x)
+  types <- character(n)
+  values <- vector("list", n)
+  i <- 1L
+  while (i <= n) {
+    xi <- x[[i]]
+    if (grepl(re_command, xi)) {
+      types[[i]] <- "command"
+    } else if (grepl(re_context, xi)) {
+      types[[i]] <- "context"
+    } else if (grepl(re_info, xi)) {
+      if (i < n) {
+        j <- rle(is_continue[-seq_len(i)])
+        if (j$values[[1]]) {
+          m <- j$lengths[[1]]
+          xi <- c(xi, x[seq_len(m) + i])
+          i <- i + m
+        }
+      }
+      types[[i]] <- "info"
+      attr(xi, "type") <- sub(re_info, "\\4", xi[[1L]])
+    } else {
+      types[[i]] <- "unknown"
+    }
+    values[[i]] <- xi
+    i <- i + 1L
+  }
+
+  i <- lengths(values) > 0
+
+  ret <- list(type = types[i], value = values[i])
+  class(ret) <- "compiler_output"
+  ret
+}
+
+##' @export
+format.compiler_output <- function(x, ...) {
+  cols <- c(error = "red",
+            warning = "yellow",
+            info = "blue")
+  m <- col2rgb(cols)
+  m <- rgb2hsv(m[1, ], m[2, ], m[3, ])
+  ## For the info *around* the error
+  cols_info <- setNames(hsv(m[1, ], m[2, ] / 2, m[3, ]), names(cols))
+
+  style <- lapply(cols, crayon::make_style)
+  style_info <- lapply(cols_info, crayon::make_style)
+  style_context <- crayon::make_style("darkgrey")
+
+  str <- collector()
+
+  for (i in seq_along(x$type)) {
+    t <- x$type[[i]]
+    v <- x$value[[i]]
+    if (t == "command" || t == "unknown") {
+      str$add(v)
+    } else if (t == "context") {
+      str$add(style_context(v))
+    } else if (t == "info") {
+      cl <- attr(v, "type")
+      str$add(style[[cl]](v[[1]]))
+      if (length(v) > 1L) {
+        str$add(style_info[[cl]](v[-1]))
+      }
+    }
+  }
+  paste0(str$get(), "\n", collapse = "")
 }

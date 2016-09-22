@@ -52,6 +52,24 @@
 ##'   be verbose.  In future versions this may also make the
 ##'   parse/generate step be verbose too.
 ##'
+##' @param compiler_warnings Logical scalar indicating if compiler
+##'   warnings should be converted to R warnings.  If this is
+##'   \code{TRUE}, then if any compiler warnings are generated, the
+##'   compiler output will be displayed (regardless of the value of
+##'   \code{verbose}) within an R warning (suppressable via
+##'   \code{suppressWarnings} and catchable via \code{tryCatch}).  The
+##'   default is to default to \code{FALSE} unless the global option
+##'   \code{odin.compiler_warnings} is set to \code{TRUE} (set with
+##'   \code{options(odin.compiler_warnings = TRUE)}).  The default may
+##'   change to \code{TRUE} in future.  Warnings are currently a mix
+##'   of ambiguous syntax in your model (worth fixing) and limitations
+##'   in the code that odin generates (which you can't fix but I will
+##'   get on to over time).  What is flagged will depend strongly on
+##'   your platform and what is in your \code{Makevars}.  I develop
+##'   odin with \code{-Wall -Wextra -pedantic} and still see warnings
+##'   with both gcc and clang.  The compiler output is very simple and
+##'   may not work on all platforms.
+##'
 ##' @return If \code{build} is \code{TRUE}, an function that can
 ##'   generate the model, otherwise the filename of the generated C
 ##'   file.
@@ -93,7 +111,8 @@
 ##'
 ##' ## Lots of code:
 ##' cat(paste0(readLines(path), "\n"))
-odin <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
+odin <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE,
+                 compiler_warnings = NULL) {
   ## TODO: It might be worth adding a check for missing-ness here in
   ## order to generate a sensible error message?
   ##
@@ -103,12 +122,13 @@ odin <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
   if (is.symbol(xx)) {
     xx <- force(x)
   }
-  odin_(xx, dest, build, verbose)
+  odin_(xx, dest, build, verbose, compiler_warnings)
 }
 
 ##' @export
 ##' @rdname odin
-odin_ <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
+odin_ <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE,
+                  compiler_warnings = NULL) {
   if (!is_directory(dest)) {
     stop("'dest' must be an existing directory")
   }
@@ -116,7 +136,9 @@ odin_ <- function(x, dest = tempdir(), build = TRUE, verbose = TRUE) {
   path <- odin_generate(dat, dest)
   ret <- path
   if (build) {
-    dll <- compile(path, verbose, TRUE)
+    compiler_warnings <- compiler_warnings %||%
+      getOption("odin.compiler_warnings", FALSE)
+    dll <- compile(path, verbose, TRUE, compiler_warnings = compiler_warnings)
     r_code <- odin_generate_r(dat$info, dll)
     ret <- eval(parse(text = r_code, keep.source = FALSE), environment())
   }

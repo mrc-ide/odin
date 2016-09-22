@@ -50,4 +50,31 @@ test_that("verbose", {
   "mycrazymodel.o", fixed=TRUE)
 })
 
+test_that("warnings", {
+  code <- quote({
+    initial(a) <- 1
+    deriv(a) <- if (t > 8 || t > 1 && t < 3) 1 else 0
+  })
+
+  str <- capture.output(
+    tmp <- odin::odin_(code, verbose = TRUE, compiler_warnings = FALSE))
+  out <- classify_compiler_output(str)
+  ## This will only give a warning with -Wall or greater.
+  has_warning <- any(vlapply(seq_along(out$type), function(i)
+    out$type[i] == "info" && attr(out$value[[i]], "type") == "warning"))
+  if (has_warning) {
+    re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
+    expect_warning(odin::odin_(code, compiler_warnings = TRUE), re)
+
+    oo <- options(odin.compiler_warnings = FALSE)
+    on.exit(options(oo))
+
+    expect_warning(odin::odin_(code, verbose = FALSE), NA)
+    options(odin.compiler_warnings = TRUE)
+    expect_warning(odin::odin_(code, verbose = FALSE), re)
+  } else {
+    expect_warning(odin::odin_(code, compiler_warnings = TRUE), NA) # none
+  }
+})
+
 unload_dlls()

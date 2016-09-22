@@ -5,9 +5,11 @@
 \alias{odin_}
 \title{Create an odin model}
 \usage{
-odin(x, dest = tempdir(), build = TRUE, verbose = TRUE)
+odin(x, dest = tempdir(), build = TRUE, verbose = TRUE,
+  compiler_warnings = NULL)
 
-odin_(x, dest = tempdir(), build = TRUE, verbose = TRUE)
+odin_(x, dest = tempdir(), build = TRUE, verbose = TRUE,
+  compiler_warnings = NULL)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -26,6 +28,24 @@ used without some generated R code and that is not returned.}
 \item{verbose}{Logical scalar indicating if the compilation should
 be verbose.  In future versions this may also make the
 parse/generate step be verbose too.}
+
+\item{compiler_warnings}{Logical scalar indicating if compiler
+warnings should be converted to R warnings.  If this is
+\code{TRUE}, then if any compiler warnings are generated, the
+compiler output will be displayed (regardless of the value of
+\code{verbose}) within an R warning (suppressable via
+\code{suppressWarnings} and catchable via \code{tryCatch}).  The
+default is to default to \code{FALSE} unless the global option
+\code{odin.compiler_warnings} is set to \code{TRUE} (set with
+\code{options(odin.compiler_warnings = TRUE)}).  The default may
+change to \code{TRUE} in future.  Warnings are currently a mix
+of ambiguous syntax in your model (worth fixing) and limitations
+in the code that odin generates (which you can't fix but I will
+get on to over time).  What is flagged will depend strongly on
+your platform and what is in your \code{Makevars}.  I develop
+odin with \code{-Wall -Wextra -pedantic} and still see warnings
+with both gcc and clang.  The compiler output is very simple and
+may not work on all platforms.}
 }
 \value{
 If \code{build} is \code{TRUE}, an function that can
