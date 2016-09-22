@@ -57,9 +57,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               odin_generate2_order(obj),
               odin_generate2_order(obj, TRUE),
               odin_generate2_interpolate_t(obj),
-              ## TODO: throughout we want to only generate the bits of
-              ## this we actually need.  interpolate, things involving
-              ## output, etc are all up for grabs there.
               odin_generate2_support_defns(obj),
               if (!package) library_fns$definitions,
               if (!package) interpolate$definitions)

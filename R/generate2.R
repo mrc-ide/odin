@@ -578,6 +578,9 @@ odin_generate2_output <- function(obj) {
 }
 
 odin_generate2_interpolate_t <- function(obj) {
+  if (!obj$info$has_interpolate) {
+    return(NULL)
+  }
   ret <- collector()
   ret$add("// Report back to R information about interpolating functions")
   ret$add("SEXP %s_interpolate_t(SEXP %s_ptr) {", obj$info$base, obj$info$base)
