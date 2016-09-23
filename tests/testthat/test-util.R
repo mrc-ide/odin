@@ -56,3 +56,14 @@ test_that("compilation failure", {
                c("error", "error", "warning", "error",
                  "note", "error", "error", "error"))
 })
+
+test_that("unclassifiable output", {
+  txt <- readLines("logs/gcc_warnings.txt")
+  cmp <- classify_compiler_output(txt)
+  extra <- "here's another string"
+  res <- classify_compiler_output(c(txt, extra))
+
+  expect_equal(res$type, c(cmp$type, "unknown"))
+  expect_equal(res$value, c(cmp$value, extra))
+  format(res)
+})
