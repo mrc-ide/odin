@@ -1088,4 +1088,28 @@ test_that("integer vector", {
   expect_equal(dat$initial_v, x[idx])
 })
 
+## This is much closer to the test case needed for Neil's model
+test_that("integer matrix", {
+  gen <- odin({
+    x[] <- user()
+    dim(x) <- user()
+
+    idx[, ] <- user()
+    dim(idx) <- c(length(x), 3)
+
+    v[] <- x[idx[i, 1]] + x[idx[i, 2]] + x[idx[i, 3]]
+    dim(v) <- length(x)
+
+    initial(z) <- 1
+    deriv(z) <- 0
+  }, verbose = TEST_VERBOSE)
+
+  x <- runif(10)
+  idx <- matrix(sample(length(x), length(x) * 3, replace = TRUE), length(x), 3)
+  ## This is what the code should expand to:
+  v <- x[idx[, 1]] + x[idx[, 2]] + x[idx[, 3]]
+
+  expect_equal(gen(x = x, idx = idx)$contents()$v, v)
+})
+
 unload_dlls()
