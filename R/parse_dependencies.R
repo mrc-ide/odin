@@ -65,7 +65,8 @@ odin_parse_dependencies_deps <- function(obj) {
     setdiff(el$depends$variables, c(el$name, INDEX, "")))
 
   ## Check for variables that don't exist:
-  msg <- lapply(deps, setdiff, c(nms, vars, TIME))
+  time_name <- if (obj$info$discrete) STEP else TIME
+  msg <- lapply(deps, setdiff, c(nms, vars, time_name))
   i <- lengths(msg) > 0L
   if (any(i)) {
     msg <- sort(unique(unlist(msg)))
@@ -91,6 +92,7 @@ odin_parse_dependencies_deps <- function(obj) {
 odin_parse_dependencies_stage <- function(obj) {
   deps_rec <- obj$deps_rec
   n <- length(deps_rec)
+  time_name <- if (obj$info$discrete) STEP else TIME
 
   ## Then, we can get the stage for each equation.  Start by assuming
   ## that the stage is constant but loop over all the depenencies of
@@ -110,7 +112,7 @@ odin_parse_dependencies_stage <- function(obj) {
   v <- c("is_output", "is_deriv", "uses_delay",
          "uses_interpolate", "uses_stochastic")
   stage[names(which(apply(obj$traits[, v], 1, any)))] <- STAGE_TIME
-  stage[TIME] <- STAGE_TIME
+  stage[time_name] <- STAGE_TIME
   stage[obj$vars] <- STAGE_TIME
 
   ## In topological order, determine inherited stage (a initial/time stage

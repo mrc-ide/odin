@@ -85,4 +85,15 @@ test_that("interpolate", {
   expect_equal(yy[, 2], zz)
 })
 
+test_that("use step in model", {
+  gen <- odin::odin({
+    initial(x) <- step
+    update(x) <- step + 1
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen()
+  res <- mod$run(5:10)
+  expect_equal(res[, "x"], res[, "step"])
+})
+
 unload_dlls()
