@@ -49,7 +49,8 @@ FUNCTIONS_RENAME <- c(
   max = "fmax",
   min = "fmin",
   gamma = "gammafn",
-  lgamma = "lgammafn"
+  lgamma = "lgammafn",
+  ceiling = "ceil"
 )
 
 ## TODO: if INDEX is open-ended, this becomes open-ended too
@@ -86,6 +87,11 @@ FUNCTIONS <- list(
   choose = 2L,
   lchoose = 2L,
   sign = 1L,
+  ## Rounding
+  round = 1L,
+  trunc = 1L,
+  floor = 1L,
+  ceil = 1L,
   ## Big pile of trig:
   cos = 1L,   sin = 1L,   tan = 1L,
   acos = 1L,  asin = 1L,  atan = 1L,  atan2 = 2L,
