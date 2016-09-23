@@ -58,8 +58,8 @@ classify_compiler_output <- function(x) {
 
   ## We really should not be getting here if an error is thrown, so
   ## don't worry too much about that.
-  re_command <- sprintf("^%s\\s", compiler)
-  re_context <- '^([[:alnum:]._]+): In ([[:alnum:]]+)\\s.*:$'
+  re_command <- sprintf("^(%s|make:)\\s", compiler)
+  re_context <- '^([[:alnum:]._]+): (In|At) ([[:alnum:]]+)\\s.*:$'
   re_info <- '^([[:alnum:]._]+):([0-9]+)(:[0-9]+)?: (warning|error|note):.*$'
   is_continue <- grepl('^\\s+', x)
 

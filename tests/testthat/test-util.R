@@ -45,3 +45,14 @@ test_that("compilation failure", {
   expect_error(compile(path),
                "Error compiling source")
 })
+
+test_that("compilation failure", {
+  str <- readLines("logs/gcc_error.txt")
+  ret <- classify_compiler_output(str)
+  expect_equal(ret$type,
+               c("command", "info", "info", "context", "info", "info", "info",
+                 "info", "context", "info", "info", "command"))
+  expect_equal(vcapply(ret$value[ret$type == "info"], attr, "type"),
+               c("error", "error", "warning", "error",
+                 "note", "error", "error", "error"))
+})

@@ -1,0 +1,26 @@
+gcc -std=gnu99 -I/usr/share/R/include -DNDEBUG      -fpic  -g -O2 -fstack-protector --param=ssp-buffer-size=4 -Wformat -Werror=format-security -D_FORTIFY_SOURCE=2 -g  -c odin7040168aaaaa.c -o odin7040168aaaaa.o
+odin7040168aaaaa.c:25:57: error: unknown type name ‘bool’
+ double* get_user_array_dim(SEXP user, const char *name, bool is_real, int nd, int *dest_dim);
+                                                         ^
+odin7040168aaaaa.c:27:53: error: unknown type name ‘bool’
+ void get_user_array_copy(SEXP el, const char *name, bool is_real, void *dest);
+                                                     ^
+odin7040168aaaaa.c: In function ‘odin7040168aaaaa_set_user’:
+odin7040168aaaaa.c:51:5: warning: implicit declaration of function ‘get_user_array_dim’ [-Wimplicit-function-declaration]
+     double *tmp = get_user_array_dim(user, "x", true, 1, &odin7040168aaaaa_p->dim_x);
+     ^
+odin7040168aaaaa.c:51:49: error: ‘true’ undeclared (first use in this function)
+     double *tmp = get_user_array_dim(user, "x", true, 1, &odin7040168aaaaa_p->dim_x);
+                                                 ^
+odin7040168aaaaa.c:51:49: note: each undeclared identifier is reported only once for each function it appears in
+odin7040168aaaaa.c:57:48: error: ‘false’ undeclared (first use in this function)
+     int *tmp = get_user_array_dim(user, "idx", false, 1, &odin7040168aaaaa_p->dim_idx);
+                                                ^
+odin7040168aaaaa.c: At top level:
+odin7040168aaaaa.c:204:57: error: unknown type name ‘bool’
+ double* get_user_array_dim(SEXP user, const char *name, bool is_real, int nd, int *dest_dim) {
+                                                         ^
+odin7040168aaaaa.c:252:53: error: unknown type name ‘bool’
+ void get_user_array_copy(SEXP el, const char *name, bool is_real, void *dest) {
+                                                     ^
+make: *** [odin7040168aaaaa.o] Error 1
