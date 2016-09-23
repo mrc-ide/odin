@@ -125,4 +125,24 @@ test_that("rewrite functions", {
   expect_equal(res[, "q4"], -tt %/% -q)
 })
 
+test_that("array index rewriting", {
+  expr <- quote(idx[i])
+  rw <- function(x) rewrite_c(x, "p", "idx")
+  expect_equal(rw(quote(i)), structure("i", is_index = TRUE))
+  expect_equal(rw(quote(1)), structure("1", is_index = FALSE))
+  expect_equal(rw(quote(i + 1)), structure("i + 1", is_index = TRUE))
+
+  expect_equal(rw(quote(idx[i])), structure("p->idx[i]", is_index = FALSE))
+  expect_equal(rw(quote(x[i])), structure("x[i]", is_index = FALSE))
+
+  expect_equal(minus1(quote(idx[i]), rw), "p->idx[i] - 1")
+  expect_equal(minus1(quote(x[i]), rw), "x[i] - 1")
+
+  expect_equal(rw(quote(x[idx[i]])),
+               structure("x[p->idx[i] - 1]", is_index = FALSE))
+
+  expect_equal(minus1(quote(2 + -3 + 4 - 5), rw),
+               "2 + -3 + 4 - 6")
+})
+
 unload_dlls()
