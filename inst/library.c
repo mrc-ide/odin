@@ -132,7 +132,7 @@ void odin_set_dim(SEXP target, int nd, ...) {
 // object creation.
 //
 // TODO: can I get nd here to be size_t? (and elsewhere below)
-void get_user_array(SEXP user, const char *name, double *dest, int nd, ...) {
+void get_user_array(SEXP user, const char *name, bool is_real, void *dest, int nd, ...) {
   SEXP el = get_user_array_check_rank(user, name, nd);
   SEXP r_dim;
   int *dim;
@@ -161,10 +161,10 @@ void get_user_array(SEXP user, const char *name, double *dest, int nd, ...) {
   va_end(ap);
   UNPROTECT(1);
 
-  get_user_array_copy(el, name, dest);
+  get_user_array_copy(el, name, is_real, dest);
 }
 
-double* get_user_array_dim(SEXP user, const char *name, int nd, int *dest_dim) {
+double* get_user_array_dim(SEXP user, const char *name, bool is_real, int nd, int *dest_dim) {
   SEXP el = get_user_array_check_rank(user, name, nd);
 
   if (nd == 1) {
@@ -180,8 +180,13 @@ double* get_user_array_dim(SEXP user, const char *name, int nd, int *dest_dim) {
     UNPROTECT(1);
   }
 
-  double *dest = (double*) Calloc(length(el), double);
-  get_user_array_copy(el, name, dest);
+  void *dest;
+  if (is_real) {
+    dest = (double*) Calloc(length(el), double);
+  } else {
+    dest = (int*) Calloc(length(el), int);
+  }
+  get_user_array_copy(el, name, is_real, dest);
   return dest;
 }
 
@@ -209,16 +214,25 @@ SEXP get_user_array_check_rank(SEXP user, const char *name, int nd) {
   return el;
 }
 
-void get_user_array_copy(SEXP el, const char *name, double *dest) {
+void get_user_array_copy(SEXP el, const char *name, bool is_real, void *dest) {
   int given_int = TYPEOF(el) == INTSXP;
-  if (given_int) {
-    el = PROTECT(coerceVector(el, REALSXP));
-  } else if (TYPEOF(el) != REALSXP) {
-    Rf_error("Expected a numeric value for %s", name);
-  }
   size_t n = (size_t) length(el);
-  memcpy(dest, REAL(el), n * sizeof(double));
-  if (given_int) {
+  if (is_real) {
+    if (given_int) {
+      el = PROTECT(coerceVector(el, REALSXP));
+    } else if (TYPEOF(el) != REALSXP) {
+      Rf_error("Expected a numeric value for %s", name);
+    }
+    memcpy(dest, REAL(el), n * sizeof(double));
+  } else {
+    if (TYPEOF(el) == REALSXP) {
+      el = PROTECT(coerceVector(el, INTSXP));
+    } else if (TYPEOF(el) != INTSXP) {
+      Rf_error("Expected a numeric value for %s", name);
+    }
+    memcpy(dest, INTEGER(el), n * sizeof(int));
+  }
+  if (given_int == is_real) {
     UNPROTECT(1);
   }
 }

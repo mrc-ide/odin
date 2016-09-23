@@ -108,10 +108,20 @@ odin_parse_arrays_set_type <- function(obj) {
   }
 
   ## Set a data_type element (on the lhs) to int for all variables
-  ## that are used as indices.
-  types <- ifelse(obj$names_target %in% index_vars, "int", "double")
+  ## that are used as indices.  Here we'll throw in the index arrays
+  ## too (treated separtately for now...)
+  integer_arrays <- odin_parse_arrays_used_as_index(obj)
+
+  types <- ifelse(obj$names_target %in% union(index_vars, integer_arrays),
+                  "int", "double")
   for (i in seq_along(obj$eqs)) {
     obj$eqs[[i]]$lhs$data_type <- types[[i]]
+  }
+
+  for (i in names_if(is_dim)) {
+    obj$eqs[[i]]$lhs$data_type_target <-
+                 obj$eqs[[obj$eqs[[i]]$lhs$name_target]]$lhs$data_type %||%
+                                                       "double"
   }
 
   obj
@@ -343,6 +353,10 @@ odin_parse_array_check <- function(obj) {
   nd <- setNames(viapply(obj$eqs[is_dim], function(x) x$nd),
                  obj$names_target[is_dim])
 
+  ## Which arrays are integers?
+  int_arrays <- names_if(vcapply(obj$eqs[is_array],
+                                 function(x) x$lhs$data_type) == "int")
+
   ## need to check all length and dim calls here.  Basically we're
   ## looking for length() to be used with calls on nd==1 arrays and
   ## range check all dim() calls on the others.  This is moderately
@@ -380,17 +394,17 @@ odin_parse_array_check <- function(obj) {
     if (uses_array) {
       eq_expr <- as.expression(eq$expr)
       if (isTRUE(eq$rhs$delay)) {
-        odin_parse_arrays_check_rhs(eq$rhs$value_expr, nd, eq$line,
-                                    as.expression(eq$expr))
-        odin_parse_arrays_check_rhs(eq$rhs$value_time, nd, eq$line,
-                                    as.expression(eq$expr))
+        odin_parse_arrays_check_rhs(eq$rhs$value_expr, nd, int_arrays,
+                                    eq$line, eq_expr)
+        odin_parse_arrays_check_rhs(eq$rhs$value_time, nd, int_arrays,
+                                    eq$line, eq_expr)
         if (!is.null(eq$rhs$value_default)) {
-          odin_parse_arrays_check_rhs(eq$rhs$value_default$value, nd, eq$line,
-                                      as.expression(eq$expr))
+          odin_parse_arrays_check_rhs(eq$rhs$value_default$value, nd,
+                                      int_arrays, eq$line, eq_expr)
         }
       } else {
-        odin_parse_arrays_check_rhs(eq$rhs$value, nd, eq$line,
-                                    as.expression(eq$expr))
+        odin_parse_arrays_check_rhs(eq$rhs$value, nd, int_arrays,
+                                    eq$line, eq_expr)
       }
     }
   }
@@ -469,13 +483,15 @@ odin_parse_arrays_check_dim <- function(x, nd) {
   }
 }
 
-odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
+odin_parse_arrays_check_rhs <- function(rhs, nd, int_arrays, line, expr) {
   if (is.list(rhs)) {
     expr <- as.expression(expr)
     for (i in seq_along(rhs)) {
-      odin_parse_arrays_check_rhs(rhs[[i]], nd, line[[i]], expr[[i]])
+      odin_parse_arrays_check_rhs(rhs[[i]], nd, int_arrays,
+                                  line[[i]], expr[[i]])
     }
   }
+
   nms <- names(nd)
   throw <- function(...) {
     odin_error(sprintf(...), line, expr)
@@ -509,7 +525,7 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
               "Disallowed functions used for %s in '%s': %s",
               x, deparse_str(e), pastec(nok))
           }
-          nok <- intersect(sym$variables, nms)
+          nok <- intersect(sym$variables, setdiff(nms, int_arrays))
           if (length(nok) > 0L) {
             throw("Disallowed variables used for %s in '%s': %s",
                   x, deparse_str(e), pastec(nok))
@@ -552,4 +568,48 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, line, expr) {
 
   check(rhs, NULL)
   invisible(NULL) # never return anything at all.
+}
+
+## Any time that we have, within a rhs index, a vector that is
+## indexed, that vector should be considered implicitly an integer
+## vector.  This will hopefully be fairly rare.  This is probably
+## part of the API that should be considered fairly open to change.
+##
+## Another option will be to flag types on arrays.  I could imagine
+## doing:
+##
+##   x[] <- user(type = "integer")
+##
+## but I don't want people to have to do this, and it won't work
+## well once static arrays are supported
+##
+##   x[] <- c(1, 2, 3, type = "integer") # eww
+##
+## So this should do for now.  Used in set_type above
+odin_parse_arrays_used_as_index <- function(obj) {
+  check <- function(e, collector, in_index = FALSE) {
+    if (is.recursive(e)) {
+      if (is_call(e, quote(`[`))) {
+        if (in_index) {
+          tmp <- e[[2L]]
+          if (is.symbol(tmp)) {
+            collector$add(as.character(tmp))
+          }
+        }
+        in_index <- TRUE
+      }
+      lapply(as.list(e[-1]), check, collector, in_index)
+    }
+    NULL
+  }
+  check1 <- function(x, collector) {
+    if ("[" %in% x$rhs$depends$functions) {
+      check(x$rhs$value, collector)
+    }
+    NULL
+  }
+
+  ret <- collector()
+  lapply(obj$eqs, check1, ret)
+  unique(ret$get())
 }

@@ -127,7 +127,7 @@ odin_generate1_object <- function(dat) {
 
   ## Rewrite based on all the above; only lookup is modified as we go.
   self$rewrite <- function(x) {
-    rewrite_c(x, self$name_pars, self$lookup$get(), INDEX)
+    rewrite_c(x, self$name_pars, self$lookup$get())
   }
 
   self
@@ -199,8 +199,9 @@ odin_generate1_dim <- function(x, obj) {
   is_output <- nm_target %in% obj$output_info$order
   nm_s <- if (is_var) initial_name(nm_target) else nm_target
   st <- STAGES[[x$stage]]
+  data_type <- x$lhs$data_type_target
 
-  obj$add_element(nm_s, "double", x$nd)
+  obj$add_element(nm_s, data_type, x$nd)
   if (x$stage == STAGE_USER) {
     obj$constant$add("%s = NULL;", obj$rewrite(nm_s))
     obj$user$add("Free(%s);", obj$rewrite(nm_s))
@@ -223,12 +224,15 @@ odin_generate1_dim <- function(x, obj) {
     ## to set a few things all at once.
     obj[[st]]$add("{")
 
+    is_real_str <- if (data_type == "double") "true" else "false"
+
     if (x$nd == 1L) {
       ## For the 1d/vector case we can just pass in the address of the single
       ## dimension.
       nm_i <- obj$rewrite(nm)
-      obj[[st]]$add('  double *tmp = get_user_array_dim(%s, "%s", %d, &%s);',
-                    USER, nm_s, x$nd, nm_i)
+      obj[[st]]$add(
+                 '  %s *tmp = (%s*)get_user_array_dim(%s, "%s", %s, %d, &%s);',
+                 data_type, data_type, USER, nm_s, is_real_str, x$nd, nm_i)
     } else {
       ## TODO: Here and elsewhere, should all 'tmp' variables be
       ## odin_tmp?
@@ -237,8 +241,8 @@ odin_generate1_dim <- function(x, obj) {
       ## all the dimensions.
       obj[[st]]$add("  int tmp_dim[%d];", x$nd)
       obj[[st]]$add(
-                 '  double *tmp = get_user_array_dim(%s, "%s", %d, tmp_dim);',
-                 USER, nm_s, x$nd)
+                 '  %s *tmp = get_user_array_dim(%s, "%s", %s, %d, tmp_dim);',
+                 data_type, USER, nm_s, is_real_str, x$nd)
 
       nm_i <- vcapply(seq_len(x$nd),
                       function(i) obj$rewrite(array_dim_name(nm_target, i)))
@@ -247,10 +251,10 @@ odin_generate1_dim <- function(x, obj) {
                  odin_generate1_dim_array_dimensions(x, obj$rewrite), 2L))
     }
 
-    obj[[st]]$add("  %s = (double*) Calloc(%s, double);",
-                  obj$rewrite(nm_s), obj$rewrite(nm))
-    obj[[st]]$add("  memcpy(%s, tmp, %s * sizeof(double));",
-                  obj$rewrite(nm_s), obj$rewrite(nm))
+    obj[[st]]$add("  %s = (%s*) Calloc(%s, %s);",
+                  obj$rewrite(nm_s), data_type, obj$rewrite(nm), data_type)
+    obj[[st]]$add("  memcpy(%s, tmp, %s * sizeof(%s));",
+                  obj$rewrite(nm_s), obj$rewrite(nm), data_type)
     obj[[st]]$add("}")
   } else {
     if (x$nd == 1) {
@@ -264,8 +268,8 @@ odin_generate1_dim <- function(x, obj) {
       }
       obj[[st]]$add(odin_generate1_dim_array_dimensions(x, obj$rewrite))
     }
-    obj[[st]]$add("%s = (double*) Calloc(%s, double);",
-                  obj$rewrite(nm_s), obj$rewrite(nm))
+    obj[[st]]$add("%s = (%s*) Calloc(%s, %s);",
+                  obj$rewrite(nm_s), data_type, obj$rewrite(nm), data_type)
   }
   obj$free$add("Free(%s);", obj$rewrite(nm_s))
 
@@ -278,6 +282,10 @@ odin_generate1_dim <- function(x, obj) {
     ## TODO: I'm not sure about the 1 on the end here; why is this not
     ## the correct nd here?  Just to avoid writing out all the
     ## subindexing?
+    ##
+    if (x$lhs$data_type == "int") {
+      stop("odin bug - this should never happen") # nocov
+    }
     obj$add_element(nm_delay, "double", 1L)
     if (x$stage == STAGE_USER) {
       obj$constant$add("%s = NULL;", obj$rewrite(nm_delay))
@@ -313,19 +321,19 @@ odin_generate1_dim <- function(x, obj) {
 odin_generate1_symbol <- function(x, obj) {
   st <- STAGES[[x$stage]]
   nm <- x$name
-  type <- x$lhs$data_type
+  data_type <- x$lhs$data_type
 
   is_initial <- identical(x$lhs$special, "initial")
   st <- if (is_initial) "initial" else STAGES[[x$stage]]
   if (x$stage < STAGE_TIME || is_initial) {
-    obj$add_element(nm, type)
+    obj$add_element(nm, data_type)
   }
 
   if (isTRUE(x$rhs$user)) {
     if (isTRUE(x$rhs$default)) {
       default <- obj$rewrite(x$rhs$value)
     } else {
-      default <- if (type == "int") "NA_INTEGER" else "NA_REAL"
+      default <- if (data_type == "int") "NA_INTEGER" else "NA_REAL"
     }
     obj$constant$add("%s = %s;", obj$rewrite(nm), default)
   }
@@ -335,10 +343,10 @@ odin_generate1_symbol <- function(x, obj) {
 
 odin_generate1_symbol_expr <- function(x, obj) {
   nm <- x$name
-  type <- x$lhs$data_type
+  data_type <- x$lhs$data_type
 
   if (isTRUE(x$rhs$user)) {
-    get_user <- sprintf("get_user_%s", type)
+    get_user <- sprintf("get_user_%s", data_type)
     obj$library_fns$add(get_user)
     value <- sprintf("%s(%s, \"%s\", %s)", get_user, USER, nm, obj$rewrite(nm))
   } else if (isTRUE(x$rhs$output_self)) {
@@ -361,7 +369,7 @@ odin_generate1_symbol_expr <- function(x, obj) {
     offset <- obj$rewrite(obj$output_info$offset_use[[i]])
     ret <- sprintf("%s[%s] = %s;", OUTPUT, offset, value)
   } else {
-    ret <- sprintf("%s %s = %s;", type, nm, value)
+    ret <- sprintf("%s %s = %s;", data_type, nm, value)
   }
   ret
 }
@@ -369,6 +377,7 @@ odin_generate1_symbol_expr <- function(x, obj) {
 odin_generate1_array <- function(x, obj, eqs) {
   st <- STAGES[[x$stage]]
   nm <- x$name
+  data_type <- x$lhs$data_type
 
   if (isTRUE(x$rhs$user)) {
     dim <- eqs[[array_dim_name(x$name)]]
@@ -387,12 +396,14 @@ odin_generate1_array <- function(x, obj, eqs) {
       dn <- paste(vcapply(seq_len(nd), function(i)
         obj$rewrite(array_dim_name(x$name, i)), USE.NAMES=FALSE), collapse=", ")
     }
-    obj[[st]]$add('get_user_array(%s, "%s", %s, %d, %s);',
-                  USER, nm, obj$rewrite(x$name), nd, dn, name=nm)
+    is_real_str <- if (data_type == "double") "true" else "false"
+    obj[[st]]$add('get_user_array(%s, "%s", %s, %s, %d, %s);',
+                  USER, nm, is_real_str, obj$rewrite(x$name), nd, dn, name=nm)
   } else if (isTRUE(x$rhs$output_self)) {
-    obj[[st]]$add("memcpy(%s, %s, %s * sizeof(double));",
+    obj[[st]]$add("memcpy(%s, %s, %s * sizeof(%s));",
                   obj$rewrite(x$name), obj$rewrite(x$lhs$name_target),
                   obj$rewrite(array_dim_name(x$lhs$name_target)),
+                  data_type,
                   name=nm)
   } else {
     obj[[st]]$add(odin_generate1_array_expr(x, obj), name=nm)

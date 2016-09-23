@@ -1,9 +1,7 @@
 ## This will rewrite the core C bits:
-rewrite_c <- function(expr, name_pars,
-                      lookup=character(0), index=character(0)) {
-
+rewrite_c <- function(expr, name_pars, lookup = character(0)) {
   rewrite_recall <- function(x) {
-    rewrite_c(x, name_pars, lookup, index)
+    rewrite_c(x, name_pars, lookup)
   }
 
   ## * pi (#define pi M_PI) or translate to M_PI
@@ -21,7 +19,7 @@ rewrite_c <- function(expr, name_pars,
         if (as.character(expr) %in% lookup) {
           str <- sprintf("%s->%s", name_pars, str)
         }
-        is_index <- str %in% index
+        is_index <- str %in% INDEX
       }
       return(list(numeric=is.numeric(expr),
                   value=str,
@@ -36,13 +34,12 @@ rewrite_c <- function(expr, name_pars,
     res <- lapply(as.list(expr[-1L]), rewrite_expr)
     n <- length(res)
     values <- vcapply(res, "[[", "value")
-    is_index <- any(vlapply(res, "[[", "is_index"))
+    is_index <- nm != "[" && any(vlapply(res, "[[", "is_index"))
 
     if (nm == "(") {
       value <- sprintf("(%s)", values)
     } else if (nm == "[") {
       value <- rewrite_array(expr, res, values, rewrite_recall)
-      is_index <- FALSE
     } else if (nm == "sum") {
       ## Or:
       ##
@@ -108,7 +105,12 @@ rewrite_c <- function(expr, name_pars,
     list(numeric=FALSE, value=value, is_index=is_index)
   }
 
-  rewrite_expr(expr)$value
+  ## I could make this optional later, but that might just be more
+  ## complex than needed.
+  res <- rewrite_expr(expr)
+  ret <- res$value
+  attr(ret, "is_index") <- res$is_index
+  ret
 }
 
 rewrite_array <- function(expr, res, values, rewrite) {
@@ -151,21 +153,30 @@ minus1 <- function(expr, rewrite) {
   } else if (is.character(expr)) {
     ## sprintf("%s - 1", expr)
     stop("odin bug") # nocov
-  } else if (any(INDEX %in% find_symbols(expr)$variables)) {
-    rewrite(expr)
-  } else if (is_call(expr, quote(`-`)) || is_call(expr, quote(`+`))) {
-    if (is.numeric(expr[[2L]]) && is.numeric(expr[[3L]])) {
-      expr <- eval(expr, .GlobalEnv) - 1L
-    } else if (is.numeric(expr[[2L]])) {
-      expr[[2L]] <- expr[[2L]] - 1L
-    } else if (is.numeric(expr[[3L]])) {
-      expr[[3L]] <- expr[[3L]] + if (is_call(expr, quote(`+`))) -1L else 1L
-    } else {
-      expr <- call("-", expr, 1)
-    }
-    rewrite(expr)
   } else {
-    sprintf("%s - 1", rewrite(expr))
+    ret <- rewrite(expr)
+    if (!isTRUE(attr(ret, "is_index"))) {
+      ## TODO: this would be better if we recursed through the whole
+      ## function as there are probably further simplifications that
+      ## can be made to the expressions.  The compiler should be able
+      ## to more than that though so it's really not that big a deal.
+      if (is_call(expr, quote(`-`)) || is_call(expr, quote(`+`))) {
+        if (is.numeric(expr[[2L]]) && is.numeric(expr[[3L]])) {
+          expr <- eval(expr, .GlobalEnv) - 1L
+        } else if (is.numeric(expr[[2L]])) {
+          ret <- expr[[2L]] <- expr[[2L]] - 1L
+        } else if (is.numeric(expr[[3L]])) {
+          expr[[3L]] <- expr[[3L]] + if (is_call(expr, quote(`+`))) -1L else 1L
+        } else {
+          expr <- call("-", expr, 1)
+        }
+        ret <- rewrite(expr)
+      } else {
+        ret <- sprintf("%s - 1", ret)
+      }
+    }
+    attr(ret, "is_index") <- NULL
+    ret
   }
 }
 

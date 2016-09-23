@@ -141,45 +141,44 @@ test_that("RHS array checking", {
   ## Dummy args:
   line <- 1
   expr <- quote(x)
+  ia <- character(0)
 
   ## This needs expanding as I find more corner cases
-  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=1), line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=2), line, expr),
-               "Incorrect dimensionality for 'b'")
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=2),
+  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=1), ia,
+                                          line, expr))
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=2), ia,
                                            line, expr),
                "Incorrect dimensionality for 'b'")
-  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=3),
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=2), ia,
+                                           line, expr),
+               "Incorrect dimensionality for 'b'")
+  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=3), ia,
                                           line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b=1),
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b=1), ia,
                                            line, expr),
                "Disallowed functions used for b")
-  expect_error(odin_parse_arrays_check_rhs(quote(b), c(b=1), line, expr),
+  expect_error(odin_parse_arrays_check_rhs(quote(b), c(b=1), ia, line, expr),
                "Array 'b' used without array index")
-  expect_null(odin_parse_arrays_check_rhs(quote(a), c(b=1), line, expr))
-  ## Would be nicer to detect the nested indexing.
-  expect_error(odin_parse_arrays_check_rhs(quote(a[b[1]]), c(a=1, b=1),
-                                           line, expr),
-               "Disallowed functions used for a in")
-  expect_error(odin_parse_arrays_check_rhs(quote(a[]), c(a=1), line, expr),
+  expect_null(odin_parse_arrays_check_rhs(quote(a), c(b=1), ia, line, expr))
+  expect_error(odin_parse_arrays_check_rhs(quote(a[]), c(a=1), ia, line, expr),
                "Empty array index not allowed on rhs")
 
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
-  expect_null(odin_parse_arrays_check_rhs(rhs, c(a=1), line, expr))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), line, expr),
+  expect_null(odin_parse_arrays_check_rhs(rhs, c(a=1), ia, line, expr))
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), ia, line, expr),
                "Function 'sum' requires array as first argument")
 
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a[])))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), line, expr),
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), ia, line, expr),
                "Function 'sum' requires array as first argument")
 
   expr <- quote(sum(a[,]))
   rhs <- odin_parse_expr_rhs_rewrite_sum(expr)
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 1), line, expr),
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 1), ia, line, expr),
                "Incorrect dimensionality for 'a' in 'sum' (expected 1)",
                fixed = TRUE)
-  expect_silent(odin_parse_arrays_check_rhs(rhs, c(a = 2), line, expr))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 3), line, expr),
+  expect_silent(odin_parse_arrays_check_rhs(rhs, c(a = 2), ia, line, expr))
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 3), ia, line, expr),
                "Incorrect dimensionality for 'a' in 'sum' (expected 3)",
                fixed = TRUE)
 })

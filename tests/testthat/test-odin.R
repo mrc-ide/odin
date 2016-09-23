@@ -1064,4 +1064,28 @@ test_that("logical operations", {
   expect_equal(y[, "x5"], as.numeric((t > 8 | t > 1) & t < 3))
 })
 
+## This is for issue #44, needed to support Neil's model.  I don't
+## know how useful this is going to be.  I'll see if we can get away
+## with this for now, and then go through and see if we can detect if
+## a number is an integer thing because it's only used within indexes.
+test_that("integer vector", {
+  gen <- odin({
+    x[] <- user()
+    dim(x) <- user()
+    idx[] <- user()
+    dim(idx) <- user()
+    initial(v[]) <- x[idx[i]] # TODO: fixme
+    deriv(v[]) <- 0
+    dim(v) <- length(x)
+  }, verbose = TEST_VERBOSE)
+
+  set.seed(1)
+  idx <- sample(15)
+  x <- runif(length(idx))
+  mod <- gen(x = x, idx = idx)
+  dat <- mod$contents()
+  expect_equal(dat$idx, idx)
+  expect_equal(dat$initial_v, x[idx])
+})
+
 unload_dlls()
