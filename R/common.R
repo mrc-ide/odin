@@ -7,8 +7,8 @@ STAGE_CONSTANT <- 1L
 STAGE_USER <- 2L
 STAGE_TIME <- 3L
 STAGES <- c("constant", "user", "time", "output")
-STEP <- "step"
 TIME <- "t"
+STEP <- "step"
 STATE <- "state"
 DSTATEDT <- "dstatedt"
 STATE_NEXT <- "state_next"
@@ -21,7 +21,8 @@ USER <- "user"
 SPECIAL_LHS <- c("initial", "deriv", "update", "output", "dim", "config")
 SPECIAL_RHS <- c("user", "interpolate", "delay")
 INDEX <- c("i", "j", "k", "l", "i5", "i6", "i7", "i8") # TODO: make open
-RESERVED <- c(INDEX, TIME, STATE, DSTATEDT, USER, SPECIAL_LHS, "delay", "dde")
+RESERVED <- c(INDEX, TIME, STEP,STATE, DSTATEDT, USER, SPECIAL_LHS,
+              "delay", "dde")
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
@@ -164,8 +165,8 @@ array_dim_name <- function(name, sub=NULL, use=TRUE) {
   if (!is.null(sub)) {
     name <- sprintf("%s_%s", name, sub)
   }
-  if (grepl("^(initial|deriv)_", name)) {
-    name_dim <- sub("^(initial|deriv)_", "dim_", name)
+  if (grepl("^(initial|deriv|update)_", name)) {
+    name_dim <- sub("^(initial|deriv|update)_", "dim_", name)
   } else if (grepl("^delay_", name)) {
     re <- "^delay_([^_]+)_(.*)$"
     type <- sub(re, "\\1", name)
