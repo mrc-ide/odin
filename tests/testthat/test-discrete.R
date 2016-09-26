@@ -137,4 +137,32 @@ test_that("delay vars that depend on time", {
   expect_equal(yy[, "y"], ifelse(tt < 7, 0, 1))
 })
 
+## This turns up in one of Neil's cases:
+test_that("complex initialisation", {
+  gen <- odin::odin({
+    initial(x1[]) <- norm_rand()
+    r[] <- x1[i] * 2
+    initial(x2[]) <- r[i] + 1
+
+    update(x1[]) <- x1[i]
+    update(x2[]) <- x2[i]
+
+    dim(x1) <- 10
+    dim(r) <- length(x1)
+    dim(x2) <- length(x1)
+  }, verbose = TEST_VERBOSE)
+
+  set.seed(1)
+  mod <- gen()
+
+  v <- mod$initial(0)
+  vv <- mod$transform_variables(v)
+
+  set.seed(1)
+  cmp <- rnorm(10)
+  expect_equal(vv$x1, cmp)
+  expect_equal(vv$x2, cmp * 2 + 1)
+  expect_equal(mod$contents()$r, cmp * 2)
+})
+
 unload_dlls()

@@ -245,7 +245,8 @@ odin_generate2_initial <- function(obj) {
 
   initial <- obj$initial$get()
 
-  if (obj$info$has_delay || length(initial) > 0L) {
+  if (obj$info$has_delay || length(initial) > 0L ||
+      obj$info$initial_stage == STAGE_TIME) {
     if (obj$info$has_delay || time_name %in% obj$info$eqs_used$initial) {
       time_access <- if (discrete) "INTEGER" else "REAL"
       ret$add("  const %s %s = %s(%s_ptr)[0];",
@@ -258,7 +259,31 @@ odin_generate2_initial <- function(obj) {
     ## Dependencies of any initial expressions, filtered by time dependency:
     time <- obj$time$get()
     time <- time[names(time) %in% obj$info$eqs_used$initial]
+
+    ## Then, we determine which *variables* are used here.  This
+    ## should be possible to work out earlier, but I'm just doing it
+    ## here for now (TODO).  The better way of doing this would be to
+    ## rewrite the expressions for all dependencies of initial
+    ## conditions to swap initial(x) -> x or x -> initial(x).
     if (length(time) > 0L) {
+      i <- obj$variable_info$order %in% obj$info$eqs_used$initial
+      if (any(i)) {
+        j <- obj$variable_info$is_array[i]
+        if (any(j)) {
+          va <- obj$variable_info$order[i][j]
+          ret$add("  double *%s = %s;",
+                  va, vcapply(initial_name(va), obj$rewrite))
+        }
+        if (any(!j)) {
+          for (v in obj$variable_info$order[i][!j]) {
+            v <- obj$variable_info$order[k]
+            iv <- initial_name(v)
+            at <- max(which(names(time) == iv))
+            tmp <- setNames(sprintf("double %s = %s;", v, obj$rewrite(iv)), iv)
+            time <- append(time, tmp, at)
+          }
+        }
+      }
       ret$add(indent(time, 2))
     }
 
