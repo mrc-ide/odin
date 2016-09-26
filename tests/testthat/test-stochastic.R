@@ -122,4 +122,20 @@ test_that("disallow stochastic functions on array rhs", {
     "Invalid array use on lhs")
 })
 
+test_that("exotic stochastic functions", {
+  gen <- odin::odin({
+    initial(x) <- 0
+    mu <- 1
+    sd <- 2
+    update(x) <- rnorm(mu, sd)
+  }, verbose = TEST_VERBOSE)
+
+  set.seed(1)
+  mod <- gen()
+  y <- mod$run(0:10)
+
+  set.seed(1)
+  expect_equal(y[-1, "x"], rnorm(10, 1, 2))
+})
+
 unload_dlls()

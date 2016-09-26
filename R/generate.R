@@ -84,6 +84,7 @@ odin_header <- function() {
 
 odin_includes <- function() {
   c("#include <R.h>",
+    "#include <Rmath.h>",
     "#include <Rinternals.h>",
     "#include <R_ext/Rdynload.h>",
     "#include <stdbool.h>")
