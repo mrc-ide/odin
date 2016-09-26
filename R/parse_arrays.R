@@ -202,6 +202,20 @@ odin_parse_arrays_nd <- function(obj) {
     ## Then continue:
     i <- match(nm, names(eqs))
 
+    ## It's an error to use
+    ##   dim(foo) <- user()
+    ## without specifying
+    ##   foo[] <- user()
+    ##   foo[,] <- user()
+    ## etc.
+    err <- is.na(i)
+    if (any(err)) {
+      tmp <- eqs[which(is_dim)[nd_user][err]]
+      odin_error(sprintf("No array assignment found for %s, but dim() found",
+                         pastec(nm[err])),
+                 get_lines(tmp), get_exprs(tmp))
+    }
+
     ## TODO: This one is not possible to throw until we get static arrays
     ## (see issue #19)
     ##

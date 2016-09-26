@@ -533,3 +533,13 @@ test_that("rewrite errors", {
     }, build = FALSE),
     "Expected 2 or more arguments in min call")
 })
+
+test_that("Incomplete user array", {
+  expect_error(odin::odin({
+    initial(x[,]) <- x0[i, j]
+    deriv(x[,]) <- 1
+    dim(x0) <- user()
+    dim(x) <- c(dim(x0, 1), dim(x0, 1))
+  }),
+  "No array assignment found for x0")
+})
