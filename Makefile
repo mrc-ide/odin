@@ -6,6 +6,9 @@ all: install
 test:
 	${RSCRIPT} -e 'library(methods); devtools::test()'
 
+test_warn:
+	${RSCRIPT} -e 'options(odin.compiler_warnings = TRUE); devtools::test()'
+
 test_leaks: .valgrind_ignore
 	R -d 'valgrind --leak-check=full --suppressions=.valgrind_ignore' -e 'devtools::test()'
 
