@@ -78,4 +78,23 @@ test_that("warnings", {
   }
 })
 
+test_that("n_history is configurable", {
+  gen <- odin::odin({
+    ylag <- delay(y, 10)
+    initial(y) <- 0.5
+    deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
+  }, verbose=TEST_VERBOSE)
+
+  mod <- gen(use_dde = TRUE)
+  expect_true("n_history" %in% names(formals(mod$run)))
+  expect_error(mod$run(seq(0, 200), n_history = 0),
+               "Integration failure: did not find time in history")
+
+  mod <- gen(use_dde = FALSE)
+  expect_true("n_history" %in% names(formals(mod$run)))
+  ## Don't test for precice deSolve error message; just test fail/pass
+  expect_error(mod$run(seq(0, 200), n_history = 1))
+  expect_error(mod$run(seq(0, 200), n_history = 1000), NA)
+})
+
 unload_dlls()

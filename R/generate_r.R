@@ -226,23 +226,27 @@ odin_generate_r_run <- function(info, dll) {
   has_interpolate <- info$has_interpolate
   has_delay <- info$has_delay
   time <- if (discrete) STEP else TIME
+  time_name <- if (discrete) STEP else TIME
 
-  if (discrete) {
-    ret$add("run = function(%s, y = NULL, ..., use_names = TRUE) {", STEP)
-  } else if (has_interpolate) {
-    ret$add(
-      "run = function(%s, y = NULL, ..., tcrit = NULL, use_names = TRUE) {",
-      time)
-  } else {
-    ret$add(
-      "run = function(%s, y = NULL, ..., use_names = TRUE) {",
-      time)
+  ## TODO: move to a more flexible model of building argument lists.
+  args <- c(time_name, y = "NULL", "...", use_names = "TRUE")
+  if (has_interpolate) {
+    args <- c(args, c(tcrit = "NULL"))
   }
+  if (has_delay) {
+    args <- c(args, c(n_history = "1000L"))
+  }
+
+  args <- pastec(ifelse(nzchar(names(args)),
+                        paste(names(args), args, sep = " = "),
+                        args))
+  ret$add("run = function(%s) {", args)
+
   ret$add("  if (is.null(y)) {")
   if (info$initial_stage < STAGE_TIME) {
-    ret$add("    y <- self$init", time)
+    ret$add("    y <- self$init")
   } else {
-    ret$add("    y <- self$initial(%s[[1L]])", time)
+    ret$add("    y <- self$initial(%s[[1L]])", time_name)
   }
   if (info$has_delay) {
     ret$add("  } else {")
@@ -256,36 +260,30 @@ odin_generate_r_run <- function(info, dll) {
   if (discrete) {
     ret$add('  ret <- dde::difeq(y, %s, "%s_update_dde", self$ptr,',
             time, base)
-    ret$add(indent(sprintf('dllname="%s",', dll), 20))
+    ret$add(indent(sprintf('dllname = "%s",', dll), 20))
     if (info$has_output) {
-      ret$add(indent(sprintf('n_out=self$output_length,', base), 20))
+      ret$add(indent(sprintf('n_out = self$output_length,', base), 20))
     }
     if (info$has_delay) {
-      ## TODO: make this a default like tcrit is; that's *much* easier
-      ## now that we're doing codegen.  Wait until I factor this out
-      ## into its own function though.
-      ret$add(indent("n_history=1000L, return_history=FALSE,", 20))
+      ret$add(indent("n_history = n_history, return_history = FALSE,", 20))
     }
-    ret$add(indent("parms_are_real=FALSE, ynames = FALSE, ...)", 20))
+    ret$add(indent("parms_are_real = FALSE, ynames = FALSE, ...)", 20))
   } else {
     ## OK throughout here I think I'll break this up a little and do
     ## it as argument collection / formatting.
     ret$add("  if (self$use_dde) {")
     ret$add('    ret <- dde::dopri(y, %s, "%s_deriv_dde", self$ptr,',
             time, base)
-    ret$add(indent(sprintf('dllname="%s",', dll), 22))
+    ret$add(indent(sprintf('dllname = "%s",', dll), 22))
     if (info$has_output) {
       ret$add(indent(sprintf(
-        'n_out=self$output_length, output="%s_output_dde",',
+        'n_out = self$output_length, output = "%s_output_dde",',
         base), 22))
     }
     if (info$has_delay) {
-      ## TODO: make this a default like tcrit is; that's *much* easier
-      ## now that we're doing codegen.  Wait until I factor this out
-      ## into its own function though.
-      ret$add(indent("n_history=1000L, return_history=FALSE,", 22))
+      ret$add(indent("n_history = n_history, return_history = FALSE,", 22))
     }
-    ret$add(indent("parms_are_real=FALSE, ynames = FALSE, ...)", 22))
+    ret$add(indent("parms_are_real = FALSE, ynames = FALSE, ...)", 22))
     ret$add("  } else {")
     len <- if (info$has_delay) 25 else 24
     ret$add('    ret <- deSolve::%s(y, %s, "%s_deriv_ds", self$ptr,',
@@ -297,6 +295,9 @@ odin_generate_r_run <- function(info, dll) {
     }
     if (info$has_interpolate) {
       ret$add(indent("tcrit = tcrit,", len))
+    }
+    if (info$has_delay) {
+      ret$add(indent("control = list(mxhist = n_history),", len))
     }
     ret$add(indent("...)", len))
     ret$add("  }")
