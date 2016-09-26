@@ -477,6 +477,7 @@ odin_generate1_array_expr <- function(x, obj) {
 odin_generate1_delay <- function(x, obj, eqs) {
   nm <- x$name
   time_name <- if (obj$info$discrete) STEP else TIME
+  time_type <- if (obj$info$discrete) "int" else "double"
 
   delay_len_tot <- obj$rewrite(x$delay$expr$total)
 
@@ -509,7 +510,7 @@ odin_generate1_delay <- function(x, obj, eqs) {
   delay_idx <- delay_name(sprintf("%s_%s", INDEX[[1L]], nm))
   delay_state <- delay_name(sprintf("%s_%s", STATE, nm))
   delay_dim <- array_dim_name(delay_idx)
-  delay_time <- delay_name(time_name)
+  true_time <- sprintf("odin_true_%s", time_name)
 
   ## If there are any arrays here we'll need to organise offsets.
   ## Rather than store the full offset vector I'll do this one by hand
@@ -544,25 +545,27 @@ odin_generate1_delay <- function(x, obj, eqs) {
 
   ## TODO: I'm not actually 100% sure about this; mostly why are both
   ## $order and $name in here?
-  i <- match(x$delay$expr$order, obj$variable_info$order)
-  delay_var_offset <- obj$variable_info$offset_use[i]
-  obj[[st]]$add("{", name=nm)
-  obj[[st]]$add("  // delay block for %s", nm, name=nm)
-  obj[[st]]$add("  int j = 0;", name=nm)
-  for (i in seq_len(x$delay$expr$n)) {
-    if (x$delay$expr$is_array[[i]]) {
-      obj[[st]]$add("  for (int i = 0, k = %s; i < %s; ++i) {",
-                    obj$rewrite(delay_var_offset[[i]]),
-                    obj$rewrite(array_dim_name(x$delay$expr$names[[i]])),
-                    name=nm)
-      obj[[st]]$add("    %s[j++] = k++;", obj$rewrite(delay_idx), name=nm)
-      obj[[st]]$add("  }", name=nm)
-    } else {
-      obj[[st]]$add("  %s[j++] = %s;", obj$rewrite(delay_idx),
-                    obj$rewrite(delay_var_offset[[i]]), name=nm)
+  if (x$delay$expr$n > 0L) {
+    i <- match(x$delay$expr$order, obj$variable_info$order)
+    delay_var_offset <- obj$variable_info$offset_use[i]
+    obj[[st]]$add("{", name=nm)
+    obj[[st]]$add("  // delay block for %s", nm, name=nm)
+    obj[[st]]$add("  int j = 0;", name=nm)
+    for (i in seq_len(x$delay$expr$n)) {
+      if (x$delay$expr$is_array[[i]]) {
+        obj[[st]]$add("  for (int i = 0, k = %s; i < %s; ++i) {",
+                      obj$rewrite(delay_var_offset[[i]]),
+                      obj$rewrite(array_dim_name(x$delay$expr$names[[i]])),
+                      name=nm)
+        obj[[st]]$add("    %s[j++] = k++;", obj$rewrite(delay_idx), name=nm)
+        obj[[st]]$add("  }", name=nm)
+      } else {
+        obj[[st]]$add("  %s[j++] = %s;", obj$rewrite(delay_idx),
+                      obj$rewrite(delay_var_offset[[i]]), name=nm)
+      }
     }
+    obj[[st]]$add("}", name=nm)
   }
-  obj[[st]]$add("}", name=nm)
 
   ## TODO: this is an obvious point to break this function; bits for
   ## the preparation and bits for the execution.  I'll get that done
@@ -580,86 +583,87 @@ odin_generate1_delay <- function(x, obj, eqs) {
 
   ## 4. Pull things out of the lag value, but only if time is past
   ## where the lag is OK to work with.  That's going to look like:
-  declare_vars <- sprintf("double %s;",
-                          paste0(ifelse(x$delay$expr$is_array, "*", ""),
-                                 x$delay$expr$order, collapse=", "))
-  if (!has_default) {
-    ret$add(indent(declare_vars, 2))
+  if (x$delay$expr$n > 0) {
+    declare_vars <- sprintf("double %s;",
+                            paste0(ifelse(x$delay$expr$is_array, "*", ""),
+                                   x$delay$expr$order, collapse=", "))
+    if (!has_default) {
+      ret$add(indent(declare_vars, 2))
+    }
   }
-
-  ## TODO: if time is used in the time calculation it will need
-  ## rewriting.  But I believe that parse prohibits that in the
-  ## meantime.
+  ret$add("  const %s %s = %s;", time_type, true_time, time_name)
   ret$add("  const %s %s = %s - %s;",
-          if (obj$info$discrete) "int" else "double",
-          delay_time, time_name, obj$rewrite(x$delay$time))
+          time_type, time_name, true_time, obj$rewrite(x$delay$time))
 
   ## NOTE: the paths with- and without delays are quite different; we
   ## only unpack anything in the case where there is not a default
   ## because otherwise we'd just use the top-level code.
-  ret$add("  if (%s <= %s) {",
-                delay_time, obj$rewrite(initial_name(time_name)))
-  if (has_default) {
-    ## NOTE/TODO: if this uses any time-dependent arrays, we have
-    ## problems unless I enforce that this must be resolvable in the
-    ## graph based on default being treated as a normal expression
-    ## (that seems reasonable).  In that case we're just going to
-    ## rewrite the _final_ expression and be done with it.  That's
-    ## really simple at least and removes all the faff.  So we still
-    ## need to inject the appropriate bits there.
-    if (x$lhs$type == "array") {
-      xd <- x
-      xd$rhs <- x$delay$default
-      xd$rhs$value <- list(xd$rhs$value)
-      ret$add(indent(odin_generate1_array_expr(xd, obj), 4))
-    } else {
-      ret$add(indent("%s = %s;", 4), nm, obj$rewrite(x$delay$default$value))
+  if (has_default || x$delay$expr$n > 0) {
+    ret$add("  if (%s <= %s) {",
+            time_name, obj$rewrite(initial_name(time_name)))
+    if (has_default) {
+      ## NOTE/TODO: if this uses any time-dependent arrays, we have
+      ## problems unless I enforce that this must be resolvable in the
+      ## graph based on default being treated as a normal expression
+      ## (that seems reasonable).  In that case we're just going to
+      ## rewrite the _final_ expression and be done with it.  That's
+      ## really simple at least and removes all the faff.  So we still
+      ## need to inject the appropriate bits there.
+      if (x$lhs$type == "array") {
+        xd <- x
+        xd$rhs <- x$delay$default
+        xd$rhs$value <- list(xd$rhs$value)
+        ret$add(indent(odin_generate1_array_expr(xd, obj), 4))
+      } else {
+        ret$add(indent("%s = %s;", 4), nm, obj$rewrite(x$delay$default$value))
+      }
+    } else if (x$delay$expr$n > 0) {
+      ret$add("    %s = %s;",
+              x$delay$expr$order, vcapply(initial_name(x$delay$expr$order),
+                                          obj$rewrite, USE.NAMES=FALSE))
     }
-  } else {
-    ret$add("    %s = %s;",
-            x$delay$expr$order, vcapply(initial_name(x$delay$expr$order),
-                                        obj$rewrite, USE.NAMES=FALSE))
-  }
-  ret$add("  } else {")
-  if (has_default) {
-    ret$add(indent(declare_vars, 4))
-  }
-  lagvalue <-  sprintf(indent("lagvalue_%%s(%s, %s, %s, %s);",
-                       if (obj$info$discrete) 4 else 6),
-                       delay_time,
-                       obj$rewrite(delay_idx),
-                       obj$rewrite(delay_dim),
-                       obj$rewrite(delay_state))
-  if (obj$info$discrete) {
-    ret$add(lagvalue, "discrete")
-  } else {
-    ret$add("    if (%s) {", obj$rewrite("odin_use_dde"))
-    ret$add(lagvalue, "dde")
-    ret$add("    } else {")
-    ret$add(lagvalue, "ds")
-    ret$add("    }")
-  }
-  ## There are 4 possibilities here;
-  delay_access <- function(i) {
-    ai <- x$delay$expr$access[[i]]
-    if (!x$delay$expr$is_array[[i]]) {
-      sprintf("%s[%s]", obj$rewrite(delay_state), ai)
-    } else if (is.null(ai)) {
-      obj$rewrite(delay_state)
-    } else if (is.numeric(ai)) {
-      obj$rewrite(call("+", as.name(delay_state), ai))
-    } else {
-      obj$rewrite(ai)
+    ret$add("  } else {")
+    if (x$delay$expr$n > 0 && has_default) {
+      ret$add(indent(declare_vars, 4))
     }
-  }
-  ret$add(indent("%s = %s;", 4),
-          x$delay$expr$order,
-          vcapply(seq_len(x$delay$expr$n), delay_access))
+    lagvalue <-  sprintf(indent("lagvalue_%%s(%s, %s, %s, %s);",
+                                if (obj$info$discrete) 4 else 6),
+                         time_name,
+                         obj$rewrite(delay_idx),
+                         obj$rewrite(delay_dim),
+                         obj$rewrite(delay_state))
+    if (obj$info$discrete) {
+      ret$add(lagvalue, "discrete")
+    } else {
+      ret$add("    if (%s) {", obj$rewrite("odin_use_dde"))
+      ret$add(lagvalue, "dde")
+      ret$add("    } else {")
+      ret$add(lagvalue, "ds")
+      ret$add("    }")
+    }
 
-  ## This is where the two routes (with- and without-default) start
-  ## diverging more markedly.
-  if (!has_default) {
-    ret$add("  }")
+    ## There are 4 possibilities here;
+    delay_access <- function(i) {
+      ai <- x$delay$expr$access[[i]]
+      if (!x$delay$expr$is_array[[i]]) {
+        sprintf("%s[%s]", obj$rewrite(delay_state), ai)
+      } else if (is.null(ai)) {
+        obj$rewrite(delay_state)
+      } else if (is.numeric(ai)) {
+        obj$rewrite(call("+", as.name(delay_state), ai))
+      } else {
+        obj$rewrite(ai)
+      }
+    }
+    ret$add(indent("%s = %s;", 4),
+            x$delay$expr$order,
+            vcapply(seq_len(x$delay$expr$n), delay_access))
+
+    ## This is where the two routes (with- and without-default) start
+    ## diverging more markedly.
+    if (!has_default) {
+      ret$add("  }")
+    }
   }
   nindent <- if (has_default) 4L else 2L
 

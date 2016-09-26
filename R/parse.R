@@ -359,7 +359,7 @@ odin_parse_extract_order <- function(obj, output = FALSE, subset = NULL) {
     total_use <- total
   }
 
-  total_stage <- max(stage_dim)
+  total_stage <- max(c(STAGE_CONSTANT, stage_dim))
 
   list(order=names_target,
        n=n,

@@ -119,4 +119,22 @@ test_that("2d array equations", {
   expect_equal(unname(diff(yy)[10, ]), c(1, c(r)))
 })
 
+test_that("delay vars that depend on time", {
+  gen <- odin::odin({
+    initial(x) <- 0
+    update(x) <- x + v
+
+    v <- if (step < 5) 0 else 1
+    y <- delay(v, 2)
+    output(y) <- TRUE
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen()
+  tt <- 0:10
+  yy <- mod$run(tt)
+
+  expect_equal(yy[, "x"], ifelse(tt < 6, 0, tt - 5))
+  expect_equal(yy[, "y"], ifelse(tt < 7, 0, 1))
+})
+
 unload_dlls()

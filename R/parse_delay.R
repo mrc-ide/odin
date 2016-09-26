@@ -123,8 +123,9 @@ odin_parse_delay_1_depends <- function(variables, obj) {
   ##
   ## TODO: I don't know if delay depending on delay is tested for
   ## anywhere?
+  time_name <- if (obj$info$discrete) STEP else TIME
   deps <- setdiff(deps[obj$stage[deps] == STAGE_TIME],
-                  c(TIME, names_if(obj$traits[, "uses_delay"])))
+                  c(time_name, names_if(obj$traits[, "uses_delay"])))
   deps <- deps[order(match(deps, names(obj$deps_rec)))]
 
   deps_vars <- intersect(obj$vars, deps)
