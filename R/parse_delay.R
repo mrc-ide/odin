@@ -143,7 +143,27 @@ odin_parse_delay_1_depends <- function(variables, obj) {
   ## vector (which in the case of the discrete model is one big memcpy
   ## and so possibly more efficient).
   ret <- odin_parse_extract_order(obj, subset = deps_vars)
+  if (ret$total_is_var) {
+    ret$total <- symbol_sum(ret$len)
+  }
+  ret$total
   ret$deps <- deps
   ret$deps_is_array <- deps_is_array
   ret
+}
+
+symbol_sum <- function(x) {
+  as_language <- function(x) {
+    if (is.numeric(x)) {
+      x
+    } else {
+      as.name(x)
+    }
+  }
+  len <- length(x)
+  if (len == 1L) {
+    as_language(x[[1]])
+  } else {
+    call("+", symbol_sum(x[-len]), as_language(x[[len]]))
+  }
 }

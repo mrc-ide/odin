@@ -210,4 +210,52 @@ test_that("3 arg delay with array", {
                t(outer(1:5, tt[!i] - 2) + (0:4) / 10))
 })
 
+## This should also be done with a couple of scalars thrown in here
+## too I think; they change things also.
+test_that("delay index packing", {
+  gen <- odin::odin({
+    deriv(a[]) <- i
+    deriv(b[]) <- i
+    deriv(c[]) <- i
+    deriv(d[]) <- i
+    deriv(e[]) <- i
+
+    initial(a[]) <- 1
+    initial(b[]) <- 2
+    initial(c[]) <- 3
+    initial(d[]) <- 4
+    initial(e[]) <- 5
+
+    foo[] <- delay(b[i] + c[i + 1] + e[i + 2], 2)
+    output(foo[]) <- TRUE
+
+    dim(foo) <- 9
+    dim(a) <- 10
+    dim(b) <- 11
+    dim(c) <- 12
+    dim(d) <- 13
+    dim(e) <- 14
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen()
+  dat <- mod$contents()
+
+  seq0 <- function(n) seq_len(n) - 1L
+
+  expect_equal(dat$dim_delay_foo, dat$dim_b + dat$dim_c + dat$dim_e)
+  expect_equal(dat$delay_i_foo,
+               c(dat$offset_b + seq0(dat$dim_b),
+                 dat$offset_c + seq0(dat$dim_c),
+                 dat$offset_e + seq0(dat$dim_e)))
+
+  tt <- seq(0, 10, length.out = 11)
+  yy <- mod$transform_variables(mod$run(tt))
+
+  i <- seq_len(dat$dim_foo)
+  expect_equal(yy$foo[1, ],
+               yy$b[1, i] + yy$c[1, i + 1] + yy$e[1, i + 2])
+  expect_equal(yy$foo[8, ],
+               yy$b[6, i] + yy$c[6, i + 1] + yy$e[6, i + 2])
+})
+
 unload_dlls()

@@ -67,3 +67,14 @@ test_that("unclassifiable output", {
   expect_equal(res$value, c(cmp$value, extra))
   format(res)
 })
+
+test_that("symbol_sum", {
+  expect_equal(symbol_sum(list(1)), 1)
+  expect_equal(symbol_sum(list("a")), quote(a))
+
+  expect_equal(symbol_sum(list(1, "a")), quote(1 + a))
+  expect_equal(symbol_sum(list("a", "b")), quote(a + b))
+
+  expect_equal(symbol_sum(list(1, "a", "b")), quote(1 + a + b))
+  expect_equal(symbol_sum(list("a", "b", "c")), quote(a + b + c))
+})
