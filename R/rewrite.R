@@ -29,6 +29,8 @@ rewrite_c <- function(expr, name_pars, lookup = character(0)) {
     nm <- deparse(expr[[1L]])
     if (nm %in% names(FUNCTIONS_RENAME)) {
       nm <- FUNCTIONS_RENAME[[nm]]
+    } else if (nm %in% FUNCTIONS_REWRITE_RF) {
+      nm <- paste0("Rf_", nm)
     }
 
     res <- lapply(as.list(expr[-1L]), rewrite_expr)
@@ -99,6 +101,12 @@ rewrite_c <- function(expr, name_pars, lookup = character(0)) {
     } else if (nm %in% FUNCTIONS_NARY) {
       value <- generate_nary(nm, values)
     } else {
+      ## This is a little extreme but is useful in at least some cases
+      ## (and I don't imagine that returning NaN will be useful most
+      ## of the time).
+      if (nm == "Rf_rbinom") {
+        values[[1]] <- sprintf("round(%s)", values[[1]])
+      }
       value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
     }
 

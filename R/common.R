@@ -37,11 +37,6 @@ FUNCTIONS_INFIX <- c("+", "/", "-", "*", ">", "<", ">=", "<=", "==", "!=",
                      "&&", "||")
 FUNCTIONS_UNARY <- c("+", "-") # TODO: add "!"?
 
-## TODO:
-##
-## gamma -> gammafn
-## lgamma -> lgammafn
-
 FUNCTIONS_RENAME <- c(
   "%%" = "fmodr",
   "%/%"= "fintdiv",
@@ -126,6 +121,9 @@ FUNCTIONS_STOCHASTIC <- list(
   rwilcox = 2L, # m, n
   rsignrank = 1L # n
 )
+
+FUNCTIONS_REWRITE_RF <-
+  grep("_rand$", names(FUNCTIONS_STOCHASTIC), invert = TRUE, value = TRUE)
 
 ## Here we need to do a bit of a faff because unary functions need
 ## adding.  This may get tightened up later to either use local() or
