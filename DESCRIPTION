@@ -13,7 +13,7 @@ Imports:
     crayon,
     deSolve
 Suggests:
-    dde (>= 0.0.4),
+    dde (>= 0.0.5),
     knitr,
     rmarkdown,
     testthat

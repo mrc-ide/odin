@@ -266,9 +266,7 @@ odin_generate_r_run <- function(info, dll) {
       ## into its own function though.
       ret$add(indent("n_history=1000L, return_history=FALSE,", 20))
     }
-    ret$add(indent("parms_are_real=FALSE,", 20))
-    ## Try and preserve some compatibility with deSolve:
-    ret$add(indent("deSolve_compatible=TRUE, ...)", 20))
+    ret$add(indent("parms_are_real=FALSE, ynames = FALSE, ...)", 20))
   } else {
     ## OK throughout here I think I'll break this up a little and do
     ## it as argument collection / formatting.
@@ -287,10 +285,7 @@ odin_generate_r_run <- function(info, dll) {
       ## into its own function though.
       ret$add(indent("n_history=1000L, return_history=FALSE,", 22))
     }
-    ret$add(indent("parms_are_real=FALSE,", 22))
-    ## Try and preserve some compatibility with deSolve:
-    ret$add(indent("by_column=TRUE, return_initial=TRUE,", 22))
-    ret$add(indent("return_time=TRUE, return_output_with_y=TRUE, ...)", 22))
+    ret$add(indent("parms_are_real=FALSE, ynames = FALSE, ...)", 22))
     ret$add("  } else {")
     len <- if (info$has_delay) 25 else 24
     ret$add('    ret <- deSolve::%s(y, %s, "%s_deriv_ds", self$ptr,',
