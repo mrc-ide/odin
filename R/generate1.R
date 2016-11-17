@@ -19,6 +19,9 @@ odin_generate1 <- function(dat) {
   if (obj$info$has_delay) {
     time_name <- if (obj$info$discrete) STEP else TIME
     obj$add_element(initial_name(time_name), "double")
+    if (obj$info$discrete) {
+      obj$add_element(RING, "ring_buffer")
+    }
   }
   odin_generate1_library(obj, dat$eqs)
 

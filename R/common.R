@@ -14,6 +14,7 @@ DSTATEDT <- "dstatedt"
 STATE_NEXT <- "state_next"
 OUTPUT <- "output"
 USER <- "user"
+RING <- "odin_ring"
 ## TODO: None of these deal with the use of these as functions (only
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some
@@ -26,6 +27,7 @@ RESERVED <- c(INDEX, TIME, STEP,STATE, DSTATEDT, USER, SPECIAL_LHS,
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
+SPECIAL_DATA_TYPES <- c("void", "ring_buffer")
 
 DIM_USER <- -1L
 DIM_DEPENDENT <- -2L

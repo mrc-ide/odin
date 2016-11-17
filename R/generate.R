@@ -12,6 +12,7 @@
 ##    simpler generate the actual code.
 odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   obj <- odin_generate1(dat)
+  discrete <- obj$info$discrete
 
   struct <- c(odin_generate2_struct(obj),
               odin_generate2_support_decls(obj))
@@ -23,7 +24,15 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   ## move to a more formal linking (e.g., getCcallable) approach but
   ## that considerably complicates compilation and may come with a
   ## slight performance cost too.
-  discrete <- obj$info$discrete
+  ##
+  ## TODO: handle this the same way as the interpolation support
+  ## perhaps?  Though that requires that library_fns is declared
+  ## before the struct (that's not a huge headache though).
+  if (discrete && obj$info$has_delay) {
+    ring <- odin_ring_support(package)
+  } else {
+    ring <- NULL
+  }
 
   ## Then attempt to make some sense out of the things that we have
   ## collected:
@@ -33,6 +42,7 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   ## don't probably *want* to do that?)
   ret <- list(if (!package) odin_header(),
               if (!package) odin_includes(),
+              if (!package) ring$declarations,
               if (!package) struct,
               if (!package) library_fns$declarations,
               odin_generate2_create(obj),
@@ -51,6 +61,7 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               odin_generate2_order(obj, TRUE),
               odin_generate2_interpolate_t(obj),
               odin_generate2_support_defns(obj),
+              if (!package) ring$definitions,
               if (!package) library_fns$definitions)
 
   ret <- ret[lengths(ret) > 0]
@@ -80,6 +91,26 @@ odin_includes <- function() {
     "#include <Rinternals.h>",
     "#include <R_ext/Rdynload.h>",
     "#include <stdbool.h>")
+}
+
+odin_ring_support <- function(package) {
+  ## Annoyingly different from the version used in interpolate
+  filter_includes <- function(filename) {
+    x <- readLines(filename)
+    x[!grepl("^#include\\s+", x, perl=TRUE)]
+  }
+
+  loadNamespace("ring")
+  r_h <- system.file("include/ring/ring.h", package = "ring", mustWork = TRUE)
+  r_c <- system.file("include/ring/ring.c", package = "ring", mustWork = TRUE)
+  if (package) {
+    decl <- filter_includes(r_h)
+    defn <- filter_includes(r_c)
+  } else {
+    decl <- sprintf('#include "%s"', r_h)
+    defn <- sprintf('#include "%s"', r_c)
+  }
+  list(declarations = decl, definitions = defn)
 }
 
 ## Read a bunch of library functions.  The format here is important.

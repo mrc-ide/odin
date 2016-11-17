@@ -19,7 +19,7 @@ odin_generate2_struct <- function(obj) {
   ret$add("// Collect together all the parameters and transient memory")
   ret$add("// required to run the model in a struct.")
   ret$add("typedef struct %s {", obj$type_pars)
-  ptr <- types$array | types$type == "void"
+  ptr <- types$array | types$type %in% SPECIAL_DATA_TYPES
   ret$add("  %s %s%s;", types$type, ifelse(ptr, "*", ""), types$name)
   ret$add("} %s;", obj$type_pars)
   ret$get()
@@ -500,7 +500,7 @@ odin_generate2_contents <- function(obj) {
     name <- types$name[[i]]
     type <- types$type[[i]]
     array <- types$array[[i]]
-    if (type == "void") {
+    if (type %in% SPECIAL_DATA_TYPES) {
       ## Can't do anything with these.
       next
     }
