@@ -88,7 +88,7 @@ test_that("n_history is configurable", {
   mod <- gen(use_dde = TRUE)
   expect_true("n_history" %in% names(formals(mod$run)))
   expect_error(mod$run(seq(0, 200), n_history = 0),
-               "Integration failure: did not find time in history")
+               "Integration failure: can't use ylag in model with no history")
 
   mod <- gen(use_dde = FALSE)
   expect_true("n_history" %in% names(formals(mod$run)))
