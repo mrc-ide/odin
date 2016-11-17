@@ -181,13 +181,12 @@ odin_parse_collect_traits <- function(obj) {
   uses_user <- vlapply(eqs, function(x) isTRUE(x$rhs$user))
   uses_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
   uses_interpolate <- vlapply(eqs, function(x) isTRUE(x$rhs$interpolate))
-  uses_sum <- vlapply(eqs, function(x) isTRUE(x$rhs$sum))
   uses_stochastic <- vlapply(eqs, "[[", "stochastic")
 
   traits <- cbind(is_dim, is_deriv, is_initial, is_output, is_config,
                   is_array, is_symbol,
                   uses_atomic, uses_user, uses_delay,
-                  uses_interpolate, uses_sum, uses_stochastic)
+                  uses_interpolate, uses_stochastic)
   rownames(traits) <- names(eqs)
 
   obj$traits <- traits
@@ -201,7 +200,6 @@ odin_parse_collect_traits <- function(obj) {
                    has_user=any(uses_user),
                    has_delay=any(uses_delay),
                    has_interpolate=any(uses_interpolate),
-                   has_sum=any(uses_sum),
                    has_stochastic=any(uses_stochastic))
 
   nms_target <- names(eqs)

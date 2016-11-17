@@ -167,8 +167,10 @@ odin_generate1_library <- function(obj, eqs) {
   obj$library_fns$add("get_ds_pars")
 
   ## Support for sum() of varying orders
-  ## TODO: this may miss things in delay rhs?
-  used_functions <- unique(unlist(lapply(eqs, function(x) x$depends$functions)))
+  fn_deps <- function(x) {
+    c(x$depends$functions, x$rhs$depends_delay$functions)
+  }
+  used_functions <- unique(unlist(lapply(eqs, fn_deps), use.names = FALSE))
 
   obj$library_fns$add(intersect(FUNCTIONS_SUM, used_functions))
   if ("sum" %in% used_functions) {
