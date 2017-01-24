@@ -303,11 +303,14 @@ odin_parse_variable_info <- function(obj) {
 }
 
 ## Given a vector of equation naems, let's unpack things:
-odin_parse_extract_order <- function(obj, output = FALSE, subset = NULL) {
+odin_parse_extract_order <- function(obj, output = FALSE, subset = NULL,
+                                     discrete_delay = FALSE) {
   ## TODO: we'll need to test this in a case where a subset of
   ## variables are pulled out.  Joel's will make a nice integration
   ## test though I believe.
-  if (output) {
+  if (discrete_delay) {
+    names <- names_if(obj$traits[, "uses_delay"])
+  } else if (output) {
     names <- names_if(obj$traits[, "is_output"])
   } else {
     vars <- if (is.null(subset)) obj$vars else intersect(obj$vars, subset)

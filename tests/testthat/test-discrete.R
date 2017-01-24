@@ -44,11 +44,13 @@ test_that("output", {
 })
 
 test_that("delays", {
+
   gen <- odin::odin({
     initial(y) <- 1
     update(y) <- y + yprev
     yprev <- delay(y, 1)
-  }, verbose = TEST_VERBOSE)
+    config(base) <- "sv"
+  }, "testing", verbose = TEST_VERBOSE)
 
   mod <- gen()
   expect_null(mod$update) # no update function in a delay model

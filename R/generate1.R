@@ -16,11 +16,36 @@ odin_generate1 <- function(dat) {
   if (!dat$info$discrete) {
     obj$add_element("odin_use_dde", "int")
   }
+
+  ## This might need pulling out into something else as it's a bit
+  ## unweildly in here.
   if (obj$info$has_delay) {
-    time_name <- if (obj$info$discrete) STEP else TIME
-    obj$add_element(initial_name(time_name), "double")
+    initial_time <- initial_name(if (obj$info$discrete) STEP else TIME)
+    obj$add_element(initial_time, "double")
+    ## Lots of infrastructure here!
     if (obj$info$discrete) {
+      initial_ring <- initial_name(RING)
       obj$add_element(RING, "ring_buffer")
+      obj$add_element(initial_ring, "double", 1)
+      info <- obj$discrete_delay_info
+      len <- if (info$total_is_var) call("(", info$total) else info$total
+      st <- STAGES[[info$total_stage]]
+      mxhist <- 10000 # TODO: make configurable, perhaps same way as use_dde?
+      obj[[st]]$add("%s = ring_buffer_create(%s, %s * sizeof(double), %s);",
+                    obj$rewrite(RING),
+                    obj$rewrite(mxhist),
+                    obj$rewrite(len),
+                    "OVERFLOW_OVERWRITE")
+      obj[[st]]$add("%s = (double*) Calloc(%s, double);",
+                    obj$rewrite(initial_ring),
+                    obj$rewrite(len))
+      obj$free$add("Free(%s);", obj$rewrite(initial_ring))
+      obj$free$add("ring_buffer_destroy(%s);", obj$rewrite(RING))
+      if (st != "constant") {
+        ## This is not hard; just need to reallocate the memory
+        ## however I usually do it (can be Free/Calloc)
+        stop("FIXME (dynamic ring allocation)")
+      }
     }
   }
   odin_generate1_library(obj, dat$eqs)
@@ -69,6 +94,7 @@ odin_generate1_object <- function(dat) {
 
   self$variable_info <- dat$variable_info
   self$output_info <- dat$output_info
+  self$discrete_delay_info <- dat$discrete_delay_info
 
   self$name_pars <- sprintf("%s_p", base)
   self$type_pars <- sprintf("%s_pars", base)
@@ -470,6 +496,14 @@ odin_generate1_array_expr <- function(x, obj) {
   ret$get()
 }
 
+odin_generate1_delay <- function(x, obj, eqs) {
+  if (obj$info$discrete) {
+    odin_generate1_delay_discrete(x, obj, eqs)
+  } else {
+    odin_generate1_delay_ode(x, obj, eqs)
+  }
+}
+
 ## TODO: I think I have some duplication here in both the variable
 ## ordering and the output ordering (computing offsets and the like).
 ## Here I'm hoping to make the simplifying assumption that the number
@@ -480,10 +514,10 @@ odin_generate1_array_expr <- function(x, obj) {
 ## to split it up a bit and leverage any of the other generate bits I
 ## can find where duplicated code is involved.  But this is *hard* in
 ## general.
-odin_generate1_delay <- function(x, obj, eqs) {
+odin_generate1_delay_ode <- function(x, obj, eqs) {
   nm <- x$name
-  time_name <- if (obj$info$discrete) STEP else TIME
-  time_type <- if (obj$info$discrete) "int" else "double"
+  time_name <- TIME
+  time_type <- "double"
 
   delay_len_tot <- obj$rewrite(x$delay$expr$total)
 
@@ -513,6 +547,8 @@ odin_generate1_delay <- function(x, obj, eqs) {
   ## 2, 3) or name things after the variables that are being delayed
   ## (delay_1_idx vs delay_lag_inf_idx, delay_1_state vs
   ## delay_lag_inf_state).  I think that the latter is probably nicer.
+  ##
+  ## TODO: What on earth is going on with delay_idx here?
   delay_idx <- delay_name(sprintf("%s_%s", INDEX[[1L]], nm))
   delay_state <- delay_name(sprintf("%s_%s", STATE, nm))
   delay_dim <- array_dim_name(delay_idx)
@@ -726,6 +762,75 @@ odin_generate1_delay <- function(x, obj, eqs) {
   }
   ret$add("}")
 
+  obj$time$add(ret$get(), name = nm)
+}
+
+## This is heaps easier than the ode version because we do not need to
+## reconstruct the graph for delay variables that are not themselves
+## variables (because we are guaranteed to hit every time in order).
+## So we can just push things onto the ring and pop them off again.
+odin_generate1_delay_discrete <- function(x, obj, eqs) {
+  nm <- x$name
+  time_name <- STEP
+  time_type <- "int"
+  ring_head <- sprintf("%s_head", RING) # must match up with generate2
+
+  has_default <- !is.null(x$rhs$value_default)
+
+  ## This is a bit different to usual I think.  We're going to need to
+  ## set up initial conditions for delayed variables; generally we
+  ## need to assume that they're stochastic so we want to evaluate
+  ## them only once!
+  ##
+  ## Getting that right requires that we can access the correct point
+  ## in the graph.
+  if (has_default) {
+    ## This requires some serious thinking, possibly not that much
+    ## actual work though.
+    stop("FIXME")
+  }
+
+  ret <- collector()
+  if (x$lhs$type == "symbol") {
+    ret$add("double %s;", nm)
+  } else {
+    ret$add("const double * %s;", nm)
+  }
+
+  offset <- obj$discrete_delay_info$offset_use[[offset_name(nm)]]
+
+  time_offset_name <- sprintf("%s_offset", time_name)
+
+  ret$add("// calculation for current value of %s", nm)
+  if (x$lhs$type == "array") {
+    ret$add(odin_generate1_array_expr(x, obj))
+    ret$add("memcpy(%s + %s, %s, %s * sizeof(double));",
+            ring_head, obj$rewrite(offset), nm, array_dim_name(nm))
+  } else {
+    ret$add("%s = %s;", nm, obj$rewrite(x$rhs$value_expr))
+    ret$add("%s[%s] = %s;", ring_head, obj$rewrite(offset), nm)
+  }
+
+  ret$add("// delayed value of %s", nm)
+  ret$add("{") # (possibly) temporary scope until I nail the casts
+  ret$add("  const %s %s = %s;",
+          time_type, time_offset_name, obj$rewrite(x$delay$time))
+  ret$add("  const double *head;")
+  ret$add("  if (%s - %s < %s) {", time_name, time_offset_name,
+          obj$rewrite(initial_name(time_name)))
+  ret$add("    head = (double*) %s;", obj$rewrite(initial_name(RING)))
+  ret$add("  } else {")
+  ret$add("    head = (double*) ring_buffer_head_offset(%s, %s - 1);",
+          obj$rewrite(RING), obj$rewrite(x$delay$time))
+  ret$add("  }")
+  if (x$lhs$type == "array") {
+    ret$add("  memcpy(%s, head + %s, %s * sizeof(double));",
+            nm, obj$rewrite(offset), array_dim_name(nm))
+  } else {
+    ret$add("  %s = head[%s];", nm, obj$rewrite(offset))
+  }
+  ret$add("}")
+  ## Done here:
   obj$time$add(ret$get(), name = nm)
 }
 

@@ -389,8 +389,8 @@ odin_generate2_set_initial <- function(obj) {
 ## returns void and takes a pointer.
 odin_generate2_deriv <- function(obj) {
   ret <- collector()
-
   discrete <- obj$info$discrete
+
   core_name <- if (discrete) "update" else "deriv"
   time_name <- if (discrete) STEP else TIME
   time_type <- if (discrete) "size_t" else "double"
@@ -403,7 +403,11 @@ odin_generate2_deriv <- function(obj) {
     obj$info$base, core_name, obj$type_pars, obj$name_pars,
     time_type, time_name, STATE, ret_name, OUTPUT)
   ret$add(indent(odin_generate2_vars(obj), 2))
-  ret$add(indent(odin_generate2_unpack(obj), 2))
+  ret$add(indent(odin_generate2_unpack(obj, "variables"), 2))
+  ret$add(indent(odin_generate2_unpack(obj, "delays"), 2))
+  if (discrete && obj$info$has_delay) {
+    ret$add("  double * %s_head = (double*)%s->head;", RING, obj$rewrite(RING))
+  }
 
   time <- obj$time$get()
   time_deriv <- time[names(time) %in% obj$info$eqs_used[[core_name]]]
@@ -419,10 +423,15 @@ odin_generate2_deriv <- function(obj) {
     keep <- setdiff(obj$info$eqs_used$output, obj$info$eqs_used[[core_name]])
     time_output <- time[names(time) %in% keep]
     ret$add("  if (%s != NULL) {", OUTPUT)
-    ret$add(indent(odin_generate2_unpack(obj, TRUE), 4))
+    ret$add(indent(odin_generate2_unpack(obj, "output"), 4))
     ret$add(indent(time_output, 4))
     ret$add("  }")
   }
+
+  if (discrete && obj$info$has_delay) {
+    ret$add("  ring_buffer_head_advance(%s);", obj$rewrite(RING))
+  }
+
   ret$add("}")
   ret$get()
 }
@@ -605,7 +614,7 @@ odin_generate2_output <- function(obj) {
 
   ## 1. variables that we need to use
   ret$add(indent(odin_generate2_vars(obj, TRUE), 2))
-  ret$add(indent(odin_generate2_unpack(obj, TRUE), 2))
+  ret$add(indent(odin_generate2_unpack(obj, "output"), 2))
 
   ## 2. dependent calculations
   time <- obj$time$get()
@@ -739,13 +748,17 @@ odin_generate2_vars <- function(obj, output=FALSE) {
   ret$get()
 }
 
-odin_generate2_unpack <- function(obj, output=FALSE) {
-  info <- obj[[if (output) "output_info" else "variable_info"]]
+odin_generate2_unpack <- function(obj, type) {
+  v <- switch(type,
+              variables = "variable_info",
+              output = "output_info",
+              delays = "delay_info")
+  info <- obj[[v]]
   if (any(info$is_array)) {
     sprintf("double *%s_%s = %s%s;",
-            if (output) "output" else obj$core$target_name,
+            if (type == "output") "output" else obj$core$target_name,
             info$order[info$is_array],
-            if (output) OUTPUT else obj$core$state2,
+            if (type == "output") OUTPUT else obj$core$state2,
             vcapply(info$offset_use[info$is_array], odin_generate2_offset,
                     obj$rewrite))
   } else {

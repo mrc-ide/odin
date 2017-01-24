@@ -63,6 +63,9 @@ odin_parse_delay <- function(obj) {
     obj$eqs[[array_dim_name(nm)]]$used_in_delay <- TRUE
   }
 
+  obj$discrete_delay_info <-
+    odin_parse_extract_order(obj, discrete_delay = TRUE)
+
   obj
 }
 
