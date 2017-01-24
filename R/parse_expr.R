@@ -32,6 +32,10 @@ odin_parse_expr <- function(expr, line) {
 
   if (identical(lhs$special, "dim")) {
     lhs$nd <- odin_parse_expr_check_dim(rhs, line, expr)
+    if (lhs$nd == 1L && is_call(rhs$value, quote(c))) {
+      rhs$value <- rhs$value[[2L]]
+      rhs$type <- if (is.name(rhs$value)) "symbol" else "atomic"
+    }
     ## This is neeeded because at this point we've dealt with 'c()'
     ## and it's not supported as an actual function.
     rhs$depends$functions <- setdiff(rhs$depends$functions, "c")

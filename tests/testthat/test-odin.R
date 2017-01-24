@@ -1112,4 +1112,15 @@ test_that("integer matrix", {
   expect_equal(gen(x = x, idx = idx)$contents()$v, v)
 })
 
+test_that("c in dim for vector", {
+  ## This is a regression test for issue #61
+  gen <- odin({
+    initial(x[]) <- 1
+    deriv(x[]) <- 0
+    dim(x) <- c(5)
+  }, verbose = TEST_VERBOSE)
+  mod <- gen()
+  expect_equal(mod$contents()$initial_x, rep(1.0, 5))
+})
+
 unload_dlls()
