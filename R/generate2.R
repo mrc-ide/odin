@@ -276,7 +276,7 @@ odin_generate2_initial <- function(obj) {
         }
         if (any(!j)) {
           for (v in obj$variable_info$order[i][!j]) {
-            v <- obj$variable_info$order[k]
+            ## TODO: this is untested
             iv <- initial_name(v)
             at <- max(which(names(time) == iv))
             tmp <- setNames(sprintf("double %s = %s;", v, obj$rewrite(iv)), iv)
