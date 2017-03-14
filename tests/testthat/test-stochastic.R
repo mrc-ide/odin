@@ -138,4 +138,18 @@ test_that("exotic stochastic functions", {
   expect_equal(y[-1, "x"], rnorm(10, 1, 2))
 })
 
+test_that("round & rbinom", {
+  gen <- odin({
+    size <- user()
+    p <- user()
+    update(x) <- 0
+    initial(x) <- rbinom(size, p)
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen(p = 1, size = 0.4)
+  expect_equal(mod$initial(0), 0)
+  mod$set_user(p = 1, size = 1.7)
+  expect_equal(mod$initial(0), 2)
+})
+
 unload_dlls()
