@@ -257,6 +257,7 @@ odin_generate1_dim <- function(x, obj) {
                   obj$rewrite(nm_s), data_type, obj$rewrite(nm), data_type)
     obj[[st]]$add("  memcpy(%s, tmp, %s * sizeof(%s));",
                   obj$rewrite(nm_s), obj$rewrite(nm), data_type)
+    obj[[st]]$add("  free(tmp);")
     obj[[st]]$add("}")
   } else {
     if (x$nd == 1) {
