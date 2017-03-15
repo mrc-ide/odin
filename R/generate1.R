@@ -17,35 +17,29 @@ odin_generate1 <- function(dat) {
     obj$add_element("odin_use_dde", "int")
   }
 
-  ## This might need pulling out into something else as it's a bit
-  ## unweildly in here.
   if (obj$info$has_delay) {
     initial_time <- initial_name(if (obj$info$discrete) STEP else TIME)
     obj$add_element(initial_time, "double")
-    ## Lots of infrastructure here!
-    if (obj$info$discrete) {
-      initial_ring <- initial_name(RING)
-      obj$add_element(RING, "ring_buffer")
-      obj$add_element(initial_ring, "double", 1)
-      info <- obj$discrete_delay_info
-      len <- if (info$total_is_var) call("(", info$total) else info$total
-      st <- STAGES[[info$total_stage]]
-      mxhist <- 10000 # TODO: make configurable, perhaps same way as use_dde?
-      obj[[st]]$add("%s = ring_buffer_create(%s, %s * sizeof(double), %s);",
-                    obj$rewrite(RING),
-                    obj$rewrite(mxhist),
-                    obj$rewrite(len),
-                    "OVERFLOW_OVERWRITE")
-      obj[[st]]$add("%s = (double*) Calloc(%s, double);",
-                    obj$rewrite(initial_ring),
-                    obj$rewrite(len))
-      obj$free$add("Free(%s);", obj$rewrite(initial_ring))
-      obj$free$add("ring_buffer_destroy(%s);", obj$rewrite(RING))
-      if (st != "constant") {
-        ## This is not hard; just need to reallocate the memory
-        ## however I usually do it (can be Free/Calloc)
-        stop("FIXME (dynamic ring allocation)")
-      }
+  }
+
+  ## This might need pulling out into something else as it's a bit
+  ## unweildly in here.
+  if (obj$info$discrete && obj$info$has_delay) {
+    obj$add_element(RING, "ring_buffer")
+    info <- obj$discrete_delay_info
+    len <- if (info$total_is_var) call("(", info$total) else info$total
+    st <- STAGES[[info$total_stage]]
+    mxhist <- 10000 # TODO: make configurable, perhaps same way as use_dde?
+    obj[[st]]$add("%s = ring_buffer_create(%s, %s * sizeof(double), %s);",
+                  obj$rewrite(RING),
+                  obj$rewrite(mxhist),
+                  obj$rewrite(len),
+                  "OVERFLOW_OVERWRITE")
+    obj$free$add("ring_buffer_destroy(%s);", obj$rewrite(RING))
+    if (st != "constant") {
+      ## This is not hard; just need to reallocate the memory
+      ## however I usually do it (can be Free/Calloc)
+      stop("FIXME (dynamic ring allocation)")
     }
   }
   odin_generate1_library(obj, dat$eqs)
@@ -799,7 +793,6 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
 
   offset <- obj$discrete_delay_info$offset_use[[offset_name(nm)]]
 
-  time_offset_name <- sprintf("%s_offset", time_name)
 
   ret$add("// calculation for current value of %s", nm)
   if (x$lhs$type == "array") {
@@ -811,17 +804,30 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
     ret$add("%s[%s] = %s;", ring_head, obj$rewrite(offset), nm)
   }
 
+  time_offset_name <- sprintf("%s_offset", time_name)
+  time_delay_name <- sprintf("%s_delay", time_name)
+
   ret$add("// delayed value of %s", nm)
   ret$add("{") # (possibly) temporary scope until I nail the casts
-  ret$add("  const %s %s = %s;",
+  ## NOTE could simplify this in the case where x$delay$time is symbol
+  ## or atomic, though the compiler should do that for us anyway.
+  ret$add("  %s %s = %s;",
           time_type, time_offset_name, obj$rewrite(x$delay$time))
-  ret$add("  const double *head;")
-  ret$add("  if (%s - %s < %s) {", time_name, time_offset_name,
-          obj$rewrite(initial_name(time_name)))
-  ret$add("    head = (double*) %s;", obj$rewrite(initial_name(RING)))
-  ret$add("  } else {")
-  ret$add("    head = (double*) ring_buffer_head_offset(%s, %s - 1);",
-          obj$rewrite(RING), obj$rewrite(x$delay$time))
+  ret$add("  %s %s = %s - %s;",
+          time_type, time_delay_name, time_name, time_offset_name)
+  ret$add("  if (%s < %s) {",
+          time_delay_name, obj$rewrite(initial_name(time_name)))
+  ret$add("    %s = %s - %s;",
+          time_offset_name, time_name, obj$rewrite(initial_name(time_name)))
+  ret$add("  }")
+  ret$add(
+    "  const double * head = (double*) ring_buffer_head_offset(%s, %s - 1);",
+    obj$rewrite(RING), time_offset_name)
+  ret$add("  if (%s == 0) {", time_offset_name);
+  ret$add("    head = %s;", ring_head)
+  ## TODO: Next two lines come out once this is working properly:
+  ret$add("  } else if (head == NULL) {")
+  ret$add('    Rf_error("This is an odin bug");')
   ret$add("  }")
   if (x$lhs$type == "array") {
     ret$add("  memcpy(%s, head + %s, %s * sizeof(double));",

@@ -44,13 +44,11 @@ test_that("output", {
 })
 
 test_that("delays", {
-
   gen <- odin::odin({
     initial(y) <- 1
     update(y) <- y + yprev
     yprev <- delay(y, 1)
-    config(base) <- "sv"
-  }, "testing", verbose = TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   mod <- gen()
   expect_null(mod$update) # no update function in a delay model
@@ -70,6 +68,7 @@ test_that("delays: scalar variable", {
     x <- delay(y, 2)
     output(x) <- TRUE
   }, verbose = TEST_VERBOSE)
+
   mod <- gen()
   tt <- seq(0:20)
   yy <- mod$transform_variables(mod$run(tt))
@@ -93,6 +92,7 @@ test_that("delays: scalar expression", {
     output(x) <- TRUE
     dim(y) <- 2
   }, verbose = TEST_VERBOSE)
+
   mod <- gen()
   tt <- seq(0:20)
   yy <- mod$transform_variables(mod$run(tt))
