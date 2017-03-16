@@ -126,26 +126,32 @@ odin_generate1_object <- function(dat) {
   ## process that later for simplicity:
   self$types <- collector_list()
 
-  self$add_element <- function(name, type, array=0) {
+  self$add_element <- function(name, type, array = 0, discrete_delay = FALSE) {
     if (array > 0L) {
-      name_dim <- array_dim_name(name, use=FALSE)
+      name_dim <- array_dim_name(name, use = FALSE)
       if (nzchar(name_dim)) {
         Recall(name_dim, "int", FALSE)
         if (array > 1L) {
           for (i in seq_len(array)) {
-            Recall(array_dim_name(name, i, use=FALSE), "int")
+            Recall(array_dim_name(name, i, use = FALSE), "int")
           }
           if (array >= 3) {
             for (i in 3:array) {
-              tmp <- paste(seq_len(i - 1), collapse="")
-              Recall(array_dim_name(name, tmp, use=FALSE), "int")
+              tmp <- paste(seq_len(i - 1), collapse = "")
+              Recall(array_dim_name(name, tmp, use = FALSE), "int")
             }
           }
         }
       }
     }
-    self$types$add(list(name=name, type=type, array=array))
-    self$lookup$add(name)
+    ## discrete delay (arrays) are treated differently; we don't
+    ## actually add them into the structure, though we do add all the
+    ## machinery for computing array sizes.  The approach here might
+    ## change though.
+    if (!discrete_delay) {
+      self$types$add(list(name = name, type = type, array = array))
+      self$lookup$add(name)
+    }
   }
 
   ## Custom functions, defined in .c files:
@@ -225,11 +231,15 @@ odin_generate1_dim <- function(x, obj) {
   nm_target <- x$lhs$name_target
   is_var <- nm_target %in% obj$variable_info$order
   is_output <- nm_target %in% obj$output_info$order
+  is_discrete_delay <-
+    obj$info$discrete && nm_target %in% obj$discrete_delay_info$order
   nm_s <- if (is_var) initial_name(nm_target) else nm_target
   st <- STAGES[[x$stage]]
   data_type <- x$lhs$data_type_target
 
-  obj$add_element(nm_s, data_type, x$nd)
+  ## this sets up the storage and declares the dimensions for our array:
+  obj$add_element(nm_s, data_type, x$nd, is_discrete_delay)
+
   if (x$stage == STAGE_USER) {
     obj$constant$add("%s = NULL;", obj$rewrite(nm_s))
     obj$user$add("Free(%s);", obj$rewrite(nm_s))
@@ -297,10 +307,14 @@ odin_generate1_dim <- function(x, obj) {
       }
       obj[[st]]$add(odin_generate1_dim_array_dimensions(x, obj$rewrite))
     }
-    obj[[st]]$add("%s = (%s*) Calloc(%s, %s);",
-                  obj$rewrite(nm_s), data_type, obj$rewrite(nm), data_type)
+    if (!is_discrete_delay) {
+      obj[[st]]$add("%s = (%s*) Calloc(%s, %s);",
+                    obj$rewrite(nm_s), data_type, obj$rewrite(nm), data_type)
+    }
   }
-  obj$free$add("Free(%s);", obj$rewrite(nm_s))
+  if (!is_discrete_delay) {
+    obj$free$add("Free(%s);", obj$rewrite(nm_s))
+  }
 
   if (isTRUE(x$used_in_delay)) {
     ## Storage for array components that are used within delay
@@ -788,16 +802,10 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
   }
 
   ret <- collector()
-  if (x$lhs$type == "symbol") {
-    ret$add("double %s;", nm)
-  } else {
-    ret$add("const double * %s;", nm)
-  }
-
   offset <- obj$discrete_delay_info$offset_use[[offset_name(nm)]]
 
-
   ret$add("// calculation for current value of %s", nm)
+  ret$add("{")
   if (x$lhs$type == "array") {
     ## OK, this is cool; this just does not work right because we need
     ## to rewrite 'x' a bit to get this all faked together nicely.
@@ -812,27 +820,31 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
     ## but I don't think that's tested anywhere yet.
     xd <- x
     xd$rhs <- list(value = list(x$rhs$value_expr))
-    ret$add(odin_generate1_array_expr(xd, obj))
-    ret$add("memcpy(%s + %s, %s, %s * sizeof(double));",
-            ring_head, obj$rewrite(offset), obj$rewrite(nm),
-            obj$rewrite(array_dim_name(nm)))
+    ret$add("  double * %s = %s + %s;", nm, ring_head, obj$rewrite(offset))
+    ret$add(indent(odin_generate1_array_expr(xd, obj), 2))
   } else {
-    ret$add("%s = %s;", nm, obj$rewrite(x$rhs$value_expr))
-    ret$add("%s[%s] = %s;", ring_head, obj$rewrite(offset), nm)
+    ret$add("  %s[%s] = %s;", ring_head, obj$rewrite(offset),
+            obj$rewrite(x$rhs$value_expr))
   }
+  ret$add("}")
 
   time_offset_name <- sprintf("%s_offset", time_name)
-
   ret$add("// delayed value of %s", nm)
-  ret$add("{") # (possibly) temporary scope until I nail the casts
+  ## Lift the variables up out of the next scope
+  if (x$lhs$type == "symbol") {
+    ret$add("double %s;", nm)
+  } else {
+    ret$add("const double * %s;", nm)
+  }
+  ret$add("{")
+
   ## NOTE could simplify this in the case where x$delay$time is symbol
   ## or atomic, though the compiler should do that for us anyway.
   ret$add("  %s %s = %s;",
           time_type, time_offset_name, obj$rewrite(x$delay$time))
-  ret$add("  %s %s = %s - %s;",
-          time_type, time_delay_name, time_name, time_offset_name)
-  ret$add("  if (%s < %s) {",
-          time_delay_name, obj$rewrite(initial_name(time_name)))
+
+  ret$add("  if ((int)%s - %s < %s) {",
+    time_name, time_offset_name, obj$rewrite(initial_name(time_name)))
   ret$add("    %s = %s - %s;",
           time_offset_name, time_name, obj$rewrite(initial_name(time_name)))
   ret$add("  }")
@@ -847,8 +859,6 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
   ret$add("  }")
   if (x$lhs$type == "array") {
     ret$add("  %s = head + %s;", nm, obj$rewrite(offset));
-    ret$add("  memcpy(%s, %s, %s * sizeof(double));",
-            obj$rewrite(nm), nm, obj$rewrite(array_dim_name(nm)))
   } else {
     ret$add("  %s = head[%s];", nm, obj$rewrite(offset))
   }
