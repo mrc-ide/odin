@@ -20,12 +20,19 @@ odin_generate1 <- function(dat) {
   if (obj$info$has_delay) {
     initial_time <- initial_name(if (obj$info$discrete) STEP else TIME)
     obj$add_element(initial_time, "double")
+    if (obj$info$discrete) {
+      obj$add_element(RING, "ring_buffer")
+    }
   }
+
+  odin_generate1_library(obj, dat$eqs)
+
+  ## The main loop over all equations:
+  odin_generate1_loop(obj, dat$eqs)
 
   ## This might need pulling out into something else as it's a bit
   ## unweildly in here.
   if (obj$info$discrete && obj$info$has_delay) {
-    obj$add_element(RING, "ring_buffer")
     info <- obj$discrete_delay_info
     len <- if (info$total_is_var) call("(", info$total) else info$total
     st <- STAGES[[info$total_stage]]
@@ -42,10 +49,6 @@ odin_generate1 <- function(dat) {
       stop("FIXME (dynamic ring allocation)")
     }
   }
-  odin_generate1_library(obj, dat$eqs)
-
-  ## The main loop over all equations:
-  odin_generate1_loop(obj, dat$eqs)
 
   odin_generate1_total(obj$variable_info, obj)
   if (obj$info$has_output) {
@@ -796,16 +799,29 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
 
   ret$add("// calculation for current value of %s", nm)
   if (x$lhs$type == "array") {
-    ret$add(odin_generate1_array_expr(x, obj))
+    ## OK, this is cool; this just does not work right because we need
+    ## to rewrite 'x' a bit to get this all faked together nicely.
+
+    ## TODO: I think that it's quite likely that (in general) this
+    ## will not work with multipart expressions, but that's OK.  That
+    ## would look something like:
+    ##
+    ##   x[1] <- delay(y[1])
+    ##   x[2] <- delay(y[2])
+    ##
+    ## but I don't think that's tested anywhere yet.
+    xd <- x
+    xd$rhs <- list(value = list(x$rhs$value_expr))
+    ret$add(odin_generate1_array_expr(xd, obj))
     ret$add("memcpy(%s + %s, %s, %s * sizeof(double));",
-            ring_head, obj$rewrite(offset), nm, array_dim_name(nm))
+            ring_head, obj$rewrite(offset), obj$rewrite(nm),
+            obj$rewrite(array_dim_name(nm)))
   } else {
     ret$add("%s = %s;", nm, obj$rewrite(x$rhs$value_expr))
     ret$add("%s[%s] = %s;", ring_head, obj$rewrite(offset), nm)
   }
 
   time_offset_name <- sprintf("%s_offset", time_name)
-  time_delay_name <- sprintf("%s_delay", time_name)
 
   ret$add("// delayed value of %s", nm)
   ret$add("{") # (possibly) temporary scope until I nail the casts
@@ -830,8 +846,9 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
   ret$add('    Rf_error("This is an odin bug");')
   ret$add("  }")
   if (x$lhs$type == "array") {
-    ret$add("  memcpy(%s, head + %s, %s * sizeof(double));",
-            nm, obj$rewrite(offset), array_dim_name(nm))
+    ret$add("  %s = head + %s;", nm, obj$rewrite(offset));
+    ret$add("  memcpy(%s, %s, %s * sizeof(double));",
+            obj$rewrite(nm), nm, obj$rewrite(array_dim_name(nm)))
   } else {
     ret$add("  %s = head[%s];", nm, obj$rewrite(offset))
   }
