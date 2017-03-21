@@ -679,21 +679,16 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
     if (x$delay$expr$n > 0 && has_default) {
       ret$add(indent(declare_vars, 4))
     }
-    lagvalue <-  sprintf(indent("lagvalue_%%s(%s, %s, %s, %s);",
-                                if (obj$info$discrete) 4 else 6),
+    lagvalue <-  sprintf(indent("lagvalue_%%s(%s, %s, %s, %s);", 6),
                          time_name,
                          obj$rewrite(delay_idx),
                          obj$rewrite(delay_dim),
                          obj$rewrite(delay_state))
-    if (obj$info$discrete) {
-      ret$add(lagvalue, "discrete")
-    } else {
-      ret$add("    if (%s) {", obj$rewrite("odin_use_dde"))
-      ret$add(lagvalue, "dde")
-      ret$add("    } else {")
-      ret$add(lagvalue, "ds")
-      ret$add("    }")
-    }
+    ret$add("    if (%s) {", obj$rewrite("odin_use_dde"))
+    ret$add(lagvalue, "dde")
+    ret$add("    } else {")
+    ret$add(lagvalue, "ds")
+    ret$add("    }")
 
     ## There are 4 possibilities here;
     delay_access <- function(i) {
