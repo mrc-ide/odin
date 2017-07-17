@@ -133,14 +133,14 @@ rewrite_array <- function(expr, res, values, rewrite) {
   fix_numeric <- !is_index &  is_numeric
   fix_index   <- !is_index & !is_numeric
   ## NOTE: Cases that are is_index are already dealt with.
-  values[fix_numeric] <- vcapply(idx[fix_numeric],
-                                 function(x) minus1(x$value_num, rewrite))
-  values[fix_index] <- vcapply(expr[-(1:2)][fix_index], minus1, rewrite)
+  values[fix_numeric] <- vcapply(which(fix_numeric), function(i)
+    minus1(idx[[i]]$value_num, rewrite, i > 1L))
+  values[fix_index] <- vcapply(which(fix_index), function(i)
+            minus1(expr[[i + 2L]], rewrite, i > 1L))
 
   ## TODO: check for no unary arithmetic while indexing in main
   ## array checking (that's going to require a little work, but
   ## perhaps add it to the dependency checking functions).
-
   if (nd > 1L) {
     r <- function(i) {
       rewrite(array_dim_name(as.character(expr[[2L]]),
@@ -155,7 +155,7 @@ rewrite_array <- function(expr, res, values, rewrite) {
 ## The rewrite function here must be a parameterised version of the
 ## rewrite function above (i.e. with the last 3 elements captured by a
 ## closure).
-minus1 <- function(expr, rewrite) {
+minus1 <- function(expr, rewrite, paren = FALSE) {
   if (is.numeric(expr)) {
     sprintf("%d", expr - 1L)
   } else if (is.character(expr)) {
@@ -182,6 +182,9 @@ minus1 <- function(expr, rewrite) {
       } else {
         ret <- sprintf("%s - 1", ret)
       }
+    }
+    if (paren) {
+      ret <- sprintf("(%s)", ret)
     }
     attr(ret, "is_index") <- NULL
     ret
