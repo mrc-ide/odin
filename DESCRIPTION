@@ -6,8 +6,8 @@ Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
 Description: Generate systems of ODEs and integrate them.
 License: MIT + file LICENSE
 LazyData: true
-URL: https://github.com/richfitz/odin
-BugReports: https://github.com/richfitz/odin/issues
+URL: https://github.com/mrc-ide/odin
+BugReports: https://github.com/mrc-ide/odin/issues
 Imports:
     R6,
     crayon,

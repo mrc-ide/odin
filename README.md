@@ -1,9 +1,9 @@
 # odin
 
 [![Project Status: WIP - Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip)
-[![Travis-CI Build Status](https://travis-ci.org/richfitz/odin.svg?branch=master)](https://travis-ci.org/richfitz/odin)
+[![Travis-CI Build Status](https://travis-ci.org/mrc-ide/odin.svg?branch=master)](https://travis-ci.org/mrc-ide/odin)
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/richfitz/odin?branch=master&svg=true)](https://ci.appveyor.com/project/richfitz/odin)
-[![codecov.io](https://codecov.io/github/richfitz/odin/coverage.svg?branch=master)](https://codecov.io/github/richfitz/odin?branch=master)
+[![codecov.io](https://codecov.io/github/mrc-ide/odin/coverage.svg?branch=master)](https://codecov.io/github/mrc-ide/odin?branch=master)
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Odin_%28Manual_of_Mythology%29.jpg/250px-Odin_%28Manual_of_Mythology%29.jpg)
 
@@ -106,7 +106,7 @@ t <- seq(0, 100, length.out=50000)
 y <- mod$run(t)
 ```
 
-For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [vignette](https://richfitz.github.io/odin/vignettes/odin.html)
+For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [vignette](https://mrc-ide.github.io/odin/vignettes/odin.html)
 
 # Limitations
 
@@ -123,7 +123,7 @@ Because this relies on code generation, and the approach is partly textual, some
 # Installation
 
 ```r
-devtools::install_github("richfitz/odin", upgrade = FALSE)
+devtools::install_github("mrc-ide/odin", upgrade = FALSE)
 ```
 
 You will need a working compiler.  `odin::can_compile()` will check if it is able to compile things.

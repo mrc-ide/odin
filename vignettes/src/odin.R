@@ -233,7 +233,7 @@ plot(y2[, -1L], xlab="y", ylab = "ylag", mfrow=NULL, type="l")
 ## naming things is one of the [two hard problems in computer
 ## science](https://www.quora.com/Why-is-naming-things-hard-in-computer-science-and-how-can-it-can-be-made-easier).
 ## Hopefully in future versions some of these restrictions can be
-## relaxed, so [file issues](https://github.com/richfitz/odin/issues)
+## relaxed, so [file issues](https://github.com/mrc-ide/odin/issues)
 ## if you find yourself writing boilerplate code that could be
 ## replaced by more intelligent generation.
 
