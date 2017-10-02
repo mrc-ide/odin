@@ -1,5 +1,5 @@
 #include "interpolate_test.h"
-#include <interpolate.h>
+#include <interpolate.c>
 #include <stdbool.h>
 
 static void interpolate_data_finalize(SEXP extPtr);
@@ -27,15 +27,15 @@ SEXP interpolate_prepare(SEXP r_x, SEXP r_y, SEXP r_type) {
 }
 
 interpolate_data* interpolate_data_get(SEXP r_ptr, bool closed_error) {
-  interpolate_data *buffer = NULL;
+  interpolate_data *data = NULL;
   if (TYPEOF(r_ptr) != EXTPTRSXP) {
     Rf_error("Expected an external pointer");
   }
-  buffer = (interpolate_data*) R_ExternalPtrAddr(r_ptr);
-  if (!buffer && closed_error) {
+  data = (interpolate_data*) R_ExternalPtrAddr(r_ptr);
+  if (!data && closed_error) {
     Rf_error("interpolate_data already freed");
   }
-  return buffer;
+  return data;
 }
 
 void interpolate_data_finalize(SEXP r_ptr) {

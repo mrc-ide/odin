@@ -1,4 +1,5 @@
 #include "interpolate.h"
+#include <R_ext/Lapack.h>
 #include <R.h> // memory and error management
 
 // TODO: Do we need to copy here?  If I use this from R the copy will
@@ -26,15 +27,10 @@ interpolate_data * interpolate_alloc(interpolate_type type,
 
   if (type == SPLINE) {
     ret->k = (double*) Calloc(n * ny, double);
-    // Some transient space for the A matrix:
-    double **A = (double**)R_alloc(n, sizeof(double*));
-    for (size_t i = 0; i < n; ++i) {
-      A[i] = (double*)R_alloc(n + 1, sizeof(double));
-      memset(A[i], 0, (n + 1) * sizeof(double));
-    }
-    for (size_t i = 0; i < ny; ++i) {
-      spline_knots(n, ret->x, ret->y + i * n, ret->k + i * n, A);
-    }
+    double *A = (double*)R_alloc(n * 3, sizeof(double));
+    spline_calc_A(n, x, A);
+    spline_calc_B(n, ny, x, y, ret->k);
+    spline_calc_solve(n, ny, A, ret->k);
   }
   return ret;
 }
@@ -193,12 +189,6 @@ int interpolate_search(double target, interpolate_data *obj) {
   return i0;
 }
 
-// Spline support
-void spline_knots(size_t n, double *x, double *y, double *k, double **A) {
-  spline_knots_A(n, x, y, A);
-  gauss_solve(n, A, k);
-}
-
 double spline_eval_i(size_t i, double x, double *xs, double *ys, double *ks) {
   double t = (x - xs[i]) / (xs[i + 1] - xs[i]);
   double a =  ks[i] * (xs[i + 1] - xs[i]) - (ys[i + 1] - ys[i]);
@@ -206,63 +196,42 @@ double spline_eval_i(size_t i, double x, double *xs, double *ys, double *ks) {
   return (1 - t) * ys[i] + t * ys[i + 1] + t * (1 - t) * (a * (1 - t) + b * t);
 }
 
-void spline_knots_A(size_t n, double *x, double *y, double **A) {
-  n--;
-  for (size_t i = 1; i < n; i++) {
-    A[i][i-1] = 1 / (x[i] - x[i-1]);
-    A[i][i  ] = 2 * (1 / (x[i] - x[i-1]) + 1 / (x[i+1] - x[i])) ;
-    A[i][i+1] = 1 / (x[i+1] - x[i]);
-    A[i][n+1] = 3 *
-      ((y[i]   - y[i-1]) / ((x[i  ] - x[i-1]) * (x[i  ] - x[i-1])) +
-       (y[i+1] - y[i  ]) / ((x[i+1] - x[i  ]) * (x[i+1] - x[i  ])));
+void spline_calc_A(size_t n, double *x, double *A) {
+  double *A0 = A, *A1 = A + n, *A2 = A + 2 * n;
+  size_t nm1 = n - 1;
+
+  A0[0] = 0; // will be ignored
+  A1[0] = 2 / (x[1] - x[0]);
+  A2[0] = 1 / (x[1] - x[0]);
+  for (size_t i = 1; i < nm1; ++i) {
+    A0[i] = 1 / (x[i] - x[i - 1]);
+    A1[i] = 2 * (1 / (x[i] - x[i - 1]) + 1 / (x[i + 1] - x[i]));
+    A2[i] = 1 / (x[i + 1] - x[i]);
   }
-  A[0][0  ] = 2 / (x[1] - x[0]);
-  A[0][1  ] = 1 / (x[1] - x[0]);
-  A[0][n+1] = 3 * (y[1] - y[0]) / ((x[1] - x[0]) * (x[1] - x[0]));
-  A[n][n-1] = 1 / (x[n] - x[n-1]);
-  A[n][n  ] = 2 / (x[n] - x[n-1]);
-  A[n][n+1] = 3 * (y[n] - y[n-1]) / ((x[n] - x[n-1]) * (x[n] - x[n-1]));
+  A0[nm1] = 1 / (x[nm1] - x[nm1-1]);
+  A1[nm1] = 2 / (x[nm1] - x[nm1-1]);
+  A2[nm1] = 0; // will be ignored
 }
 
-// TODO: probably move to proper matrix at some point, rather than
-// double pointer which is ugly to allocate (or allocate it in one
-// blob).
-void gauss_solve(size_t n, double **A, double *x) {
-  size_t m = n;
-  for (size_t k = 0; k < m; k++) { // column
-    // pivot for column
-    size_t i_max = 0;
-    double i_max_val = -1000000; // -DBL_MAX
-    for (size_t i = k; i < m; i++) {
-      if (A[i][k] > i_max_val) {
-        i_max = i;
-        i_max_val = A[i][k];
-      }
+void spline_calc_B(size_t n, size_t ny, double *x, double *y, double *B) {
+  size_t nm1 = n - 1;
+  for (size_t i = 0; i < ny; ++i) {
+    B[0] = 3 * (y[1] - y[0]) / ((x[1] - x[0]) * (x[1] - x[0]));
+    for (size_t i = 1; i < nm1; ++i) {
+      B[i] = 3 *
+        ((y[i]   - y[i-1]) / ((x[i  ] - x[i-1]) * (x[i  ] - x[i-1])) +
+         (y[i+1] - y[i  ]) / ((x[i+1] - x[i  ]) * (x[i+1] - x[i  ])));
     }
-    if (A[i_max][k] == 0) {
-      Rf_error("matrix is singular!");
-    };
-    // Swap rows:
-    double *tmp = A[k];
-    A[k] = A[i_max];
-    A[i_max] = tmp;
-    // for all rows below pivot
-    for (size_t i = k + 1; i < m; i++) {
-      for (size_t j = k + 1; j < m + 1; j++) {
-        A[i][j] = A[i][j] - A[k][j] * (A[i][k] / A[k][k]);
-      }
-      A[i][k] = 0;
-    }
+    B[nm1] = 3 *
+      (y[nm1] - y[nm1-1]) / ((x[nm1] - x[nm1-1]) * (x[nm1] - x[nm1-1]));
+    B += n;
   }
-  // NOTE: Some ints here...
-  for (int i = m - 1; i >= 0; i--) { // rows = columns
-    double v = A[i][m] / A[i][i];
-    x[i] = v;
-    for (int j = i - 1; j >= 0; j--) { // rows
-      A[j][m] -= A[j][i] * v;
-      A[j][i] = 0;
-    }
-  }
+}
+
+void spline_calc_solve(int n, int ny, double *A, double *B) {
+  int info = 0, ldb = n;
+  double *du = A + 1, *d = A + n, *dl = A + n * 2;
+  F77_NAME(dgtsv)(&n, &ny, dl, d, du, B, &ldb, &info);
 }
 
 // check here, given information on the type, that we have at least 1

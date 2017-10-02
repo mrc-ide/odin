@@ -49,6 +49,9 @@ README.md: README.Rmd
 	sed -i.bak 's/[[:space:]]*$$//' $@
 	rm -f $@.bak
 
+clean:
+	rm -f src/*.o src/*.so src/*.dll
+
 coverage:
 	Rscript -e 'covr::shine(covr::package_coverage(quiet=FALSE))'
 
