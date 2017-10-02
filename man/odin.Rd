@@ -56,6 +56,11 @@ If \code{build} is \code{TRUE}, an function that can
 Create an odin model from a file, text string(s) or expression.
 The \code{odin_} version is a "standard evaluation" escape hatch.
 }
+\details{
+\emph{Do not use \code{odin::odin} in a package; you almost
+certainly want to use \code{\link{odin_package}} instead; see the
+\code{odin_package} vignette for more information.}
+}
 \section{Warning}{
 
 
@@ -79,6 +84,7 @@ with a delay equation solver that may perform better than the
 solvers in deSolve.  For non-delay equations, \code{deSolve} is
 very likely to outperform the simple solver implemented.
 }
+
 \examples{
 if (can_compile()) { # only run this if a system is set up to compile
 
@@ -116,4 +122,3 @@ cat(paste0(readLines(path), "\\n"))
 \author{
 Rich FitzJohn
 }
-

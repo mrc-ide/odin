@@ -51,4 +51,3 @@ work out.
 Apart from the documentation, the generated code \emph{should}
 pass R CMD check without issue.
 }
-

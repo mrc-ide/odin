@@ -34,4 +34,3 @@ compiler issues.
 can_compile() # will take ~0.1s the first time
 can_compile() # should be basically instantaneous
 }
-

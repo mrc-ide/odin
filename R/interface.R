@@ -13,6 +13,10 @@
 ##' Create an odin model from a file, text string(s) or expression.
 ##' The \code{odin_} version is a "standard evaluation" escape hatch.
 ##'
+##' \emph{Do not use \code{odin::odin} in a package; you almost
+##' certainly want to use \code{\link{odin_package}} instead; see the
+##' \code{odin_package} vignette for more information.}
+##'
 ##' @section Warning:
 ##'
 ##' Be careful with repeated use of \code{odin} on the same code; if
