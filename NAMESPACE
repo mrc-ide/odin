@@ -2,6 +2,7 @@
 
 S3method(format,compiler_output)
 export(can_compile)
+export(interpolation_function)
 export(odin)
 export(odin_)
 export(odin_package)
@@ -11,3 +12,4 @@ importFrom(deSolve,ode)
 importFrom(stats,na.omit)
 importFrom(stats,setNames)
 importFrom(utils,modifyList)
+useDynLib(odin, .registration = TRUE)

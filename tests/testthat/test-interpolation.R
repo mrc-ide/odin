@@ -1,20 +1,19 @@
 context("interpolation")
 
 test_that("constant endpoints", {
-  interpolate_prepare(TEST_VERBOSE)
   set.seed(1)
   x <- as.numeric(0:5)
   eps <- 1e-8
 
   expect_identical(approx(x, x, x, "constant")$y, x)
   expect_identical(approx(x, x, x + eps, "constant", rule=2)$y, x)
-  expect_identical(.Call("test_interpolate", x, x, x, 0L), x)
-  expect_identical(.Call("test_interpolate", x, x, x + eps, 0L), x)
+
+  f <- interpolation_function(x, x, "constant")
+  expect_identical(f(x), x)
+  expect_identical(f(x + eps), x)
 })
 
 test_that("interpolation", {
-  interpolate_prepare(TEST_VERBOSE)
-
   set.seed(1)
   x <- as.numeric(0:5)
   y <- runif(length(x))
@@ -28,57 +27,60 @@ test_that("interpolation", {
   ## Undershoot
   xout_under <- c(xout, min(x) - 0.5)
 
-  rapprox <- list(
-    function(x, y, xout) approx(x, y, xout, "constant"),
-    function(x, y, xout) approx(x, y, xout, "linear"),
-    function(x, y, xout) spline(x, y, xout=xout, method="natural"))
+  test <- function(x, y, xout, type) {
+    interpolation_function(x, y, type)(xout)
+  }
 
-  for (type in c(0L, 1L, 2L)) {
+  rapprox <- list(
+    constant = function(x, y, xout) approx(x, y, xout, "constant"),
+    linear = function(x, y, xout) approx(x, y, xout, "linear"),
+    spline = function(x, y, xout) spline(x, y, xout = xout, method = "natural"))
+
+  for (type in names(approx)) {
     ## We're all good except that the constant interpolation is not
     ## quite correct in the case of identical time matches.
-    fr <- rapprox[[type + 1]]
-    res_c <- .Call("test_interpolate", x, y, xout, type)
-    res_r <- fr(x, y, xout)$y
-    expect_equal(res_c, res_r, tolerance=1e-12)
+    res_c <- test(x, y, xout, type)
+    res_r <- rapprox[[type]](x, y, xout)$y
 
-    res_c <- .Call("test_interpolate",
-                   x, cbind(y, deparse.level=0), xout, type)
+    expect_equal(res_c, res_r, tolerance = 1e-12)
+
+    res_c <- test(x, cbind(y, deparse.level = 0), xout, type)
     expect_equal(dim(res_c), c(length(xout), 1))
-    expect_equal(drop(res_c), res_r, tolerance=1e-12)
+    expect_equal(drop(res_c), res_r, tolerance = 1e-12)
 
     ## This is where we get messy.
-    y2 <- cbind(y, y, deparse.level=0)
-    res_c2 <- .Call("test_interpolate", x, y2, xout, type)
+    y2 <- cbind(y, y, deparse.level = 0)
+    res_c2 <- test(x, y2, xout, type)
     expect_equal(dim(res_c2), c(length(xout), 2))
-    expect_equal(res_c2[, 1], res_r, tolerance=1e-12)
-    expect_equal(res_c2[, 2], res_r, tolerance=1e-12)
+    expect_equal(res_c2[, 1], res_r, tolerance = 1e-12)
+    expect_equal(res_c2[, 2], res_r, tolerance = 1e-12)
 
-    y3 <- cbind(y, y * 2, deparse.level=0)
-    res_c3 <- .Call("test_interpolate", x, y3, xout, type)
+    y3 <- cbind(y, y * 2, deparse.level = 0)
+    res_c3 <- test(x, y3, xout, type)
     expect_equal(dim(res_c2), c(length(xout), 2))
-    expect_equal(res_c3[, 1], res_r, tolerance=1e-12)
-    expect_equal(res_c3[, 2], res_r * 2, tolerance=1e-12)
+    expect_equal(res_c3[, 1], res_r, tolerance = 1e-12)
+    expect_equal(res_c3[, 2], res_r * 2, tolerance = 1e-12)
 
-    res_c4 <- .Call("test_interpolate", x, y3, xout_over, type)
+    res_c4 <- test(x, y3, xout_over, type)
     i <- length(xout_over)
-    if (type == 0L) {
+    if (type == "constant") {
       expect_equal(res_c4[i, ], y3[nrow(y3),])
     } else {
       expect_equal(res_c4[i, ], rep(NA_real_, ncol(y3)))
     }
 
-    res_c5 <- .Call("test_interpolate", x, y3, xout_under, type)
+    res_c5 <- test(x, y3, xout_under, type)
     i <- length(xout_under)
     expect_equal(res_c5[i, ], rep(NA_real_, ncol(y3)))
 
-    res_c6 <- .Call("test_interpolate", x, y3, xout_over[i], type)
-    if (type == 0L) {
+    res_c6 <- test(x, y3, xout_over[i], type)
+    if (type == "constant") {
       expect_equal(drop(res_c6), y3[nrow(y3),])
     } else {
       expect_equal(drop(res_c6), rep(NA_real_, ncol(y3)))
     }
 
-    expect_equal(drop(.Call("test_interpolate", x, y3, xout_under[i], type)),
+    expect_equal(drop(test(x, y3, xout_under[i], type)),
                  rep(NA_real_, ncol(y3)))
   }
 })
@@ -95,7 +97,7 @@ test_that("constant", {
     dim(tp) <- user()
     dim(zp) <- user()
     output(p) <- pulse
-  }, verbose=TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   ## NOTE: when doing the checks for spanning, the only thing that
   ## matters for constant interpolation is that the *minimum* time
@@ -112,18 +114,18 @@ test_that("constant", {
   ## already some checking there.
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
-  expect_error(gen(tp=tp, zp=zp[1:2]), "Expected zp to have length 3")
-  expect_error(gen(tp=tp, zp=rep(zp, 2)), "Expected zp to have length 3")
+  expect_error(gen(tp = tp, zp = zp[1:2]), "Expected zp to have length 3")
+  expect_error(gen(tp = tp, zp = rep(zp, 2)), "Expected zp to have length 3")
 
-  mod <- gen(tp=tp, zp=zp)
+  mod <- gen(tp = tp, zp = zp)
 
-  tt <- seq(0, 3, length.out=301)
+  tt <- seq(0, 3, length.out = 301)
   expect_error(mod$run(tt - 0.1),
                "Integration times do not span interpolation")
 
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(yy[, 2], zz, tolerance=1e-5)
+  expect_equal(yy[, 2], zz, tolerance = 1e-5)
 })
 
 test_that("constant array", {
