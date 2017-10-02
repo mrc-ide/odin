@@ -13,6 +13,13 @@
 ##' @export
 ##' @useDynLib odin, .registration = TRUE
 interpolation_function <- function(x, y, type) {
+  as_numeric <- function(a) {
+    if (storage.mode(a) == "integer") {
+      storage.mode(a) <- "numeric"
+    }
+    a
+  }
+
   is_matrix <- is.matrix(y)
   if (is_matrix) {
     ny <- ncol(y)
@@ -25,9 +32,9 @@ interpolation_function <- function(x, y, type) {
   if (is.na(type_idx)) {
     stop(sprintf("type '%s' not known", type))
   }
-  ptr <- .Call(Cinterpolate_prepare, x, y, type_idx)
+  ptr <- .Call(Cinterpolate_prepare, as_numeric(x), as_numeric(y), type_idx)
   function(x) {
-    y <- .Call(Cinterpolate_eval, ptr, x)
+    y <- .Call(Cinterpolate_eval, ptr, as_numeric(x))
     if (is_matrix) {
       matrix(y, ncol = ny, byrow = TRUE)
     } else {
