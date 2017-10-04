@@ -55,10 +55,13 @@ odin_generate2_support_defns <- function(obj) {
 }
 
 cinterpolate_library_fns <- function() {
+  read <- function(x) {
+    paste(readLines(x), collapse = "\n")
+  }
   path <- system.file("include/cinterpolate", package = "cinterpolate",
                       mustWork = TRUE)
-  list(declarations = readLines(file.path(path, "cinterpolate.h")),
-       definitions = readLines(file.path(path, "cinterpolate.c")))
+  list(declarations = read(file.path(path, "cinterpolate.h")),
+       definitions = read(file.path(path, "cinterpolate.c")))
 }
 
 odin_generate2_library_fns <- function(obj) {
