@@ -19,7 +19,7 @@ odin_generate2_struct <- function(obj) {
   ret$add("// Collect together all the parameters and transient memory")
   ret$add("// required to run the model in a struct.")
   ret$add("typedef struct %s {", obj$type_pars)
-  ptr <- types$array | types$type == "interpolate_data"
+  ptr <- types$array | types$type == "void"
   ret$add("  %s %s%s;", types$type, ifelse(ptr, "*", ""), types$name)
   ret$add("} %s;", obj$type_pars)
   ret$get()
@@ -54,11 +54,24 @@ odin_generate2_support_defns <- function(obj) {
   ret$get()
 }
 
+cinterpolate_library_fns <- function() {
+  path <- system.file("include/cinterpolate", package = "cinterpolate",
+                      mustWork = TRUE)
+  list(declarations = readLines(file.path(path, "cinterpolate.h")),
+       definitions = readLines(file.path(path, "cinterpolate.c")))
+}
+
 odin_generate2_library_fns <- function(obj) {
   dat <- read_user_c(system.file("library.c", package="odin"))
   fns <- obj$library_fns$get()
   if (any(grepl("^get_user_", fns))) {
     fns <- c(fns, "get_list_element")
+  }
+  if (obj$info$has_interpolate) {
+    fns <- c(fns, "odin_interpolate_check")
+    lib_interpolate <- cinterpolate_library_fns()
+  } else {
+    lib_interpolate <- NULL
   }
 
   fns <- unique(fns)
@@ -73,7 +86,7 @@ odin_generate2_library_fns <- function(obj) {
               definitions=dat$definitions[fns])
   lib_sum <- odin_generate2_library_sum(fns_sum)
 
-  join_library(list(lib, lib_sum, obj$custom))
+  join_library(list(lib, lib_sum, lib_interpolate, obj$custom))
 }
 
 odin_generate2_library_sum <- function(fns) {
@@ -484,7 +497,7 @@ odin_generate2_contents <- function(obj) {
     name <- types$name[[i]]
     type <- types$type[[i]]
     array <- types$array[[i]]
-    if (type == "interpolate_data") {
+    if (type == "void") {
       ## Can't do anything with these.
       next
     }

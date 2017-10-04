@@ -82,6 +82,7 @@
 ##' @export
 ##' @importFrom R6 R6Class
 ##' @importFrom deSolve ode dede
+##' @importFrom cinterpolate interpolation_function
 ##' @examples
 ##' if (can_compile()) { # only run this if a system is set up to compile
 ##'

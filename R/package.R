@@ -88,13 +88,6 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
 
   header <- c(odin_header(), odin_includes())
 
-  has_interpolate <- any(vlapply(info, "[[", "has_interpolate"))
-  if (has_interpolate) {
-    interpolate <- odin_interpolate_support()
-  } else {
-    interpolate <- NULL
-  }
-
   dir.create(file.path(path_package, "R"), FALSE)
   dir.create(file.path(path_package, "src"), FALSE)
 
@@ -107,23 +100,18 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   if (single_file) {
     struct[-1] <- lapply(struct[-1], function(x) x[!grepl("^//", x)])
     writel(list(header,
-                if (has_interpolate) interpolate$declarations,
                 unlist(struct),
                 library_fns$declarations,
                 code,
-                library_fns$definitions,
-                if (has_interpolate) interpolate$definitions),
+                library_fns$definitions),
            "odin.c")
   } else {
     writel(list(header,
-                if (has_interpolate) interpolate$declarations,
-                if (has_interpolate) interpolate$definitions,
                 library_fns$declarations,
                 library_fns$definitions),
                 "odin.c")
     for (i in seq_along(filenames)) {
       writel(list(header,
-                  if (has_interpolate) interpolate$declarations,
                   library_fns$declarations,
                   struct[[i]],
                   code[[i]]), sprintf("odin_%s.c", base[[i]]))

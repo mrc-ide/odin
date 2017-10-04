@@ -738,7 +738,7 @@ odin_generate1_interpolate <- function(x, obj) {
   dest <- tmp$name
 
   obj$interpolate$add(list(interpolation_type=interpolation_type, t=nm_t))
-  obj$add_element(dest, "interpolate_data")
+  obj$add_element(dest, "void")
 
   ## TODO: throughout here; consider looking at the actual definitions
   ## as it may be possible to determine that the conditional will
@@ -773,12 +773,12 @@ odin_generate1_interpolate <- function(x, obj) {
   ## TODO: At some point we'll need to specify some critical values so
   ## that the integrator doesn't struggle with things having to change
   ## radically.
-  obj$user$add('interpolate_free(%s);', obj$rewrite(dest))
-  obj$user$add('%s = interpolate_alloc(%s, %s, %s, %s, %s);',
-               obj$rewrite(dest), toupper(interpolation_type),
+  obj$user$add('cinterpolate_free(%s);', obj$rewrite(dest))
+  obj$user$add('%s = cinterpolate_alloc("%s", %s, %s, %s, %s);',
+               obj$rewrite(dest), interpolation_type,
                obj$rewrite(nt), obj$rewrite(n_target),
                obj$rewrite(nm_t), obj$rewrite(nm_y))
-  obj$free$add('interpolate_free(%s);', obj$rewrite(dest))
+  obj$free$add('cinterpolate_free(%s);', obj$rewrite(dest))
 
   ## TODO: These are going to do tricky things with time when delayed.
   ##
@@ -789,9 +789,9 @@ odin_generate1_interpolate <- function(x, obj) {
   target <- sprintf(if (x$lhs$type == "array") "%s" else "&(%s)",
                     obj$rewrite(nm))
   time_name <- if (obj$info$discrete) STEP else TIME
-  obj$time$add("interpolate_%s_run(%s, %s, %s);",
-               interpolation_type, time_name, obj$rewrite(dest), target,
-               name=nm)
+  obj$time$add("cinterpolate_eval(%s, %s, %s);",
+               time_name, obj$rewrite(dest), target,
+               name = nm)
 }
 
 odin_generate1_dim_array_dimensions <- function(x, rewrite) {

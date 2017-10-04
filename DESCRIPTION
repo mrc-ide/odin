@@ -10,6 +10,7 @@ URL: https://github.com/mrc-ide/odin
 BugReports: https://github.com/mrc-ide/odin/issues
 Imports:
     R6,
+    cinterpolate,
     crayon,
     deSolve
 Suggests:
@@ -18,7 +19,7 @@ Suggests:
     rmarkdown,
     testthat
 Remotes:
-    richfitz/ring,
+    mrc-ide/cinterpolate,
     richfitz/dde
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1

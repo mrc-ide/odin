@@ -23,12 +23,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   ## move to a more formal linking (e.g., getCcallable) approach but
   ## that considerably complicates compilation and may come with a
   ## slight performance cost too.
-  if (obj$info$has_interpolate) {
-    interpolate <- odin_interpolate_support()
-  } else {
-    interpolate <- NULL
-  }
-
   discrete <- obj$info$discrete
 
   ## Then attempt to make some sense out of the things that we have
@@ -39,7 +33,6 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
   ## don't probably *want* to do that?)
   ret <- list(if (!package) odin_header(),
               if (!package) odin_includes(),
-              if (!package) interpolate$declarations,
               if (!package) struct,
               if (!package) library_fns$declarations,
               odin_generate2_create(obj),
@@ -58,8 +51,7 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
               odin_generate2_order(obj, TRUE),
               odin_generate2_interpolate_t(obj),
               odin_generate2_support_defns(obj),
-              if (!package) library_fns$definitions,
-              if (!package) interpolate$definitions)
+              if (!package) library_fns$definitions)
 
   ret <- ret[lengths(ret) > 0]
 
@@ -88,22 +80,6 @@ odin_includes <- function() {
     "#include <Rinternals.h>",
     "#include <R_ext/Rdynload.h>",
     "#include <stdbool.h>")
-}
-
-odin_interpolate_support <- function() {
-  ## This is error prone but tests should catch it.  We mostly need
-  ## not to include "interpolate.h" here.
-  filter_includes <- function(filename) {
-    x <- readLines(system.file(filename, package="odin"))
-    i <- grep("^(//|#include|$)", x, perl=TRUE)
-    j <- seq_len(max(which(i == seq_along(i))))
-    if (length(j) > 0L) {
-      x <- x[-j]
-    }
-    x
-  }
-  list(declarations=filter_includes("interpolate.h"),
-       definitions=filter_includes("interpolate.c"))
 }
 
 ## Read a bunch of library functions.  The format here is important.
