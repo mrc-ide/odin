@@ -105,14 +105,56 @@ test_that("2d array equations", {
 })
 
 ## This turns up in one of Neil's cases:
-test_that("complex initialisation", {
+test_that("complex initialisation: scalar", {
+  gen <- odin::odin({
+    initial(x1) <- norm_rand()
+    r <- x1 * 2
+    initial(x2) <- r + 1
+    update(x1) <- x1 + r
+    update(x2) <- x2 + r
+  }, verbose = TEST_VERBOSE)
+
+  gen2 <- odin::odin({
+    x1_0 <- user()
+    initial(x1) <- x1_0
+    r <- x1 * 2
+    initial(x2) <- r + 1
+    update(x1) <- x1 + r
+    update(x2) <- x2 + r
+  }, verbose = TEST_VERBOSE)
+
+  set.seed(1)
+  mod <- gen()
+
+  v <- mod$initial(0)
+  vv <- mod$transform_variables(v)
+
+  set.seed(1)
+  x1 <- rnorm(1)
+  expect_equal(vv$x1, x1)
+  expect_equal(vv$x2, x1 * 2 + 1)
+
+  mod2 <- gen2(x1)
+  v2 <- mod2$initial(0)
+  expect_identical(v2, v)
+
+  set.seed(1)
+  z <- mod$run(0:5)
+  z2 <- mod2$run(0:5)
+  expect_identical(z, z2)
+
+  ## TODO: we never actually check here that the values are correct.
+  ## It's a bit of an odd model because r grows with x1
+})
+
+test_that("complex initialisation: vector", {
   gen <- odin::odin({
     initial(x1[]) <- norm_rand()
     r[] <- x1[i] * 2
     initial(x2[]) <- r[i] + 1
 
-    update(x1[]) <- x1[i]
-    update(x2[]) <- x2[i]
+    update(x1[]) <- x1[i] + r[i]
+    update(x2[]) <- x2[i] + r[i]
 
     dim(x1) <- 10
     dim(r) <- length(x1)

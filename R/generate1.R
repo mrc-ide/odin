@@ -367,7 +367,6 @@ odin_generate1_symbol <- function(x, obj) {
   data_type <- x$lhs$data_type
 
   is_initial <- identical(x$lhs$special, "initial")
-  st <- if (is_initial) "initial" else STAGES[[x$stage]]
   if (x$stage < STAGE_TIME || is_initial) {
     obj$add_element(nm, data_type)
   }

@@ -292,9 +292,10 @@ odin_generate2_initial <- function(obj) {
         }
         if (any(!j)) {
           for (v in obj$variable_info$order[i][!j]) {
-            ## TODO: this is untested
             iv <- initial_name(v)
-            at <- max(which(names(time) == iv))
+            ## NOTE: The '0' here is used for user variables, as they
+            ## don't appear in the 'time' list
+            at <- max(c(0L, which(names(time) == iv)))
             tmp <- setNames(sprintf("double %s = %s;", v, obj$rewrite(iv)), iv)
             time <- append(time, tmp, at)
           }
@@ -305,7 +306,11 @@ odin_generate2_initial <- function(obj) {
 
     ## And time-sensitive initial expressions
     if (length(initial) > 0L) {
-      ret$add(indent(initial, 2))
+      ## NOTE: This _used_ to be used but is not with this set of
+      ## changes.  I'm not certain I can prove it is never used
+      ## though.
+      stop("This should not longer be used [odin bug]") # nocov
+      ## ret$add(indent(initial, 2))
     }
   }
 
