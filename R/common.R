@@ -206,3 +206,7 @@ output_name <- function(name) {
 update_name <- function(name) {
   sprintf("update_%s", name)
 }
+
+target_name <- function(name, discrete) {
+  if (discrete) update_name(name) else deriv_name(name)
+}

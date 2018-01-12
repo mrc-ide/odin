@@ -194,7 +194,6 @@ odin_parse_collect_traits <- function(obj) {
   obj$info <- list(discrete=discrete,
                    ## internal really, and may change
                    target_name=if (discrete) "update" else "deriv",
-                   target_name_fn=if (discrete) update_name else deriv_name,
                    ## external again
                    has_array=any(is_array) || any(is_dim),
                    has_output=any(is_output),
@@ -303,7 +302,7 @@ odin_parse_variable_info <- function(obj) {
   obj
 }
 
-## Given a vector of equation naems, let's unpack things:
+## Given a vector of equation names, let's unpack things:
 odin_parse_extract_order <- function(obj, output = FALSE, subset = NULL,
                                      discrete_delay = FALSE) {
   ## TODO: we'll need to test this in a case where a subset of
@@ -315,7 +314,7 @@ odin_parse_extract_order <- function(obj, output = FALSE, subset = NULL,
     names <- names_if(obj$traits[, "is_output"])
   } else {
     vars <- if (is.null(subset)) obj$vars else intersect(obj$vars, subset)
-    names <- obj$info$target_name_fn(vars)
+    names <- target_name(vars, obj$info$discrete)
   }
 
   n <- length(names)

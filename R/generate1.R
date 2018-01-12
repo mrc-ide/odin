@@ -82,7 +82,7 @@ odin_generate1_object <- function(dat) {
   ## This could also be the core of customising output things a bit.
   ##
   ## TODO: I really don't think that target_name is good here
-  self$core <- dat$info[c("target_name", "target_name_fn")]
+  self$core <- dat$info["target_name"]
   if (self$info$discrete) {
     self$core$state2 <- STATE_NEXT
   } else {

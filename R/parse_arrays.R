@@ -191,7 +191,7 @@ odin_parse_arrays_nd <- function(obj) {
     nm <- obj$names_target[is_dim][nd_user]
     err <- nm %in% obj$vars
     if (any(err)) {
-      tmp <- eqs[c(rbind(match(obj$info$target_name_fn(nm[err]),
+      tmp <- eqs[c(rbind(match(target_name(nm[err], obj$info$discrete),
                                names(obj$eqs)),
                          which(is_dim)[nd_user][err]))]
       odin_error(sprintf("Can't specify user-sized variables (for %s)",
@@ -231,7 +231,7 @@ odin_parse_arrays_nd <- function(obj) {
   if (any(nd_dep)) {
     nm <- obj$names_target[is_dim][nd_dep]
     i <- nm %in% obj$vars
-    nm[i] <- obj$info$target_name_fn(nm[i])
+    nm[i] <- target_name(nm[i], obj$info$discrete)
 
     i <- nm %in% setdiff(obj$names_target[obj$traits[, "is_output"]],
                          names(eqs))
