@@ -73,7 +73,15 @@ odin_generate <- function(dat, dest=tempdir(), package=FALSE) {
     list(struct=struct, code=txt, library_fns=library_fns, info=obj$info)
   } else {
     if (is_directory(dest) || !grepl(".", basename(dest), fixed=TRUE)) {
-      dest <- file.path(dest, sprintf("%s.c", obj$info$base))
+      if (is.null(dat$file)) {
+        if (dat$config$base == "odin") {
+          dest <- tempfile(dat$config$base, dest, ".c")
+        } else {
+          dest <- file.path(dest, paste0(dat$config$base, ".c"))
+        }
+      } else {
+        dest <- file.path(dest, paste0(basename_no_ext(dat$file), ".c"))
+      }
     }
     writeLines(txt, dest)
     dest

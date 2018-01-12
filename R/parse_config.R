@@ -35,8 +35,8 @@
 ## extra bit of data to pass around which will infect a lot of the
 ## code).
 odin_parse_config <- function(obj) {
-  config <- list(base=gsub("[-.]", "_", basename_no_ext(obj$file)),
-                 include=NULL)
+  base <- if (is.null(obj$file)) "odin" else basename_no_ext(obj$file)
+  config <- list(base = base, include = NULL)
 
   is_config <- obj$traits[, "is_config"]
   cfg <- obj$eqs[is_config]
@@ -59,8 +59,9 @@ odin_parse_config <- function(obj) {
 
     ## Option specific setting
     ret <- list(
-      base=odin_parse_config_base(dat[names(dat) == "base"]),
-      include=odin_parse_config_include(dat[names(dat) == "include"], obj$path))
+      base = odin_parse_config_base(dat[names(dat) == "base"]),
+      include = odin_parse_config_include(dat[names(dat) == "include"],
+                                          obj$path))
 
     config <- modifyList(config, ret[!vlapply(ret, is.null)])
   }
