@@ -115,9 +115,6 @@ path <- odin::odin({
   deriv(y) <- -0.5 * y
   initial(y) <- 1
 }, build=FALSE)
-
-## Lots of code:
-cat(paste0(readLines(path), "\\n"))
 }
 \author{
 Rich FitzJohn

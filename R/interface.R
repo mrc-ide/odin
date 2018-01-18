@@ -113,9 +113,6 @@
 ##'   deriv(y) <- -0.5 * y
 ##'   initial(y) <- 1
 ##' }, build=FALSE)
-##'
-##' ## Lots of code:
-##' cat(paste0(readLines(path), "\n"))
 odin <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
                  compiler_warnings = NULL) {
   ## TODO: It might be worth adding a check for missing-ness here in
