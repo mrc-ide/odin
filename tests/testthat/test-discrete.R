@@ -136,12 +136,12 @@ test_that("complex initialisation: scalar", {
 
   mod2 <- gen2(x1)
   v2 <- mod2$initial(0)
-  expect_identical(v2, v)
+  expect_equal(v2, v)
 
   set.seed(1)
   z <- mod$run(0:5)
   z2 <- mod2$run(0:5)
-  expect_identical(z, z2)
+  expect_equal(z, z2)
 
   ## TODO: we never actually check here that the values are correct.
   ## It's a bit of an odd model because r grows with x1
