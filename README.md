@@ -2,7 +2,7 @@
 
 [![Project Status: WIP - Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip)
 [![Travis-CI Build Status](https://travis-ci.org/mrc-ide/odin.svg?branch=master)](https://travis-ci.org/mrc-ide/odin)
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/richfitz/odin?branch=master&svg=true)](https://ci.appveyor.com/project/richfitz/odin)
+[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/wmdbqbgrqw26xan5/branch/master?svg=true)](https://ci.appveyor.com/project/richfitz/odin-hpgj3/branch/master)
 [![codecov.io](https://codecov.io/github/mrc-ide/odin/coverage.svg?branch=master)](https://codecov.io/github/mrc-ide/odin?branch=master)
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Odin_%28Manual_of_Mythology%29.jpg/250px-Odin_%28Manual_of_Mythology%29.jpg)
