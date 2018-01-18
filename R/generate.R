@@ -106,7 +106,6 @@ odin_ring_support <- function(package) {
     x[!grepl("^#include\\s+", x, perl=TRUE)]
   }
 
-  loadNamespace("ring")
   r_h <- system.file("include/ring/ring.h", package = "ring", mustWork = TRUE)
   r_c <- system.file("include/ring/ring.c", package = "ring", mustWork = TRUE)
   if (package) {
