@@ -5,10 +5,10 @@
 \alias{odin_}
 \title{Create an odin model}
 \usage{
-odin(x, dest = tempdir(), build = TRUE, verbose = TRUE,
+odin(x, dest = NULL, build = TRUE, verbose = TRUE,
   compiler_warnings = NULL)
 
-odin_(x, dest = tempdir(), build = TRUE, verbose = TRUE,
+odin_(x, dest = NULL, build = TRUE, verbose = TRUE,
   compiler_warnings = NULL)
 }
 \arguments{

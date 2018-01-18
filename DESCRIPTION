@@ -12,7 +12,8 @@ Imports:
     R6,
     cinterpolate,
     crayon,
-    deSolve
+    deSolve,
+    digest
 Suggests:
     dde (>= 0.0.5),
     knitr,

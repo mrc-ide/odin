@@ -1,49 +1,41 @@
-## NOTE: this whole file may move into its own package
-compile <- function(filename, verbose = TRUE, load = TRUE, preclean = FALSE,
-                    check_loaded = TRUE, compiler_warnings = FALSE) {
-  ## The actual compilation step should be very quick, so it's going
+## NOTE: this is similar to rcmdshlib but we have a peculiar use case
+## here of needing to work with many versions of a dll.  To do this we
+## add a (shortened) hash to the filename.
+compile <- function(filename, verbose = TRUE, preclean = FALSE,
+                    compiler_warnings = NULL, base = NULL) {
+  compiler_warnings <- compiler_warnings %||%
+    getOption("odin.compiler_warnings", FALSE)
+
+  ## The actual compilation step should be fairly quick, so it's going
   ## to be OK to record the entire stream of output.
-  Sys.setenv(R_TESTS="")
-  owd <- setwd(dirname(filename))
+  Sys.setenv(R_TESTS = "")
+  path <- dirname(filename)
+  owd <- setwd(path)
   on.exit(setwd(owd))
-  base <- sub("\\.c$", "", basename(filename))
-  ext <- .Platform$dynlib.ext
 
-  ## This is needed because if a model is reloaded it won't work on
-  ## Windows, and will trigger a weird "unlock_solver" issue with
-  ## deSolve on other platforms.
-  if (load && check_loaded && base %in% names(getLoadedDLLs())) {
-    orig <- base
-    base <- basename(tempfile(base, "."))
-    ## Consider not doing this warning if dirname is tmpdir; though
-    ## that requires normalizePath I think.
-    ##
-    ## NOTE: it might be good to hide this behind verbose, but it's
-    ## hard to test that it works if we do that.  Instead, we could
-    ## make the verbose options more granular, which might happen once
-    ## I start going through and looking for errors in the gcc output;
-    ##
-    ##   http://stackoverflow.com/a/14923025
-    message(sprintf("shared library %s%s already loaded; using %s%s",
-                    orig, ext, base, ext))
+  ## Lots of logic here:
+  hash <- hash_files(filename)
+  base <- sprintf("%s_%s", basename_no_ext(filename), short_hash(hash))
+  dll <- dllname(base)
+
+  ## But then here we can assume a new filename means a new dll
+  if (file.exists(dll)) {
+    if (verbose) {
+      message("Using previously compiled shared library")
+    }
+  } else {
+    if (verbose) {
+      message("Compiling shared library")
+    }
+    args <- c("CMD", "SHLIB", basename(filename),
+              "-o", dll, if (preclean) "--preclean")
+    output <- suppressWarnings(system2(file.path(R.home(), "bin", "R"), args,
+                                       stdout=TRUE, stderr=TRUE))
+    handle_compiler_output(output, verbose, compiler_warnings)
   }
 
-  dll <- paste0(base, ext)
-  args <- c("CMD", "SHLIB", basename(filename),
-            "-o", dll, if (preclean) "--preclean")
-
-  output <- suppressWarnings(system2(file.path(R.home(), "bin", "R"), args,
-                                     stdout=TRUE, stderr=TRUE))
-
-  handle_compiler_output(output, verbose, compiler_warnings)
-
-  if (load) {
-    dyn.load(dll)
-    ## I would *much* rather do this with trace but I can't get it
-    ## working.
-    .dlls$add(normalizePath(dll))
-  }
-  base
+  list(path = path, base = base, hash = hash,
+       dll = normalizePath(dll, mustWork = TRUE))
 }
 
 ## TODO: an extension of this will be to work out where the code that

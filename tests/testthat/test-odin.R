@@ -630,20 +630,6 @@ test_that("transform variables without time", {
                "Unexpected size input")
 })
 
-test_that("reload", {
-  gen <- odin::odin({
-    deriv(y) <- 0.5
-    initial(y) <- 1
-    config(base) <- "constant"
-  }, verbose=TEST_VERBOSE)
-
-  expect_message(odin::odin({
-    deriv(y) <- 0.5
-    initial(y) <- 1
-    config(base) <- "constant"
-  }, verbose = TEST_VERBOSE), "already loaded")
-})
-
 test_that("pathalogical array index", {
   gen <- odin::odin({
     deriv(z) <- y1 + y2 + y3 + y4 + y5

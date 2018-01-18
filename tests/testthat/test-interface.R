@@ -3,42 +3,33 @@ context("interface")
 test_that("text", {
   src <- c("deriv(y) <- 0.5",
            "initial(y) <- 1")
-  f <- function(x) lapply(x, identity)
-  cmp <- f(parse(text=src))
+  f <- function(x) lapply(x$exprs, identity)
+  cmp <- lapply(parse(text = src), identity)
 
   ## Accept the source as a string:
-  expect_equal(odin_parse_prepare_detect(src), "text")
-  expect_equal(f(odin_parse_prepare(src)), cmp)
-  expect_equal(odin_parse_prepare_detect(paste(src, collapse="\n")), "text")
-  expect_equal(odin_parse_prepare_detect(paste(src, collapse=";")), "text")
-  expect_equal(f(odin_parse_prepare(paste(src, collapse="\n"))), cmp)
-  expect_equal(f(odin_parse_prepare(paste(src, collapse=";"))), cmp)
+  expect_equal(odin_preprocess_detect(src), "text")
+  expect_equal(f(odin_preprocess(src)), cmp)
+  expect_equal(odin_preprocess_detect(paste(src, collapse = "\n")), "text")
+  expect_equal(odin_preprocess_detect(paste(src, collapse = ";")), "text")
+  expect_equal(f(odin_preprocess(paste(src, collapse = "\n"))), cmp)
+  expect_equal(f(odin_preprocess(paste(src, collapse = ";"))), cmp)
 
   dest <- tempfile()
   writeLines(src, dest)
-  expect_equal(odin_parse_prepare_detect(dest), "file")
-  expect_equal(f(odin_parse_prepare(dest)), cmp)
+  expect_equal(odin_preprocess_detect(dest), "file")
+  expect_equal(f(odin_preprocess(dest)), cmp)
 
-  expect_error(odin_parse_prepare(tempfile()),
+  expect_error(odin_preprocess(tempfile()),
                "looks like a filename, but file does not exist")
 
-  expect_error(odin_parse_prepare(1L), "Invalid type")
-  expect_error(odin_parse_prepare(pi), "Invalid type")
-  expect_error(odin_parse_prepare(sin), "Invalid type")
-  expect_error(odin_parse_prepare(1.0), "Invalid type")
+  expect_error(odin_preprocess(1L), "Invalid type")
+  expect_error(odin_preprocess(pi), "Invalid type")
+  expect_error(odin_preprocess(sin), "Invalid type")
+  expect_error(odin_preprocess(1.0), "Invalid type")
 })
 
 test_that("NSE and SE defaults are the same", {
   expect_equal(formals(odin), formals(odin_))
-})
-
-test_that("Missing directory", {
-  expect_error(
-    odin::odin({
-      deriv(y) <- 0.5
-      initial(y) <- 1
-    }, tempfile()),
-    "'dest' must be an existing directory")
 })
 
 test_that("verbose", {
@@ -63,16 +54,21 @@ test_that("warnings", {
   has_warning <- any(vlapply(seq_along(out$type), function(i)
     out$type[i] == "info" && attr(out$value[[i]], "type") == "warning"))
   if (has_warning) {
+    model_cache_clear()
     re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
     expect_warning(odin::odin_(code, compiler_warnings = TRUE), re)
 
     oo <- options(odin.compiler_warnings = FALSE)
     on.exit(options(oo))
 
+    model_cache_clear()
     expect_warning(odin::odin_(code, verbose = FALSE), NA)
     options(odin.compiler_warnings = TRUE)
+
+    model_cache_clear()
     expect_warning(odin::odin_(code, verbose = FALSE), re)
   } else {
+    model_cache_clear()
     expect_warning(odin::odin_(code, compiler_warnings = TRUE,
                                verbose = FALSE), NA) # none
   }

@@ -32,6 +32,8 @@ SPECIAL_DATA_TYPES <- c("void", "ring_buffer")
 DIM_USER <- -1L
 DIM_DEPENDENT <- -2L
 
+DLL_PLACEHOLDER <- "<<ODIN_DLL>>"
+
 ## These are going to be in a list of 0, 1, 2, ... arguments.  The
 ## last category will be nary.
 

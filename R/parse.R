@@ -37,22 +37,19 @@
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x) {
+  h_model <- hash_model(x)
+  ## NOTE: this is a hack - it will only be used in tests
+  if (is.null(attr(x, "odin_preprocessed"))) {
+    x <- odin_preprocess(x)
+  }
+
   ## 1. Basic preparations over the expression list:
-  exprs <- odin_parse_prepare(x)
+  exprs <- odin_parse_prepare(x$exprs)
 
   ## 2. Prepare each expression:
   eqs <- odin_parse_exprs(exprs)
 
-  ## Start building the core object.  'path' is used later for
-  ## determining the path to included files.
-  if (is.character(x) && length(x) == 1L && file.exists(x)) {
-    file <- x
-    path <- c(normalizePath(dirname(x)), normalizePath(getwd()))
-  } else {
-    file <- NULL
-    path <- getwd()
-  }
-  ret <- list(eqs = eqs, file = file, path = path)
+  ret <- list(eqs = eqs, type = x$type, file = x$file, path = x$path)
 
   ## 3. Compute overall information on traits (creates elements $traits
   ## and $info):
@@ -103,25 +100,22 @@ odin_parse <- function(x) {
   ## 11. Report any unused variables
   odin_parse_check_unused(ret)
 
+  h_files <- hash_files(ret$config$include$filename, TRUE)
+  h_inputs <- hash_object(list(ODIN_VERSION, h_model, h_files))
+  ret$odin_version <- ODIN_VERSION
+  ret$hash <- list(everything = hash_object(ret),
+                   inputs = h_inputs,
+                   model = h_model,
+                   includes = h_files)
+
   ret
 }
 
-odin_parse_prepare <- function(x) {
-  parse_expression <- function(x) {
-    if (inherits(x, "{")) {
-      as.expression(as.list(x[-1L]))
-    } else {
-      as.expression(x)
-    }
-  }
+odin_parse_prepare <- function(exprs) {
   expr_is_assignment <- function(x) {
     length(x) == 3L &&
       (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
   }
-  exprs <- switch(odin_parse_prepare_detect(x),
-                  file=parse(file=x, keep.source=TRUE),
-                  text=parse(text=x, keep.source=TRUE),
-                  expression=parse_expression(x))
   ## First pass is to check that all operations are assignments.  No
   ## for loops, no if/else statements.
   err <- which(!vlapply(exprs, expr_is_assignment))
@@ -130,24 +124,6 @@ odin_parse_prepare <- function(x) {
   }
 
   exprs
-}
-
-odin_parse_prepare_detect <- function(x) {
-  if (is.language(x)) {
-    as <- "expression"
-  } else if (is.character(x)) {
-    ## We're really looking for a separator given that we need
-    if (length(x) > 1L || grepl("[\n;]", x)) {
-      as <- "text"
-    } else if (file.exists(x)) {
-      as <- "file"
-    } else {
-      stop("'x' looks like a filename, but file does not exist")
-    }
-  } else {
-    stop("Invalid type for 'x'")
-  }
-  as
 }
 
 odin_parse_collect_traits <- function(obj) {

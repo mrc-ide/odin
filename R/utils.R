@@ -124,5 +124,44 @@ rbind_as_df <- function(x) {
           quote=TRUE)
 }
 
+## Abstract the hashing away in case we go for something like openssl.
+hash_object <- function(object) {
+  digest::digest(object)
+}
+
+hash_model <- function(x) {
+  hash_object(list(ODIN_VERSION, x))
+}
+
+hash_files <- function(filenames, named = FALSE) {
+  if (length(filenames) == 0L) {
+    return(NULL)
+  }
+  hash <- tools::md5sum(filenames)
+  if (named) hash else unname(hash)
+}
+
+## This will (on unix systems at least) give the same hash for text as
+## for the actual file.  If we write out with writeLines on Windows,
+## the default separator is "\n" so this will also agree.
+hash_text <- function(text) {
+  digest::digest(charToRaw(paste0(text, "\n", collapse = "")),
+                 serialize = FALSE, skip = 0L)
+}
+
+short_hash <- function(x) {
+  substr(x, 1L, 8L)
+}
+
 ## This is going to be used to keep track of dlls that we load
 .dlls <- collector()
+
+dyn_load <- function(dll) {
+  dll_full <- normalizePath(dll, mustWork = TRUE)
+  dyn.load(dll_full)
+  .dlls$add(dll_full)
+}
+
+dllname <- function(base) {
+  paste0(base, .Platform$dynlib.ext)
+}
