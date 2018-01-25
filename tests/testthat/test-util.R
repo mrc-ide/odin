@@ -78,3 +78,7 @@ test_that("symbol_sum", {
   expect_equal(symbol_sum(list(1, "a", "b")), quote(1 + a + b))
   expect_equal(symbol_sum(list("a", "b", "c")), quote(a + b + c))
 })
+
+test_that("hash_files", {
+  expect_error(hash_files(tempfile()), "Files missing")
+})

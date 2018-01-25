@@ -138,6 +138,9 @@ hash_files <- function(filenames, named = FALSE) {
     return(NULL)
   }
   hash <- tools::md5sum(filenames)
+  if (any(is.na(hash))) {
+    stop("Files missing")
+  }
   if (named) hash else unname(hash)
 }
 
