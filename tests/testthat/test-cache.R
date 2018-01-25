@@ -10,7 +10,7 @@ test_that("invalidate cache", {
   expect_message(odin(code, verbose = TRUE),
                  "Using cached model")
 
-  dat <- model_cache_get(hash_model(code))
+  dat <- model_cache_get(hash_model(code), FALSE)
 
   expect_true(is_directory(dat$dll$path))
   expect_true(file.exists(dat$dll$dll))

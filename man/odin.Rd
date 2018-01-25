@@ -6,10 +6,10 @@
 \title{Create an odin model}
 \usage{
 odin(x, dest = NULL, build = TRUE, verbose = TRUE,
-  compiler_warnings = NULL)
+  compiler_warnings = NULL, skip_cache = FALSE)
 
 odin_(x, dest = NULL, build = TRUE, verbose = TRUE,
-  compiler_warnings = NULL)
+  compiler_warnings = NULL, skip_cache = FALSE)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -46,6 +46,10 @@ your platform and what is in your \code{Makevars}.  I develop
 odin with \code{-Wall -Wextra -pedantic} and still see warnings
 with both gcc and clang.  The compiler output is very simple and
 may not work on all platforms.}
+
+\item{skip_cache}{Skip odin's cache.  This might be useful if the
+model appears not to compile when you would expect it to.
+Hopefully this will not be needed often.}
 }
 \value{
 If \code{build} is \code{TRUE}, an function that can

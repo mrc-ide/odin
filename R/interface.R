@@ -74,6 +74,10 @@
 ##'   with both gcc and clang.  The compiler output is very simple and
 ##'   may not work on all platforms.
 ##'
+##' @param skip_cache Skip odin's cache.  This might be useful if the
+##'   model appears not to compile when you would expect it to.
+##'   Hopefully this will not be needed often.
+##'
 ##' @return If \code{build} is \code{TRUE}, an function that can
 ##'   generate the model, otherwise the filename of the generated C
 ##'   file.
@@ -114,7 +118,7 @@
 ##'   initial(y) <- 1
 ##' }, build=FALSE)
 odin <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
-                 compiler_warnings = NULL) {
+                 compiler_warnings = NULL, skip_cache = FALSE) {
   ## TODO: It might be worth adding a check for missing-ness here in
   ## order to generate a sensible error message?
   ##
@@ -124,13 +128,13 @@ odin <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   if (is.symbol(xx)) {
     xx <- force(x)
   }
-  odin_(xx, dest, build, verbose, compiler_warnings)
+  odin_(xx, dest, build, verbose, compiler_warnings, skip_cache)
 }
 
 ##' @export
 ##' @rdname odin
 odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
-                  compiler_warnings = NULL) {
+                  compiler_warnings = NULL, skip_cache = FALSE) {
   if (is.null(dest)) {
     dest <- tempfile("odin_")
   }
@@ -140,7 +144,8 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   ## Add key versions (or hash of such) into the model as a comment.
   ## This is easy to do.  That will guarantee that we invalidate the
   ## C->DLL cache!
-  model <- model_cache_get(hash_model(x))
+  skip_cache <- skip_cache
+  model <- model_cache_get(hash_model(x), skip_cache)
   if (!is.null(model)) {
     if (verbose) {
       message("Using cached model")
@@ -190,7 +195,7 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   code_r_full <- gsub(DLL_PLACEHOLDER, dll$base, code_r)
   model <- eval(parse(text = code_r_full, keep.source = FALSE), environment())
 
-  model_cache_put(dat$hash, model, dll)
+  model_cache_put(dat$hash, model, dll, skip_cache)
   model
 }
 
