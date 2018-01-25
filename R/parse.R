@@ -426,8 +426,12 @@ odin_info <- function(msg, line, expr, announce) {
   } else {
     expr_str <- deparse_str(expr)
   }
-  str <- sprintf(ifelse(is.na(line), "%s", "%s # (line %s)"), expr_str, line)
+  str <- odin_info_expr(line, expr_str)
   announce(msg, paste0("\n\t", str, collapse=""))
+}
+
+odin_info_expr <- function(line, expr_str) {
+  sprintf(ifelse(is.na(line), "%s", "%s # (line %s)"), expr_str, line)
 }
 
 get_lines <- function(x) {

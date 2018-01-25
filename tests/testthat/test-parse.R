@@ -133,7 +133,7 @@ test_that("some parse errors", {
   expect_error(odin_parse(quote(a <- deriv)),
                "Function 'deriv' is disallowed as symbol on rhs")
 
-  expect_error(odin_parse_expr(quote(x <- 1(2)), NULL),
+  expect_error(odin_parse_expr(quote(x <- 1(2)), NULL, NULL),
                "Cannot process statement")
 })
 
@@ -208,7 +208,7 @@ test_that("sum rewriting", {
   ## This form is not rewritten:
   expect_identical(odin_parse_expr_rhs_rewrite_sum(quote(sum(a)), line, expr),
                    quote(sum(a)))
-  expect_error(odin_parse_expr(quote(x <- sum(a, b)), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum(a, b)), NULL, NULL),
                "Expected 1 argument in sum call")
 
   ## Start working through some of the more complex cases:
@@ -254,20 +254,20 @@ test_that("sum rewriting", {
 test_that("conditinals need else clause", {
   line <- 1
   expr <- quote(x)
-  expect_silent(odin_parse_expr(quote(y <- if (foo) 1 else 2), NULL))
-  expect_error(odin_parse_expr(quote(y <- if (foo) 1), NULL),
+  expect_silent(odin_parse_expr(quote(y <- if (foo) 1 else 2), NULL, NULL))
+  expect_error(odin_parse_expr(quote(y <- if (foo) 1), NULL, NULL),
                "All if statements must have an else clause")
 
   ## Compound:
   expect_silent(odin_parse_expr(
-    quote(y <- 1 + (if (foo) 1 else 2) + bar), NULL))
+    quote(y <- 1 + (if (foo) 1 else 2) + bar), NULL, NULL))
   expect_error(odin_parse_expr(
-    quote(y <- 1 + (if (foo) 1) + bar), NULL),
+    quote(y <- 1 + (if (foo) 1) + bar), NULL, NULL),
     "All if statements must have an else clause")
 })
 
 test_that("recursive variables", {
-  expect_error(odin_parse_expr(quote(foo <- foo + 1), NULL),
+  expect_error(odin_parse_expr(quote(foo <- foo + 1), NULL, NULL),
                "Self referencing expressions not allowed")
 })
 
@@ -337,10 +337,10 @@ test_that("lhs checking", {
 })
 
 test_that("delay time handling", {
-  tmp <- odin_parse_expr(quote(a <- delay(b, c + d)), NA_integer_)
+  tmp <- odin_parse_expr(quote(a <- delay(b, c + d)), NA_integer_, NULL)
   expect_equal(tmp$rhs$value_time, quote((c + d)))
 
-  tmp <- odin_parse_expr(quote(a <- delay(b, (c + d))), NA_integer_)
+  tmp <- odin_parse_expr(quote(a <- delay(b, (c + d))), NA_integer_, NULL)
   expect_equal(tmp$rhs$value_time, quote((c + d)))
 })
 
@@ -353,7 +353,7 @@ test_that("interpolation", {
                "Invalid interpolation type")
 
   expect_equal(
-    odin_parse_expr(quote(x <- interpolate(a, b)), NULL)$rhs$value$type,
+    odin_parse_expr(quote(x <- interpolate(a, b)), NULL, NULL)$rhs$value$type,
     "spline")
 
   expect_error(odin_parse(quote(x <- interpolate(a))),
@@ -368,47 +368,47 @@ test_that("interpolation", {
 })
 
 test_that("sums", {
-  expect_error(odin_parse_expr(quote(x <- sum(1 + 2)), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum(1 + 2)), NULL, NULL),
                "Argument to sum must be a symbol or indexed array")
-  expect_error(odin_parse_expr(quote(x <- sum(1)), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum(1)), NULL, NULL),
                "Argument to sum must be a symbol or indexed array")
-  expect_error(odin_parse_expr(quote(x <- sum(a, b)), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum(a, b)), NULL, NULL),
                "Expected 1 argument in sum call, but recieved 2")
-  expect_error(odin_parse_expr(quote(x <- sum()), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum()), NULL, NULL),
                "Expected 1 argument in sum call, but recieved 0")
 
-  expect_error(odin_parse_expr(quote(x <- sum(a[f(b)])), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum(a[f(b)])), NULL, NULL),
                "Invalid array use in sum")
-  expect_error(odin_parse_expr(quote(x <- sum(a[f(b), c])), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum(a[f(b), c])), NULL, NULL),
                "Invalid array use in sum")
-  expect_error(odin_parse_expr(quote(x <- sum(a[f(b), f(c)])), NULL),
+  expect_error(odin_parse_expr(quote(x <- sum(a[f(b), f(c)])), NULL, NULL),
                "Invalid array use in sum")
 })
 
 
 test_that("some dim() pathologies", {
-  expect_error(odin_parse_expr(quote(dim(a) <- user(1)), NULL),
+  expect_error(odin_parse_expr(quote(dim(a) <- user(1)), NULL, NULL),
                "Default in user dimension size not handled")
-  expect_error(odin_parse_expr(quote(dim(a) <- "foo"), NULL),
+  expect_error(odin_parse_expr(quote(dim(a) <- "foo"), NULL, NULL),
                "expected numeric, symbol, user or c")
-  expect_error(odin_parse_expr(quote(dim(a) <- NULL), NULL),
+  expect_error(odin_parse_expr(quote(dim(a) <- NULL), NULL, NULL),
                "expected numeric, symbol, user or c")
-  expect_error(odin_parse_expr(quote(dim(a) <- c(1, "foo")), NULL),
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1, "foo")), NULL, NULL),
                "must contain symbols, numbers or lengths")
-  expect_error(odin_parse_expr(quote(dim(a) <- c(1, c(2, 3))), NULL),
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1, c(2, 3))), NULL, NULL),
                "must contain symbols, numbers or lengths")
-  expect_error(odin_parse_expr(quote(dim(a) <- c(1, NULL)), NULL),
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1, NULL)), NULL, NULL),
                "must contain symbols, numbers or lengths")
-  expect_error(odin_parse_expr(quote(dim(a) <- c(1 + 1, 1)), NULL),
+  expect_error(odin_parse_expr(quote(dim(a) <- c(1 + 1, 1)), NULL, NULL),
                "must contain symbols, numbers or lengths")
 })
 
 test_that("delay check", {
-  expect_error(odin_parse_expr(quote(deriv(x) <- delay(y, 1)), NULL),
+  expect_error(odin_parse_expr(quote(deriv(x) <- delay(y, 1)), NULL, NULL),
                "delay() only valid for non-special variables", fixed=TRUE)
-  expect_error(odin_parse_expr(quote(initial(x) <- delay(y, 1)), NULL),
+  expect_error(odin_parse_expr(quote(initial(x) <- delay(y, 1)), NULL, NULL),
                "delay() only valid for non-special variables", fixed=TRUE)
-  expect_error(odin_parse_expr(quote(dim(x) <- delay(y, 1)), NULL),
+  expect_error(odin_parse_expr(quote(dim(x) <- delay(y, 1)), NULL, NULL),
                "delay() only valid for non-special variables", fixed=TRUE)
 })
 
@@ -498,7 +498,7 @@ test_that("cyclic dependency", {
 
 test_that("range operator on RHS", {
   expect_error(
-    odin_parse_expr(quote(a <- x[1:2]), NULL),
+    odin_parse_expr(quote(a <- x[1:2]), NULL, NULL),
     "Range operator ':' may not be used on rhs")
 })
 

@@ -254,18 +254,18 @@ void odin_interpolate_check(size_t nx, size_t ny, size_t i, const char *name_arg
   }
 }
 
-double odin_array_at1(double *x, size_t i, size_t len, const char * variable) {
+double odin_array_at1(double *x, size_t i, size_t len, const char * variable, const char * expr_str) {
   if (i < 0 || i >= len) {
-    Rf_error("Array index %d is out of bounds [1, %d] while reading %s",
-             i + 1, len, variable);
+    Rf_error("Array index %d is out of bounds [1, %d] while reading %s in\n%s",
+             i + 1, len, variable, expr_str);
   }
   return x[i];
 }
 
-void odin_array_at_set1(double *x, size_t i, size_t len, double value, const char * variable) {
+void odin_array_at_set1(double *x, size_t i, size_t len, double value, const char * variable, const char * expr_str) {
   if (i < 0 || i >= len) {
-    Rf_error("Array index %d is out of bounds [1, %d] while setting %s",
-             i + 1, len, variable);
+    Rf_error("Array index %d is out of bounds [1, %d] while setting %s in\n%s",
+             i + 1, len, variable, expr_str);
   }
   x[i] = value;
 }

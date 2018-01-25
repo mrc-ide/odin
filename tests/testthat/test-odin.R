@@ -1143,14 +1143,16 @@ test_that("bounds check", {
 test_that("bounds check on set", {
   ## Try invalid write (this one could be warned about statically
   ## though)
-  gen <- odin::odin({
-    deriv(y[]) <- r * y[i]
-    initial(y[1:10]) <- 1
-    r <- 0.5
-    dim(y) <- 5
-  }, verbose = TEST_VERBOSE, safe = TRUE)
+  gen <- odin::odin_(c(
+    "deriv(y[])<-r * y[i]",
+    "initial(y[1:10])<-1",
+    "r<-0.5",
+    "dim(y)<-5"), verbose = TEST_VERBOSE, safe = TRUE)
   expect_error(gen()$run(tt),
                "Array index 6 is out of bounds [1, 5] while setting initial(y)",
+               fixed = TRUE)
+  expect_error(gen()$run(tt),
+               "initial(y[1:10])<-1",
                fixed = TRUE)
 })
 

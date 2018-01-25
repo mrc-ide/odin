@@ -172,3 +172,7 @@ dllname <- function(base) {
 dquote <- function(x) {
   sprintf('"%s"', x)
 }
+
+escape_printf <- function(x) {
+  gsub('"', '\"', gsub("%", "%%", x, fixed = TRUE))
+}

@@ -158,8 +158,8 @@ odin_generate1_object <- function(dat, safe) {
   self$custom <- dat$config$include
 
   ## Rewrite based on all the above; only lookup is modified as we go.
-  self$rewrite <- function(x) {
-    rewrite_c(x, self$name_pars, self$lookup$get(), self$safe)
+  self$rewrite <- function(x, expr = NULL) {
+    rewrite_c(x, self$name_pars, self$lookup$get(), self$safe, expr)
   }
 
   self
@@ -500,8 +500,9 @@ odin_generate1_array_expr <- function(x, obj) {
       }
     }
 
-    c_target <- obj$rewrite(as.call(c(quote(`[<-`), as.symbol(x$name), target)))
-    c_value <- obj$rewrite(x$rhs$value[[j]])
+    lhs <- as.call(c(quote(`[<-`), as.symbol(x$name), target))
+    c_target <- obj$rewrite(lhs, x)
+    c_value <- obj$rewrite(x$rhs$value[[j]], x)
     if (obj$safe) {
       ## Quite a different path here to avoid assigning to a function
       ## call

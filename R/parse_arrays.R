@@ -288,7 +288,8 @@ odin_parse_arrays_1 <- function(idx, obj) {
 
   ## Sanity check (needs overhaul I think).  The stopifnot ones guard
   ## against implementation details changing.
-  ok <- c("name", "lhs", "rhs", "depends", "expr", "line", "stochastic")
+  ok <- c("name", "lhs", "rhs", "depends", "expr", "line", "stochastic",
+          "expr_str")
   stopifnot(length(setdiff(unlist(lapply(eqs[idx], names)), ok)) == 0L)
   ## NOTE: mixed type specials are dealt with elsewhere.  By this I
   ## mean that a variable is more than one of initial(), deriv(),

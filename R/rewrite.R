@@ -1,7 +1,8 @@
 ## This will rewrite the core C bits:
-rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE) {
+rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE,
+                      expr_data = NULL) {
   rewrite_recall <- function(x) {
-    rewrite_c(x, name_pars, lookup, safe)
+    rewrite_c(x, name_pars, lookup, safe, expr_data)
   }
 
   ## * pi (#define pi M_PI) or translate to M_PI
@@ -42,7 +43,7 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE) {
     if (nm == "(") {
       value <- sprintf("(%s)", values)
     } else if (nm == "[" || nm == "[<-") {
-      value <- rewrite_array(expr, res, values, rewrite_recall, safe)
+      value <- rewrite_array(expr, res, values, rewrite_recall, safe, expr_data)
     } else if (nm == "sum") {
       ## Or:
       ##
@@ -122,7 +123,7 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE) {
   ret
 }
 
-rewrite_array <- function(expr, res, values, rewrite, safe) {
+rewrite_array <- function(expr, res, values, rewrite, safe, expr_data) {
   ## NOTE: This skips all entries involving index variables (i, j,
   ## k).  This is because those will be offset appropriately for
   ## us on entry because they are part of a loop.
@@ -158,13 +159,18 @@ rewrite_array <- function(expr, res, values, rewrite, safe) {
       stop("not yet implemented")
     }
     dim <- rewrite(array_dim_name(as.character(res[[1L]]$value_sym)))
+
+    expr_str <-
+      escape_printf(odin_info_expr(expr_data$line, expr_data$expr_str))
+    expr_str <- paste0("\t", expr_str, collapse = "\n")
+
     if (expr[[1]] == quote(`[<-`)) {
       ## This is a bit tricky: we can't really do %%s because if there
       ## are any other string format expressions in any of this it'll
       ## cause havoc.  But practically I think it's actually ok.
-      fmt <- "odin_array_at_set%d(%s, %s, %s, %%s, %s)"
+      fmt <- "odin_array_at_set%d(%s, %s, %s, %%s, %s, %s)"
     } else {
-      fmt <- "odin_array_at%d(%s, %s, %s, %s)"
+      fmt <- "odin_array_at%d(%s, %s, %s, %s, %s)"
     }
     ## TODO: This does not do well with initial() and I think we could
     ## preserve that name better elsewhere rather than rebuilding it
@@ -174,7 +180,7 @@ rewrite_array <- function(expr, res, values, rewrite, safe) {
     if (grepl(re, nm)) {
       nm <- sub(re, "\\1(\\2)", nm)
     }
-    sprintf(fmt, nd, target, values, dim, dquote(nm))
+    sprintf(fmt, nd, target, values, dim, dquote(nm), dquote(expr_str))
   } else {
     sprintf("%s[%s]", target, values)
   }

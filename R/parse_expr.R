@@ -6,14 +6,22 @@ odin_parse_exprs <- function(exprs) {
   ## block.  Similar approaches will apply elsewhere.  Once that
   ## happens, the expression bit can roll in I think.
   lines <- utils::getSrcLocation(exprs, "line")
-  ret <- lapply(seq_along(exprs),
-                function(i) odin_parse_expr(exprs[[i]], lines[[i]]))
+  src <- utils::getSrcref(exprs)
+  ret <- lapply(seq_along(exprs), function(i)
+    odin_parse_expr(exprs[[i]], lines[[i]], src[[i]]))
   names(ret) <- vcapply(ret, "[[", "name")
   ret
 }
 
-odin_parse_expr <- function(expr, line) {
+odin_parse_expr <- function(expr, line, src) {
   line <- line %||% NA_integer_
+  if (is.null(src)) {
+    expr_str <- deparse_str(expr)
+  } else {
+    expr_str <- paste(as.character(src), collapse = "\n")
+  }
+  ## TODO: we could use this in the errors I think and everything will
+  ## more or less just work
   lhs <- odin_parse_expr_lhs(expr[[2L]], line, expr)
   rhs <- odin_parse_expr_rhs(expr[[3L]], line, expr)
   depends <- join_deps(list(lhs$depends, rhs$depends))
@@ -67,6 +75,7 @@ odin_parse_expr <- function(expr, line) {
        depends=depends,
        stochastic=stochastic,
        expr=expr,
+       expr_str=expr_str,
        line=line)
 }
 
