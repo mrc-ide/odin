@@ -10,8 +10,8 @@
 ## 2. second is odin_generate2*; all functions work on this object to
 ##    generate a character vector to put somewhere.  These are much
 ##    simpler generate the actual code.
-odin_generate <- function(dat, package = FALSE) {
-  obj <- odin_generate1(dat)
+odin_generate <- function(dat, package = FALSE, safe = FALSE) {
+  obj <- odin_generate1(dat, safe)
   discrete <- obj$info$discrete
 
   struct <- c(odin_generate2_struct(obj),

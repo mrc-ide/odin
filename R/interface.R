@@ -74,9 +74,18 @@
 ##'   with both gcc and clang.  The compiler output is very simple and
 ##'   may not work on all platforms.
 ##'
+##' @param safe Use safe array access; try this option if odin crashes
+##'   R in order to track down invalid memory access.  This replaces
+##'   all array accesses in C with a version that will check that the
+##'   requested element is within bounds.  This will slow down your
+##'   model considerably (it checks \emph{every} access, even if it
+##'   could be worked out that it would be fine).
+##'
 ##' @param skip_cache Skip odin's cache.  This might be useful if the
 ##'   model appears not to compile when you would expect it to.
-##'   Hopefully this will not be needed often.
+##'   Hopefully this will not be needed often.  Models with \code{safe
+##'   = TRUE} will always skip the cache as these are intended for
+##'   debugging.
 ##'
 ##' @return If \code{build} is \code{TRUE}, an function that can
 ##'   generate the model, otherwise the filename of the generated C
@@ -118,7 +127,7 @@
 ##'   initial(y) <- 1
 ##' }, build=FALSE)
 odin <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
-                 compiler_warnings = NULL, skip_cache = FALSE) {
+                 compiler_warnings = NULL, safe = FALSE, skip_cache = FALSE) {
   ## TODO: It might be worth adding a check for missing-ness here in
   ## order to generate a sensible error message?
   ##
@@ -128,13 +137,14 @@ odin <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   if (is.symbol(xx)) {
     xx <- force(x)
   }
-  odin_(xx, dest, build, verbose, compiler_warnings, skip_cache)
+  odin_(xx, dest, build, verbose, compiler_warnings, safe, skip_cache)
 }
 
 ##' @export
 ##' @rdname odin
 odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
-                  compiler_warnings = NULL, skip_cache = FALSE) {
+                  compiler_warnings = NULL, safe = FALSE,
+                  skip_cache = FALSE) {
   if (is.null(dest)) {
     dest <- tempfile("odin_")
   }
@@ -144,7 +154,7 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   ## Add key versions (or hash of such) into the model as a comment.
   ## This is easy to do.  That will guarantee that we invalidate the
   ## C->DLL cache!
-  skip_cache <- skip_cache
+  skip_cache <- skip_cache || safe # always skip 'safe' models
   model <- model_cache_get(hash_model(x), skip_cache)
   if (!is.null(model)) {
     if (verbose) {
@@ -154,7 +164,7 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   }
 
   dat <- odin_parse(x)
-  code_c <- odin_generate(dat, package = FALSE)
+  code_c <- odin_generate(dat, package = FALSE, safe = safe)
   code_r <- paste(odin_generate_r(dat$info, DLL_PLACEHOLDER), collapse = "\n")
 
   ## TODO: factor this out elsewhere and test it.

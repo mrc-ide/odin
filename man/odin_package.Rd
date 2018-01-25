@@ -4,7 +4,8 @@
 \alias{odin_package}
 \title{Create odin model in a package}
 \usage{
-odin_package(path_package, filenames = NULL, single_file = TRUE)
+odin_package(path_package, filenames = NULL, single_file = TRUE,
+  safe = FALSE)
 }
 \arguments{
 \item{path_package}{Path to the package root (the directory that
@@ -17,6 +18,11 @@ sources.  Alternatively, all .R files within the directory
 \item{single_file}{Use a single file for all odin C code.  If
 \code{FALSE}, then one .c file will be generated for each model
 listed in \code{filenames}.}
+
+\item{safe}{Generate code with safe array access (see
+\code{\link{odin}}) - this is intended to help debug crashes;
+don't generate packages with this option for production use as
+it will be much slower.}
 }
 \description{
 Create an odin model within an existing package.

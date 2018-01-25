@@ -32,6 +32,7 @@
 ##' @title Create odin model in a package
 ##' @param path_package Path to the package root (the directory that
 ##'   contains \code{DESCRIPTION})
+##'
 ##' @param filenames A character vector of filenames containing odin
 ##'   sources.  Alternatively, all .R files within the directory
 ##'   \code{inst/odin} will be used.
@@ -40,8 +41,14 @@
 ##'   \code{FALSE}, then one .c file will be generated for each model
 ##'   listed in \code{filenames}.
 ##'
+##' @param safe Generate code with safe array access (see
+##'   \code{\link{odin}}) - this is intended to help debug crashes;
+##'   don't generate packages with this option for production use as
+##'   it will be much slower.
+##'
 ##' @export
-odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
+odin_package <- function(path_package, filenames=NULL, single_file=TRUE,
+                         safe = FALSE) {
   desc <- file.path(path_package, "DESCRIPTION")
   if (!file.exists(desc)) {
     stop("Did not find package at ", path_package)
@@ -70,7 +77,7 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE) {
   }
 
   dat <- lapply(filenames, function(f)
-    odin_generate(odin_parse(f), package=TRUE))
+    odin_generate(odin_parse(f), package = TRUE, safe = safe))
 
   library_fns <- combine_library(dat)
   struct <- lapply(dat, "[[", "struct")

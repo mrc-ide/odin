@@ -168,3 +168,7 @@ dyn_load <- function(dll) {
 dllname <- function(base) {
   paste0(base, .Platform$dynlib.ext)
 }
+
+dquote <- function(x) {
+  sprintf('"%s"', x)
+}

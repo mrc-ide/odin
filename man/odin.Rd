@@ -6,10 +6,10 @@
 \title{Create an odin model}
 \usage{
 odin(x, dest = NULL, build = TRUE, verbose = TRUE,
-  compiler_warnings = NULL, skip_cache = FALSE)
+  compiler_warnings = NULL, safe = FALSE, skip_cache = FALSE)
 
 odin_(x, dest = NULL, build = TRUE, verbose = TRUE,
-  compiler_warnings = NULL, skip_cache = FALSE)
+  compiler_warnings = NULL, safe = FALSE, skip_cache = FALSE)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -47,9 +47,18 @@ odin with \code{-Wall -Wextra -pedantic} and still see warnings
 with both gcc and clang.  The compiler output is very simple and
 may not work on all platforms.}
 
+\item{safe}{Use safe array access; try this option if odin crashes
+R in order to track down invalid memory access.  This replaces
+all array accesses in C with a version that will check that the
+requested element is within bounds.  This will slow down your
+model considerably (it checks \emph{every} access, even if it
+could be worked out that it would be fine).}
+
 \item{skip_cache}{Skip odin's cache.  This might be useful if the
 model appears not to compile when you would expect it to.
-Hopefully this will not be needed often.}
+Hopefully this will not be needed often.  Models with \code{safe
+= TRUE} will always skip the cache as these are intended for
+debugging.}
 }
 \value{
 If \code{build} is \code{TRUE}, an function that can

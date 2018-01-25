@@ -1,7 +1,7 @@
 ## TODO: Disallow '<base>_' as a name; otherwise potential for
 ## collision, so probably set that in the DSL rather than here.
-odin_generate1 <- function(dat) {
-  obj <- odin_generate1_object(dat)
+odin_generate1 <- function(dat, safe) {
+  obj <- odin_generate1_object(dat, safe)
 
   ## (1): Before really starting, add a few elements to the object.
   ##
@@ -72,9 +72,9 @@ odin_generate1 <- function(dat) {
 ## simplest way of doing this might be to generate a small list of
 ## types that we can reference everywhere.  But that might just be
 ## more complicated than it needs to be?
-odin_generate1_object <- function(dat) {
+odin_generate1_object <- function(dat, safe) {
   base <- dat$info$base
-  self <- list(base=base)
+  self <- list(base = base, safe = safe)
 
   self$info <- dat$info
 
@@ -159,7 +159,7 @@ odin_generate1_object <- function(dat) {
 
   ## Rewrite based on all the above; only lookup is modified as we go.
   self$rewrite <- function(x) {
-    rewrite_c(x, self$name_pars, self$lookup$get())
+    rewrite_c(x, self$name_pars, self$lookup$get(), self$safe)
   }
 
   self
@@ -215,7 +215,7 @@ odin_generate1_library <- function(obj, eqs) {
     obj$library_fns$add("fintdiv")
   }
 
-  ## Support for differential equations:
+  ## Support for delay differential and difference equations:
   if (obj$info$has_delay) {
     if (obj$info$discrete) {
       obj$library_fns$add("lagvalue_discrete")
@@ -224,6 +224,11 @@ odin_generate1_library <- function(obj, eqs) {
       obj$library_fns$add("lagvalue_ds")
     }
   }
+
+  if (obj$safe) {
+    obj$library_fns$add("odin_array_at1")
+    obj$library_fns$add("odin_array_at_set1")
+ }
 }
 
 odin_generate1_dim <- function(x, obj) {
@@ -494,9 +499,16 @@ odin_generate1_array_expr <- function(x, obj) {
         target[[k]] <- xj$extent_max[[k]]
       }
     }
-    target <- obj$rewrite(as.call(c(quote(`[`), as.symbol(x$name), target)))
-    value <- obj$rewrite(x$rhs$value[[j]])
-    ret$add("%s%s = %s;", indent, target, value)
+
+    c_target <- obj$rewrite(as.call(c(quote(`[<-`), as.symbol(x$name), target)))
+    c_value <- obj$rewrite(x$rhs$value[[j]])
+    if (obj$safe) {
+      ## Quite a different path here to avoid assigning to a function
+      ## call
+      ret$add("%s%s;", indent, sprintf(c_target, c_value))
+    } else {
+      ret$add("%s%s = %s;", indent, c_target, c_value)
+    }
 
     while (nzchar(indent)) {
       indent <- substr(indent, 3L, nchar(indent))

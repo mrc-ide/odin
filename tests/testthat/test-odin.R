@@ -1109,4 +1109,49 @@ test_that("c in dim for vector", {
   expect_equal(mod$contents()$initial_x, rep(1.0, 5))
 })
 
+test_that("bounds check", {
+  expr <- quote({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1 + t * 0
+    r[] <- user()
+    ## This sort of setup allows easy failure
+    len <- user()
+    dim(r) <- user()
+    dim(y) <- len
+  })
+
+  gen1 <- odin(expr, verbose = TEST_VERBOSE, safe = FALSE, skip_cache = TRUE)
+  gen2 <- odin(expr, verbose = TEST_VERBOSE, safe = TRUE, skip_cache = TRUE)
+  r <- rep(1, 5)
+
+  mod1 <- gen1(len = length(r), r = r)
+  mod2 <- gen2(len = length(r), r = r)
+
+  tt <- seq(0, 10, length.out = 101)
+
+  y1 <- mod1$run(tt)
+  y2 <- mod2$run(tt)
+  expect_identical(y1, y2)
+
+  ## Then try invalid access:
+  mod3 <- gen2(len = length(r) * 2, r = r)
+  expect_error(mod3$run(tt),
+               "Array index 6 is out of bounds [1, 5] while reading r",
+               fixed = TRUE)
+})
+
+test_that("bounds check on set", {
+  ## Try invalid write (this one could be warned about statically
+  ## though)
+  gen <- odin::odin({
+    deriv(y[]) <- r * y[i]
+    initial(y[1:10]) <- 1
+    r <- 0.5
+    dim(y) <- 5
+  }, verbose = TEST_VERBOSE, safe = TRUE)
+  expect_error(gen()$run(tt),
+               "Array index 6 is out of bounds [1, 5] while setting initial(y)",
+               fixed = TRUE)
+})
+
 unload_dlls()

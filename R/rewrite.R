@@ -1,7 +1,7 @@
 ## This will rewrite the core C bits:
-rewrite_c <- function(expr, name_pars, lookup = character(0)) {
+rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE) {
   rewrite_recall <- function(x) {
-    rewrite_c(x, name_pars, lookup)
+    rewrite_c(x, name_pars, lookup, safe)
   }
 
   ## * pi (#define pi M_PI) or translate to M_PI
@@ -24,6 +24,7 @@ rewrite_c <- function(expr, name_pars, lookup = character(0)) {
       return(list(numeric=is.numeric(expr),
                   value=str,
                   value_num=if (num) expr else NULL,
+                  value_sym=if (num) NULL else expr,
                   is_index=is_index))
     }
     nm <- deparse(expr[[1L]])
@@ -40,8 +41,8 @@ rewrite_c <- function(expr, name_pars, lookup = character(0)) {
 
     if (nm == "(") {
       value <- sprintf("(%s)", values)
-    } else if (nm == "[") {
-      value <- rewrite_array(expr, res, values, rewrite_recall)
+    } else if (nm == "[" || nm == "[<-") {
+      value <- rewrite_array(expr, res, values, rewrite_recall, safe)
     } else if (nm == "sum") {
       ## Or:
       ##
@@ -121,7 +122,7 @@ rewrite_c <- function(expr, name_pars, lookup = character(0)) {
   ret
 }
 
-rewrite_array <- function(expr, res, values, rewrite) {
+rewrite_array <- function(expr, res, values, rewrite, safe) {
   ## NOTE: This skips all entries involving index variables (i, j,
   ## k).  This is because those will be offset appropriately for
   ## us on entry because they are part of a loop.
@@ -149,7 +150,34 @@ rewrite_array <- function(expr, res, values, rewrite) {
     values[2:nd] <- sprintf("%s * %s", values[2:nd], vcapply(2:nd, r))
     values <- paste(values, collapse=" + ")
   }
-  sprintf("%s[%s]", res[[1L]]$value, values)
+
+  target <- res[[1L]]$value
+
+  if (safe) {
+    if (nd > 1L) {
+      stop("not yet implemented")
+    }
+    dim <- rewrite(array_dim_name(as.character(res[[1L]]$value_sym)))
+    if (expr[[1]] == quote(`[<-`)) {
+      ## This is a bit tricky: we can't really do %%s because if there
+      ## are any other string format expressions in any of this it'll
+      ## cause havoc.  But practically I think it's actually ok.
+      fmt <- "odin_array_at_set%d(%s, %s, %s, %%s, %s)"
+    } else {
+      fmt <- "odin_array_at%d(%s, %s, %s, %s)"
+    }
+    ## TODO: This does not do well with initial() and I think we could
+    ## preserve that name better elsewhere rather than rebuilding it
+    ## here:
+    nm <- as.character(res[[1L]]$value_sym)
+    re <- sprintf("^(%s)_(.*)", paste(SPECIAL_LHS, collapse = "|"))
+    if (grepl(re, nm)) {
+      nm <- sub(re, "\\1(\\2)", nm)
+    }
+    sprintf(fmt, nd, target, values, dim, dquote(nm))
+  } else {
+    sprintf("%s[%s]", target, values)
+  }
 }
 
 ## The rewrite function here must be a parameterised version of the
