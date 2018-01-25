@@ -176,3 +176,10 @@ dquote <- function(x) {
 escape_printf <- function(x) {
   gsub('"', '\"', gsub("%", "%%", x, fixed = TRUE))
 }
+
+odin_version <- function() {
+  list(odin = utils::packageVersion("odin"),
+       cinterpolate = utils::packageVersion("cinterpolate"),
+       r = getRversion(),
+       platform = version$platform)
+}
