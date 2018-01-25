@@ -285,6 +285,60 @@ t <- seq(0, 2000, length.out=10001)
 y <- mod$run(t)
 pairs(y[, -1], panel=lines, col="#00000055", lwd=0.2)
 
+## ## Debugging array models
+
+## Compared with models where everything is a scalar, array models
+## make it much easier to crash R.  If you read off the end of an
+## array you'll get junk, and if you write off the end of an array
+## you'll do something terrible and quite probably crash R.  This is
+## quite hard to debug, especially on windows.  But even on Linux/OSX
+## where
+## [gdb](https://cran.r-project.org/doc/manuals/R-exts.html#Debugging-compiled-code)
+## and
+## [lldb](http://kevinushey.github.io/blog/2015/04/13/debugging-with-lldb)
+## are available, relating the generated odin code to the input R code
+## is a challenge.
+
+## To work around this, `odin` can compile your model in "safe" mode.
+## This will check at _every_ array access (both read and write) that
+## you are not trying to read outside the bounds of the array.
+
+## For example, here's a simplified version of a real case where this
+## might happen:
+gen <- odin::odin({
+  deriv(y[]) <- r[i] * y[i]
+  initial(y[]) <- 1
+  r[] <- user()
+
+  len <- user()
+  dim(r) <- user()
+  dim(y) <- len
+}, safe = TRUE, verbose = FALSE)
+
+## The vector `r` is entirely supplied by the user and the length of
+## `y` is also provided.  However, the code assumes that the vectors
+## `r` and `y` are the same length.
+
+## If `r` and `y` have the same length, everything is fine:
+mod <- gen(r = runif(5), len = 5)
+mod$run(c(0, 10))
+
+## But if they differ then odin (in safe mode) will detect this and
+## throw an R error:
+##+ error = TRUE
+mod <- gen(r = runif(5), len = 10)
+mod$run(c(0, 10))
+
+## The error indicates the offending line and the variable that was
+## being read (it stops at the first error so there may be several!).
+## (If you are thinking in C, note that the indexes reported are
+## base-1 R indexes *not* base-0 C indexes; the same as the way that
+## odin treats indices when writing models).
+
+## Using safe mode will make your model much slower because array
+## indexing is usually a fast operation in C and this replaces it with
+## a much slower function that checks at every access.
+
 ## # Interpolating functions
 
 ## It may be useful to have functions that are driven by user data in
