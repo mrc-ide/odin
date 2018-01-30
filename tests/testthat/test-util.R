@@ -12,9 +12,16 @@ test_that("read_user_c - simple", {
   expect_equal(names(ans$definitions), "squarepulse")
 })
 
-## This currently fails
 test_that("read_user_c - split declaration", {
-  expect_error(read_user_c("user_fns2.c"), "Parse error")
+  ans <- read_user_c("user_fns2.c")
+  expect_equal(names(ans$declarations), "squarepulse")
+  expect_equal(names(ans$definitions), "squarepulse")
+  expect_match(ans$declarations, "double t1\\);$")
+})
+
+test_that("read_user_c - parse error", {
+  expect_error(read_user_c("user_fns3.c"),
+               "Parse error for user_fns3.c", fixed = TRUE)
 })
 
 test_that("parse gcc warnings", {

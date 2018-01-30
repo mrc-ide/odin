@@ -126,16 +126,17 @@ odin_ring_support <- function(package) {
 ## inclusion of a header file.
 read_user_c <- function(filename) {
   d <- readLines(filename)
-  re <- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)\\s*\\{$"
-  i <- grep(re, d)
-  j <- grep("^}$", d)
-  if (length(i) != length(j)) {
+
+  re1 <- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)"
+  i1 <- grep(re1, d)
+  i2 <- grep("^}$", d)
+  if (length(i1) != length(i2)) {
     stop("Parse error for ", filename)
   }
+  name <- sub(re1, "\\1", d[i1])
+  defn <- setNames(vcapply(seq_along(i1), function(k)
+    paste(d[i1[[k]]:i2[[k]]], collapse = "\n")), name)
+  decl <- sub("^([^{]*?)\\s*\\{.*", "\\1;", defn)
 
-  name <- sub(re, "\\1", d[i])
-  decl <- setNames(sub(" \\{$", ";", d[i]), name)
-  defn <- setNames(vcapply(seq_along(i), function(k)
-    paste(d[i[[k]]:j[[k]]], collapse="\n")), name)
   list(declarations = decl, definitions = defn, filename = filename)
 }
