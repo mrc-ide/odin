@@ -63,8 +63,8 @@ odin_generate_r <- function(info, dll) {
     odin_generate_r_contents(info, dll))
   methods <- methods[!vlapply(methods, is.null)]
   methods <-
-    paste(vcapply(methods, function(x) paste(indent(x, 4), collapse="\n")),
-          collapse=",\n\n")
+    paste(vcapply(methods, function(x) paste(indent(x, 4), collapse = "\n")),
+          collapse = ",\n\n")
   ret$add(methods)
   ret$add("  ))")
   ret$add(odin_generate_r_constructor(info, dll))
@@ -138,7 +138,7 @@ odin_generate_r_initialize <- function(info, dll) {
   base <- info$base
   args <- c(character(),
             if (info$has_user) setNames("NULL", USER),
-            if (!info$discrete) c(use_dde="FALSE"))
+            if (!info$discrete) c(use_dde = "FALSE"))
 
   ret$add("initialize = function(%s) {",
           pastec(sprintf("%s = %s", names(args), unname(args))))
@@ -351,5 +351,5 @@ odin_generate_r_contents <- function(info, dll) {
 
 dot_call <- function(base, dll, fmt, ..., args = c(...)) {
   args <- c(args, sprintf('PACKAGE = "%s"', dll))
-  sprintf('.Call("%s", %s)', sprintf(fmt, base), paste(args, collapse=", "))
+  sprintf('.Call("%s", %s)', sprintf(fmt, base), paste(args, collapse = ", "))
 }

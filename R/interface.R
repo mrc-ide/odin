@@ -114,18 +114,18 @@
 ##' mod <- exp_decay()
 ##'
 ##' ## Run the model for a series of times from 0 to 10:
-##' t <- seq(0, 10, length.out=101)
+##' t <- seq(0, 10, length.out = 101)
 ##' y <- mod$run(t)
-##' plot(y, xlab="Time", ylab="y", main="", las=1)
+##' plot(y, xlab = "Time", ylab = "y", main = "", las = 1)
 ##'
 ##' }
 ##'
-##' ## If you want to see the underlying C code, pass build=FALSE:
+##' ## If you want to see the underlying C code, pass build = FALSE:
 ##' ## (Note: this step does not require a working C compiler)
 ##' path <- odin::odin({
 ##'   deriv(y) <- -0.5 * y
 ##'   initial(y) <- 1
-##' }, build=FALSE)
+##' }, build = FALSE)
 odin <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
                  compiler_warnings = NULL, safe = FALSE, skip_cache = FALSE) {
   ## TODO: It might be worth adding a check for missing-ness here in
@@ -231,7 +231,7 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
 ##' @examples
 ##' can_compile() # will take ~0.1s the first time
 ##' can_compile() # should be basically instantaneous
-can_compile <- function(verbose=FALSE, skip_cache=FALSE) {
+can_compile <- function(verbose = FALSE, skip_cache = FALSE) {
   ## should offer a verbose option
   ## should check if GCC is in the path?
   if (skip_cache || is.null(getOption("odin.can_compile"))) {
@@ -240,19 +240,19 @@ can_compile <- function(verbose=FALSE, skip_cache=FALSE) {
     owd <- setwd(tmp)
     on.exit({
       setwd(owd)
-      unlink(tmp, recursive=TRUE)
+      unlink(tmp, recursive = TRUE)
     })
     file <- "hello.c"
     writeLines("#include <R.h>", file)
     dest <- if (verbose) "" else FALSE
-    Sys.setenv(R_TESTS="")
+    Sys.setenv(R_TESTS = "")
     code <- system2(file.path(R.home(), "bin", "R"),
                     c("CMD", "SHLIB", "hello.c"),
-                    stdout=dest, stderr=dest)
+                    stdout = dest, stderr = dest)
     if (code != 0L && Sys.which("gcc") == "") {
       message("I don't see gcc on the PATH") # nocov
     }
-    options(odin.can_compile=code == 0L)
+    options(odin.can_compile = code == 0L)
   }
   getOption("odin.can_compile", FALSE)
 }
@@ -278,7 +278,7 @@ make_transform_variables <- function(x) {
   j <- seq_along(x$variable_order)
   n <- length(ord)
   len <- vnapply(ord, function(x) if (is.null(x)) 1L else prod(x),
-                 USE.NAMES=FALSE)
+                 USE.NAMES = FALSE)
   i1 <- cumsum(len)
   i0 <- c(1L, i1[-n] + 1L)
   tot <- sum(len)
@@ -346,7 +346,7 @@ make_names <- function(ord, discrete = FALSE) {
       if (is.null(x)) {
         ""
       } else {
-        sprintf("[%s]", apply(expand_grid_int(x), 1, paste, collapse=","))
+        sprintf("[%s]", apply(expand_grid_int(x), 1, paste, collapse = ","))
       }
     }
     idx <- unname(lapply(ord, f))

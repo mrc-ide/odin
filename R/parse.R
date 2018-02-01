@@ -167,16 +167,16 @@ odin_parse_collect_traits <- function(obj) {
   rownames(traits) <- names(eqs)
 
   obj$traits <- traits
-  obj$info <- list(discrete=discrete,
+  obj$info <- list(discrete = discrete,
                    ## internal really, and may change
-                   target_name=if (discrete) "update" else "deriv",
+                   target_name = if (discrete) "update" else "deriv",
                    ## external again
-                   has_array=any(is_array) || any(is_dim),
-                   has_output=any(is_output),
-                   has_user=any(uses_user),
-                   has_delay=any(uses_delay),
-                   has_interpolate=any(uses_interpolate),
-                   has_stochastic=any(uses_stochastic))
+                   has_array = any(is_array) || any(is_dim),
+                   has_output = any(is_output),
+                   has_user = any(uses_user),
+                   has_delay = any(uses_delay),
+                   has_interpolate = any(uses_interpolate),
+                   has_stochastic = any(uses_stochastic))
 
   nms_target <- names(eqs)
   i <- is_deriv | is_update | is_initial | is_dim | is_output
@@ -202,17 +202,17 @@ odin_parse_find_vars <- function(eqs, traits, info) {
     msg_initial <- setdiff(vars, vars_initial)
     if (length(msg_initial) > 0L) {
       msg$add("\tin %s() but not initial(): %s",
-              info$target_name, paste(msg_initial, collapse=", "))
+              info$target_name, paste(msg_initial, collapse = ", "))
     }
     msg_vars <- setdiff(vars_initial, vars)
     if (length(msg_vars) > 0L) {
       msg$add("\tin initial() but not %s(): %s",
-              info$target_name, paste(msg_vars, collapse=", "))
+              info$target_name, paste(msg_vars, collapse = ", "))
     }
     tmp <- eqs[is_deriv | is_initial]
     odin_error(sprintf(
       "%s() and initial() must contain same set of equations:\n%s\n",
-      info$target_name, paste(msg$get(), collapse="\n")),
+      info$target_name, paste(msg$get(), collapse = "\n")),
       get_lines(tmp), get_exprs(tmp))
   }
 
@@ -221,7 +221,7 @@ odin_parse_find_vars <- function(eqs, traits, info) {
     odin_error(
       sprintf("variables on lhs must be within %s() or initial() (%s)",
               info$target_name,
-              paste(intersect(vars, names(eqs)), collapse=", ")),
+              paste(intersect(vars, names(eqs)), collapse = ", ")),
       get_lines(eqs[err]), get_exprs(eqs[err]))
   }
 
@@ -338,19 +338,19 @@ odin_parse_extract_order <- function(obj, output = FALSE, subset = NULL,
 
   total_stage <- max(c(STAGE_CONSTANT, stage_dim))
 
-  list(order=names_target,
-       n=n,
-       names=names,
-       is_array=is_array, # drop in favour of array > 0?
-       array=array,
-       offset=offset,
-       offset_use=offset_use,
-       len=len,
-       len_is_var=len_is_var,
-       total=total,
-       total_is_var=total_is_var,
-       total_use=total_use,
-       total_stage=total_stage)
+  list(order = names_target,
+       n = n,
+       names = names,
+       is_array = is_array, # drop in favour of array > 0?
+       array = array,
+       offset = offset,
+       offset_use = offset_use,
+       len = len,
+       len_is_var = len_is_var,
+       total = total,
+       total_is_var = total_is_var,
+       total_use = total_use,
+       total_stage = total_stage)
 }
 
 ## TODO: At the moment there are some corner cases here that are
@@ -414,7 +414,7 @@ odin_parse_interpolate <- function(obj) {
 ## we can catch these and group them together.  But leaving that for
 ## now.
 odin_error <- function(msg, line, expr) {
-  odin_info(msg, line, expr, function(...) stop(..., call.=FALSE))
+  odin_info(msg, line, expr, function(...) stop(..., call. = FALSE))
 }
 odin_note <- function(msg, line, expr) {
   odin_info(paste("Note: ", msg), line, expr, message)
@@ -427,7 +427,7 @@ odin_info <- function(msg, line, expr, announce) {
     expr_str <- deparse_str(expr)
   }
   str <- odin_info_expr(line, expr_str)
-  announce(msg, paste0("\n\t", str, collapse=""))
+  announce(msg, paste0("\n\t", str, collapse = ""))
 }
 
 odin_info_expr <- function(line, expr_str) {
@@ -446,7 +446,7 @@ recursive_dependencies <- function(order, deps, vars) {
   for (i in order) {
     j <- as.character(unlist(deps[i]))
     deps_rec[[i]] <-
-      c(j, unique(as.character(unlist(deps_rec[j], use.names=FALSE))))
+      c(j, unique(as.character(unlist(deps_rec[j], use.names = FALSE))))
   }
   deps_rec
 }
@@ -491,7 +491,7 @@ odin_parse_check_unused <- function(obj) {
   v <- c("is_deriv", "is_output", "is_initial")
   endpoints <- names_if(apply(obj$traits[, v], 1, any))
   used <- union(endpoints,
-                unique(unlist(deps[endpoints], use.names=FALSE)))
+                unique(unlist(deps[endpoints], use.names = FALSE)))
   if (obj$info$has_delay) {
     delays <- intersect(names_if(obj$traits[, "uses_delay"]), used)
     delay_vars <- lapply(obj$eqs[delays], function(x)
@@ -561,7 +561,7 @@ odin_parse_usage <- function(obj) {
   nms_delay <- names_if(obj$traits[, "uses_delay"])
 
   get_used <- function(x) {
-    res <- unique(c(unlist(obj$deps_rec[x], use.names=FALSE), x))
+    res <- unique(c(unlist(obj$deps_rec[x], use.names = FALSE), x))
     ## Re-order to put time and variables first
     c(setdiff(res, names(obj$eqs)), intersect(names(obj$eqs), res))
     ## Possibly we should also be subsetting by time dependence?

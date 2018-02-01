@@ -69,19 +69,19 @@ odin_parse_expr <- function(expr, line, src) {
 
   stochastic <- any(depends$functions %in% names(FUNCTIONS_STOCHASTIC))
 
-  list(name=lhs$name,
-       lhs=lhs,
-       rhs=rhs,
-       depends=depends,
-       stochastic=stochastic,
-       expr=expr,
-       expr_str=expr_str,
-       line=line)
+  list(name = lhs$name,
+       lhs = lhs,
+       rhs = rhs,
+       depends = depends,
+       stochastic = stochastic,
+       expr = expr,
+       expr_str = expr_str,
+       line = line)
 }
 
 odin_parse_expr_lhs <- function(lhs, line, expr) {
   if (is.name(lhs)) {
-    ret <- list(type="symbol", name=deparse(lhs))
+    ret <- list(type = "symbol", name = deparse(lhs))
   } else if (is.call(lhs)) {
     fun <- deparse_str(lhs[[1L]])
     if (fun %in% "[") { # NOTE: single indexing *only*
@@ -101,7 +101,7 @@ odin_parse_expr_lhs <- function(lhs, line, expr) {
   }
 
   if (is.null(ret$special)) {
-    re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse="|"))
+    re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse = "|"))
     if (grepl(re, ret$name)) {
       odin_error(sprintf("Variable name cannot start with '%s_'",
                          sub(re, "\\1", ret$name)),
@@ -123,7 +123,7 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
 
   nd <- length(index)
 
-  is_empty <- vlapply(index, identical, quote(expr=))
+  is_empty <- vlapply(index, identical, quote(expr = ))
   if (any(is_empty)) {
     if (length(index) == 1L) {
       index[] <- list(bquote(1:length(.(lhs[[2L]]))))
@@ -151,11 +151,11 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
   tmp <- lapply(index, odin_parse_expr_lhs_check_index)
   ok <- vlapply(tmp, as.logical)
   if (all(ok)) {
-    extent_max <- lapply(tmp, attr, "value_max", exact=TRUE)
-    extent_min <- lapply(tmp, attr, "value_min", exact=TRUE)
+    extent_max <- lapply(tmp, attr, "value_max", exact = TRUE)
+    extent_min <- lapply(tmp, attr, "value_min", exact = TRUE)
     is_range <- !vlapply(extent_min, is.null)
   } else {
-    msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse="\n")
+    msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse = "\n")
     odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
                line, expr)
   }
@@ -177,17 +177,17 @@ odin_parse_expr_lhs_index <- function(lhs, line, expr) {
 
   ## Build a big data structure out of all the index stuff; it's
   ## going to be heaps easier to deal with later.
-  idx <- list(value=index,
-              is_range=is_range,
-              extent_max=extent_max,
-              extent_min=extent_min)
+  idx <- list(value = index,
+              is_range = is_range,
+              extent_max = extent_max,
+              extent_min = extent_min)
 
-  list(type="array",
-       name=name,
-       index=idx,
-       nd=nd,
-       name_dim=name_dim,
-       depends=deps)
+  list(type = "array",
+       name = name,
+       index = idx,
+       nd = nd,
+       name_dim = name_dim,
+       depends = deps)
 }
 
 odin_parse_expr_lhs_special <- function(lhs, line, expr) {
@@ -222,7 +222,7 @@ odin_parse_expr_rhs <- function(rhs, line, expr) {
     ## Should check there that everything is of the classes: integer,
     ## logical, numeric only.  It's possible that strings would be
     ## possible but I'm not sure that's sensible.
-    ret <- list(type="atomic", value=rhs)
+    ret <- list(type = "atomic", value = rhs)
   } else if (is.name(rhs)) {
     ## These are easy(ish); they just can't be called a few things
     ## (probably more than what is listed here; otherwise we're going
@@ -239,10 +239,10 @@ odin_parse_expr_rhs <- function(rhs, line, expr) {
                  line, expr)
     }
     ## TODO: consider a special 'symbol' case here?
-    ret <- list(type="expression",
-                depends=list(functions=character(0),
-                             variables=nm),
-                value=rhs)
+    ret <- list(type = "expression",
+                depends = list(functions = character(0),
+                               variables = nm),
+                value = rhs)
   } else if (is.call(rhs)) {
     fun <- deparse(rhs[[1L]])
     if (fun == "delay") {
@@ -265,7 +265,7 @@ odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
   err <- intersect(setdiff(SPECIAL_LHS, "dim"), depends$functions)
   if (length(err) > 0L) {
     odin_error(sprintf("Function %s is disallowed on rhs",
-                       paste(unique(err), collapse=", ")), line, expr)
+                       paste(unique(err), collapse = ", ")), line, expr)
   }
   err <- intersect(SPECIAL_RHS, depends$functions)
   if (length(err) > 0L) {
@@ -284,9 +284,9 @@ odin_parse_expr_rhs_expression <- function(rhs, line, expr) {
     odin_error("Range operator ':' may not be used on rhs", line, expr)
   }
 
-  list(type="expression",
-       depends=depends,
-       value=rhs)
+  list(type = "expression",
+       depends = depends,
+       value = rhs)
 }
 
 odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
@@ -342,15 +342,15 @@ odin_parse_expr_rhs_delay <- function(rhs, line, expr) {
   }
 
   ## TODO: merge all the delay bits together into one element.
-  list(type="expression",
-       delay=TRUE,
+  list(type = "expression",
+       delay = TRUE,
        ## resolved at the same time as everything else:
-       depends=join_deps(list(deps_delay_time, default$depends)),
+       depends = join_deps(list(deps_delay_time, default$depends)),
        ## resolved independently in the previous time:
-       depends_delay=deps_delay_expr,
-       value_expr=rhs[[2L]],
-       value_time=time,
-       value_default=default)
+       depends_delay = deps_delay_expr,
+       value_expr = rhs[[2L]],
+       value_time = time,
+       value_default = default)
 }
 
 odin_parse_expr_rhs_user <- function(rhs, line, expr) {
@@ -374,11 +374,11 @@ odin_parse_expr_rhs_user <- function(rhs, line, expr) {
     odin_error("user() call must not reference variables", line, expr)
   }
   default <- length(rhs) == 2L
-  ret <- list(type="expression",
-              depends=deps,
-              value=if (default) rhs[[2L]] else NULL,
-              default=default,
-              user=TRUE)
+  ret <- list(type = "expression",
+              depends = deps,
+              value = if (default) rhs[[2L]] else NULL,
+              default = default,
+              user = TRUE)
 }
 
 odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
@@ -395,7 +395,7 @@ odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
     if (!(type %in% INTERPOLATION_TYPES)) {
       odin_error(sprintf(
         "Invalid interpolation type; must be one: of %s",
-        paste(INTERPOLATION_TYPES, collapse=", ")),
+        paste(INTERPOLATION_TYPES, collapse = ", ")),
         line, expr)
     }
   } else if (nargs == 2L) {
@@ -412,12 +412,12 @@ odin_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
     odin_error("interpolation target argument must be a symbol", line, expr)
   }
 
-  value <- list(type=type, t=deparse(rhs[[2L]]), y=deparse(rhs[[3L]]))
+  value <- list(type = type, t = deparse(rhs[[2L]]), y = deparse(rhs[[3L]]))
 
-  list(type="expression",
-       depends=find_symbols(rhs),
-       value=value,
-       interpolate=TRUE)
+  list(type = "expression",
+       depends = find_symbols(rhs),
+       value = value,
+       interpolate = TRUE)
 }
 
 ## NOTE: The sum() calls aren't real; they are translated at this
@@ -443,7 +443,7 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
   ## NOTE: This needs to be recursive because we're looking through
   ## all the calls here for the `sum` call, then checking that it's
   ## not calling itself.  Things like sum(a) + sum(b) are allowed.
-  rewrite_sum <- function(x, is_sum=FALSE) {
+  rewrite_sum <- function(x, is_sum = FALSE) {
     if (!is.recursive(x)) {
       x
     } else {
@@ -457,7 +457,7 @@ odin_parse_expr_rhs_rewrite_sum <- function(rhs, line, expr) {
         ok <- vlapply(tmp, as.logical)
         if (!all(ok)) {
           msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"),
-                        collapse="\n")
+                        collapse = "\n")
           odin_error(sprintf("Invalid array use in sum():\n%s", msg),
                      line, expr)
         }
@@ -556,7 +556,7 @@ odin_parse_expr_rhs_check_usage <- function(rhs, line, expr) {
 
 odin_parse_expr_rhs_replace_empty_index <- function(x) {
   index <- as.list(x[-(1:2)])
-  is_empty <- vlapply(index, identical, quote(expr=))
+  is_empty <- vlapply(index, identical, quote(expr = ))
   if (any(is_empty)) {
     if (length(index) == 1L) {
       index[] <- list(bquote(1:length(.(x[[2L]]))))
@@ -615,9 +615,9 @@ odin_parse_expr_lhs_check_index <- function(x) {
 
   x <- unique(err$get())
   if (length(x) == 0L) {
-    structure(TRUE, value_max=g(value_max), value_min=f(value_min))
+    structure(TRUE, value_max = g(value_max), value_min = f(value_min))
   } else {
-    structure(FALSE, message=x)
+    structure(FALSE, message = x)
   }
 }
 

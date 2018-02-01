@@ -56,28 +56,28 @@ test_that("constant array", {
     dim(zp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-  }, verbose=TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   tp <- c(0, 1, 2)
   zp <- cbind(c(0, 1, 0),
               c(0, 2, 0))
   ## Two dimensions to check here:
-  expect_error(gen(tp=tp, zp=zp[1:2, ]), "zp to have size 3")
-  expect_error(gen(tp=tp, zp=zp[c(1:3, 1:3), ]), "zp to have size 3")
-  expect_error(gen(tp=tp, zp=zp[, 1, drop=FALSE]), "zp to have size 2")
-  expect_error(gen(tp=tp, zp=zp[, c(1:2, 1)]), "zp to have size 2")
+  expect_error(gen(tp = tp, zp = zp[1:2, ]), "zp to have size 3")
+  expect_error(gen(tp = tp, zp = zp[c(1:3, 1:3), ]), "zp to have size 3")
+  expect_error(gen(tp = tp, zp = zp[, 1, drop = FALSE]), "zp to have size 2")
+  expect_error(gen(tp = tp, zp = zp[, c(1:2, 1)]), "zp to have size 2")
 
-  mod <- gen(tp=tp, zp=zp)
+  mod <- gen(tp = tp, zp = zp)
 
-  tt <- seq(0, 3, length.out=301)
+  tt <- seq(0, 3, length.out = 301)
   expect_error(mod$run(tt - 0.1),
                "Integration times do not span interpolation")
 
   yy <- mod$run(tt)
   zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
-  expect_equal(yy[, 2], zz1, tolerance=1e-5)
-  expect_equal(yy[, 3], zz2, tolerance=1e-5)
+  expect_equal(yy[, 2], zz1, tolerance = 1e-5)
+  expect_equal(yy[, 3], zz2, tolerance = 1e-5)
 })
 
 test_that("constant 3d array", {
@@ -94,7 +94,7 @@ test_that("constant 3d array", {
     dim(pulse) <- c(2, 2)
     dim(y) <- c(2, 2)
     config(base) <- "ic2"
-  }, verbose=TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   ## This is really challenging to even build the 'z' matrix here.
   ## When we go up one more dimension the user is going to enter a
@@ -109,23 +109,23 @@ test_that("constant 3d array", {
   stopifnot(isTRUE(all.equal(zp[3,,], matrix(0, 2, 2))))
 
   ## Three dimensions to check here:
-  expect_error(gen(tp=tp, zp=zp[1:2, , ]), "zp to have size 3")
-  expect_error(gen(tp=tp, zp=zp[c(1:3, 1:3), , ]), "zp to have size 3")
-  expect_error(gen(tp=tp, zp=zp[, 1, , drop=FALSE]), "zp to have size 2")
-  expect_error(gen(tp=tp, zp=zp[, c(1:2, 1), ]), "zp to have size 2")
-  expect_error(gen(tp=tp, zp=zp[, , 1, drop=FALSE]), "zp to have size 2")
-  expect_error(gen(tp=tp, zp=zp[, , c(1:2, 1)]), "zp to have size 2")
+  expect_error(gen(tp = tp, zp = zp[1:2, , ]), "zp to have size 3")
+  expect_error(gen(tp = tp, zp = zp[c(1:3, 1:3), , ]), "zp to have size 3")
+  expect_error(gen(tp = tp, zp = zp[, 1, , drop = FALSE]), "zp to have size 2")
+  expect_error(gen(tp = tp, zp = zp[, c(1:2, 1), ]), "zp to have size 2")
+  expect_error(gen(tp = tp, zp = zp[, , 1, drop = FALSE]), "zp to have size 2")
+  expect_error(gen(tp = tp, zp = zp[, , c(1:2, 1)]), "zp to have size 2")
 
-  mod <- gen(tp=tp, zp=zp)
+  mod <- gen(tp = tp, zp = zp)
 
-  tt <- seq(0, 3, length.out=301)
+  tt <- seq(0, 3, length.out = 301)
   expect_error(mod$run(tt - 0.1),
                "Integration times do not span interpolation")
 
   yy <- mod$run(tt)
   cmp <- sapply(1:4, function(i)
     ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
-  expect_equal(unname(yy[, -1]), cmp, tolerance=1e-5)
+  expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
 })
 
 test_that("linear", {
@@ -139,22 +139,22 @@ test_that("linear", {
     zp[] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
-  }, verbose=TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
-  mod <- gen(tp=tp, zp=zp)
+  mod <- gen(tp = tp, zp = zp)
 
-  tt <- seq(0, 2, length.out=101)
+  tt <- seq(0, 2, length.out = 101)
   yy <- mod$run(tt)
 
   f <- approxfun(tp, zp, "linear")
   target <- function(t, x, .) list(f(t))
-  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit=2)
+  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit = 2)
   expect_equal(yy[, 2], cmp[, 2])
 
   ## We'll set this correctly by default
-  yy <- mod$run(tt, tcrit=3)
+  yy <- mod$run(tt, tcrit = 3)
   expect_true(is.na(yy[nrow(yy), 2]))
 
   expect_error(mod$run(c(tt, max(tp) + 1)),
@@ -172,18 +172,18 @@ test_that("spline", {
     zp[] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
-  }, verbose=TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
-  tp <- seq(0, pi, length.out=31)
+  tp <- seq(0, pi, length.out = 31)
   zp <- sin(tp)
-  mod <- gen(tp=tp, zp=zp)
+  mod <- gen(tp = tp, zp = zp)
 
-  tt <- seq(0, pi, length.out=101)
-  yy <- mod$run(tt, tcrit=tt[length(tt)])
+  tt <- seq(0, pi, length.out = 101)
+  yy <- mod$run(tt, tcrit = tt[length(tt)])
 
   f <- splinefun(tp, zp, "natural")
   target <- function(t, x, .) list(f(t))
-  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit=tt[length(tt)])
+  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit = tt[length(tt)])
   expect_equal(yy[, 2], cmp[, 2])
 })
 
@@ -200,7 +200,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
     dim(zp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-  }, verbose=TEST_VERBOSE),
+  }, verbose = TEST_VERBOSE),
   "Expected zp to be a 2 dimensional array")
 
   expect_error(odin({
@@ -215,7 +215,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
     dim(zp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-  }, verbose=TEST_VERBOSE),
+  }, verbose = TEST_VERBOSE),
   "Expected zp to be a 2 dimensional array")
 
   expect_error(odin({
@@ -230,7 +230,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
     dim(zp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-  }, verbose=TEST_VERBOSE),
+  }, verbose = TEST_VERBOSE),
   "Expected tp to be a vector")
 })
 
@@ -246,7 +246,7 @@ test_that("unknown interpolation variable", {
     dim(tp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-  }, verbose=TEST_VERBOSE),
+  }, verbose = TEST_VERBOSE),
   "Unknown variable zp")
 })
 
@@ -262,8 +262,8 @@ test_that("interpolation array assignment error", {
     dim(tp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-  }, verbose=TEST_VERBOSE),
-  "interpolate() may only be used on a single-line array", fixed=TRUE)
+  }, verbose = TEST_VERBOSE),
+  "interpolate() may only be used on a single-line array", fixed = TRUE)
 })
 
 test_that("interpolation with two variables", {
@@ -284,19 +284,19 @@ test_that("interpolation with two variables", {
         zp2[] <- user()
         dim(tp2) <- user()
         dim(zp2) <- length(tp2)
-      }, list(type=type)),
-      verbose=TEST_VERBOSE)
+      }, list(type = type)),
+      verbose = TEST_VERBOSE)
 
     tp1 <- c(-1, 3)
     zp1 <- c( 0, 1)
     tp2 <- c(0, 1, 2)
     zp2 <- c(0, 1, 0)
-    mod <- gen(tp1=tp1, zp1=zp1, tp2=tp2, zp2=zp2)
+    mod <- gen(tp1 = tp1, zp1 = zp1, tp2 = tp2, zp2 = zp2)
 
     t1 <- if (type == "constant") max(tp1) else max(tp2)
     expect_equal(mod$interpolate_t, c(0, t1))
 
-    tt <- seq(0, t1, length.out=101)
+    tt <- seq(0, t1, length.out = 101)
     res <- mod$run(tt)
 
     ## and compare with deSolve:
@@ -304,13 +304,14 @@ test_that("interpolation with two variables", {
     if (type == "spline") {
       pulse2 <- splinefun(tp2, zp2, "natural")
     } else {
-      pulse2 <- approxfun(tp2, zp2, type, rule=if (type == "constant") 2 else 1)
+      pulse2 <- approxfun(tp2, zp2, type,
+                          rule = if (type == "constant") 2 else 1)
     }
-    p <- list(a=pulse1, b=pulse2)
+    p <- list(a = pulse1, b = pulse2)
     deriv <- function(t, y, p) {
       list(p[[1]](t) + p[[2]](t))
     }
-    cmp <- deSolve::lsoda(0, tt, deriv, p, tcrit=t1)
+    cmp <- deSolve::lsoda(0, tt, deriv, p, tcrit = t1)
     expect_equal(res[, 2], cmp[, 2])
 
     expect_error(mod$run(tt + 1),

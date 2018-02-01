@@ -28,7 +28,7 @@ seir_array <- function() {
   i_S <- 1:N_age
   i_I <- 1:N_age + (2 * N_age)
 
-  initial <- function(t=0, pars=NULL) {
+  initial <- function(t = 0, pars = NULL) {
     if ("I0" %in% names(pars)) {
       I0 <<- pars$I0
     }
@@ -86,5 +86,5 @@ seir_array <- function() {
     list(c(dSdt, dEdt, dIdt, dRdt))
   }
 
-  list(initial=initial, derivs=derivs, delay=TRUE, t=c(0, 365))
+  list(initial = initial, derivs = derivs, delay = TRUE, t = c(0, 365))
 }

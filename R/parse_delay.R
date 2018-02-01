@@ -119,7 +119,7 @@ odin_parse_delay_1_depends <- function(variables, obj) {
   ## Compute all the dependencies of this equation (and all their
   ## dependencies) filtered by those that depend on time.
   deps <- intersect(variables, names(obj$deps_rec))
-  deps <- unique(c(deps, unlist(obj$deps_rec[deps], use.names=FALSE)))
+  deps <- unique(c(deps, unlist(obj$deps_rec[deps], use.names = FALSE)))
   ## NOTE: We have to exclude delayed values from the dependencies
   ## here, even though they are time dependent (*different* sort
   ## of time dependence...)

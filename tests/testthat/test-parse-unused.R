@@ -51,7 +51,7 @@ test_that("delayed non-unused variables", {
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
     a <- 1
-  }, verbose=TEST_VERBOSE, build = FALSE))
+  }, verbose = TEST_VERBOSE, build = FALSE))
 })
 
 test_that("dimension names get cleaned", {
@@ -68,6 +68,6 @@ test_that("dimension names get cleaned", {
       dim(yr) <- 3
       output(r[]) <- TRUE
       config(base) <- "mod"
-    }, verbose = TEST_VERBOSE, build=FALSE),
+    }, verbose = TEST_VERBOSE, build = FALSE),
     "Unused variable: y0")
 })

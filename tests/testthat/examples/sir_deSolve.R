@@ -7,7 +7,7 @@ sir <- function() {
   sigma <- 12
   delta <- 1 / 5
 
-  initial <- function(t=0, pars=NULL) {
+  initial <- function(t = 0, pars = NULL) {
     if ("I0" %in% names(pars)) {
       I0 <<- pars$I0
     }
@@ -23,5 +23,5 @@ sir <- function() {
            sigma * I - b * R-delta * R))
   }
 
-  list(derivs=derivs, initial=initial, t=c(0, 100))
+  list(derivs = derivs, initial = initial, t = c(0, 100))
 }

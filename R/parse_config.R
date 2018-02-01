@@ -22,11 +22,11 @@
 ##   These all need support on the C side.
 ##
 ##   Consider namespacing these here:
-##   atol=formals(deSolve::lsoda)$atol,
-##   rtol=formals(deSolve::lsoda)$rtol,
-##   method="lsoda", # same as deSolve::ode
+##   atol = formals(deSolve::lsoda)$atol,
+##   rtol = formals(deSolve::lsoda)$rtol,
+##   method = "lsoda", # same as deSolve::ode
 ##   ## delay only
-##   mxhist=10000
+##   mxhist = 10000
 ##
 ##   Also allow renaming here (time, derivs, etc).
 ##
@@ -43,7 +43,7 @@ odin_parse_config <- function(obj) {
   if (length(cfg) > 0L) {
     ## Filter configuration options out of equations (and traits!)
     obj$eqs <- obj$eqs[!is_config]
-    obj$traits <- obj$traits[!is_config, , drop=FALSE]
+    obj$traits <- obj$traits[!is_config, , drop = FALSE]
     obj$names_target <- obj$names_target[!is_config]
 
     dat <- odin_parse_config_check_types(cfg)
@@ -53,7 +53,7 @@ odin_parse_config <- function(obj) {
     if (length(err)) {
       tmp <- dat[names(dat) %in% err]
       odin_error(sprintf("Unknown configuration options: %s",
-                         paste(err, collapse=", ")),
+                         paste(err, collapse = ", ")),
                  get_lines(tmp), get_exprs(tmp))
     }
 
@@ -81,9 +81,9 @@ odin_parse_config_check_types <- function(cfg) {
       odin_error("config() rhs must be atomic (not an expression or symbol)",
                  x$line, x$expr)
     }
-    list(value=x$rhs$value,
-         line=x$line,
-         expr=x$expr)
+    list(value = x$rhs$value,
+         line = x$line,
+         expr = x$expr)
   }
 
   setNames(lapply(cfg, f_value), vcapply(cfg, f_name))
@@ -134,7 +134,7 @@ odin_parse_config_include <- function(include, path) {
         include[[i]]$expr)
     }
     tryCatch(read_user_c(filename),
-             error=function(e)
+             error = function(e)
                odin_error(paste("Could not read include file:", e$message),
                           include[[i]]$line,
                           include[[i]]$expr))

@@ -38,7 +38,7 @@ test_that("verbose", {
     update(x) <- x + norm_rand()
     config(base) <- "mycrazymodel"
   }, verbose = TRUE),
-  "mycrazymodel.o", fixed=TRUE)
+  "mycrazymodel.o", fixed = TRUE)
 })
 
 test_that("warnings", {
@@ -79,7 +79,7 @@ test_that("n_history is configurable", {
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-  }, verbose=TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   mod <- gen(use_dde = TRUE)
   expect_true("n_history" %in% names(formals(mod$run)))

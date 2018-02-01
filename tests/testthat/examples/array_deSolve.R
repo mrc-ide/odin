@@ -18,7 +18,7 @@ age <- function() {
     den[i] <- age_rate[[i - 1L]] * den[[i - 1L]] / (age_rate[i] + b)
   }
 
-  initial <- function(t=0, pars=NULL) {
+  initial <- function(t = 0, pars = NULL) {
     if ("I0" %in% names(pars)) {
       I0 <<- pars$I0
     }
@@ -52,8 +52,8 @@ age <- function() {
     N_tot <- sum(S + I + R)
     prev <- I_tot / N_tot * 100
     list(c(dSdt, dIdt, dRdt),
-         c(N_tot=N_tot, prev=prev))
+         c(N_tot = N_tot, prev = prev))
   }
 
-  list(derivs=derivs, initial=initial, t=c(0, 100))
+  list(derivs = derivs, initial = initial, t = c(0, 100))
 }

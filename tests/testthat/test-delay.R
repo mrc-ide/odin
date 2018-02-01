@@ -167,7 +167,7 @@ test_that("3 arg delay", {
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
     output(ylag) <- ylag
     config(base) <- "delay3"
-  }, verbose=TEST_VERBOSE)
+  }, verbose = TEST_VERBOSE)
 
   mod <- gen()
   tt <- seq(0, 3, length.out = 101)

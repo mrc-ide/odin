@@ -2,7 +2,7 @@ lv4 <- function() {
   r <- NULL
   a <- NULL
 
-  initial <- function(t=0, pars=NULL) {
+  initial <- function(t = 0, pars = NULL) {
     r <<- pars[["r"]]
     a <<- pars[["a"]]
     pars[["y0"]]
@@ -15,5 +15,5 @@ lv4 <- function() {
       r[i] * y[i] * (1 - sum(a[i, ] * y)), numeric(1)))
   }
 
-  list(derivs=derivs, initial=initial, t=c(0, 100))
+  list(derivs = derivs, initial = initial, t = c(0, 100))
 }

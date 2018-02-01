@@ -72,14 +72,14 @@ odin_parse_dependencies_deps <- function(obj) {
     msg <- sort(unique(unlist(msg)))
     ## TODO: this is not *variable* as such.
     fmt <- ngettext(length(msg), "Unknown variable %s",  "Unknown variables %s")
-    odin_error(sprintf(fmt, paste(msg, collapse=", ")),
+    odin_error(sprintf(fmt, paste(msg, collapse = ", ")),
                get_lines(eqs[i]), get_exprs(eqs[i]))
   }
 
   ## For the derivative calculations the variables come in with no
   ## dependencies because they are provided by the integrator (but
   ## we'll add an implicit time dependency).
-  dummy <- c(list(t=character(0)),
+  dummy <- c(list(t = character(0)),
              setNames(rep(list(character(0)), length(vars)), vars))
   order <- topological_order(c(deps, dummy))
 

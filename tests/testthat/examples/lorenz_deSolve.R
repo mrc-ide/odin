@@ -3,7 +3,7 @@ sir <- function() {
   R     <- 28.0
   b     <-  8.0 / 3.0
 
-  initial <- function(t=0, pars=NULL) {
+  initial <- function(t = 0, pars = NULL) {
     c(10, 1, 1)
   }
 
@@ -16,5 +16,5 @@ sir <- function() {
            -b * y3 + y1 * y2))
   }
 
-  list(derivs=derivs, initial=initial, t=c(0, 15))
+  list(derivs = derivs, initial = initial, t = c(0, 15))
 }

@@ -10,7 +10,7 @@ test_that("generate package", {
     mod <- res$env$lorenz_odin()
     cmp <- source1("examples/lorenz_deSolve.R")
 
-    files_src <- dir(file.path(res$path, "src"), pattern="\\.c$")
+    files_src <- dir(file.path(res$path, "src"), pattern = "\\.c$")
     if (single_file) {
       expect_equal(files_src, "odin.c")
     } else {
@@ -18,10 +18,10 @@ test_that("generate package", {
       expect_true("odin.c" %in% files_src)
     }
 
-    t <- seq(0, 10, length.out=100)
+    t <- seq(0, 10, length.out = 100)
     y_c <- mod$run(t)
     y_r <- run_model(cmp, t)
-    expect_equal(y_c[, 2:4], y_r[, 2:4], check.attributes=FALSE)
+    expect_equal(y_c[, 2:4], y_r[, 2:4], check.attributes = FALSE)
     res$cleanup()
     on.exit()
   }
@@ -29,7 +29,7 @@ test_that("generate package", {
 
 test_that("interpolation", {
   res <- odin_create_package("interpolation", "examples/interpolate_odin.R",
-                             verbose=TEST_VERBOSE)
+                             verbose = TEST_VERBOSE)
   on.exit(res$cleanup())
 
   flux_t <- c(1, 11, 21, 41, 73, 83, 93, 103, 113, 123, 133, 143, 153,
@@ -40,16 +40,16 @@ test_that("interpolation", {
               0.893, 0.737, 0.772, 0.726, 0.624, 0.439, 0.168, 0.28, 0.202,
               0.193, 0.286, 0.599, 1.889, 0.996, 0.681, 1.135)
   k <- 0.01
-  C0 <- mean(approx(flux_t, flux_y, xout=1:365)$y) / k
-  mod <- res$env$interpolate_odin(kk=k, C0=C0, flux_t=flux_t, flux_y)
+  C0 <- mean(approx(flux_t, flux_y, xout = 1:365)$y) / k
+  mod <- res$env$interpolate_odin(kk = k, C0 = C0, flux_t = flux_t, flux_y)
 
   t <- seq(1, 365)
 
   cmp <- source1("examples/interpolate_deSolve.R")
-  pars <- list(flux_t=flux_t, flux_y=flux_y, k=k)
-  y_r <- run_model(cmp, t, pars, tcrit=max(t))
+  pars <- list(flux_t = flux_t, flux_y = flux_y, k = k)
+  y_r <- run_model(cmp, t, pars, tcrit = max(t))
 
-  y_c <- mod$run(t, tcrit=max(t))
+  y_c <- mod$run(t, tcrit = max(t))
 
   ## On appveyor, these don't agree, and I can't replicate on a local
   ## windows machine.

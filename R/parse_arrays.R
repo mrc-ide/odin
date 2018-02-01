@@ -49,7 +49,7 @@ odin_parse_arrays <- function(obj) {
       obj$eqs <- eqs
     } else {
       obj$eqs <- eqs[-i_drop]
-      obj$traits <- obj$traits[-i_drop, , drop=FALSE]
+      obj$traits <- obj$traits[-i_drop, , drop = FALSE]
       obj$names_target <- obj$names_target[-i_drop]
     }
   }
@@ -138,7 +138,7 @@ odin_parse_arrays_check_usage <- function(obj) {
   err <- !(is_array | is_dim) & names_target %in% obj$names_target[is_dim]
   if (any(err)) {
     odin_error(sprintf("Array variables must always assign as arrays (%s)",
-                       paste(unique(names_target[err]), collapse=", ")),
+                       paste(unique(names_target[err]), collapse = ", ")),
                get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
   }
 
@@ -146,7 +146,7 @@ odin_parse_arrays_check_usage <- function(obj) {
   err <- is_duplicated(names(obj$eqs)) & !is_array
   if (any(err)) {
     odin_error(sprintf("Duplicate entries must all be array assignments (%s)",
-                       paste(unique(names_target[err]), collapse=", ")),
+                       paste(unique(names_target[err]), collapse = ", ")),
                get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
   }
 
@@ -156,7 +156,7 @@ odin_parse_arrays_check_usage <- function(obj) {
   err <- is_duplicated(names(obj$eqs)) & is_array & obj$traits[, "uses_user"]
   if (any(err)) {
     odin_error(sprintf("Duplicate entries may not use user() (%s)",
-                       paste(unique(names_target[err]), collapse=", ")),
+                       paste(unique(names_target[err]), collapse = ", ")),
                get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
   }
 
@@ -164,7 +164,7 @@ odin_parse_arrays_check_usage <- function(obj) {
   err <- which(is_array)[!(name_dim %in% names(obj$eqs))]
   if (length(err) > 0L) {
     odin_error(sprintf("Missing dim() call for %s, assigned as an array",
-                       paste(unique(names_target[err]), collapse=", ")),
+                       paste(unique(names_target[err]), collapse = ", ")),
                get_lines(obj$eqs[err]), get_exprs(obj$eqs[err]))
   }
 }
@@ -195,7 +195,7 @@ odin_parse_arrays_nd <- function(obj) {
                                names(obj$eqs)),
                          which(is_dim)[nd_user][err]))]
       odin_error(sprintf("Can't specify user-sized variables (for %s)",
-                         paste(nm[err], collapse=", ")),
+                         paste(nm[err], collapse = ", ")),
                  get_lines(tmp), get_exprs(tmp))
     }
 
@@ -306,7 +306,7 @@ odin_parse_arrays_1 <- function(idx, obj) {
   single <- c("delay", "user", "interpolate")
   if (any(single %in% used_rhs)) {
     if (length(idx) > 1L) {
-      f <- paste0(intersect(single, used_rhs), "()", collapse=", ")
+      f <- paste0(intersect(single, used_rhs), "()", collapse = ", ")
       odin_error(sprintf(
         "%s may only be used on a single-line array assignment", f),
         get_lines(eqs[idx]), get_exprs(eqs[idx]))
@@ -374,7 +374,7 @@ odin_parse_array_check <- function(obj) {
                                  function(x) x$lhs$data_type) == "int")
 
   ## need to check all length and dim calls here.  Basically we're
-  ## looking for length() to be used with calls on nd==1 arrays and
+  ## looking for length() to be used with calls on nd == 1 arrays and
   ## range check all dim() calls on the others.  This is moderately
   ## complicated and we'll need to poke into some expressions we've
   ## looked at already.  Later on an optimisation pass we can try

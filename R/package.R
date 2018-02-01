@@ -47,7 +47,7 @@
 ##'   it will be much slower.
 ##'
 ##' @export
-odin_package <- function(path_package, filenames=NULL, single_file=TRUE,
+odin_package <- function(path_package, filenames = NULL, single_file = TRUE,
                          safe = FALSE) {
   desc <- file.path(path_package, "DESCRIPTION")
   if (!file.exists(desc)) {
@@ -58,7 +58,7 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE,
     if (!is_directory(inst_odin)) {
       stop("If 'filenames' is not given, inst/odin must exist")
     }
-    filenames <- dir(inst_odin, pattern="\\.[Rr]", full.names=TRUE)
+    filenames <- dir(inst_odin, pattern = "\\.[Rr]", full.names = TRUE)
   }
   if (length(filenames) == 0L) {
     stop("At least one filename must be given")
@@ -67,13 +67,13 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE,
   if (any(msg)) {
     what <- ngettext(length(msg), "file", "files")
     stop(sprintf("Input %s not found: %s",
-                 what, paste(filenames[msg], collapse=", ")))
+                 what, paste(filenames[msg], collapse = ", ")))
   }
   dup <- duplicated(filenames)
   if (any(dup)) {
     dups <- unique(filenames[dup])
     what <- ngettext(length(msg), "file", "files")
-    stop(sprintf("Duplicate %s: %s", what, paste(dups, collapse=", ")))
+    stop(sprintf("Duplicate %s: %s", what, paste(dups, collapse = ", ")))
   }
 
   dat <- lapply(filenames, function(f)
@@ -100,7 +100,7 @@ odin_package <- function(path_package, filenames=NULL, single_file=TRUE,
 
   writel <- function(x, file) {
     x <- x[lengths(x) > 0]
-    txt <- paste(vcapply(x, paste, collapse="\n"), collapse="\n\n")
+    txt <- paste(vcapply(x, paste, collapse = "\n"), collapse = "\n\n")
     writeLines(txt, file.path(path_package, "src", file))
   }
 
@@ -142,5 +142,5 @@ combine_library <- function(dat) {
   keep <- !duplicated(decl)
   decl <- decl[keep]
   defn <- unlist(lapply(dat, function(x) x$library_fns$definitions))[keep]
-  list(declarations=decl, definitions=defn)
+  list(declarations = decl, definitions = defn)
 }

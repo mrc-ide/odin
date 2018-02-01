@@ -32,7 +32,7 @@ compile <- function(filename, verbose = TRUE, preclean = FALSE,
     args <- c("CMD", "SHLIB", filename,
               "-o", dll, if (preclean) "--preclean")
     output <- suppressWarnings(system2(file.path(R.home(), "bin", "R"), args,
-                                       stdout=TRUE, stderr=TRUE))
+                                       stdout = TRUE, stderr = TRUE))
     handle_compiler_output(output, verbose, compiler_warnings)
   }
 

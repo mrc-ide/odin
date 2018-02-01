@@ -17,17 +17,17 @@ test_that("some parse errors", {
                "Invalid function in array calculation")
 
   expect_error(odin_parse(quote(x <- 1 + user(2))),
-               "user() must be the only call on the rhs", fixed=TRUE)
+               "user() must be the only call on the rhs", fixed = TRUE)
   expect_error(odin_parse(quote(x <- user(user(2)))),
-               "user() call must not use functions", fixed=TRUE)
+               "user() call must not use functions", fixed = TRUE)
 
   expect_error(odin_parse(quote(y <- deriv(x))),
                "Function deriv is disallowed on rhs")
 
   expect_error(odin_parse(quote(initial(x) <- user())),
-               "user() only valid for non-special variables", fixed=TRUE)
+               "user() only valid for non-special variables", fixed = TRUE)
   expect_error(odin_parse(quote(deriv(x) <- user())),
-               "user() only valid for non-special variables", fixed=TRUE)
+               "user() only valid for non-special variables", fixed = TRUE)
   ## TODO: This gives an unhelpful error message
   ## odin_parse(quote(dim(x) <- user()")
 
@@ -68,7 +68,7 @@ test_that("some parse errors", {
                "must contain same set of equations")
 
   expect_error(odin_parse("deriv(y) = 1; update(z) = 1; initial(y) = 1; initial(z) = 1;"),
-               "Cannot mix deriv() and update()", fixed=TRUE)
+               "Cannot mix deriv() and update()", fixed = TRUE)
 
   expect_error(odin_parse(quote(x <- y + z)),
                "Unknown variables y, z")
@@ -81,7 +81,7 @@ test_that("some parse errors", {
   expect_error(odin_parse("x[1] = 1\nx = 2"),
                "Duplicate entries must all be array assignments")
   expect_error(odin_parse("deriv(x[1]) = 1\ninitial(x) = 2"),
-               "Missing dim() call", fixed=TRUE)
+               "Missing dim() call", fixed = TRUE)
 
   expect_error(
     odin_parse("x[1] <- 1\nx[2,1] <- 2\ndim(x) <- 10"),
@@ -96,15 +96,15 @@ test_that("some parse errors", {
                "must be applied to a name only")
 
   expect_error(odin_parse(quote(x <- user(1, 2))),
-               "user() call must have zero or one argument", fixed=TRUE)
+               "user() call must have zero or one argument", fixed = TRUE)
   expect_error(odin_parse(quote(x <- user(a))),
-               "user() call must not reference variables", fixed=TRUE)
+               "user() call must not reference variables", fixed = TRUE)
 
   expect_error(odin_parse("y <- x\nx[1] <- 1\ndim(x) <- 10"),
                "Array 'x' used without array index")
 
   expect_error(odin_parse("y[] <- 0\ndim(y) <- f(p)"),
-               "Invalid dim() rhs", fixed=TRUE)
+               "Invalid dim() rhs", fixed = TRUE)
 
   ## TODO: I don't even remember what the issue is here!
   ## expect_error(
@@ -112,23 +112,23 @@ test_that("some parse errors", {
   ##   ".")
 
   expect_error(odin_parse(quote(a <- 1 + delay(1))),
-               "delay() must be the only call on the rhs", fixed=TRUE)
+               "delay() must be the only call on the rhs", fixed = TRUE)
   expect_error(odin_parse(quote(a <- delay(1))),
-               "delay() requires two or three arguments", fixed=TRUE)
+               "delay() requires two or three arguments", fixed = TRUE)
   expect_error(odin_parse(quote(a <- delay(1, 2, 3, 4))),
-               "delay() requires two or three arguments", fixed=TRUE)
+               "delay() requires two or three arguments", fixed = TRUE)
   expect_error(odin_parse(quote(a <- delay(delay(1, 2), 2))),
-               "delay() may not be nested", fixed=TRUE)
+               "delay() may not be nested", fixed = TRUE)
   expect_error(odin_parse(quote(a <- delay(2, delay(1, 2)))),
-               "delay() may not be nested", fixed=TRUE)
+               "delay() may not be nested", fixed = TRUE)
 
   expect_error(odin_parse(quote(a <- delay(y + t, 2))),
-               "delay() may not refer to time", fixed=TRUE)
+               "delay() may not refer to time", fixed = TRUE)
 
   expect_error(odin_parse(quote(a <- user() + 1)),
-               "user() must be the only call on the rhs", fixed=TRUE)
+               "user() must be the only call on the rhs", fixed = TRUE)
   expect_error(odin_parse(quote(a <- interpolate() + 1)),
-               "interpolate() must be the only call on the rhs", fixed=TRUE)
+               "interpolate() must be the only call on the rhs", fixed = TRUE)
 
   expect_error(odin_parse(quote(a <- deriv)),
                "Function 'deriv' is disallowed as symbol on rhs")
@@ -144,32 +144,32 @@ test_that("RHS array checking", {
   ia <- character(0)
 
   ## This needs expanding as I find more corner cases
-  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=1), ia,
+  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b = 1), ia,
                                           line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b=2), ia,
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b = 2), ia,
                                            line, expr),
                "Incorrect dimensionality for 'b'")
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=2), ia,
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 2), ia,
                                            line, expr),
                "Incorrect dimensionality for 'b'")
-  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b=3), ia,
+  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 3), ia,
                                           line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b=1), ia,
+  expect_error(odin_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b = 1), ia,
                                            line, expr),
                "Disallowed functions used for b")
-  expect_error(odin_parse_arrays_check_rhs(quote(b), c(b=1), ia, line, expr),
+  expect_error(odin_parse_arrays_check_rhs(quote(b), c(b = 1), ia, line, expr),
                "Array 'b' used without array index")
-  expect_null(odin_parse_arrays_check_rhs(quote(a), c(b=1), ia, line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a[]), c(a=1), ia, line, expr),
+  expect_null(odin_parse_arrays_check_rhs(quote(a), c(b = 1), ia, line, expr))
+  expect_error(odin_parse_arrays_check_rhs(quote(a[]), c(a = 1), ia, line, expr),
                "Empty array index not allowed on rhs")
 
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
-  expect_null(odin_parse_arrays_check_rhs(rhs, c(a=1), ia, line, expr))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), ia, line, expr),
+  expect_null(odin_parse_arrays_check_rhs(rhs, c(a = 1), ia, line, expr))
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(b = 1), ia, line, expr),
                "Function 'sum' requires array as first argument")
 
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a[])))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(b=1), ia, line, expr),
+  expect_error(odin_parse_arrays_check_rhs(rhs, c(b = 1), ia, line, expr),
                "Function 'sum' requires array as first argument")
 
   expr <- quote(sum(a[,]))
@@ -298,9 +298,9 @@ test_that("lhs checking", {
   expect_error(odin_parse(quote(1 <- 1)),
                "Invalid left hand side")
   expect_error(odin_parse(quote(1 + 1 <- 1)),
-               "Unhandled expression + on lhs", fixed=TRUE)
+               "Unhandled expression + on lhs", fixed = TRUE)
   expect_error(odin_parse(quote(devs(a) <- 1)),
-               "Unhandled expression devs on lhs", fixed=TRUE)
+               "Unhandled expression devs on lhs", fixed = TRUE)
 
   expect_error(odin_parse(quote(deriv(a, b) <- 1)),
                "Invalid length special function on lhs")
@@ -405,11 +405,11 @@ test_that("some dim() pathologies", {
 
 test_that("delay check", {
   expect_error(odin_parse_expr(quote(deriv(x) <- delay(y, 1)), NULL, NULL),
-               "delay() only valid for non-special variables", fixed=TRUE)
+               "delay() only valid for non-special variables", fixed = TRUE)
   expect_error(odin_parse_expr(quote(initial(x) <- delay(y, 1)), NULL, NULL),
-               "delay() only valid for non-special variables", fixed=TRUE)
+               "delay() only valid for non-special variables", fixed = TRUE)
   expect_error(odin_parse_expr(quote(dim(x) <- delay(y, 1)), NULL, NULL),
-               "delay() only valid for non-special variables", fixed=TRUE)
+               "delay() only valid for non-special variables", fixed = TRUE)
 })
 
 test_that("array pathologies", {
@@ -417,14 +417,14 @@ test_that("array pathologies", {
     gen <- odin::odin({
       dim(y) <- 2
       y <- 1
-    }, verbose=TEST_VERBOSE, build = FALSE)
+    }, verbose = TEST_VERBOSE, build = FALSE)
    , "Array variables must always assign as arrays")
 
   expect_error(
     gen <- odin::odin({
       dim(y) <- user()
       y <- 1
-    }, verbose=TEST_VERBOSE, build = FALSE)
+    }, verbose = TEST_VERBOSE, build = FALSE)
    , "Array variables must always assign as arrays")
 
   expect_error(
@@ -432,42 +432,42 @@ test_that("array pathologies", {
       dim(y) <- 2
       y[1] <- user()
       y[2] <- 1
-    }, verbose=TEST_VERBOSE, build = FALSE)
+    }, verbose = TEST_VERBOSE, build = FALSE)
    , "Duplicate entries may not use user")
 })
 
 test_that("correct dim() use", {
   expect_error(odin_parse("dim(x) <- 10; a <- length(x, 1)"),
-               "Expected 1 argument in length", fixed=TRUE)
+               "Expected 1 argument in length", fixed = TRUE)
   expect_error(odin_parse("dim(x) <- 10; a <- length()"),
-               "Expected 1 argument in length", fixed=TRUE)
+               "Expected 1 argument in length", fixed = TRUE)
   expect_error(odin_parse("dim(x) <- 10; a <- length(1)"),
-               "argument to length must be a symbol", fixed=TRUE)
+               "argument to length must be a symbol", fixed = TRUE)
   expect_error(odin_parse("x <- 2; a <- length(x)"),
-               "argument to length must be an array", fixed=TRUE)
+               "argument to length must be an array", fixed = TRUE)
   expect_error(odin_parse("dim(x) <- c(2, 10); a <- length(x)"),
-               "argument to length must be a 1-D array", fixed=TRUE)
+               "argument to length must be a 1-D array", fixed = TRUE)
 
   expect_error(odin_parse("dim(x) <- 10; a <- dim(x)"),
-               "Expected 2 arguments in dim call", fixed=TRUE)
+               "Expected 2 arguments in dim call", fixed = TRUE)
   expect_error(odin_parse("dim(x) <- 10; a <- dim(x, 1, 2)"),
-               "Expected 2 arguments in dim call", fixed=TRUE)
+               "Expected 2 arguments in dim call", fixed = TRUE)
 
   expect_error(odin_parse("dim(x) <- c(10, 2); a <- dim(1, x)"),
-               "argument to dim must be a symbol", fixed=TRUE)
+               "argument to dim must be a symbol", fixed = TRUE)
 
   expect_error(odin_parse("x <- 2; a <- dim(x, 1)"),
-               "argument to dim must be an array", fixed=TRUE)
+               "argument to dim must be an array", fixed = TRUE)
 
   expect_error(odin_parse("dim(x) <- 1; x[] <- 1; a <- dim(x, 1)"),
-               "dim() must not be used for 1D arrays", fixed=TRUE)
+               "dim() must not be used for 1D arrays", fixed = TRUE)
   expect_error(odin_parse("dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, 1.4)"),
-               "second argument to dim() must be an integer", fixed=TRUE)
+               "second argument to dim() must be an integer", fixed = TRUE)
   expect_error(odin_parse("dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, b)"),
-               "second argument to dim() must be an integer", fixed=TRUE)
+               "second argument to dim() must be an integer", fixed = TRUE)
 
   expect_error(odin_parse("dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, 3)"),
-               "array index out of bounds", fixed=TRUE)
+               "array index out of bounds", fixed = TRUE)
 
   expect_error(odin_parse("dim(x) <- 10; a <- length(x)"),
                "array variable is never assigned: x")

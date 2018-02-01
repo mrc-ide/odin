@@ -103,7 +103,7 @@ odin_ring_support <- function(package) {
   ## Annoyingly different from the version used in interpolate
   filter_includes <- function(filename) {
     x <- readLines(filename)
-    x[!grepl("^#include\\s+", x, perl=TRUE)]
+    x[!grepl("^#include\\s+", x, perl = TRUE)]
   }
 
   r_h <- system.file("include/ring/ring.h", package = "ring", mustWork = TRUE)

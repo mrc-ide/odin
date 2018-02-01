@@ -15,7 +15,7 @@ seir <- function() {
   y0 <- NULL
   lag <- NULL
 
-  initial <- function(t=0, pars=NULL) {
+  initial <- function(t = 0, pars = NULL) {
     if ("I0" %in% names(pars)) {
       I0 <<- pars$I0
     }
@@ -50,5 +50,5 @@ seir <- function() {
     ## c(prev = I/N, Hpop = S+E+I+R))
   }
 
-  list(initial=initial, derivs=derivs, delay=TRUE, t=c(0, 365))
+  list(initial = initial, derivs = derivs, delay = TRUE, t = c(0, 365))
 }

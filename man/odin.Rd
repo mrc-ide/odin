@@ -116,18 +116,18 @@ exp_decay <- odin::odin({
 mod <- exp_decay()
 
 ## Run the model for a series of times from 0 to 10:
-t <- seq(0, 10, length.out=101)
+t <- seq(0, 10, length.out = 101)
 y <- mod$run(t)
-plot(y, xlab="Time", ylab="y", main="", las=1)
+plot(y, xlab = "Time", ylab = "y", main = "", las = 1)
 
 }
 
-## If you want to see the underlying C code, pass build=FALSE:
+## If you want to see the underlying C code, pass build = FALSE:
 ## (Note: this step does not require a working C compiler)
 path <- odin::odin({
   deriv(y) <- -0.5 * y
   initial(y) <- 1
-}, build=FALSE)
+}, build = FALSE)
 }
 \author{
 Rich FitzJohn

@@ -10,8 +10,8 @@ odin_preprocess <- function(x) {
   type <- odin_preprocess_detect(x)
 
   exprs <- switch(type,
-                  file = parse(file = x, keep.source=TRUE),
-                  text = parse(text = x, keep.source=TRUE),
+                  file = parse(file = x, keep.source = TRUE),
+                  text = parse(text = x, keep.source = TRUE),
                   expression = preprocess_expression(x))
 
   if (type == "file") {

@@ -10,7 +10,7 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE,
     if (!is.recursive(expr)) {
       num <- is.numeric(expr)
       if (num) {
-        str <- deparse(expr, control="digits17") # or hexNumeric
+        str <- deparse(expr, control = "digits17") # or hexNumeric
         is_index <- FALSE
       } else {
         ## TODO: this is going to have some serious issues if we ever
@@ -22,11 +22,11 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE,
         }
         is_index <- str %in% INDEX
       }
-      return(list(numeric=is.numeric(expr),
-                  value=str,
-                  value_num=if (num) expr else NULL,
-                  value_sym=if (num) NULL else expr,
-                  is_index=is_index))
+      return(list(numeric = is.numeric(expr),
+                  value = str,
+                  value_num = if (num) expr else NULL,
+                  value_sym = if (num) NULL else expr,
+                  is_index = is_index))
     }
     nm <- deparse(expr[[1L]])
     if (nm %in% names(FUNCTIONS_RENAME)) {
@@ -60,9 +60,9 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE,
         ## TODO: This appears all over the show, and is harder than ideal
         arr <- as.character(expr[[2L]])
         values <- c(values, vcapply(seq_len(nd - 1), function(x)
-          rewrite_recall(array_dim_name(arr, paste(seq_len(x), collapse="")))))
+          rewrite_recall(array_dim_name(arr, paste(seq_len(x), collapse = "")))))
       }
-      value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
+      value <- sprintf("%s(%s)", nm, paste(values, collapse = ", "))
     } else if (n == 1L && nm %in% FUNCTIONS_UNARY) {
       value <- sprintf("%s%s", nm, values)
     } else if (n == 2L && nm %in% FUNCTIONS_INFIX) {
@@ -76,7 +76,7 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE,
         ## for any of the constituent bits to be non-integer, or a
         ## symbol that is not an integer.  Or I could just do it *always*.
         is_numeric <- vlapply(res, "[[", "numeric")
-        i <- is_numeric & !grepl(".", values, fixed=TRUE)
+        i <- is_numeric & !grepl(".", values, fixed = TRUE)
         if (any(i)) {
           values[i] <- sprintf("(double) %s", values[i])
         }
@@ -109,10 +109,10 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE,
       if (nm == "Rf_rbinom") {
         values[[1]] <- sprintf("round(%s)", values[[1]])
       }
-      value <- sprintf("%s(%s)", nm, paste(values, collapse=", "))
+      value <- sprintf("%s(%s)", nm, paste(values, collapse = ", "))
     }
 
-    list(numeric=FALSE, value=value, is_index=is_index)
+    list(numeric = FALSE, value = value, is_index = is_index)
   }
 
   ## I could make this optional later, but that might just be more
@@ -148,11 +148,11 @@ rewrite_array <- function(expr, res, values, rewrite, safe, expr_data) {
   } else if (nd > 1L) {
     r <- function(i) {
       rewrite(array_dim_name(as.character(expr[[2L]]),
-                             paste(seq_len(i - 1), collapse="")))
+                             paste(seq_len(i - 1), collapse = "")))
     }
     index <- values
     index[2:nd] <- sprintf("%s * %s", index[2:nd], vcapply(2:nd, r))
-    index <- paste(index, collapse=" + ")
+    index <- paste(index, collapse = " + ")
   }
 
   target <- res[[1L]]$value

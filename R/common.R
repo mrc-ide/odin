@@ -43,7 +43,7 @@ FUNCTIONS_UNARY <- c("+", "-") # TODO: add "!"?
 
 FUNCTIONS_RENAME <- c(
   "%%" = "fmodr",
-  "%/%"= "fintdiv",
+  "%/%" = "fintdiv",
   "^" = "pow",
   abs = "fabs",
   max = "fmax",
@@ -160,9 +160,9 @@ FUNCTIONS_NARY <-
   names(which(vapply(FUNCTIONS, function(x) x[[length(x)]] == Inf, logical(1))))
 
 ## Avoid a lot of error print pasting:
-array_dim_name <- function(name, sub=NULL, use=TRUE) {
+array_dim_name <- function(name, sub = NULL, use = TRUE) {
   if (length(name) > 1L) {
-    return(vcapply(name, array_dim_name, sub, use, USE.NAMES=FALSE))
+    return(vcapply(name, array_dim_name, sub, use, USE.NAMES = FALSE))
   }
   if (!is.null(sub)) {
     name <- sprintf("%s_%s", name, sub)

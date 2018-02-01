@@ -1,4 +1,4 @@
-find_symbols <- function(expr, hide_errors=TRUE) {
+find_symbols <- function(expr, hide_errors = TRUE) {
   if (is.list(expr)) {
     return(join_deps(lapply(expr, find_symbols)))
   }
@@ -36,8 +36,8 @@ find_symbols <- function(expr, hide_errors=TRUE) {
   }
 
   f(expr)
-  list(functions=unique(functions),
-       variables=unique(variables))
+  list(functions = unique(functions),
+       variables = unique(variables))
 }
 
 join_deps <- function(x) {
@@ -48,12 +48,12 @@ join_deps <- function(x) {
     identical(names(el), c("functions", "variables")))
   stopifnot(all(ok))
   if (length(x) == 0L) {
-    list(functions=character(0), variables=character(0))
+    list(functions = character(0), variables = character(0))
   } else if (length(x) == 1L) {
     x[[1L]]
   } else {
-    list(functions=unique(unlist(lapply(x, "[[", "functions"))),
-         variables=unique(unlist(lapply(x, "[[", "variables"))))
+    list(functions = unique(unlist(lapply(x, "[[", "functions"))),
+         variables = unique(unlist(lapply(x, "[[", "variables"))))
   }
 }
 
@@ -89,8 +89,8 @@ topological_order <- function(graph) {
       }
       err <- intersect(edges, names(graph))
       stop(sprintf("A cyclic dependency detected for %s:\n%s",
-                   paste(err, collapse=", "),
-                   paste(vcapply(err, f), collapse="\n")), call.=FALSE)
+                   paste(err, collapse = ", "),
+                   paste(vcapply(err, f), collapse = "\n")), call. = FALSE)
     }
   }
 

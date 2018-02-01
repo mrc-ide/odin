@@ -9,7 +9,7 @@
 ## the result of running odin_generate1().  None of these functions
 ## modify 'obj'.
 ##
-## Every function that has any other argument has 'output=FALSE' as
+## Every function that has any other argument has 'output = FALSE' as
 ## its only other argument; in this case they're unpacking/working
 ## with output rather than varaibles, as there is quite a bit of
 ## overlap there.
@@ -65,7 +65,7 @@ cinterpolate_library_fns <- function() {
 }
 
 odin_generate2_library_fns <- function(obj) {
-  dat <- read_user_c(system.file("library.c", package="odin"))
+  dat <- read_user_c(system.file("library.c", package = "odin"))
   if (obj$safe) {
     dat <- join_library(list(dat, odin_generate2_library_safe()))
   }
@@ -89,8 +89,8 @@ odin_generate2_library_fns <- function(obj) {
   if (length(err) > 0L) {
     stop("library function not found [odin bug]: ", pastec(err)) # nocov
   }
-  lib <- list(declarations=dat$declarations[fns],
-              definitions=dat$definitions[fns])
+  lib <- list(declarations = dat$declarations[fns],
+              definitions = dat$definitions[fns])
   lib_sum <- odin_generate2_library_sum(fns_sum)
 
   join_library(list(lib, lib_sum, lib_interpolate, obj$custom))
@@ -156,7 +156,7 @@ odin_generate2_library_sum <- function(fns) {
 odin_generate2_sum <- function(nd) {
   i <- seq_len(nd)
   dim <- vcapply(seq_len(nd), function(x)
-    array_dim_name("x", paste(seq_len(x - 1), collapse="")))
+    array_dim_name("x", paste(seq_len(x - 1), collapse = "")))
 
   args_idx <- sprintf("int from_%s, int to_%s", INDEX[i], INDEX[i])
 
@@ -193,8 +193,8 @@ odin_generate2_sum <- function(nd) {
   ret$add("  return tot;")
   ret$add("}")
 
-  list(declarations=sprintf("%s;", decl),
-       definitions=paste(ret$get(), collapse="\n"))
+  list(declarations = sprintf("%s;", decl),
+       definitions = paste(ret$get(), collapse = "\n"))
 }
 
 ## TODO: For now, odin_interpolate_support is elsewhere.
@@ -543,8 +543,8 @@ odin_generate2_contents <- function(obj) {
   types <- obj$types
   len <- nrow(types)
 
-  rtype <- c(int="INTSXP", double="REALSXP")
-  raccess <- c(int="INTEGER", double="REAL")
+  rtype <- c(int = "INTSXP", double = "REALSXP")
+  raccess <- c(int = "INTEGER", double = "REAL")
 
   ret <- collector()
   ret$add("// Translate all elements in the struct back to R")
@@ -574,7 +574,7 @@ odin_generate2_contents <- function(obj) {
         args <- vcapply(seq_len(array), function(j)
           obj$rewrite(array_dim_name(name, j)))
         ret$add("  odin_set_dim(VECTOR_ELT(%s, %d), %d, %s);",
-                STATE, i - 1L, array, paste(args, collapse=", "))
+                STATE, i - 1L, array, paste(args, collapse = ", "))
       }
     } else {
       type <- if (type == "int") "Integer" else "Real"
@@ -596,7 +596,7 @@ odin_generate2_contents <- function(obj) {
   ret$get()
 }
 
-odin_generate2_order <- function(obj, output=FALSE) {
+odin_generate2_order <- function(obj, output = FALSE) {
   if (output && !obj$info$has_output) {
     return(NULL)
   }
@@ -690,7 +690,7 @@ odin_generate2_interpolate_t <- function(obj) {
   dat <- unique(obj$interpolate$get())
   dat_type <- vcapply(dat, "[[", "interpolation_type")
   dat_time <- vcapply(dat, "[[", "t")
-  tmp <- sort(tapply(dat_type != "constant", dat_time, any), decreasing=TRUE)
+  tmp <- sort(tapply(dat_type != "constant", dat_time, any), decreasing = TRUE)
 
   ret$add("  SEXP ret = PROTECT(allocVector(REALSXP, 2));")
   ret$add("  double *r = REAL(ret);")
@@ -772,7 +772,7 @@ odin_generate2_deriv_dde <- function(obj) {
 }
 
 ## Helper functions here:
-odin_generate2_vars <- function(obj, output=FALSE) {
+odin_generate2_vars <- function(obj, output = FALSE) {
   info <- obj$variable_info
 
   if (output) {

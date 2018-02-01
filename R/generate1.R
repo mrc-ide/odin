@@ -391,7 +391,7 @@ odin_generate1_symbol <- function(x, obj) {
     obj$constant$add("%s = %s;", obj$rewrite(nm), default)
   }
 
-  obj[[st]]$add(odin_generate1_symbol_expr(x, obj), name=nm)
+  obj[[st]]$add(odin_generate1_symbol_expr(x, obj), name = nm)
 }
 
 odin_generate1_symbol_expr <- function(x, obj) {
@@ -447,19 +447,20 @@ odin_generate1_array <- function(x, obj, eqs) {
       dn <- obj$rewrite(dim$name)
     } else {
       dn <- paste(vcapply(seq_len(nd), function(i)
-        obj$rewrite(array_dim_name(x$name, i)), USE.NAMES=FALSE), collapse=", ")
+        obj$rewrite(array_dim_name(x$name, i)), USE.NAMES = FALSE),
+        collapse = ", ")
     }
     is_real_str <- if (data_type == "double") "true" else "false"
     obj[[st]]$add('get_user_array(%s, "%s", %s, %s, %d, %s);',
-                  USER, nm, is_real_str, obj$rewrite(x$name), nd, dn, name=nm)
+                  USER, nm, is_real_str, obj$rewrite(x$name), nd, dn, name = nm)
   } else if (isTRUE(x$rhs$output_self)) {
     obj[[st]]$add("memcpy(%s, %s, %s * sizeof(%s));",
                   obj$rewrite(x$name), obj$rewrite(x$lhs$name_target),
                   obj$rewrite(array_dim_name(x$lhs$name_target)),
                   data_type,
-                  name=nm)
+                  name = nm)
   } else {
-    obj[[st]]$add(odin_generate1_array_expr(x, obj), name=nm)
+    obj[[st]]$add(odin_generate1_array_expr(x, obj), name = nm)
   }
 }
 
@@ -594,7 +595,7 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
   obj$add_element(delay_idx, "int", 1L)
   obj$add_element(delay_state, "double", 1L)
 
-  obj[[st]]$add("%s = %s;", obj$rewrite(delay_dim), delay_len_tot, name=nm)
+  obj[[st]]$add("%s = %s;", obj$rewrite(delay_dim), delay_len_tot, name = nm)
   if (st == "user") { ## NOTE: duplicated from odin_generate1_dim()
     obj$constant$add("%s = NULL;", obj$rewrite(delay_idx))
     obj$constant$add("%s = NULL;", obj$rewrite(delay_state))
@@ -602,9 +603,9 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
     obj$user$add("Free(%s);", obj$rewrite(delay_state))
   }
   obj[[st]]$add("%s = (int*) Calloc(%s, int);",
-                obj$rewrite(delay_idx), obj$rewrite(delay_dim), name=nm)
+                obj$rewrite(delay_idx), obj$rewrite(delay_dim), name = nm)
   obj[[st]]$add("%s = (double*) Calloc(%s, double);",
-                obj$rewrite(delay_state), obj$rewrite(delay_dim), name=nm)
+                obj$rewrite(delay_state), obj$rewrite(delay_dim), name = nm)
   obj$free$add("Free(%s);", obj$rewrite(delay_idx))
   obj$free$add("Free(%s);", obj$rewrite(delay_state))
 
@@ -619,23 +620,23 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
   if (x$delay$expr$n > 0L) {
     i <- match(x$delay$expr$order, obj$variable_info$order)
     delay_var_offset <- obj$variable_info$offset_use[i]
-    obj[[st]]$add("{", name=nm)
-    obj[[st]]$add("  // delay block for %s", nm, name=nm)
-    obj[[st]]$add("  int j = 0;", name=nm)
+    obj[[st]]$add("{", name = nm)
+    obj[[st]]$add("  // delay block for %s", nm, name = nm)
+    obj[[st]]$add("  int j = 0;", name = nm)
     for (i in seq_len(x$delay$expr$n)) {
       if (x$delay$expr$is_array[[i]]) {
         obj[[st]]$add("  for (int i = 0, k = %s; i < %s; ++i) {",
                       obj$rewrite(delay_var_offset[[i]]),
                       obj$rewrite(array_dim_name(x$delay$expr$names[[i]])),
-                      name=nm)
-        obj[[st]]$add("    %s[j++] = k++;", obj$rewrite(delay_idx), name=nm)
-        obj[[st]]$add("  }", name=nm)
+                      name = nm)
+        obj[[st]]$add("    %s[j++] = k++;", obj$rewrite(delay_idx), name = nm)
+        obj[[st]]$add("  }", name = nm)
       } else {
         obj[[st]]$add("  %s[j++] = %s;", obj$rewrite(delay_idx),
-                      obj$rewrite(delay_var_offset[[i]]), name=nm)
+                      obj$rewrite(delay_var_offset[[i]]), name = nm)
       }
     }
-    obj[[st]]$add("}", name=nm)
+    obj[[st]]$add("}", name = nm)
   }
 
   ## TODO: this is an obvious point to break this function; bits for
@@ -657,7 +658,7 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
   if (x$delay$expr$n > 0) {
     declare_vars <- sprintf("double %s;",
                             paste0(ifelse(x$delay$expr$is_array, "*", ""),
-                                   x$delay$expr$order, collapse=", "))
+                                   x$delay$expr$order, collapse = ", "))
     if (!has_default) {
       ret$add(indent(declare_vars, 2))
     }
@@ -691,7 +692,7 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
     } else if (x$delay$expr$n > 0) {
       ret$add("    %s = %s;",
               x$delay$expr$order, vcapply(initial_name(x$delay$expr$order),
-                                          obj$rewrite, USE.NAMES=FALSE))
+                                          obj$rewrite, USE.NAMES = FALSE))
     }
     ret$add("  } else {")
     if (x$delay$expr$n > 0 && has_default) {
@@ -766,16 +767,16 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
     if (x$delay$expr$deps_is_array[[nm_dep]]) {
       ret$add(indent(
                  odin_generate1_array_expr(tr(eqs[[nm_dep]]), obj), nindent),
-                 name=nm)
+                 name = nm)
     } else {
       ret$add(indent("double %s = %s;", nindent),
                     nm_dep, obj$rewrite(tr(eqs[[nm_dep]])$rhs$value),
-                    name=nm)
+                    name = nm)
     }
   }
   if (x$lhs$type == "array") {
     ret$add(indent(odin_generate1_array_expr(tr(x), obj), nindent),
-                  name=nm)
+                  name = nm)
   } else {
     ret$add(indent("%s = %s;", nindent),
                   nm, obj$rewrite(tr(x)$rhs$value_expr))
@@ -891,7 +892,7 @@ odin_generate1_interpolate <- function(x, obj) {
   interpolation_type <- tmp$type
   dest <- tmp$name
 
-  obj$interpolate$add(list(interpolation_type=interpolation_type, t=nm_t))
+  obj$interpolate$add(list(interpolation_type = interpolation_type, t = nm_t))
   obj$add_element(dest, "void")
 
   ## TODO: throughout here; consider looking at the actual definitions
@@ -962,11 +963,11 @@ odin_generate1_dim_array_dimensions <- function(x, rewrite) {
   if (x$nd >= 3L) {
     for (j in 3:x$nd) {
       k <- seq_len(j - 1)
-      dn <- rewrite(array_dim_name(nm_target, paste(k, collapse="")))
-      ret$add("%s = %s;", dn, paste(nm_i[k], collapse=" * "))
+      dn <- rewrite(array_dim_name(nm_target, paste(k, collapse = "")))
+      ret$add("%s = %s;", dn, paste(nm_i[k], collapse = " * "))
     }
   }
-  ret$add("%s = %s;", rewrite(nm), paste(nm_i, collapse=" * "))
+  ret$add("%s = %s;", rewrite(nm), paste(nm_i, collapse = " * "))
 
   ret$get()
 }

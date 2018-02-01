@@ -56,10 +56,10 @@ test_that("interpolate", {
 
   sp <- c(0, 10, 20)
   zp <- c(0, 1, 0)
-  expect_error(gen(sp=sp, zp=zp[1:2]), "Expected length 3 value for zp")
-  expect_error(gen(sp=sp, zp=rep(zp, 2)), "Expected length 3 value for zp")
+  expect_error(gen(sp = sp, zp = zp[1:2]), "Expected length 3 value for zp")
+  expect_error(gen(sp = sp, zp = rep(zp, 2)), "Expected length 3 value for zp")
 
-  mod <- gen(sp=sp, zp=zp)
+  mod <- gen(sp = sp, zp = zp)
 
   tt <- 0:30
   expect_error(mod$run(tt - 1L),
