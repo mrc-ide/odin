@@ -46,6 +46,8 @@ odin_generate1 <- function(dat, safe) {
     if (st != "constant") {
       ## This is not hard; just need to reallocate the memory
       ## however I usually do it (can be Free/Calloc)
+      ##
+      ## Issue #72
       stop("FIXME (dynamic ring allocation)")
     }
   }
@@ -812,6 +814,8 @@ odin_generate1_delay_discrete <- function(x, obj, eqs) {
   if (has_default) {
     ## This requires some serious thinking, possibly not that much
     ## actual work though.
+    ##
+    ## Issue #95
     stop("FIXME")
   }
 
