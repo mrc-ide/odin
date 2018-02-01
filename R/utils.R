@@ -148,14 +148,6 @@ hash_files <- function(filenames, named = FALSE) {
   if (named) hash else unname(hash)
 }
 
-## This will (on unix systems at least) give the same hash for text as
-## for the actual file.  If we write out with writeLines on Windows,
-## the default separator is "\n" so this will also agree.
-hash_text <- function(text) {
-  digest::digest(charToRaw(paste0(text, "\n", collapse = "")),
-                 serialize = FALSE, skip = 0L)
-}
-
 short_hash <- function(x) {
   substr(x, 1L, 8L)
 }
