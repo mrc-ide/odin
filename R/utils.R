@@ -20,9 +20,13 @@ deparse_str <- function(x) {
 
 collector <- function(init=character(0)) {
   res <- init
-  list(add=function(x, ...) res <<- c(res, sprintf(x, ...)),
-       length=function(x) length(res), # used only in debugging below
-       get=function() res)
+  add <- function(x, ..., literal = FALSE) {
+    res <<- c(res,
+              if (literal) x else sprintf(x, ...))
+  }
+  list(add = add,
+       length = function(x) length(res), # used only in debugging below
+       get = function() res)
 }
 
 ## We'll use this in the main loop.  This could quite happily get out
@@ -174,7 +178,8 @@ dquote <- function(x) {
 }
 
 escape_printf <- function(x) {
-  gsub('"', '\"', gsub("%", "%%", x, fixed = TRUE))
+  gsub('"', '\"',
+       gsub("%", "%%", x, fixed = TRUE))
 }
 
 odin_version <- function() {

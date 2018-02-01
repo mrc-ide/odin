@@ -1156,4 +1156,55 @@ test_that("bounds check on set", {
                fixed = TRUE)
 })
 
+test_that("bounds check (2d)", {
+  gen <- odin({
+    deriv(y[, ]) <- r[i, j] * y[i, j]
+    initial(y[, ]) <- 1
+
+    len1 <- user()
+    len2 <- user()
+    dim(y) <- c(len1, len2)
+
+    r[, ] <- 0.1
+    dim(r) <- c(5, 7)
+  }, safe = TRUE, verbose = TEST_VERBOSE)
+
+  expect_silent(res <- gen(5, 7)$run(0:5))
+
+  err <- tryCatch(gen(10, 10)$run(0:5), error = identity)
+  expect_is(err, "error")
+  expect_match(err$message,
+               "Array index r[1, 8] is out of bounds while reading in",
+               fixed = TRUE)
+  expect_match(err$message, "deriv(y[, ]) <- r[i, j] * y[i, j]",
+               fixed = TRUE)
+  expect_match(err$message,  "dimension 2: index 8 is not in [1, 7]",
+               fixed = TRUE)
+})
+
+test_that("bounds check on set (4d)", {
+  gen <- odin::odin_(c(
+    "deriv(y[, , , ])<-r * y[i, j, k, l]",
+    "initial(y[,,,]) <- 1",
+    "initial(y[1, 4, 1, 6])<-1",
+    "r<-0.5",
+    "dim(y)<-c(10, 3, 4, 5)"), verbose = TEST_VERBOSE, safe = TRUE)
+
+  err <- tryCatch(gen(), error = identity)
+  expect_is(err, "error")
+  expect_match(err$message,
+               "Array index initial(y)[1, 4, 1, 6] is out of bounds",
+               fixed = TRUE)
+  expect_match(err$message,
+               "initial(y[,,,]) <- 1 # (line 2)", fixed = TRUE)
+  expect_match(err$message,
+               "initial(y[1, 4, 1, 6])<-1 # (line 3)", fixed = TRUE)
+  expect_match(err$message,
+               "- dimension 2: index 4 is not in [1, 3]",
+               fixed = TRUE)
+  expect_match(err$message,
+               "- dimension 4: index 6 is not in [1, 5]",
+               fixed = TRUE)
+})
+
 unload_dlls()

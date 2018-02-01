@@ -66,6 +66,10 @@ cinterpolate_library_fns <- function() {
 
 odin_generate2_library_fns <- function(obj) {
   dat <- read_user_c(system.file("library.c", package="odin"))
+  if (obj$safe) {
+    dat <- join_library(list(dat, odin_generate2_library_safe()))
+  }
+
   fns <- obj$library_fns$get()
   if (any(grepl("^get_user_", fns))) {
     fns <- c(fns, "get_list_element")
@@ -90,6 +94,47 @@ odin_generate2_library_fns <- function(obj) {
   lib_sum <- odin_generate2_library_sum(fns_sum)
 
   join_library(list(lib, lib_sum, lib_interpolate, obj$custom))
+}
+
+odin_generate2_library_safe <- function() {
+  p <- function(...) {
+    paste0(c(...), "\n", collapse = "")
+  }
+  lines_get <- p(
+    "double odin_array_at%d(double *x, size_t at,",
+    "                      %s, %s,",
+    "                      const char * variable, const char * expr_str) {",
+    "  int i[%d] = {%s};",
+    "  size_t len[%d] = {%s};",
+    "  odin_array_check(%d, i, len, variable, expr_str, false);",
+    "  return x[at];",
+    "}")
+  lines_set <- p(
+    "void odin_array_at_set%d(double *x, size_t at, double value,",
+    "                        %s, %s,",
+    "                        const char * variable, const char * expr_str) {",
+    "  int i[%d] = {%s};",
+    "  size_t len[%d] = {%s};",
+    "  odin_array_check(%d, i, len, variable, expr_str, true);",
+    "  x[at] = value;",
+    "}")
+
+  f <- function(n) {
+    i <- paste0("i", seq_len(n))
+    len <- paste0("len", seq_len(n))
+    decl_i <- paste("int", i, collapse = ", ")
+    decl_len <- paste("size_t", len, collapse = ", ")
+    use_i <- paste(i, collapse = ", ")
+    use_len <- paste(len, collapse = ", ")
+    ret <- c(sprintf(lines_get, n, decl_i, decl_len, n, use_i, n, use_len, n),
+             sprintf(lines_set, n, decl_i, decl_len, n, use_i, n, use_len, n))
+    names(ret) <- sprintf(c("odin_array_at%d", "odin_array_at_set%d"), n)
+    ret
+  }
+
+  defns <- unlist(lapply(2:length(INDEX), f), FALSE, use.names = TRUE)
+  decls <- sub("\\s*\\{.*", ";", defns)
+  list(declarations = decls, definitions = defns)
 }
 
 odin_generate2_library_sum <- function(fns) {

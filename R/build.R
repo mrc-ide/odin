@@ -120,19 +120,19 @@ format.compiler_output <- function(x, ...) {
     t <- x$type[[i]]
     v <- x$value[[i]]
     if (t == "command" || t == "unknown") {
-      str$add(v)
+      str$add(v, literal = TRUE)
     } else if (t == "context") {
-      str$add(style_context(v))
+      str$add(style_context(v), literal = TRUE)
     } else if (t == "info") {
       cl <- attr(v, "type")
       if (cl %in% names(style)) {
-        str$add(style[[cl]](v[[1]]))
+        str$add(style[[cl]](v[[1]]), literal = TRUE)
         if (length(v) > 1L) {
-          str$add(style_info[[cl]](v[-1]))
+          str$add(style_info[[cl]](v[-1]), literal = TRUE)
         }
       }
     } else {
-      str$add(v) # nocov
+      str$add(v, literal = TRUE) # nocov
     }
   }
   paste(sprintf("%s\n", str$get()), collapse = "")

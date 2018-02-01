@@ -226,8 +226,14 @@ odin_generate1_library <- function(obj, eqs) {
   }
 
   if (obj$safe) {
-    obj$library_fns$add("odin_array_at1")
-    obj$library_fns$add("odin_array_at_set1")
+    nd <- sort(unique(viapply(eqs, function(x) x$nd %||% NA_integer_)))
+    if (max(nd) >= 2L) {
+      obj$library_fns$add("odin_array_check")
+    }
+    for (i in nd) {
+      obj$library_fns$add(sprintf("odin_array_at%d", i))
+      obj$library_fns$add(sprintf("odin_array_at_set%d", i))
+    }
  }
 }
 

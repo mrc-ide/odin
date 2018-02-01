@@ -270,6 +270,7 @@ odin_parse_arrays_1 <- function(idx, obj) {
   x$depends <- join_deps(lapply(eqs[idx], function(x) x$depends))
   x$expr <- lapply(eqs[idx], "[[", "expr")
   x$line <- viapply(eqs[idx], "[[", "line")
+  x$expr_str <- vcapply(eqs[idx], "[[", "expr_str")
 
   ## TODO: some of the lhs depends stuff will not matter so much now.
   x$lhs$index <- lapply(eqs[idx], function(x) x$lhs$index)

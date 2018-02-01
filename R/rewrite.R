@@ -143,46 +143,59 @@ rewrite_array <- function(expr, res, values, rewrite, safe, expr_data) {
   ## TODO: check for no unary arithmetic while indexing in main
   ## array checking (that's going to require a little work, but
   ## perhaps add it to the dependency checking functions).
-  if (nd > 1L) {
+  if (nd == 1L) {
+    index <- values
+  } else if (nd > 1L) {
     r <- function(i) {
       rewrite(array_dim_name(as.character(expr[[2L]]),
                              paste(seq_len(i - 1), collapse="")))
     }
-    values[2:nd] <- sprintf("%s * %s", values[2:nd], vcapply(2:nd, r))
-    values <- paste(values, collapse=" + ")
+    index <- values
+    index[2:nd] <- sprintf("%s * %s", index[2:nd], vcapply(2:nd, r))
+    index <- paste(index, collapse=" + ")
   }
 
   target <- res[[1L]]$value
 
   if (safe) {
-    if (nd > 1L) {
-      stop("not yet implemented")
+    target_str <- as.character(res[[1L]]$value_sym)
+    if (nd == 1L) {
+      dim <- rewrite(array_dim_name(target_str))
+    } else {
+      ## This is going to be all the individual indices then all the
+      ## dimensions
+      dim <- vcapply(seq_len(nd), function(i)
+        rewrite(array_dim_name(target_str, i)))
+      dim <- paste(c(values, dim), collapse = ", ")
     }
-    dim <- rewrite(array_dim_name(as.character(res[[1L]]$value_sym)))
 
     expr_str <-
       escape_printf(odin_info_expr(expr_data$line, expr_data$expr_str))
-    expr_str <- paste0("\t", expr_str, collapse = "\n")
+    ## Getting newlines to print here but not break the program is a
+    ## bit of a trick.  Using "\\\n" manages to break the line in the
+    ## C code but not in the message!
+    expr_str <- paste0("\t", expr_str, collapse = " & ")
 
     if (expr[[1]] == quote(`[<-`)) {
       ## This is a bit tricky: we can't really do %%s because if there
       ## are any other string format expressions in any of this it'll
       ## cause havoc.  But practically I think it's actually ok.
-      fmt <- "odin_array_at_set%d(%s, %s, %s, %%s, %s, %s)"
+      fmt <- "odin_array_at_set%d(%s, %s, %%s, %s, %s, %s)"
     } else {
       fmt <- "odin_array_at%d(%s, %s, %s, %s, %s)"
     }
     ## TODO: This does not do well with initial() and I think we could
     ## preserve that name better elsewhere rather than rebuilding it
     ## here:
+    ## browser()
     nm <- as.character(res[[1L]]$value_sym)
     re <- sprintf("^(%s)_(.*)", paste(SPECIAL_LHS, collapse = "|"))
     if (grepl(re, nm)) {
       nm <- sub(re, "\\1(\\2)", nm)
     }
-    sprintf(fmt, nd, target, values, dim, dquote(nm), dquote(expr_str))
+    sprintf(fmt, nd, target, index, dim, dquote(nm), dquote(expr_str))
   } else {
-    sprintf("%s[%s]", target, values)
+    sprintf("%s[%s]", target, index)
   }
 }
 

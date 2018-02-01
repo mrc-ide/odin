@@ -254,18 +254,61 @@ void odin_interpolate_check(size_t nx, size_t ny, size_t i, const char *name_arg
   }
 }
 
-double odin_array_at1(double *x, size_t i, size_t len, const char * variable, const char * expr_str) {
-  if (i < 0 || i >= len) {
+double odin_array_at1(double *x, int i, size_t len,
+                      const char * variable, const char * expr_str) {
+  if (i < 0 || i >= (int)len) {
     Rf_error("Array index %d is out of bounds [1, %d] while reading %s in\n%s",
              i + 1, len, variable, expr_str);
   }
   return x[i];
 }
 
-void odin_array_at_set1(double *x, size_t i, size_t len, double value, const char * variable, const char * expr_str) {
-  if (i < 0 || i >= len) {
+void odin_array_at_set1(double *x, int i, double value, size_t len,
+                        const char * variable, const char * expr_str) {
+  if (i < 0 || i >= (int)len) {
     Rf_error("Array index %d is out of bounds [1, %d] while setting %s in\n%s",
              i + 1, len, variable, expr_str);
   }
   x[i] = value;
+}
+
+void odin_array_check(size_t nd, int *i, size_t *len,
+                      const char * variable, const char * expr_str,
+                      bool set) {
+  bool ok[8]; // 8 is odin max dimensions
+  bool pass = true;
+  for (size_t d = 0; d < nd; ++d) {
+    ok[d] = i[d] >= 0 && i[d] < (int)len[d];
+    pass &= ok[d];
+  }
+
+  if (!pass) {
+    // What we need to do here is compute the string length.  First
+    // all the bits that vary:
+    size_t w = i[0];
+    for (size_t d = 1; d < nd; ++d) {
+      w += 2 * floor(log10(len[d]));
+    }
+    w += 80 + // generous length of error string
+      45 * nd + // per dimension message length
+      strlen(expr_str) + //
+      strlen(variable) * nd;
+    char * msg = (char*) R_alloc(w, sizeof(char));
+    memset(msg, 0, w);
+    const char * action = set ? "setting" : "reading";
+    size_t loc = sprintf(msg, "Array index %s[%d", variable, i[0] + 1);
+    for (size_t d = 1; d < nd; ++d) {
+      loc += sprintf(msg + loc, ", %d", i[d] + 1);
+    }
+    loc += sprintf(msg + loc, "] is out of bounds while %s in\n%s",
+                   action, expr_str);
+    for (size_t d = 0; d < nd; ++d) {
+      if (!ok[d]) {
+        loc += sprintf(msg + loc,
+                       "\n - dimension %d: index %d is not in [1, %d]",
+                       (int)d + 1, i[d] + 1, (int)len[d]);
+      }
+    }
+    Rf_error(msg);
+  }
 }
