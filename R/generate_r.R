@@ -75,19 +75,12 @@ odin_generate_r_constructor <- function(info, dll) {
   ret <- collector()
   base <- info$base
   if (info$has_user) {
-    ## TODO: this needs a bunch of work with getting the defaults
-    ## because they're not available in the info object :(
-    ##
-    ## To get them here I really need to prevent generation of the
-    ## info function first.
-    ##
-    ## NOTE: user_default is the wrong polarity here; flip that in generation
-    user <- info$user_default[order(!info$user_default)]
     collector <- sprintf("list(%s)",
-                         pastec(sprintf("%s = %s", names(user), names(user))))
-    args <- c(vcapply(info$user_default[order(!info$user_default)],
-                     function(x) if (x) "" else "NULL"),
-              c(user = collector))
+                         pastec(sprintf("%s = %s",
+                                        info$user$name, info$user$name)))
+    args <- vcapply(info$user$has_default, function(x) if (x) "NULL" else "")
+    names(args) <- info$user$name
+    args <- c(args, c(user = collector))
     args_use <- "user = user"
   } else {
     args <- args_use <- character(0)

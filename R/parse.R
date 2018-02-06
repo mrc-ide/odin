@@ -479,9 +479,20 @@ odin_parse_initial <- function(obj) {
 odin_parse_user <- function(obj) {
   ## We need to filter the dimensions off here for user arrays:
   is_user <- obj$traits[, "uses_user"] & !obj$traits[, "is_dim"]
-  obj$info$user_default <-
-    setNames(!vlapply(obj$eqs[is_user], function(x) x$rhs$default),
-             obj$names_target[is_user])
+  eqs_user <- obj$eqs[is_user]
+
+  name <- obj$names_target[is_user]
+  has_default <- vlapply(eqs_user, function(x)
+    x$rhs$default, USE.NAMES = FALSE)
+  rank <- viapply(eqs_user, function(x)
+    if (x$lhs$type == "symbol") 0L else x$lhs$nd, USE.NAMES = FALSE)
+  ord <- order(has_default)
+
+  obj$info$user <- data.frame(name = name[ord],
+                              has_default = has_default[ord],
+                              rank = rank[ord],
+                              stringsAsFactors = FALSE)
+
   obj
 }
 
