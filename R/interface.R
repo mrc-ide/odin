@@ -136,6 +136,9 @@ odin <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
+  } else if (is_call(xx, quote(c)) && all(vlapply(xx[-1], is.character))) {
+    ## See #88
+    xx <- force(x)
   }
   odin_(xx, dest, build, verbose, compiler_warnings, safe, skip_cache)
 }

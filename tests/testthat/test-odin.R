@@ -1268,4 +1268,11 @@ test_that("format/print", {
   expect_identical(x, list(value = gen, visible = FALSE))
 })
 
+test_that("multiline string", {
+  ## Literal multiline string:
+  gen <- odin::odin(c("deriv(y) <- 0.5", "initial(y) <- 1"),
+                    verbose = TEST_VERBOSE)
+  expect_is(gen, "odin_generator")
+})
+
 unload_dlls()
