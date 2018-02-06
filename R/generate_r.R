@@ -60,7 +60,8 @@ odin_generate_r <- function(info, dll) {
     if ( discrete && !info$has_delay) odin_generate_r_update(info, dll),
     odin_generate_r_initial(info, dll),
     odin_generate_r_run(info, dll),
-    odin_generate_r_contents(info, dll))
+    odin_generate_r_contents(info, dll),
+    odin_generate_r_user_info(info))
   methods <- methods[!vlapply(methods, is.null)]
   methods <-
     paste(vcapply(methods, function(x) paste(indent(x, 4), collapse = "\n")),
@@ -99,6 +100,10 @@ odin_generate_r_constructor <- function(info, dll) {
   ret$add("%s <- function(%s) {", base, pastec(args_list))
   ret$add("  .R6_%s$new(%s)", base, pastec(args_use))
   ret$add("}")
+  ## Once #96 is solved this might change and we might move to a
+  ## generic over odin objects which implements this.
+  ret$add('attr(%s, "user_info") <- .R6_%s$public_methods$user_info', base, base)
+  ret$add(base)
   ret$get()
 }
 
@@ -340,6 +345,26 @@ odin_generate_r_contents <- function(info, dll) {
   ret$add('  %s', dot_call(info$base, dll, "%s_contents", "self$ptr"))
   ret$add("}")
   ret$get()
+}
+
+## This could go in as either a function or as a method.  Neither are
+## hugely different but I think a function is more like others
+odin_generate_r_user_info <- function(info) {
+  ret <- collector()
+  ret$add("user_info = function() {", info$base)
+  if (info$has_user) {
+    ret$add("  data.frame(")
+    ret$add("    name = c(%s),", pastec(dquote(info$user$name)))
+    ret$add("    has_default = c(%s),", pastec(info$user$has_default))
+    ret$add("    rank = c(%s),", pastec(info$user$rank))
+    ret$add("    stringsAsFactors = FALSE)")
+  } else {
+    ret$add("  data.frame(name = character(), ")
+    ret$add("             has_default = logical(),")
+    ret$add("             rank = integer(),")
+    ret$add("             stringsAsFactors = FALSE)")
+  }
+  ret$add("}")
 }
 
 dot_call <- function(base, dll, fmt, ..., args = c(...)) {

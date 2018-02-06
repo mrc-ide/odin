@@ -1207,4 +1207,41 @@ test_that("bounds check on set (4d)", {
                fixed = TRUE)
 })
 
+test_that("user variable information", {
+  gen <- odin::odin({
+    deriv(N) <- r[1] * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- user(1)
+    K <- user(100)
+    r[] <- user()
+    dim(r) <- 1
+  }, verbose = TEST_VERBOSE)
+
+  info <- attr(gen, "user_info")()
+  expect_is(info, "data.frame")
+  expect_equal(info$name, names(formals(gen))[1:3])
+  expect_equal(info$has_default, c(FALSE, TRUE, TRUE))
+  expect_equal(info$rank, c(1L, 0L, 0L))
+
+  mod <- gen(1)
+  expect_identical(mod$user_info(), info)
+})
+
+test_that("user variable information - when no user", {
+  gen <- odin::odin({
+    deriv(N) <- r * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- 10
+    K <- 100
+    r <- 0.1
+  }, verbose = TEST_VERBOSE)
+  info <- attr(gen, "user_info")()
+  cmp <- data.frame(name = character(),
+                    has_default = logical(),
+                    rank = integer(),
+                    stringsAsFactors = FALSE)
+  expect_identical(info, cmp)
+  expect_identical(gen()$user_info(), cmp)
+})
+
 unload_dlls()
