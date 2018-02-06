@@ -1217,7 +1217,7 @@ test_that("user variable information", {
     dim(r) <- 1
   }, verbose = TEST_VERBOSE)
 
-  info <- attr(gen, "user_info")()
+  info <- coef(gen)
   expect_is(info, "data.frame")
   expect_equal(info$name, names(formals(gen))[1:3])
   expect_equal(info$has_default, c(FALSE, TRUE, TRUE))
@@ -1235,13 +1235,37 @@ test_that("user variable information - when no user", {
     K <- 100
     r <- 0.1
   }, verbose = TEST_VERBOSE)
-  info <- attr(gen, "user_info")()
+  info <- coef(gen)
   cmp <- data.frame(name = character(),
                     has_default = logical(),
                     rank = integer(),
                     stringsAsFactors = FALSE)
   expect_identical(info, cmp)
   expect_identical(gen()$user_info(), cmp)
+})
+
+test_that("format/print", {
+  gen <- odin::odin({
+    deriv(N) <- r[1] * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- user(1)
+    K <- user(100)
+    r[] <- user()
+    dim(r) <- 1
+  }, verbose = TEST_VERBOSE)
+
+  txt <- capture.output(x <- withVisible(print(gen)))
+  expect_match(txt,
+               capture.output(args(gen))[[1]],
+               fixed = TRUE, all = FALSE)
+  expect_match(txt,
+               "<an 'odin_generator' function>",
+               fixed = TRUE, all = FALSE)
+  expect_match(txt,
+               "use coef() to get information on user parameters",
+               fixed = TRUE, all = FALSE)
+
+  expect_identical(x, list(value = gen, visible = FALSE))
 })
 
 unload_dlls()

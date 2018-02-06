@@ -103,6 +103,7 @@ odin_generate_r_constructor <- function(info, dll) {
   ## Once #96 is solved this might change and we might move to a
   ## generic over odin objects which implements this.
   ret$add('attr(%s, "user_info") <- .R6_%s$public_methods$user_info', base, base)
+  ret$add('class(%s) <- "odin_generator"', base)
   ret$add(base)
   ret$get()
 }
