@@ -152,4 +152,28 @@ test_that("round & rbinom", {
   expect_equal(mod$initial(0), 2)
 })
 
+test_that("mutlinomial", {
+  ## This is just a check that these compile and run
+  sir1 <- odin("stochastic/sir_discrete.R", verbose = TEST_VERBOSE)
+  sir2 <- odin("stochastic/sir_discrete_stochastic.R", verbose = TEST_VERBOSE)
+  sir3 <- odin("stochastic/sir_discrete_stochastic2.R", verbose = TEST_VERBOSE)
+  sir4 <- odin("stochastic/sir_discrete_stochastic_multi.R",
+               verbose = TEST_VERBOSE)
+
+  mod1 <- sir1()
+  mod2 <- sir2()
+  mod3 <- sir3()
+  mod4 <- sir4()
+
+  t <- 0:100
+  y1 <- mod1$run(t)
+  y2 <- mod2$run(t)
+  y3 <- mod3$run(t)
+  y4 <- mod4$run(t)
+
+  ## TODO: these need real tests!  At the moment I just want to
+  ## confirm that they run.
+  expect_true(TRUE)
+})
+
 unload_dlls()
