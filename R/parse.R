@@ -159,11 +159,13 @@ odin_parse_collect_traits <- function(obj) {
   uses_delay <- vlapply(eqs, function(x) isTRUE(x$rhs$delay))
   uses_interpolate <- vlapply(eqs, function(x) isTRUE(x$rhs$interpolate))
   uses_stochastic <- vlapply(eqs, "[[", "stochastic")
+  uses_inplace <- vlapply(eqs, function(x) isTRUE(x$rhs$inplace))
 
   traits <- cbind(is_dim, is_deriv, is_initial, is_output, is_config,
                   is_array, is_symbol,
                   uses_atomic, uses_user, uses_delay,
-                  uses_interpolate, uses_stochastic)
+                  uses_interpolate, uses_stochastic,
+                  uses_inplace)
   rownames(traits) <- names(eqs)
 
   obj$traits <- traits

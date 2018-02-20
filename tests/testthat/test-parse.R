@@ -166,11 +166,11 @@ test_that("RHS array checking", {
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
   expect_null(odin_parse_arrays_check_rhs(rhs, c(a = 1), ia, line, expr))
   expect_error(odin_parse_arrays_check_rhs(rhs, c(b = 1), ia, line, expr),
-               "Function 'sum' requires array as first argument")
+               "Function 'sum' requires array as argument 1")
 
   rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a[])))
   expect_error(odin_parse_arrays_check_rhs(rhs, c(b = 1), ia, line, expr),
-               "Function 'sum' requires array as first argument")
+               "Function 'sum' requires array as argument 1")
 
   expr <- quote(sum(a[,]))
   rhs <- odin_parse_expr_rhs_rewrite_sum(expr)

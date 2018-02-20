@@ -434,7 +434,10 @@ odin_generate1_array <- function(x, obj, eqs) {
   nm <- x$name
   data_type <- x$lhs$data_type
 
-  if (isTRUE(x$rhs$user)) {
+  if (isTRUE(x$rhs$inplace)) {
+    obj[[st]]$add(paste0(obj$rewrite(x$rhs$value[[1L]], x), ";"),
+                  name = nm)
+  } else if (isTRUE(x$rhs$user)) {
     dim <- eqs[[array_dim_name(x$name)]]
     if (isTRUE(dim$rhs$user)) {
       ## All done already while establishing dim
