@@ -68,6 +68,8 @@ odin_parse_arrays_set_type <- function(obj) {
   ## operators (except '/')
   is_dim <- obj$traits[, "is_dim"]
   is_array <- obj$traits[, "is_array"]
+  is_inplace <- obj$traits[, "uses_inplace"]
+
   index_vars <- unique(unlist(c(
     lapply(obj$eqs[is_dim], function(x) x$rhs$depends$variables),
     lapply(obj$eqs[is_array], function(x) x$lhs$depends$variables),
@@ -111,11 +113,13 @@ odin_parse_arrays_set_type <- function(obj) {
   ## that are used as indices.  Here we'll throw in the index arrays
   ## too (treated separtately for now...)
   integer_arrays <- odin_parse_arrays_used_as_index(obj)
+  integer_inplace <- names_if(vlapply(obj$eqs[is_inplace], function(x)
+    identical(x$rhs$inplace_type, "int")))
+  integer_vars <- c(index_vars, integer_arrays, integer_inplace)
 
-  types <- ifelse(obj$names_target %in% union(index_vars, integer_arrays),
-                  "int", "double")
+  types <- ifelse(obj$names_target %in% integer_vars, "int", "double")
   for (i in seq_along(obj$eqs)) {
-    obj$eqs[[i]]$lhs$data_type <- types[[i]]
+    obj$eqs[[i]]$lhs$data_type <- obj$eqs[[i]]$lhs$data_type %||% types[[i]]
   }
 
   for (i in names_if(is_dim)) {
@@ -281,6 +285,18 @@ odin_parse_arrays_1 <- function(idx, obj) {
   x$rhs$depends <-
     join_deps(lapply(eqs[idx], function(x) x$rhs$depends))
   x$rhs$value <- lapply(eqs[idx], function(x) x$rhs$value)
+  x$rhs$inplace <- vlapply(eqs[idx], function(x) isTRUE(x$rhs$inplace),
+                           USE.NAMES = FALSE)
+  if (any(x$rhs$inplace) && length(x$rhs$inplace) != 1L) {
+    ## TODO: this might be relaxed to allow at least dimension-wise
+    ## inplace work
+    ##
+    ## TODO: this is very vague about what it was that triggered the
+    ## error.
+    odin_error(
+      "inplace expressions may only be used on a single-line array assignment",
+      get_lines(eqs[idx]), get_exprs(eqs[idx]))
+  }
 
   x$stochastic <- any(vlapply(eqs[idx], "[[", "stochastic"))
 
@@ -320,7 +336,8 @@ odin_parse_arrays_1 <- function(idx, obj) {
         get_lines(eqs[idx]), get_exprs(eqs[idx]))
     }
   } else {
-    ok <- c("type", "depends", "value", "user", "default", "sum", "output_self")
+    ok <- c("type", "depends", "value", "user", "default", "sum",
+            "output_self", "inplace", "inplace_type")
     stopifnot(length(setdiff(used_rhs, ok)) == 0L)
   }
 
@@ -515,7 +532,7 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, int_arrays, line, expr) {
 
   ## TODO: check that the right number of indices are used when using sum?
   array_special_function <-
-    c(FUNCTIONS_SUM, "sum", "length", "dim", "interpolate")
+    c(FUNCTIONS_SUM, "sum", "length", "dim", "interpolate", "rmultinom")
   check <- function(e, array_special) {
     if (!is.recursive(e)) { # leaf
       if (!is.symbol(e)) { # A literal of some type
@@ -553,14 +570,19 @@ odin_parse_arrays_check_rhs <- function(rhs, nd, int_arrays, line, expr) {
           throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
       } else {
+        if (f_nm == "rmultinom") {
+          arr_idx <- 2L
+        } else {
+          arr_idx <- 1L
+        }
         if (f_nm %in% array_special_function) {
           is_sum <- f_nm %in% FUNCTIONS_SUM
-          arr <- deparse(e[[2L]])
+          arr <- deparse(e[[arr_idx + 1L]])
           if (!(arr %in% nms)) {
             if (is_sum) {
               f_nm <- "sum" # For better error messages, rewrite back
             }
-            throw("Function '%s' requires array as first argument", f_nm)
+            throw("Function '%s' requires array as argument %d", f_nm, arr_idx)
           }
           if (is_sum) {
             nd_sum <- (length(e) - 2L) / 2L

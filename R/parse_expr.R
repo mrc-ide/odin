@@ -58,6 +58,10 @@ odin_parse_expr <- function(expr, line, src) {
     }
   }
 
+  if (any(names(FUNCTIONS_INPLACE) %in% depends$functions)) {
+    rhs <- odin_parse_expr_rhs_rewrite_inplace(rhs, lhs, line, expr)
+  }
+
   ## NOTE: arrays are the only case where self referential variables
   ## are allowed.  For arrays, there's no checking here and things like
   ##   x[i] = x[i] * 2
@@ -649,4 +653,32 @@ odin_parse_expr_check_dim <- function(rhs, line, expr) {
                line, expr)
   }
   ret
+}
+
+odin_parse_expr_rhs_rewrite_inplace <- function(rhs, lhs, line, expr) {
+  rhs_expr <- rhs$value
+  fn <- deparse(rhs_expr[[1]])
+  depends <- join_deps(lapply(rhs_expr[-1], find_symbols))
+
+  ## Start strict, liberalise later
+  if (!(fn %in% names(FUNCTIONS_INPLACE)) || length(depends$functions) > 0L) {
+    odin_error(sprintf(
+      "At present, inplace function '%s' must use no functions", fn),
+      line, expr)
+  }
+  if (lhs$type != "array") {
+    odin_error(sprintf(
+      "Expected an array on the lhs of inplace function '%s'", fn),
+      line, expr)
+  }
+
+  info <- FUNCTIONS_INPLACE[[fn]]
+  lhs_name <- as.name(lhs$name)
+  rhs_expr[[info$len + 1L]] <- call("length", lhs_name)
+  rhs_expr[[info$dest + 1L]] <- lhs_name
+  rhs$value <- rhs_expr
+  rhs$inplace <- TRUE
+  rhs$inplace_type <- info$type
+
+  rhs
 }
