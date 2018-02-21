@@ -13,3 +13,4 @@ tests/testthat/joel.R
 tests/testthat/joel
 tests/testthat/eugene
 .valgrind_ignore
+*~
