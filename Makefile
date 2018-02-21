@@ -55,7 +55,9 @@ coverage:
 
 vignettes/odin.Rmd: vignettes/src/odin.R
 	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
-vignettes: vignettes/odin.Rmd
+vignettes/discrete.Rmd: vignettes/src/discrete.R
+	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
+vignettes: vignettes/odin.Rmd vignettes/discrete.Rmd
 	${RSCRIPT} -e 'library(methods); devtools::build_vignettes()'
 
 # No real targets!
