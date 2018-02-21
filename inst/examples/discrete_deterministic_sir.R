@@ -4,6 +4,10 @@
 update(S) <- S - beta * S * I / N
 update(I) <- I + beta * S * I / N - gamma * I
 update(R) <- R + gamma * I
+
+
+## record total population size
+
 N <- S + I + R
 
 
