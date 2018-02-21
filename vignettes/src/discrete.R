@@ -201,6 +201,57 @@ legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 
 
 
+## Stochastic discrete SIR
+
+## The stochastic equivalent of the previous model can be formulated in `odin`
+## as follows:
+
+##+ load_sir_s
+path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = "odin")
+
+##+ echo = FALSE, results = "asis"
+cat(readLines(path_sir_model_s), sep = "\n")
 
 
+## We can use the same workflow as before to run the model:
+sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
+sir_model_s
+x <- sir_model_s(I_ini = 10) # customise param: I_ini = 10 individuals
 
+##+ sir-stochastic_1
+set.seed(1)
+x_res <- x$run(0:100)
+matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
+        main = "Discrete SIR model - stochastic", type = "l", col = sir_col,
+        lwd = 3, lty = 1)
+legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
+
+
+## This gives us a single stochastic realisation of the model, which is of
+## limited interest. As an alternative, we can generate a large number of
+## replicates using arrays for each compartments:
+
+path_sir_model_s <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
+
+##+ echo = FALSE, results = "asis"
+cat(readLines(path_sir_model_s), sep = "\n")
+
+sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
+sir_model_s
+x <- sir_model_s()
+
+##+ transp
+transp <- function(col, alpha = 0.5) {
+    res <- apply(col2rgb(col), 2,
+                 function(c) rgb(c[1]/255, c[2]/255, c[3]/255, alpha))
+    return(res)
+}
+
+##+ sir-stochastic_100
+set.seed(1)
+x_res <- x$run(0:100)
+matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
+        main = "Discrete SIR model - stochastic", type = "l",
+        col = rep(transp(sir_col, .3), each = 100),
+        lwd = 3, lty = 1)
+legend("left", lwd = 3, col = sir_col, legend = c("S", "I", "R"))

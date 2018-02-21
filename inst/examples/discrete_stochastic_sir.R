@@ -1,9 +1,25 @@
 
 ## equations for transitions between compartments
 
-update(S) <- S - beta * S * I / N
-update(I) <- I + beta * S * I / N - gamma * I
-update(R) <- R + gamma * I
+update(S) <- S - n_SI
+update(I) <- I + n_SI - n_IR
+update(R) <- R + n_IR
+
+
+## individual probabilities of transition
+
+p_SI <- 1 - exp(-beta * I / N) # S to I
+p_IR <- 1 - exp(-gamma) # I to R
+
+
+## draws from binomial distributions
+
+n_SI <- rbinom(S, p_SI)
+n_IR <- rbinom(I, p_IR)
+
+
+## record total population size
+
 N <- S + I + R
 
 
