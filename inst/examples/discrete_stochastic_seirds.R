@@ -4,7 +4,7 @@ update(S) <- S - n_SE + n_RS
 update(E) <- E + n_SE - n_EI + n_import_E
 update(Ir) <- Ir + n_EIr - n_IrR
 update(Id) <- Id + n_EId - n_IdD
-update(R) <- R + n_IrR
+update(R) <- R + n_IrR - n_RS
 update(D) <- D + n_IdD
 
 
