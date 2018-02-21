@@ -165,7 +165,7 @@ knitr::opts_chunk$set(
 ##+ load_sir
 path_sir_model <- system.file("examples/discrete_deterministic_sir.R", package = "odin")
 
-##+ echo = FALSE, results = "asis"
+##+ echo = FALSE
 cat(readLines(path_sir_model), sep = "\n")
 
 
@@ -209,7 +209,7 @@ legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 ##+ load_sir_s
 path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = "odin")
 
-##+ echo = FALSE, results = "asis"
+##+ echo = FALSE
 cat(readLines(path_sir_model_s), sep = "\n")
 
 
@@ -233,7 +233,7 @@ legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 
 path_sir_model_s <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
 
-##+ echo = FALSE, results = "asis"
+##+ echo = FALSE
 cat(readLines(path_sir_model_s), sep = "\n")
 
 sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
@@ -302,11 +302,11 @@ legend("left", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 ## $$
 
 ## $$
-## I_{R,t+1} = I_{R,t} + \delta (1 - \mu) E_t  \gamma_R I_{R,t} + \epsilon
+## I_{R,t+1} = I_{R,t} + \delta (1 - \mu) E_t - \gamma_R I_{R,t} + \epsilon
 ## $$
 
 ## $$
-## I_{D,t+1} = I_{D,t} + \delta \mu E_t  \gamma_D I_{D,t} + \epsilon
+## I_{D,t+1} = I_{D,t} + \delta \mu E_t - \gamma_D I_{D,t} + \epsilon
 ## $$
 
 ## $$
@@ -322,10 +322,10 @@ legend("left", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 
 ## The formulation of the model in `odin` is:
 
-##+ load_sir_s
+##+ load_seirds
 path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", package = "odin")
 
-##+ echo = FALSE, results = "asis"
+##+ echo = FALSE
 cat(readLines(path_seirds_model), sep = "\n")
 
 seirds_model <- odin::odin(path_seirds_model, verbose = FALSE, skip_cache = TRUE)
@@ -336,7 +336,7 @@ x <- seirds_model()
 seirds_col <- c("#8c8cd9", "#ffcc99", "#d279a6", "#ff4d4d", "#999966", "#660000")
 
 set.seed(1)
-x_res <- x$run(0:200)
+x_res <- x$run(0:365)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
         main = "Discrete SIR model - stochastic", type = "l",
         col = seirds_col,
