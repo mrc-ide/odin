@@ -165,7 +165,7 @@ knitr::opts_chunk$set(
 ##+ load_sir
 path_sir_model <- system.file("examples/discrete_deterministic_sir.R", package = "odin")
 
-##+ echo = FALSE
+##+ echo = FALSE, comment = NA
 cat(readLines(path_sir_model), sep = "\n")
 
 
@@ -209,7 +209,7 @@ legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 ##+ load_sir_s
 path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = "odin")
 
-##+ echo = FALSE
+##+ echo = FALSE, comment = NA
 cat(readLines(path_sir_model_s), sep = "\n")
 
 
@@ -233,7 +233,7 @@ legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 
 path_sir_model_s <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
 
-##+ echo = FALSE
+##+ echo = FALSE, comment = NA
 cat(readLines(path_sir_model_s), sep = "\n")
 
 sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
@@ -325,20 +325,68 @@ legend("left", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
 ##+ load_seirds
 path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", package = "odin")
 
-##+ echo = FALSE
+##+ echo = FALSE, comment = NA
 cat(readLines(path_seirds_model), sep = "\n")
 
+##+ seirds
 seirds_model <- odin::odin(path_seirds_model, verbose = FALSE, skip_cache = TRUE)
 seirds_model
 x <- seirds_model()
 
 
-seirds_col <- c("#8c8cd9", "#ffcc99", "#d279a6", "#ff4d4d", "#999966", "#660000")
+seirds_col <- c("#8c8cd9", "#e67300", "#d279a6", "#ff4d4d", "#999966", "#660000")
 
 set.seed(1)
 x_res <- x$run(0:365)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
-        main = "Discrete SIR model - stochastic", type = "l",
+        main = "SEIRDS model - one stochastic realisation", type = "l",
         col = seirds_col,
         lwd = 3, lty = 1)
 legend("left", lwd = 3, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"))
+
+
+
+## Several runs can be obtained without rewriting the model, for instance, to
+## get 100 replicates:
+
+##+ seirds_100
+x_res <- as.data.frame(replicate(100, x$run(0:365)[, -1]))
+dim(x_res)
+x_res[1:6, 1:10]
+
+matplot(0:365, x_res, xlab = "Time", ylab = "Number of individuals",
+        main = "SEIRDS model - 100 runs", type = "l",
+        col = rep(transp(seirds_col, .1), 100),
+        lwd = 3, lty = 1)
+legend("left", lwd = 3, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"))
+
+
+
+## It is then possible to explore the behaviour of the model using a simple
+## function:
+
+##+ custom_function
+check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...) {
+    model <- seirds_model(...)
+
+    res <- as.data.frame(replicate(n, model$run(t)[, -1]))
+    matplot(t, res, xlab = "Time", ylab = "Number of individuals",
+            main = "SEIRDS model", type = "l",
+            col = rep(transp(seirds_col, alpha), n),
+            lwd = 3, lty = 1)
+    legend("left", lwd = 3, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"))
+}
+
+
+## This is a sanity check with a null infection rate and no imported case:
+check_model(beta = 0, epsilon = 0)
+
+## Another easy case: no importation, no waning immunity:
+check_model(epsilon = 0, omega = 0)
+
+
+## A more nuanced case: persistence of the disease with limited import, waning
+## immunity, low severity, larger population:
+
+check_model(t = 0:(365*3), epsilon = 0.1, beta = .2, omega = .01,
+            mu = 0.005, S_ini = 1e5)
