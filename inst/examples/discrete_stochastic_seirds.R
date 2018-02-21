@@ -54,23 +54,10 @@ initial(D) <- 0
 
 S_ini <- user(1000) # susceptibles
 E_ini <- user(1) # infected
-beta <- user(0.2) # infection rate
+beta <- user(0.3) # infection rate
 delta <- user(0.3) # inverse incubation
 gamma_R <- user(0.08) # recovery rate
 gamma_D <- user(0.12) # death rate
 mu <- user(0.7) # CFR
-omega <- user(0.02) # rate of waning immunity
+omega <- user(0.01) # rate of waning immunity
 epsilon <- user(0.1) # import case rate
-
-
-
-## ## number of replicates
-
-## nsim <- user(100) # user-defined, default = 100
-## dim(N) <- nsim
-## dim(S) <- nsim
-## dim(I) <- nsim
-## dim(R) <- nsim
-## dim(p_SI) <- nsim
-## dim(n_SI) <- nsim
-## dim(n_IR) <- nsim

@@ -331,3 +331,14 @@ cat(readLines(path_seirds_model), sep = "\n")
 seirds_model <- odin::odin(path_seirds_model, verbose = FALSE, skip_cache = TRUE)
 seirds_model
 x <- seirds_model()
+
+
+seirds_col <- c("#8c8cd9", "#ffcc99", "#d279a6", "#ff4d4d", "#999966", "#660000")
+
+set.seed(1)
+x_res <- x$run(0:200)
+matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
+        main = "Discrete SIR model - stochastic", type = "l",
+        col = seirds_col,
+        lwd = 3, lty = 1)
+legend("left", lwd = 3, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"))
