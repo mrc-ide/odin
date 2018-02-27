@@ -194,10 +194,10 @@ x
 sir_col <- c("#8c8cd9", "#cc0044", "#999966")
 x$run(0:10)
 x_res <- x$run(0:200)
+par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
-        main = "Discrete SIR model - deterministic", type = "l", col = sir_col,
-        lwd = 3, lty = 1)
-legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
+        type = "l", col = sir_col, lty = 1)
+legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 
 
@@ -221,10 +221,10 @@ x <- sir_model_s(I_ini = 10) # customise param: I_ini = 10 individuals
 ##+ sir-stochastic_1
 set.seed(1)
 x_res <- x$run(0:100)
+par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
-        main = "Discrete SIR model - stochastic", type = "l", col = sir_col,
-        lwd = 3, lty = 1)
-legend("topright", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
+        type = "l", col = sir_col, lty = 1)
+legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 
 ## This gives us a single stochastic realisation of the model, which is of
@@ -250,11 +250,10 @@ transp <- function(col, alpha = 0.5) {
 ##+ sir-stochastic_100
 set.seed(1)
 x_res <- x$run(0:100)
+par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
-        main = "Discrete SIR model - stochastic", type = "l",
-        col = rep(transp(sir_col, .3), each = 100),
-        lwd = 3, lty = 1)
-legend("left", lwd = 3, col = sir_col, legend = c("S", "I", "R"))
+        type = "l", col = rep(transp(sir_col, .4), each = 100), lty = 1)
+legend("left", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 
 
@@ -338,11 +337,10 @@ seirds_col <- c("#8c8cd9", "#e67300", "#d279a6", "#ff4d4d", "#999966", "#660000"
 
 set.seed(1)
 x_res <- x$run(0:365)
+par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
-        main = "SEIRDS model - one stochastic realisation", type = "l",
-        col = seirds_col,
-        lwd = 3, lty = 1)
-legend("left", lwd = 3, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"))
+        type = "l", col = seirds_col, lty = 1)
+legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 
 
 
@@ -354,11 +352,10 @@ x_res <- as.data.frame(replicate(100, x$run(0:365)[, -1]))
 dim(x_res)
 x_res[1:6, 1:10]
 
+par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(0:365, x_res, xlab = "Time", ylab = "Number of individuals",
-        main = "SEIRDS model - 100 runs", type = "l",
-        col = rep(transp(seirds_col, .1), 100),
-        lwd = 3, lty = 1)
-legend("left", lwd = 3, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"))
+        type = "l", col = rep(transp(seirds_col, .1), 100), lty = 1)
+legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 
 
 
@@ -370,11 +367,14 @@ check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...) {
     model <- seirds_model(...)
 
     res <- as.data.frame(replicate(n, model$run(t)[, -1]))
+    opar <- par(no.readonly = TRUE)
+    on.exit(par(opar))
+    par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
     matplot(t, res, xlab = "Time", ylab = "Number of individuals",
-            main = "SEIRDS model", type = "l",
+            type = "l",
             col = rep(transp(seirds_col, alpha), n),
-            lwd = 3, lty = 1)
-    legend("left", lwd = 3, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"))
+            lty = 1)
+    legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 }
 
 
