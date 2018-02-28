@@ -158,7 +158,7 @@ knitr::opts_chunk$set(
 
 
 ## # Implementation using *odin*
-## ## Discrete, deterministic SIR model
+## ## Deterministic SIR model
 
 ## We start by loading the *odin* code for a discrete, stochastic SIR model:
 
@@ -190,7 +190,7 @@ x
 ## discrete-time, deterministic SIR model. This is achieved using the function
 ## `x$run()`, providing time steps as single argument, e.g.:
 
-##+ sir-deterministic
+##+ sir-deterministic, fig.cap = "An example of deterministic, discrete-time SIR model"
 sir_col <- c("#8c8cd9", "#cc0044", "#999966")
 x$run(0:10)
 x_res <- x$run(0:200)
@@ -201,7 +201,7 @@ legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 
 
-## Stochastic discrete SIR
+## ## Stochastic SIR model
 
 ## The stochastic equivalent of the previous model can be formulated in `odin`
 ## as follows:
@@ -218,7 +218,7 @@ sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
 sir_model_s
 x <- sir_model_s(I_ini = 10) # customise param: I_ini = 10 individuals
 
-##+ sir-stochastic_1
+##+ sir-stochastic_1, fig.cap = "An example of stochastic, discrete-time SIR model"
 set.seed(1)
 x_res <- x$run(0:100)
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
@@ -247,7 +247,7 @@ transp <- function(col, alpha = 0.5) {
     return(res)
 }
 
-##+ sir-stochastic_100
+##+ sir-stochastic_100, fig.cap = "100 replicates of a stochastic, discrete-time SIR model"
 set.seed(1)
 x_res <- x$run(0:100)
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
@@ -259,7 +259,7 @@ legend("left", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 
 
-## ## A discrete, stochastic SEIRDS model
+## ## A stochastic SEIRDS model
 
 ## This model is a more complex version of the previous one, which we will use
 ## to illustrate the use of all distributions mentioned in the first part:
@@ -324,7 +324,7 @@ legend("left", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 ##+ load_seirds
 path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", package = "odin")
 
-##+ echo = FALSE, comment = NA
+##+ echo = FALSE, comment = NA, fig.cap = "A stochastic, discrete-time SEIRDS model"
 cat(readLines(path_seirds_model), sep = "\n")
 
 ##+ seirds
@@ -347,7 +347,7 @@ legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", 
 ## Several runs can be obtained without rewriting the model, for instance, to
 ## get 100 replicates:
 
-##+ seirds_100
+##+ seirds_100, fig.cap = "100 replicates of a stochastic, discrete-time SEIRDS model"
 x_res <- as.data.frame(replicate(100, x$run(0:365)[, -1]))
 dim(x_res)
 x_res[1:6, 1:10]
@@ -355,7 +355,7 @@ x_res[1:6, 1:10]
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(0:365, x_res, xlab = "Time", ylab = "Number of individuals",
         type = "l", col = rep(transp(seirds_col, .1), 100), lty = 1)
-legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
+legend("right", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 
 
 
@@ -370,11 +370,11 @@ check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...) {
     opar <- par(no.readonly = TRUE)
     on.exit(par(opar))
     par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
-    matplot(t, res, xlab = "Time", ylab = "Number of individuals",
-            type = "l",
-            col = rep(transp(seirds_col, alpha), n),
-            lty = 1)
-    legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
+    matplot(t, res, xlab = "Time", ylab = "",  type = "l",
+            col = rep(transp(seirds_col, alpha), n), lty = 1)
+    mtext("Number of individuals", side = 2, line = 3.5, las = 3, cex = 1.2)
+    legend("topright", lwd = 1, col = seirds_col,
+           legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 }
 
 
