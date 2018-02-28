@@ -213,10 +213,11 @@ path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = 
 cat(readLines(path_sir_model_s), sep = "\n")
 
 
-## We can use the same workflow as before to run the model:
+## We can use the same workflow as before to run the model, using 10 initial
+## infected individuals (`I_ini = 10`):
 sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
 sir_model_s
-x <- sir_model_s(I_ini = 10) # customise param: I_ini = 10 individuals
+x <- sir_model_s(I_ini = 10)
 
 ##+ sir-stochastic_1, fig.cap = "An example of stochastic, discrete-time SIR model"
 set.seed(1)
