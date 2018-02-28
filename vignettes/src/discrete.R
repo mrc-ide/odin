@@ -174,16 +174,16 @@ cat(readLines(path_sir_model), sep = "\n")
 ## errors.
 
 ## We then use `odin` to compile this model:
-sir_model <- odin::odin(path_sir_model, verbose = FALSE, skip_cache = TRUE)
-sir_model
+sir_generator <- odin::odin(path_sir_model, verbose = FALSE, skip_cache = TRUE)
+sir_generator
 
 ## **Note**: this is the slow part (generation and compilation of C code for the
 ## local machine)! Which means for computer-intensive work, the number of times
 ## this is done should be minimized.
 
-## The returned object `sir_model` is a function that will generate an instance
+## The returned object `sir_generator` is a function that will generate an instance
 ## of the model:
-x <- sir_model()
+x <- sir_generator()
 x
 
 ## `x` is an `ode_model` object which can be used to generate dynamics of a
@@ -215,9 +215,9 @@ cat(readLines(path_sir_model_s), sep = "\n")
 
 ## We can use the same workflow as before to run the model, using 10 initial
 ## infected individuals (`I_ini = 10`):
-sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
-sir_model_s
-x <- sir_model_s(I_ini = 10)
+sir_s_generator <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
+sir_s_generator
+x <- sir_s_generator(I_ini = 10)
 
 ##+ sir-stochastic_1, fig.cap = "An example of stochastic, discrete-time SIR model"
 set.seed(1)
@@ -232,14 +232,14 @@ legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 ## limited interest. As an alternative, we can generate a large number of
 ## replicates using arrays for each compartments:
 
-path_sir_model_s <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
+path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
 
 ##+ echo = FALSE, comment = NA
-cat(readLines(path_sir_model_s), sep = "\n")
+cat(readLines(path_sir_model_s_a), sep = "\n")
 
-sir_model_s <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
-sir_model_s
-x <- sir_model_s()
+sir_s_a_generator <- odin::odin(path_sir_model_s_a, verbose = FALSE, skip_cache = TRUE)
+sir_s_a_generator
+x <- sir_s_a_generator()
 
 ##+ transp
 transp <- function(col, alpha = 0.5) {
@@ -329,9 +329,9 @@ path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", packag
 cat(readLines(path_seirds_model), sep = "\n")
 
 ##+ seirds
-seirds_model <- odin::odin(path_seirds_model, verbose = FALSE, skip_cache = TRUE)
-seirds_model
-x <- seirds_model()
+seirds_generator <- odin::odin(path_seirds_model, verbose = FALSE, skip_cache = TRUE)
+seirds_generator
+x <- seirds_generator()
 
 
 seirds_col <- c("#8c8cd9", "#e67300", "#d279a6", "#ff4d4d", "#999966", "#660000")
@@ -365,7 +365,7 @@ legend("right", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R",
 
 ##+ custom_function
 check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...) {
-    model <- seirds_model(...)
+    model <- seirds_generator(...)
 
     res <- as.data.frame(replicate(n, model$run(t)[, -1]))
     opar <- par(no.readonly = TRUE)
