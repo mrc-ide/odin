@@ -174,7 +174,7 @@ r_output(readLines(path_sir_model))
 ## errors.
 
 ## We then use `odin` to compile this model:
-sir_generator <- odin::odin(path_sir_model, verbose = FALSE, skip_cache = TRUE)
+sir_generator <- odin::odin(path_sir_model, verbose = FALSE)
 sir_generator
 
 ## **Note**: this is the slow part (generation and compilation of C code for the
@@ -215,7 +215,7 @@ r_output(readLines(path_sir_model_s))
 
 ## We can use the same workflow as before to run the model, using 10 initial
 ## infected individuals (`I_ini = 10`):
-sir_s_generator <- odin::odin(path_sir_model_s, verbose = FALSE, skip_cache = TRUE)
+sir_s_generator <- odin::odin(path_sir_model_s, verbose = FALSE)
 sir_s_generator
 x <- sir_s_generator(I_ini = 10)
 
@@ -237,7 +237,7 @@ path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R", p
 ##+ echo = FALSE, results = "asis"
 r_output(readLines(path_sir_model_s_a))
 
-sir_s_a_generator <- odin::odin(path_sir_model_s_a, verbose = FALSE, skip_cache = TRUE)
+sir_s_a_generator <- odin::odin(path_sir_model_s_a, verbose = FALSE)
 sir_s_a_generator
 x <- sir_s_a_generator()
 
@@ -329,7 +329,7 @@ path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", packag
 r_output(readLines(path_seirds_model))
 
 ##+ seirds
-seirds_generator <- odin::odin(path_seirds_model, verbose = FALSE, skip_cache = TRUE)
+seirds_generator <- odin::odin(path_seirds_model, verbose = FALSE)
 seirds_generator
 x <- seirds_generator()
 
