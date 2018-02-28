@@ -165,8 +165,8 @@ knitr::opts_chunk$set(
 ##+ load_sir
 path_sir_model <- system.file("examples/discrete_deterministic_sir.R", package = "odin")
 
-##+ echo = FALSE, comment = NA
-cat(readLines(path_sir_model), sep = "\n")
+##+ echo = FALSE, results = "asis"
+r_output(readLines(path_sir_model))
 
 
 ## As said in the previous vignette, remember this looks and parses like R code,
@@ -209,8 +209,8 @@ legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 ##+ load_sir_s
 path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = "odin")
 
-##+ echo = FALSE, comment = NA
-cat(readLines(path_sir_model_s), sep = "\n")
+##+ echo = FALSE, results = "asis"
+r_output(readLines(path_sir_model_s))
 
 
 ## We can use the same workflow as before to run the model, using 10 initial
@@ -234,8 +234,8 @@ legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
 
-##+ echo = FALSE, comment = NA
-cat(readLines(path_sir_model_s_a), sep = "\n")
+##+ echo = FALSE, results = "asis"
+r_output(readLines(path_sir_model_s_a))
 
 sir_s_a_generator <- odin::odin(path_sir_model_s_a, verbose = FALSE, skip_cache = TRUE)
 sir_s_a_generator
@@ -325,8 +325,8 @@ legend("left", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 ##+ load_seirds
 path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", package = "odin")
 
-##+ echo = FALSE, comment = NA, fig.cap = "A stochastic, discrete-time SEIRDS model"
-cat(readLines(path_seirds_model), sep = "\n")
+##+ echo = FALSE, fig.cap = "A stochastic, discrete-time SEIRDS model", results = "asis"
+r_output(readLines(path_seirds_model))
 
 ##+ seirds
 seirds_generator <- odin::odin(path_seirds_model, verbose = FALSE, skip_cache = TRUE)
