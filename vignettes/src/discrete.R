@@ -190,7 +190,7 @@ x
 ## discrete-time, deterministic SIR model. This is achieved using the function
 ## `x$run()`, providing time steps as single argument, e.g.:
 
-##+ sir-deterministic, fig.cap = "An example of deterministic, discrete-time SIR model"
+##+ sir-deterministic, fig.cap = "<i>An example of deterministic, discrete-time SIR model</i><br>"
 sir_col <- c("#8c8cd9", "#cc0044", "#999966")
 x$run(0:10)
 x_res <- x$run(0:200)
@@ -219,7 +219,7 @@ sir_s_generator <- odin::odin(path_sir_model_s, verbose = FALSE)
 sir_s_generator
 x <- sir_s_generator(I_ini = 10)
 
-##+ sir-stochastic_1, fig.cap = "An example of stochastic, discrete-time SIR model"
+##+ sir-stochastic_1, fig.cap = "<i>An example of stochastic, discrete-time SIR model</i><br>"
 set.seed(1)
 x_res <- x$run(0:100)
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
@@ -248,7 +248,7 @@ transp <- function(col, alpha = 0.5) {
     return(res)
 }
 
-##+ sir-stochastic_100, fig.cap = "100 replicates of a stochastic, discrete-time SIR model"
+##+ sir-stochastic_100, fig.cap = "<i>100 replicates of a stochastic, discrete-time SIR model</i><br>"
 set.seed(1)
 x_res <- x$run(0:100)
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
@@ -325,7 +325,7 @@ legend("left", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 ##+ load_seirds
 path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", package = "odin")
 
-##+ echo = FALSE, fig.cap = "A stochastic, discrete-time SEIRDS model", results = "asis"
+##+ echo = FALSE, fig.cap = "<i>A stochastic, discrete-time SEIRDS model", results = "asis</i><br>"
 r_output(readLines(path_seirds_model))
 
 ##+ seirds
@@ -348,7 +348,7 @@ legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", 
 ## Several runs can be obtained without rewriting the model, for instance, to
 ## get 100 replicates:
 
-##+ seirds_100, fig.cap = "100 replicates of a stochastic, discrete-time SEIRDS model"
+##+ seirds_100, fig.cap = "<i>100 replicates of a stochastic, discrete-time SEIRDS model</i><br>"
 x_res <- as.data.frame(replicate(100, x$run(0:365)[, -1]))
 dim(x_res)
 x_res[1:6, 1:10]
@@ -380,14 +380,17 @@ check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...) {
 
 
 ## This is a sanity check with a null infection rate and no imported case:
+##+ fig.cap = "<i>Stochastic SEIRDS model: sanity check with no infections</i><br>"
 check_model(beta = 0, epsilon = 0)
 
 ## Another easy case: no importation, no waning immunity:
+##+ fig.cap = "<i>Stochastic SEIRDS model: no importation or waning immunity</i><br>"
 check_model(epsilon = 0, omega = 0)
 
 
 ## A more nuanced case: persistence of the disease with limited import, waning
 ## immunity, low severity, larger population:
 
+##+ fig.cap = "<i>Stochastic SEIRDS model: endemic state in a larger population</i><br>"
 check_model(t = 0:(365*3), epsilon = 0.1, beta = .2, omega = .01,
             mu = 0.005, S_ini = 1e5)
