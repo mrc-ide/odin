@@ -9,6 +9,13 @@
 
 \method{plot}{odin_generator}(x, ...)
 }
+\arguments{
+\item{x}{An odin object (an \code{odin_model} or
+\code{odin_generator}) to plot}
+
+\item{...}{Additional arguments, as yet undocumented and
+undecided}
+}
 \description{
 The \code{plot} method for \code{odin_model} objects is a wrapper around the
 \code{$code} slot of these objects.

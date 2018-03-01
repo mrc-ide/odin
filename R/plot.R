@@ -2,6 +2,13 @@
 ##'
 ##' The \code{plot} method for \code{odin_model} objects is a wrapper around the
 ##' \code{$code} slot of these objects.
+##'
+##' @param x An odin object (an \code{odin_model} or
+##'   \code{odin_generator}) to plot
+##'
+##' @param ... Additional arguments, as yet undocumented and
+##'   undecided
+##'
 ##' @export
 ##' @importFrom graphics plot
 plot.odin_model <- function(x, ...) {
