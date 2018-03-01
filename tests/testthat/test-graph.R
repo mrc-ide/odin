@@ -20,7 +20,7 @@ test_that("generate graph", {
     b     <-  8.0 / 3.0
 
     config(base) <- "lorenz"
-  })
+  }, verbose = TEST_VERBOSE)
 
   graph <- plot(lorenz)
   expect_is(graph, "visNetwork")
