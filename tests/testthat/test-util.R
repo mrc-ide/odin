@@ -95,3 +95,16 @@ test_that("odin_version", {
   expect_true(setequal(names(ODIN_VERSION),
                        c("odin", "cinterpolate", "r", "platform")))
 })
+
+
+test_that("indent", {
+  expect_equal(indent(c("a\nb"), 2L), c("  a", "  b"))
+  expect_equal(indent(c("a\nb"), 2L, TRUE), c("a", "  b"))
+  expect_equal(indent(c("a\nb"), 2L, FALSE, TRUE), c("  a\n  b"))
+  expect_equal(indent(c("a\nb"), 2L, TRUE, TRUE), c("a\n  b"))
+
+  expect_equal(indent("a", 2L, FALSE), "  a")
+  expect_equal(indent("a", 2L, TRUE), "a")
+
+  expect_error(indent(""), "should never happen [odin bug]", fixed = TRUE)
+})

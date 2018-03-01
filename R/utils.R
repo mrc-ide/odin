@@ -65,17 +65,27 @@ pastec <- function(..., collapse = ", ") {
   paste(..., collapse = collapse)
 }
 
-indent <- function(x, n = 2) {
+indent <- function(x, n = 2, skip_first = FALSE, collapse = FALSE) {
   if (length(x) == 0L && is.character(x)) {
     return(x)
   } else {
-    x <- unlist(strsplit(x, "\\n", fixed = TRUE), use.names = FALSE)
+    x <- unlist(strsplit(x, "\n", fixed = TRUE), use.names = FALSE)
     if (length(x) > 0L) {
-      paste0(strrep(n), x)
+      if (skip_first) {
+        if (length(x) > 1L) {
+          x[-1] <- paste0(strrep(n), x[-1])
+        }
+      } else {
+        x <- paste0(strrep(n), x)
+      }
     } else {
-      stop("should never happen [odin bug]") # nocov
+      stop("should never happen [odin bug]")
     }
   }
+  if (collapse && length(x) > 1L) {
+    x <- paste(x, collapse = "\n")
+  }
+  x
 }
 
 strrep <- function(n, x = " ") {
