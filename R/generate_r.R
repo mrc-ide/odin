@@ -61,7 +61,8 @@ odin_generate_r <- function(info, dll) {
     odin_generate_r_initial(info, dll),
     odin_generate_r_run(info, dll),
     odin_generate_r_contents(info, dll),
-    odin_generate_r_user_info(info))
+    odin_generate_r_user_info(info),
+    odin_generate_r_graph_data(info))
   methods <- methods[!vlapply(methods, is.null)]
   methods <-
     paste(vcapply(methods, function(x) paste(indent(x, 4), collapse = "\n")),
@@ -102,7 +103,10 @@ odin_generate_r_constructor <- function(info, dll) {
   ret$add("}")
   ## Once #96 is solved this might change and we might move to a
   ## generic over odin objects which implements this.
-  ret$add('attr(%s, "user_info") <- .R6_%s$public_methods$user_info', base, base)
+  ret$add('attr(%s, "user_info") <- .R6_%s$public_methods$user_info',
+          base, base)
+  ret$add('attr(%s, "graph_data") <- .R6_%s$public_methods$graph_data',
+          base, base)
   ret$add('class(%s) <- "odin_generator"', base)
   ret$add(base)
   ret$get()
@@ -352,7 +356,7 @@ odin_generate_r_contents <- function(info, dll) {
 ## hugely different but I think a function is more like others
 odin_generate_r_user_info <- function(info) {
   ret <- collector()
-  ret$add("user_info = function() {", info$base)
+  ret$add("user_info = function() {")
   if (info$has_user) {
     default_value <- vcapply(info$user$default_value, function(x)
       if (is.null(x)) "NULL" else deparse_str(x), USE.NAMES = FALSE)
@@ -370,7 +374,37 @@ odin_generate_r_user_info <- function(info) {
     ret$add("             stringsAsFactors = FALSE)")
   }
   ret$add("}")
+  ret$get()
 }
+
+
+odin_generate_r_graph_data <- function(info) {
+  vec <- function(x) {
+    if (is.character(x)) {
+      x <- dquote(x)
+    }
+    sprintf("c(%s)", paste(x, collapse = ", "))
+  }
+  df <- function(d, indent = 8) {
+    cols <- vcapply(d, vec, USE.NAMES = FALSE)
+    indent <- strrep(indent, " ")
+    sprintf("data.frame(\n%s\n%sstringsAsFactors = FALSE)",
+            paste(sprintf("%s%s = %s,", indent, names(d), cols),
+                  collapse = "\n"),
+            indent)
+  }
+
+  ret <- collector()
+  ret$add("graph_data = function() {")
+  ret$add("  structure(")
+  ret$add("    list(")
+  ret$add("      nodes = %s,", df(info$graph$nodes))
+  ret$add("      edges = %s),", df(info$graph$edges))
+  ret$add('    class = "odin_graph_data")')
+  ret$add("}")
+  ret$get()
+}
+
 
 dot_call <- function(base, dll, fmt, ..., args = c(...)) {
   args <- c(args, sprintf('PACKAGE = "%s"', dll))
