@@ -632,9 +632,9 @@ odin_parse_graph <- function(obj) {
 
   nodes <- data.frame(
     id = vcapply(obj$eqs, function(e) e$name),
+    label = vcapply(obj$eqs, name_display),
     name_target = vcapply(obj$eqs, function(e)
       e$lhs$name_target %||% e$name),
-    name_display = vcapply(obj$eqs, name_display),
     rank = viapply(obj$eqs, function(e)
       if (e$lhs$type == "symbol") 0L else e$lhs$nd),
     type = type,
@@ -644,8 +644,8 @@ odin_parse_graph <- function(obj) {
 
   nodes_variables <- data.frame(
     id = obj$variable_info$order,
+    label = obj$variable_info$order,
     name_target = obj$variable_info$order,
-    name_display = obj$variable_info$order,
     rank = obj$variable_info$array,
     type = "variable",
     stage = STAGES[STAGE_TIME],
