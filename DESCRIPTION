@@ -1,6 +1,6 @@
 Package: odin
 Title: Ode Generation and Integration
-Version: 0.0.4
+Version: 0.0.5
 Authors@R: person("Rich", "FitzJohn", role = c("aut", "cre"),
                   email = "rich.fitzjohn@gmail.com")
 Description: Generate systems of ODEs and integrate them.
