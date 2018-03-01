@@ -1,50 +1,38 @@
-#' Plotting odin models
-#'
-#' The \code{plot} method for \code{odin_model} objects is a wrapper around the
-#' \code{$code} slot of these objects.
-#' @export
-#' @importFrom graphics plot
+##' Plotting odin models
+##'
+##' The \code{plot} method for \code{odin_model} objects is a wrapper around the
+##' \code{$code} slot of these objects.
+##' @export
+##' @importFrom graphics plot
 plot.odin_model <- function(x, ...) {
-  plot_odin_model(x, ...)
+  build_odin_graph(x, ...)
 }
 
-## This internal function effectively does the plotting.
-plot_odin_model <- function(x, box_size = 10, box_col = NULL,
-                             straight = FALSE, ...) {
 
-  out <- NULL
+##' @export
+##' @rdname plot.odin_model
+plot.odin_generator <- function(x, ...) {
+  build_odin_graph(attr(x, "graph_data")(), ...)
+}
+
+
+build_odin_graph <- function(graph, box_size = 10, box_col = NULL,
+                            straight = FALSE, height = "800px", width = "100%",
+                            ...) {
   loadNamespace("visNetwork")
 
-  boxes <- x$names[-1]
-  n <- length(boxes)
-  if (is.null(box_col)) {
-    box_col <- odin_pal(n)
-  }
-  nodes <- data.frame(id = boxes,
-                      label = boxes,
-                      shape = "box",
-                      color = box_col,
-                      size = box_size)
+  nodes <- graph$nodes
+  nodes$shape <- "box"
+  nodes$size <- box_size
+  nodes$color <- box_col %||% odin_pal(nrow(nodes))
 
-  ## TODO: this will need changing!
+  edges <- graph$edges
+  edges$arrows <- "to"
+  edges$smooth <- !straight
 
-  ## we are assuming that each compartment flows only to the next; this is
-  ## a placeholder waiting to get the real flows from the structure.
-
-  ## Note: we are not using %>% on purpose to avoid the dependency on
-  ## maggritr
-
-  edges <- data.frame(from = boxes[-n],
-                      to = boxes[-1],
-                      arrows = "to",
-                      smooth = !straight)
-
-  out <- visNetwork::visNetwork(nodes = nodes,
-                                edges = edges,
-                                height = "800px",
-                                width = "100%",
+  out <- visNetwork::visNetwork(nodes = nodes, edges = edges,
+                                height = height, width = width,
                                 highlightNearest = TRUE)
-
   out <- visNetwork::visOptions(out, highlightNearest = TRUE)
   out <- visNetwork::visPhysics(out, stabilization = FALSE)
 
@@ -53,7 +41,6 @@ plot_odin_model <- function(x, box_size = 10, box_col = NULL,
 
 
 odin_pal <- function(n) {
-  assert_scalar_integer(n)
   n <- as.integer(n)
   colors <- c("#ccddff", "#79d2a6", "#ffb3b3",
               "#a4a4c1", "#ffcc00", "#ff9f80",
