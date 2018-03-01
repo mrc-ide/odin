@@ -98,7 +98,10 @@ odin_parse <- function(x) {
   ret <- odin_parse_interpolate(ret)
   ret <- odin_parse_check_functions(ret)
 
-  ## 11. Report any unused variables
+  ## 11. Compute the graph
+  ret <- odin_parse_graph(ret)
+
+  ## 12. Report any unused variables
   odin_parse_check_unused(ret)
 
   h_files <- hash_files(ret$config$include$filename, TRUE)
@@ -597,6 +600,37 @@ odin_parse_usage <- function(obj) {
 
   obj
 }
+
+
+odin_parse_graph <- function(obj) {
+  ## TODO: this is *only* core edges, not delays; they are going to
+  ## come out as a separate set of dependencies, but done in basically
+  ## the same way - we'll find the dependencies for each delay and
+  ## build them into a second list.  For now they're just not really
+  ## going to appear in the graph.
+  from <- lapply(obj$eqs, function(x) x$depends$variables)
+  to <- rep(names(obj$eqs), lengths(from))
+  edges <- data.frame(from = unlist(from, FALSE, FALSE),
+                      to = to,
+                      stringsAsFactors = FALSE)
+
+  nodes <- data.frame(
+    name = vcapply(obj$eqs, function(e)
+      e$name),
+    name_target = vcapply(obj$eqs, function(e)
+      e$lhs$name_target %||% e$name),
+    rank = viapply(obj$eqs, function(e)
+      if (e$lhs$type == "symbol") 0L else e$lhs$nd),
+    stringsAsFactors = FALSE)
+  nodes <- cbind(nodes, obj$traits)
+
+  ## NOTE: This is going to be used in R generation so we need to put
+  ## it into 'info' because that's all that the R code generation may
+  ## see.
+  obj$info$graph <- list(edges = edges, nodes = nodes)
+  obj
+}
+
 
 is_dim_or_length <- function(x) {
   is_call(x, quote(dim)) || is_call(x, quote(length))
