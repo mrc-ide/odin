@@ -27,7 +27,8 @@ knitr::opts_chunk$set(
 
 ## ## From continuous to discrete time
 
-## In its simplest form, a SIR model is typically written in continuous time as:
+## In its simplest form, a SIR model is typically written in
+## continuous time as:
 
 ## $$
 ## \frac{dS}{dt} = - \beta \frac{S_t I_t}{N_t}
@@ -41,11 +42,13 @@ knitr::opts_chunk$set(
 ## \frac{dR}{dt} = \gamma I_t
 ## $$
 
-## Where $\beta$ is an infection rate and $\gamma$ a removal rate, assuming 'R'
-## stands for 'reconvered', which can mean recovery or death.
+## Where $\beta$ is an infection rate and $\gamma$ a removal rate,
+## assuming 'R' stands for 'reconvered', which can mean recovery or
+## death.
 
-## For discrete time equivalent, we take a small time step $t$ (typically a day),
-## and write the changes of individuals in each compartments as:
+## For discrete time equivalent, we take a small time step $t$
+## (typically a day), and write the changes of individuals in each
+## compartments as:
 
 ## $$
 ## S_{t+1} = S_t - \beta \frac{S_t I_t}{N_t}
@@ -63,55 +66,61 @@ knitr::opts_chunk$set(
 
 ## ## Stochastic processes
 
-## The discrete model above remains deterministic: for given values of the rates
-## $\beta$ and $\gamma$, dynamics will be fixed. It is fairly straightforward to
-## convert this discrete model into a stochastic one: one merely needs to uses
-## appropriate probability distributions to model the transfer of individuals
-## across compartments. There are at least 3 types of such distributions which will
-## be useful to consider.
+## The discrete model above remains deterministic: for given values of
+## the rates $\beta$ and $\gamma$, dynamics will be fixed. It is
+## fairly straightforward to convert this discrete model into a
+## stochastic one: one merely needs to uses appropriate probability
+## distributions to model the transfer of individuals across
+## compartments. There are at least 3 types of such distributions
+## which will be useful to consider.
 
 
 ## ### Binomial distribution
 
-## This distribution will be used to determine numbers of individuals **leaving** a
-## given compartment. While we may be tempted to use a Poisson distribution with
-## the rates specified in the equations above, this could lead to over-shooting,
-## i.e. more individuals leaving a compartment than there actually are. To avoid
-## infecting more people than there are susceptibles, we use a binomial
-## distribution, with one draw for each individual in the compartment of
-## interest. The workflow will be:
+## This distribution will be used to determine numbers of individuals
+## **leaving** a given compartment. While we may be tempted to use a
+## Poisson distribution with the rates specified in the equations
+## above, this could lead to over-shooting, i.e. more individuals
+## leaving a compartment than there actually are. To avoid infecting
+## more people than there are susceptibles, we use a binomial
+## distribution, with one draw for each individual in the compartment
+## of interest. The workflow will be:
 
-## 1. determine a *per-capita probability* of leaving the compartment, based on the
-## original rates specified in the equations; if the rate at which each individual
-## leaves a compartment is $\lambda$, then the corresponding probability of this
-## individual leaving the compartment in one time unit is $p = 1 - e^{- \lambda}$.
+## 1. determine a *per-capita probability* of leaving the compartment,
+## based on the original rates specified in the equations; if the rate
+## at which each individual leaves a compartment is $\lambda$, then
+## the corresponding probability of this individual leaving the
+## compartment in one time unit is $p = 1 - e^{- \lambda}$.
 
-## 2. determine the number of individuals leaving the compartment using a *Binomial*
-## distribution, with one draw per individual and a probability $p$
+## 2. determine the number of individuals leaving the compartment
+## using a *Binomial* distribution, with one draw per individual and a
+## probability $p$
 
-## As a example, let us consider transition $S \rightarrow I$ in the SIR model. The
-## overal rate at which this change happens is $\beta \frac{S_t I_t}{N_t}$. The
-## corresponding *per susceptible* rate is $\beta \frac{I_t}{N_t}$. Therefore, the
-## probability for an individual to move from *S* to *I* at time $t$ is
-## $p_{(S \rightarrow I), t} = 1 - e^{- \beta \frac{I_t}{N_t}}$.
-
+## As a example, let us consider transition $S \rightarrow I$ in the
+## SIR model. The overal rate at which this change happens is $\beta
+## \frac{S_t I_t}{N_t}$. The corresponding *per susceptible* rate is
+## $\beta \frac{I_t}{N_t}$. Therefore, the probability for an
+## individual to move from *S* to *I* at time $t$ is $p_{(S
+## \rightarrow I), t} = 1 - e^{- \beta \frac{I_t}{N_t}}$.
 
 
 ## ### Poisson distribution
 
-## Poisson distributions will be useful when individuals enter a compartment at a
-## given rate, from 'the outside'. This could be birth or migration (for $S$), or
-## introduction of infections from an external reservoir (for $I$), etc. The
-## essential distinction with the previous process is that individuals are *not
-## leaving* an existing compartment.
+## Poisson distributions will be useful when individuals enter a
+## compartment at a given rate, from 'the outside'. This could be
+## birth or migration (for $S$), or introduction of infections from an
+## external reservoir (for $I$), etc. The essential distinction with
+## the previous process is that individuals are *not leaving* an
+## existing compartment.
 
-## This case is simple to handle: one just needs to draw new individuals entering
-## the compartment from a Poisson distribution with the rate directly coming form
-## the equations.
+## This case is simple to handle: one just needs to draw new
+## individuals entering the compartment from a Poisson distribution
+## with the rate directly coming form the equations.
 
-## For instance, let us now consider a variant of the SIR model where new
-## infectious cases are imported at a constant rate $\epsilon$. The only change
-## to the equation is for the infected compartment:
+## For instance, let us now consider a variant of the SIR model where
+## new infectious cases are imported at a constant rate
+## $\epsilon$. The only change to the equation is for the infected
+## compartment:
 
 ## $$
 ## I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
@@ -119,48 +128,50 @@ knitr::opts_chunk$set(
 
 ## where:
 
-## - individuals move from $S$ to $I$ according to a Binomial distribution
-## $\mathcal{B}(S_t, 1 - e^{- \beta \frac{I_t}{N_t}})$
+## - individuals move from $S$ to $I$ according to a Binomial
+## distribution $\mathcal{B}(S_t, 1 - e^{- \beta \frac{I_t}{N_t}})$
 
-## - new infected individuals are imported according to a Poisson distribution
-## $\mathcal{P}(\epsilon)$
+## - new infected individuals are imported according to a Poisson
+## distribution $\mathcal{P}(\epsilon)$
 
-## - individual move from $I$ to $R$ according to a Binomial distribution
-## $\mathcal{B}(I_t, 1 - e^{- \gamma})$
+## - individual move from $I$ to $R$ according to a Binomial
+## distribution $\mathcal{B}(I_t, 1 - e^{- \gamma})$
 
 
 
 ## ### Multinomial distribution
 
-## This distribution will be useful when individuals leaving a compartment are
-## distributed over several compartments. The Multinomial distribution will be used
-## to determine how many individuals end up in each compartment. Let us assume that
-## individuals move from a compartment $X$ to compartments $A$, $B$, and $C$, at
-## rates $\lambda_A$, $\lambda_B$ and $\lambda_C$. The worflow to handle these
-## transitions will be:
+## This distribution will be useful when individuals leaving a
+## compartment are distributed over several compartments. The
+## Multinomial distribution will be used to determine how many
+## individuals end up in each compartment. Let us assume that
+## individuals move from a compartment $X$ to compartments $A$, $B$,
+## and $C$, at rates $\lambda_A$, $\lambda_B$ and $\lambda_C$. The
+## worflow to handle these transitions will be:
 
-## 1. determine the total number of individuals leaving $X$; this is done by
-## summing the rates ($\lambda = \lambda_A + \lambda_B + \lambda_C$) to compute the
-## *per capita* probability of leaving
-## $X$ $(p_(X \rightarrow ...) = 1 - e^{- \lambda})$,
-## and drawing the number of individuals leaving $X$ ($n_{_(X \rightarrow ...)}$)
-## from a binomial distribution
-## $n_{(X \rightarrow ...)} \sim B(X, p_(X \rightarrow ...))$
+## 1. determine the total number of individuals leaving $X$; this is
+## done by summing the rates ($\lambda = \lambda_A + \lambda_B +
+## \lambda_C$) to compute the *per capita* probability of leaving $X$
+## $(p_(X \rightarrow ...) = 1 - e^{- \lambda})$, and drawing the
+## number of individuals leaving $X$ ($n_{_(X \rightarrow ...)}$) from
+## a binomial distribution $n_{(X \rightarrow ...)} \sim B(X, p_(X
+## \rightarrow ...))$
 
-## 2. compute relative probabilities of moving to the different compartments (using
-## $i$ as a placeolder for $A$, $B$, $C$): $p_i = \frac{\lambda_i}{\sum_i \lambda_i}$
+## 2. compute relative probabilities of moving to the different
+## compartments (using $i$ as a placeolder for $A$, $B$, $C$): $p_i =
+## \frac{\lambda_i}{\sum_i \lambda_i}$
 
-## 3. determine the numbers of individuals moving to $A$, $B$ and $C$ using a
-## Multinomial distribution:
-## $n_{(X \rightarrow A, B, C)} \sim \mathcal{M}(n_{(X \rightarrow ...)}, p_A, p_B, p_C)$
+## 3. determine the numbers of individuals moving to $A$, $B$ and $C$
+## using a Multinomial distribution: $n_{(X \rightarrow A, B, C)} \sim
+## \mathcal{M}(n_{(X \rightarrow ...)}, p_A, p_B, p_C)$
 
 
+## # Implementation using `odin`
 
-
-## # Implementation using *odin*
 ## ## Deterministic SIR model
 
-## We start by loading the *odin* code for a discrete, stochastic SIR model:
+## We start by loading the `odin` code for a discrete, stochastic SIR
+## model:
 
 ##+ load_sir
 path_sir_model <- system.file("examples/discrete_deterministic_sir.R", package = "odin")
@@ -169,26 +180,27 @@ path_sir_model <- system.file("examples/discrete_deterministic_sir.R", package =
 r_output(readLines(path_sir_model))
 
 
-## As said in the previous vignette, remember this looks and parses like R code,
-## but is not actually R code. Copy-pasting this in a R session will trigger
-## errors.
+## As said in the previous vignette, remember this looks and parses
+## like R code, but is not actually R code. Copy-pasting this in a R
+## session will trigger errors.
 
 ## We then use `odin` to compile this model:
 sir_generator <- odin::odin(path_sir_model, verbose = FALSE)
 sir_generator
 
-## **Note**: this is the slow part (generation and compilation of C code for the
-## local machine)! Which means for computer-intensive work, the number of times
-## this is done should be minimized.
+## **Note**: this is the slow part (generation and then compilation of
+## C code)! Which means for computer-intensive work, the number of
+## times this is done should be minimized.
 
-## The returned object `sir_generator` is a function that will generate an instance
-## of the model:
+## The returned object `sir_generator` is a function that will
+## generate an instance of the model:
 x <- sir_generator()
 x
 
-## `x` is an `ode_model` object which can be used to generate dynamics of a
-## discrete-time, deterministic SIR model. This is achieved using the function
-## `x$run()`, providing time steps as single argument, e.g.:
+## `x` is an `ode_model` object which can be used to generate dynamics
+## of a discrete-time, deterministic SIR model. This is achieved using
+## the function `x$run()`, providing time steps as single argument,
+## e.g.:
 
 ##+ sir-deterministic, fig.cap = "<i>An example of deterministic, discrete-time SIR model</i><br>"
 sir_col <- c("#8c8cd9", "#cc0044", "#999966")
@@ -203,8 +215,8 @@ legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 ## ## Stochastic SIR model
 
-## The stochastic equivalent of the previous model can be formulated in `odin`
-## as follows:
+## The stochastic equivalent of the previous model can be formulated
+## in `odin` as follows:
 
 ##+ load_sir_s
 path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = "odin")
@@ -213,8 +225,8 @@ path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = 
 r_output(readLines(path_sir_model_s))
 
 
-## We can use the same workflow as before to run the model, using 10 initial
-## infected individuals (`I_ini = 10`):
+## We can use the same workflow as before to run the model, using 10
+## initial infected individuals (`I_ini = 10`):
 sir_s_generator <- odin::odin(path_sir_model_s, verbose = FALSE)
 sir_s_generator
 x <- sir_s_generator(I_ini = 10)
@@ -228,43 +240,35 @@ matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
 legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 
-## This gives us a single stochastic realisation of the model, which is of
-## limited interest. As an alternative, we can generate a large number of
-## replicates using arrays for each compartments:
+## This gives us a single stochastic realisation of the model, which
+## is of limited interest. As an alternative, we can generate a large
+## number of replicates using arrays for each compartments:
 
 path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
 
 ##+ echo = FALSE, results = "asis"
 r_output(readLines(path_sir_model_s_a))
 
+##+ echo = TRUE
 sir_s_a_generator <- odin::odin(path_sir_model_s_a, verbose = FALSE)
 sir_s_a_generator
 x <- sir_s_a_generator()
 
-##+ transp
-transp <- function(col, alpha = 0.5) {
-    res <- apply(col2rgb(col), 2,
-                 function(c) rgb(c[1]/255, c[2]/255, c[3]/255, alpha))
-    return(res)
-}
-
 ##+ sir-stochastic_100, fig.cap = "<i>100 replicates of a stochastic, discrete-time SIR model</i><br>"
 set.seed(1)
+sir_col_transp <- paste0(sir_col, "66")
 x_res <- x$run(0:100)
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
-        type = "l", col = rep(transp(sir_col, .4), each = 100), lty = 1)
+        type = "l", col = rep(sir_col_transp, each = 100), lty = 1)
 legend("left", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
-
-
-
 
 
 ## ## A stochastic SEIRDS model
 
-## This model is a more complex version of the previous one, which we will use
-## to illustrate the use of all distributions mentioned in the first part:
-## Binomial, Poisson and Multinomial.
+## This model is a more complex version of the previous one, which we
+## will use to illustrate the use of all distributions mentioned in
+## the first part: Binomial, Poisson and Multinomial.
 
 
 ### Model description
@@ -325,7 +329,7 @@ legend("left", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 ##+ load_seirds
 path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", package = "odin")
 
-##+ echo = FALSE, fig.cap = "<i>A stochastic, discrete-time SEIRDS model", results = "asis</i><br>"
+##+ echo = FALSE, results = "asis"
 r_output(readLines(path_seirds_model))
 
 ##+ seirds
@@ -345,52 +349,57 @@ legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", 
 
 
 
-## Several runs can be obtained without rewriting the model, for instance, to
-## get 100 replicates:
+## Several runs can be obtained without rewriting the model, for
+## instance, to get 100 replicates:
 
 ##+ seirds_100, fig.cap = "<i>100 replicates of a stochastic, discrete-time SEIRDS model</i><br>"
 x_res <- as.data.frame(replicate(100, x$run(0:365)[, -1]))
 dim(x_res)
 x_res[1:6, 1:10]
 
+seirds_col_transp <- paste0(seirds_col, "1A")
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(0:365, x_res, xlab = "Time", ylab = "Number of individuals",
-        type = "l", col = rep(transp(seirds_col, .1), 100), lty = 1)
-legend("right", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
+        type = "l", col = rep(seirds_col_transp, 100), lty = 1)
+legend("right", lwd = 1, col = seirds_col,
+       legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 
 
-
-## It is then possible to explore the behaviour of the model using a simple
-## function:
+## It is then possible to explore the behaviour of the model using a
+## simple function:
 
 ##+ custom_function
-check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...) {
-    model <- seirds_generator(...)
+check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...,
+                        legend_pos = "topright") {
+  model <- seirds_generator(...)
+  col <- paste0(seirds_col, "33")
 
-    res <- as.data.frame(replicate(n, model$run(t)[, -1]))
-    opar <- par(no.readonly = TRUE)
-    on.exit(par(opar))
-    par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
-    matplot(t, res, xlab = "Time", ylab = "",  type = "l",
-            col = rep(transp(seirds_col, alpha), n), lty = 1)
-    mtext("Number of individuals", side = 2, line = 3.5, las = 3, cex = 1.2)
-    legend("topright", lwd = 1, col = seirds_col,
-           legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
+  res <- as.data.frame(replicate(n, model$run(t)[, -1]))
+  opar <- par(no.readonly = TRUE)
+  on.exit(par(opar))
+  par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
+  matplot(t, res, xlab = "Time", ylab = "",  type = "l",
+          col = rep(col, n), lty = 1)
+  mtext("Number of individuals", side = 2, line = 3.5, las = 3, cex = 1.2)
+  legend(legend_pos, lwd = 1, col = seirds_col,
+         legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 }
 
+## This is a sanity check with a null infection rate and no imported
+## case:
 
-## This is a sanity check with a null infection rate and no imported case:
 ##+ fig.cap = "<i>Stochastic SEIRDS model: sanity check with no infections</i><br>"
 check_model(beta = 0, epsilon = 0)
 
 ## Another easy case: no importation, no waning immunity:
+
 ##+ fig.cap = "<i>Stochastic SEIRDS model: no importation or waning immunity</i><br>"
 check_model(epsilon = 0, omega = 0)
 
 
-## A more nuanced case: persistence of the disease with limited import, waning
-## immunity, low severity, larger population:
+## A more nuanced case: persistence of the disease with limited
+## import, waning immunity, low severity, larger population:
 
 ##+ fig.cap = "<i>Stochastic SEIRDS model: endemic state in a larger population</i><br>"
-check_model(t = 0:(365*3), epsilon = 0.1, beta = .2, omega = .01,
+check_model(t = 0:(365 * 3), epsilon = 0.1, beta = .2, omega = .01,
             mu = 0.005, S_ini = 1e5)
