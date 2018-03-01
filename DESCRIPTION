@@ -19,7 +19,8 @@ Suggests:
     dde (>= 0.0.5),
     knitr,
     rmarkdown,
-    testthat
+    testthat,
+    visNetwork
 Remotes:
     mrc-ide/cinterpolate,
     richfitz/dde
