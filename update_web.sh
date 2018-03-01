@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-DOCS_DIR=inst/web
+DOCS_DIR=docs
 VERSION=$(git rev-parse --short HEAD)
 REMOTE_URL=$(git config --get remote.origin.url)
 

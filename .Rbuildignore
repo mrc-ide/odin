@@ -21,3 +21,4 @@
 ^tests/testthat/eugene$
 ^appveyor\.yml$
 ^\.valgrind_ignore$
+^docs$

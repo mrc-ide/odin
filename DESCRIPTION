@@ -1,8 +1,8 @@
 Package: odin
 Title: Ode Generation and Integration
 Version: 0.0.4
-Author: Rich FitzJohn
-Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
+Authors@R: person("Rich", "FitzJohn", role = c("aut", "cre"),
+                  email = "rich.fitzjohn@gmail.com")
 Description: Generate systems of ODEs and integrate them.
 License: MIT + file LICENSE
 LazyData: true
