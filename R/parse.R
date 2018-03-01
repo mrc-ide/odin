@@ -614,15 +614,43 @@ odin_parse_graph <- function(obj) {
                       to = to,
                       stringsAsFactors = FALSE)
 
+  name_display <- function(e) {
+    if (is.null(e$lhs$special)) {
+      e$name
+    } else {
+      sprintf("%s(%s)", e$lhs$special, e$lhs$name_target)
+    }
+  }
+
+  stage <- STAGES[viapply(obj$eqs, "[[", "stage")]
+
+  type <- rep("other", length(obj$eqs))
+  type[obj$traits[, "is_dim"]] <- "dim"
+  type[obj$traits[, "is_deriv"]] <- "target"
+  type[obj$traits[, "is_initial"]] <- "initial"
+  type[obj$traits[, "uses_user"]] <- "user"
+
   nodes <- data.frame(
-    name = vcapply(obj$eqs, function(e)
-      e$name),
+    id = vcapply(obj$eqs, function(e) e$name),
     name_target = vcapply(obj$eqs, function(e)
       e$lhs$name_target %||% e$name),
+    name_display = vcapply(obj$eqs, name_display),
     rank = viapply(obj$eqs, function(e)
       if (e$lhs$type == "symbol") 0L else e$lhs$nd),
+    type = type,
+    stage = stage,
+    stringsAsFactors = FALSE,
+    row.names = NULL)
+
+  nodes_variables <- data.frame(
+    id = obj$variable_info$order,
+    name_target = obj$variable_info$order,
+    name_display = obj$variable_info$order,
+    rank = obj$variable_info$array,
+    type = "variable",
+    stage = STAGES[STAGE_TIME],
     stringsAsFactors = FALSE)
-  nodes <- cbind(nodes, obj$traits)
+  nodes <- rbind(nodes_variables, nodes)
 
   ## NOTE: This is going to be used in R generation so we need to put
   ## it into 'info' because that's all that the R code generation may
