@@ -1,5 +1,4 @@
-## equations for transitions between compartments
-
+## Core equations for transitions between compartments:
 update(S) <- S - n_SE + n_RS
 update(E) <- E + n_SE - n_EI + n_import_E
 update(Ir) <- Ir + n_EIr - n_IrR
@@ -7,9 +6,7 @@ update(Id) <- Id + n_EId - n_IdD
 update(R) <- R + n_IrR - n_RS
 update(D) <- D + n_IdD
 
-
-## individual probabilities of transition
-
+## Individual probabilities of transition:
 p_SE <- 1 - exp(-beta * I / N)
 p_EI <-  1 - exp(-delta)
 p_IrR <- 1 - exp(-gamma_R) # Ir to R
@@ -17,8 +14,8 @@ p_IdD <- 1 - exp(-gamma_D) # Id to d
 p_RS <- 1 - exp(-omega) # R to S
 
 
-## draws from various distributions
-
+## Draws from binomial distributions for numbers changing between
+## compartments:
 n_SE <- rbinom(S, p_SE)
 n_EI <- rbinom(E, p_EI)
 
@@ -36,22 +33,19 @@ n_RS <- rbinom(R, p_RS)
 
 n_import_E <- rpois(epsilon)
 
-
-## record total population size
-
+## Total population size, and number of infecteds
 I <- Ir + Id
-N <- S + E + Ir + Id + R + D
+N <- S + E + I + R + D
 
-
-## initial states
-
-initial(S) <- S_ini # will be user-defined
-initial(E) <- E_ini # will be user-defined
+## Initial states
+initial(S) <- S_ini
+initial(E) <- E_ini
 initial(Id) <- 0
 initial(Ir) <- 0
 initial(R) <- 0
 initial(D) <- 0
 
+## User defined parameters - default in parentheses:
 S_ini <- user(1000) # susceptibles
 E_ini <- user(1) # infected
 beta <- user(0.3) # infection rate
