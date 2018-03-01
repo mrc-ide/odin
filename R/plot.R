@@ -5,7 +5,7 @@
 ##' @export
 ##' @importFrom graphics plot
 plot.odin_model <- function(x, ...) {
-  build_odin_graph(x, ...)
+  build_odin_graph(x$graph_data(), ...)
 }
 
 

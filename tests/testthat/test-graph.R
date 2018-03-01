@@ -25,3 +25,15 @@ test_that("generate graph", {
   graph <- plot(lorenz)
   expect_is(graph, "visNetwork")
 })
+
+
+test_that("discrete", {
+  gen <- odin::odin({
+    initial(x) <- 1
+    update(x) <- x + 1
+  }, verbose = TEST_VERBOSE)
+  mod <- gen()
+
+  graph <- plot(mod)
+  expect_is(graph, "visNetwork")
+})
