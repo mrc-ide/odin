@@ -1,3 +1,7 @@
+# odin 0.0.6
+
+* Fix caching of models specified with files (rather than inline code) [#99](https://github.com/mrc-ide/odin/issues/99)
+
 # odin 0.0.5
 
 * Support for multinomial distributions, which are the first example of supported vector-returning functions [#100](https://github.com/mrc-ide/odin/issues/100)
