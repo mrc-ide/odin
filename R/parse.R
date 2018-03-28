@@ -37,11 +37,12 @@
 
 ## Read in the file and do the basic classification of all expressions.
 odin_parse <- function(x) {
-  h_model <- hash_model(x)
   ## NOTE: this is a hack - it will only be used in tests
   if (is.null(attr(x, "odin_preprocessed"))) {
     x <- odin_preprocess(x)
   }
+
+  h_model <- hash_model(x)
 
   ## 1. Basic preparations over the expression list:
   exprs <- odin_parse_prepare(x$exprs)

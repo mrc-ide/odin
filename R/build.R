@@ -36,7 +36,7 @@ compile <- function(filename, verbose = TRUE, preclean = FALSE,
     handle_compiler_output(output, verbose, compiler_warnings)
   }
 
-  list(path = path, base = base, hash = hash,
+  list(path = path, base = base, hash = hash, source = normalizePath(filename),
        dll = normalizePath(dll, mustWork = TRUE))
 }
 

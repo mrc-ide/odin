@@ -157,8 +157,9 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
   ## Add key versions (or hash of such) into the model as a comment.
   ## This is easy to do.  That will guarantee that we invalidate the
   ## C->DLL cache!
+  xp <- odin_preprocess(x)
   skip_cache <- skip_cache || safe # always skip 'safe' models
-  model <- model_cache_get(hash_model(x), skip_cache)
+  model <- model_cache_get(hash_model(xp), skip_cache)
   if (!is.null(model)) {
     if (verbose) {
       message("Using cached model")
@@ -166,7 +167,7 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
     return(model$model)
   }
 
-  dat <- odin_parse(x)
+  dat <- odin_parse(xp)
   code_c <- odin_generate(dat, package = FALSE, safe = safe)
   code_r <- paste(odin_generate_r(dat$info, DLL_PLACEHOLDER), collapse = "\n")
 

@@ -32,3 +32,15 @@ model_cache_get <- function(hash, skip_cache) {
 model_cache_list <- function() {
   sort(ls(model_cache, all.names = TRUE))
 }
+
+
+hash_model <- function(x) {
+  if (!isTRUE(attr(x, "odin_preprocessed"))) {
+    stop("Expected preprocessed model")
+  }
+  ## source ref attributes are not good to keep!
+  if (is.null(x$file)) {
+    attributes(x$exprs) <- NULL
+  }
+  hash_object(list(ODIN_VERSION, x))
+}

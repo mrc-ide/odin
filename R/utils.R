@@ -143,9 +143,6 @@ hash_object <- function(object) {
   digest::digest(object)
 }
 
-hash_model <- function(x) {
-  hash_object(list(ODIN_VERSION, x))
-}
 
 hash_files <- function(filenames, named = FALSE) {
   if (length(filenames) == 0L) {
