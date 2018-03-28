@@ -6,6 +6,8 @@ test_that("hash model", {
             "initial(y) <- 1")
   expect_equal(hash_model(odin_preprocess(code)),
                hash_model(odin_preprocess(code)))
+  expect_error(hash_model(code),
+               "Expected preprocessed model")
 })
 
 
