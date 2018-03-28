@@ -91,7 +91,7 @@ lorenz <- odin::odin({
   R     <- 28.0
   b     <-  8.0 / 3.0
   config(base) <- "lorenz"
-}, path)
+})
 ```
 
 The connection to the R and C versions in the section above should be fairly clear.  The code above is never actually evaluated though; intead it is parsed and used to build up C code for the model.
