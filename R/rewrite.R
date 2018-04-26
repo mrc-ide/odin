@@ -100,6 +100,10 @@ rewrite_c <- function(expr, name_pars, lookup = character(0), safe = FALSE,
       ## This is sort of an odd one to support, but it does seem
       ## potentially useful.
       value <- sprintf("log(%s) / log(%s)", values[[1L]], values[[2L]])
+    } else if (nm == "round") {
+      ## ensures same rounding behaviour of 0.5 as R:
+      digits <- if (length(values) == 2L) values[[2L]] else 0
+      value <- sprintf("fround(%s, %s)", values[[1L]], digits)
     } else if (nm %in% FUNCTIONS_NARY) {
       value <- generate_nary(nm, values)
     } else {
