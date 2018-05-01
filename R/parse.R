@@ -487,6 +487,7 @@ odin_parse_user <- function(obj) {
   name <- obj$names_target[is_user]
   has_default <- vlapply(eqs_user, function(x)
     x$rhs$default, USE.NAMES = FALSE)
+  default_value <- lapply(eqs_user, function(x) x$rhs$value)
   rank <- viapply(eqs_user, function(x)
     if (x$lhs$type == "symbol") 0L else x$lhs$nd, USE.NAMES = FALSE)
   ord <- order(has_default)
@@ -494,6 +495,7 @@ odin_parse_user <- function(obj) {
   obj$info$user <- data.frame(name = name[ord],
                               has_default = has_default[ord],
                               rank = rank[ord],
+                              default_value = I(default_value[ord]),
                               stringsAsFactors = FALSE)
 
   obj

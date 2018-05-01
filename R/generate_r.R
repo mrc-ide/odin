@@ -354,9 +354,12 @@ odin_generate_r_user_info <- function(info) {
   ret <- collector()
   ret$add("user_info = function() {", info$base)
   if (info$has_user) {
+    default_value <- vcapply(info$user$default_value, function(x)
+      if (is.null(x)) "NULL" else deparse_str(x), USE.NAMES = FALSE)
     ret$add("  data.frame(")
     ret$add("    name = c(%s),", pastec(dquote(info$user$name)))
     ret$add("    has_default = c(%s),", pastec(info$user$has_default))
+    ret$add("    default_value = I(list(%s)),", pastec(default_value))
     ret$add("    rank = c(%s),", pastec(info$user$rank))
     ret$add("    stringsAsFactors = FALSE)")
   } else {
