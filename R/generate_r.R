@@ -365,6 +365,7 @@ odin_generate_r_user_info <- function(info) {
   } else {
     ret$add("  data.frame(name = character(), ")
     ret$add("             has_default = logical(),")
+    ret$add("             default_value = I(list()),")
     ret$add("             rank = integer(),")
     ret$add("             stringsAsFactors = FALSE)")
   }

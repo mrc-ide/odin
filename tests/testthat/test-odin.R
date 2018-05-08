@@ -1238,6 +1238,7 @@ test_that("user variable information - when no user", {
   info <- coef(gen)
   cmp <- data.frame(name = character(),
                     has_default = logical(),
+                    default_value = I(list()),
                     rank = integer(),
                     stringsAsFactors = FALSE)
   expect_identical(info, cmp)
