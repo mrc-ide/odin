@@ -7,6 +7,9 @@ odin_parse_exprs <- function(exprs) {
   ## happens, the expression bit can roll in I think.
   lines <- utils::getSrcLocation(exprs, "line")
   src <- utils::getSrcref(exprs)
+  if (length(exprs) == 0) {
+    stop("Empty input: no expressions were provided", call. = FALSE)
+  }
   ret <- lapply(seq_along(exprs), function(i)
     odin_parse_expr(exprs[[i]], lines[[i]], src[[i]]))
   names(ret) <- vcapply(ret, "[[", "name")

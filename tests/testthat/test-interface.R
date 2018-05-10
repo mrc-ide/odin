@@ -102,4 +102,13 @@ test_that("type detection avoids unlikely filenames", {
 })
 
 
+test_that("sensible error on empty input", {
+  path <- tempfile()
+  writeLines("", path)
+  expect_error(odin_(path), "Empty input: no expressions were provided")
+  writeLines("# some comment", path)
+  expect_error(odin_(path), "Empty input: no expressions were provided")
+})
+
+
 unload_dlls()
