@@ -93,4 +93,13 @@ test_that("n_history is configurable", {
   expect_error(mod$run(seq(0, 200), n_history = 1000), NA)
 })
 
+
+test_that("type detection avoids unlikely filenames", {
+  expect_error(odin_preprocess_detect("x"), "looks like a filename")
+  expect_equal(odin_preprocess_detect("x <- y"), "text")
+  expect_equal(odin_preprocess_detect("x = y"), "text")
+  expect_equal(odin_preprocess_detect("deriv(x)"), "text")
+})
+
+
 unload_dlls()

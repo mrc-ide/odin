@@ -39,8 +39,7 @@ odin_preprocess_detect <- function(x) {
   if (is.language(x)) {
     as <- "expression"
   } else if (is.character(x)) {
-    ## We're really looking for a separator given that we need
-    if (length(x) > 1L || grepl("[\n;]", x)) {
+    if (length(x) > 1L || grepl("([\n;=()]|<-)", x)) {
       as <- "text"
     } else if (file.exists(x)) {
       as <- "file"
