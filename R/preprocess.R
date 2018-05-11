@@ -35,7 +35,7 @@ odin_preprocess <- function(x, type = NULL) {
   ret
 }
 
-odin_preprocess_detect <- function(x, type) {
+odin_preprocess_detect <- function(x, type = NULL) {
   has_type <- !is.null(type)
   if (has_type) {
     type <- match_value(type, c("file", "text", "expression"))
