@@ -102,6 +102,13 @@ test_that("type detection avoids unlikely filenames", {
 })
 
 
+test_that("type detection can skip filenames", {
+  expect_error(odin_preprocess_detect("x", NULL), "looks like a filename")
+  expect_equal(odin_preprocess_detect("x", "text"), "text")
+  expect_error(odin_preprocess_detect("x", "file"), "does not exist")
+})
+
+
 test_that("sensible error on empty input", {
   path <- tempfile()
   writeLines("", path)

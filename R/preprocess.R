@@ -1,4 +1,4 @@
-odin_preprocess <- function(x) {
+odin_preprocess <- function(x, type = NULL) {
   preprocess_expression <- function(x) {
     if (inherits(x, "{")) {
       as.expression(as.list(x[-1L]))
@@ -7,7 +7,7 @@ odin_preprocess <- function(x) {
     }
   }
 
-  type <- odin_preprocess_detect(x)
+  type <- odin_preprocess_detect(x, type)
 
   exprs <- switch(type,
                   file = parse(file = x, keep.source = TRUE),
@@ -35,11 +35,26 @@ odin_preprocess <- function(x) {
   ret
 }
 
-odin_preprocess_detect <- function(x) {
+odin_preprocess_detect <- function(x, type) {
+  has_type <- !is.null(type)
+  if (has_type) {
+    type <- match_value(type, c("file", "text", "expression"))
+  }
+
   if (is.language(x)) {
     as <- "expression"
   } else if (is.character(x)) {
-    if (length(x) > 1L || grepl("([\n;=()]|<-)", x)) {
+    if (has_type) {
+      if (type == "expression") {
+        stop("Invalid input for odin - expected expression", call. = FALSE)
+      } else if (type == "file") {
+        stopifnot(length(x) == 1, is.character(x), !is.na(x))
+        if (!file.exists(x)) {
+          stop(sprintf("File '%s' does not exist", x), call. = FALSE)
+        }
+      }
+      as <- type
+    } else if (length(x) > 1L || grepl("([\n;=()]|<-)", x)) {
       as <- "text"
     } else if (file.exists(x)) {
       as <- "file"
