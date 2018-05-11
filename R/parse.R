@@ -420,20 +420,30 @@ odin_parse_interpolate <- function(obj) {
 ## we can catch these and group them together.  But leaving that for
 ## now.
 odin_error <- function(msg, line, expr) {
-  odin_info(msg, line, expr, function(...) stop(..., call. = FALSE))
-}
-odin_note <- function(msg, line, expr) {
-  odin_info(paste("Note: ", msg), line, expr, message)
+  ret <- odin_info_data(msg, line, expr, "error")
+  class(ret) <- c("odin_error", "error", "condition")
+  stop(ret)
 }
 
-odin_info <- function(msg, line, expr, announce) {
+
+odin_note <- function(msg, line, expr) {
+  announce <- .odin$note_function %||% function(x) message(x$message)
+  announce(odin_info_data(paste("Note: ", msg), line, expr, "message"))
+}
+
+
+odin_info_data <- function(msg, line, expr, type) {
   if (is.expression(expr)) {
     expr_str <- vcapply(expr, deparse_str)
   } else {
     expr_str <- deparse_str(expr)
   }
   str <- odin_info_expr(line, expr_str)
-  announce(msg, paste0("\n\t", str, collapse = ""))
+  list(message = paste0(msg, paste0("\n\t", str, collapse = "")),
+       msg = msg,
+       line = line,
+       expr = expr,
+       type = type)
 }
 
 odin_info_expr <- function(line, expr_str) {
