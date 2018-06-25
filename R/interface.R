@@ -391,6 +391,8 @@ make_names <- function(ord, discrete = FALSE) {
 odin_cleanup <- function(dll) {
   force(dll)
   function(e) {
-    dyn.unload(dll$dll)
+    try(
+      dyn.unload(dll$dll),
+      silent = TRUE)
   }
 }
