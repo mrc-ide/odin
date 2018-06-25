@@ -9,11 +9,13 @@ model_cache_clear <- function() {
   rm(list = ls(model_cache, all.names = TRUE), envir = model_cache)
 }
 
+
 model_cache_put <- function(hash, model, dll, skip_cache) {
   if (!skip_cache) {
     model_cache[[hash$model]] <- list(hash = hash, model = model, dll = dll)
   }
 }
+
 
 model_cache_get <- function(hash, skip_cache) {
   if (skip_cache) {
@@ -28,6 +30,7 @@ model_cache_get <- function(hash, skip_cache) {
   }
   ret
 }
+
 
 model_cache_list <- function() {
   sort(ls(model_cache, all.names = TRUE))
