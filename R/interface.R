@@ -208,7 +208,7 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
 
   code_r_full <- gsub(DLL_PLACEHOLDER, dll$base, code_r)
 
-  env <- new.env(parent = as.environment("package:odin"))
+  env <- new.env(parent = environment(odin_))
   model <- eval(parse(text = code_r_full, keep.source = FALSE), env)
 
   model_cache_put(dat$hash, model, dll, skip_cache)
