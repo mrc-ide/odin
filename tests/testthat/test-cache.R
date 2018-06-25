@@ -1,6 +1,35 @@
 context("model cache")
 
 
+test_that("model_cache", {
+  obj <- R6_model_cache$new()
+  expect_is(obj, "model_cache")
+  expect_equal(obj$list(), character())
+  expect_null(obj$get("a"))
+  x <- runif(10)
+  obj$put("a", x)
+  expect_equal(obj$list(), "a")
+  expect_equal(obj$get("a"), x)
+
+  ## overflow the ring
+  obj$resize(4)
+  for (x in letters[2:4]) {
+    obj$put(x, x)
+  }
+  expect_equal(obj$list(), c("d", "c", "b", "a"))
+
+  obj$put("e", "e")
+  expect_equal(obj$list(), c("e", "d", "c", "b"))
+
+  obj$put("c", "c")
+  expect_equal(obj$list(), c("c", "e", "d", "b"))
+
+  obj$clear()
+  expect_equal(obj$list(), character())
+  expect_null(obj$get("a"))
+})
+
+
 test_that("hash model", {
   code <- c("deriv(y) <- 0.5",
             "initial(y) <- 1")
@@ -31,6 +60,7 @@ test_that("invalidate cache", {
     gen <- odin(code, dest = dat$dll$path, verbose = TRUE),
     "Using previously compiled shared library")
 })
+
 
 test_that("includes", {
   fns <- readLines("user_fns.c")
@@ -111,5 +141,6 @@ test_that("avoid overwriting non-odin .c code", {
   expect_error(odin(tmp, dest = dest),
                "Refusing to overwrite non-odin file")
 })
+
 
 unload_dlls()
