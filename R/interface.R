@@ -204,12 +204,17 @@ odin_ <- function(x, dest = NULL, build = TRUE, verbose = TRUE,
 
   dll <- compile(path_c, verbose = verbose,
                  compiler_warnings = compiler_warnings)
-  dyn_load(dll$dll)
+  dyn.load(dll$dll)
 
   code_r_full <- gsub(DLL_PLACEHOLDER, dll$base, code_r)
-  model <- eval(parse(text = code_r_full, keep.source = FALSE), environment())
+
+  env <- new.env(parent = as.environment("package:odin"))
+  model <- eval(parse(text = code_r_full, keep.source = FALSE), env)
 
   model_cache_put(dat$hash, model, dll, skip_cache)
+
+  reg.finalizer(env, odin_cleanup(dll))
+
   model
 }
 
@@ -380,4 +385,12 @@ make_names <- function(ord, discrete = FALSE) {
     nms <- sprintf("%s%s", rep(names(ord), lengths(idx)), unlist(idx))
   }
   c(if (discrete) STEP else TIME, nms)
+}
+
+
+odin_cleanup <- function(dll) {
+  force(dll)
+  function(e) {
+    dyn.unload(dll$dll)
+  }
 }

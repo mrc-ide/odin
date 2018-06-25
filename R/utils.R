@@ -159,15 +159,6 @@ short_hash <- function(x) {
   substr(x, 1L, 8L)
 }
 
-## This is going to be used to keep track of dlls that we load
-.dlls <- collector()
-
-dyn_load <- function(dll) {
-  dll_full <- normalizePath(dll, mustWork = TRUE)
-  dyn.load(dll_full)
-  .dlls$add(dll_full)
-}
-
 dllname <- function(base) {
   paste0(base, .Platform$dynlib.ext)
 }
