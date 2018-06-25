@@ -80,10 +80,12 @@ test_that("includes", {
   expect_message(odin(expr, verbose = TRUE), "Using cached model")
 
   writeLines(fns2, user)
-  expect_message(capture.output(gen <- odin(expr, verbose = TRUE)),
-                 "Compiling shared library")
-  expect_message(gen <- odin(expr, verbose = TRUE),
-                 "Using cached model")
+  expect_message(capture.output(
+    gen <- odin(expr, verbose = TRUE)),
+    "Compiling shared library")
+  expect_message(
+    gen <- odin(expr, verbose = TRUE),
+    "Using cached model")
 })
 
 

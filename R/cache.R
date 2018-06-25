@@ -28,15 +28,13 @@ R6_model_cache <- R6::R6Class(
 
     put = function(key, value) {
       keys <- names(self$data)
+      new <- setNames(list(value), key)
       if (key %in% keys) {
-        self$data <- self$data[c(key, setdiff(keys, key))]
+        self$data <- c(new, self$data[setdiff(keys, key)])
+      } else if (length(self$data) >= self$capacity) {
+        self$data <- c(new, self$data[seq_len(self$capacity) - 1L])
       } else {
-        new <- setNames(list(value), key)
-        if (length(self$data) >= self$capacity) {
-          self$data <- c(new, self$data[seq_len(self$capacity) - 1L])
-        } else {
-          self$data <- c(new, self$data)
-        }
+        self$data <- c(new, self$data)
       }
     },
 
