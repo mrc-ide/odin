@@ -936,7 +936,7 @@ odin_generate1_interpolate <- function(x, obj) {
   ## that the integrator doesn't struggle with things having to change
   ## radically.
   obj$user$add('cinterpolate_free(%s);', obj$rewrite(dest))
-  obj$user$add('%s = cinterpolate_alloc("%s", %s, %s, %s, %s);',
+  obj$user$add('%s = cinterpolate_alloc("%s", %s, %s, %s, %s, false);',
                obj$rewrite(dest), interpolation_type,
                obj$rewrite(nt), obj$rewrite(n_target),
                obj$rewrite(nm_t), obj$rewrite(nm_y))

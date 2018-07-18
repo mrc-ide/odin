@@ -7,5 +7,6 @@ cache: packages
 #   - covr once CRAN > 3.0.1
 r_github_packages:
   - r-lib/covr
+  - mrc-ide/cinterpolate@develop
 after_success:
   - Rscript -e 'covr::codecov(quiet = FALSE)'
