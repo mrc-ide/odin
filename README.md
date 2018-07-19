@@ -139,3 +139,10 @@ The development version of the package can be installed directly from github if 
 ```r
 devtools::install_github("mrc-ide/odin", upgrade = FALSE)
 ```
+
+(you also need to install [`dde`](https://github.com/richfitz/dde) and [`cinterpolate`](https://github.com/mrc-ide/cinterpolate), which you can do with
+
+```r
+devtools::install_github(c("richfitz/dde", "mrc-ide/cinterpolate"),
+                         upgrade = FALSE)
+```

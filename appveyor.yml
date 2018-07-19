@@ -18,6 +18,8 @@ install:
 
 build_script:
   - travis-tool.sh install_deps
+  - travis-tool.sh install_github mrc-ide/cinterpolate@develop
+  - travis-tool.sh install_github richfitz/dde
 
 test_script:
   - travis-tool.sh run_tests

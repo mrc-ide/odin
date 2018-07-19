@@ -20,9 +20,6 @@ Suggests:
     knitr,
     rmarkdown,
     testthat
-Remotes:
-    mrc-ide/cinterpolate,
-    richfitz/dde
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
 Encoding: UTF-8
