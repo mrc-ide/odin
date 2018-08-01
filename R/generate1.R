@@ -770,19 +770,20 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
   ## Here, identify and rewrite the arrays from the equation.
   for (nm_dep in x$delay$expr$deps) {
     if (x$delay$expr$deps_is_array[[nm_dep]]) {
-      ret$add(indent(
-                 odin_generate1_array_expr(tr(eqs[[nm_dep]]), obj), nindent),
-                 name = nm)
+      expr <- odin_generate1_array_expr(tr(eqs[[nm_dep]]), obj)
     } else if (isTRUE(eqs[[nm_dep]]$rhs$interpolate)) {
-      ret$add(indent(odin_generate1_interpolate_eval(eqs[[nm_dep]], obj),
-                     nindent),
-              name = nm)
+      ## I think in the current approach we _can't_ trigger this...
+      if (eqs[[nm_dep]]$lhs$type == "array") {
+        stop("Not yet supported")
+      }
+      expr <- odin_generate1_interpolate_eval(eqs[[nm_dep]], obj)
     } else {
-      ret$add(indent("double %s = %s;", nindent),
-                    nm_dep, obj$rewrite(tr(eqs[[nm_dep]])$rhs$value),
-                    name = nm)
+      expr <- sprintf("double %s = %s;",
+                      nm_dep, obj$rewrite(tr(eqs[[nm_dep]])$rhs$value))
     }
+    ret$add(indent(expr, nindent), name = nm)
   }
+
   if (x$lhs$type == "array") {
     ret$add(indent(odin_generate1_array_expr(tr(x), obj), nindent),
                   name = nm)
@@ -911,7 +912,6 @@ odin_generate1_interpolate <- function(x, obj) {
   ## always be true.  The compiler should sort that out for us though,
   ## though it may give warnings.
   if (nd == 0L) {
-    obj$add_element(nm, "double")
     obj$user$add('odin_interpolate_check(%s, %s, 0, "%s", "%s");',
                  obj$rewrite(nt), obj$rewrite(array_dim_name(nm_y)), nm_y, nm)
     n_target <- 1L
@@ -957,11 +957,17 @@ odin_generate1_interpolate <- function(x, obj) {
 
 
 odin_generate1_interpolate_eval <- function(x, obj) {
-  target <- sprintf(if (x$lhs$type == "array") "%s" else "&(%s)",
-                    obj$rewrite(x$name))
+  if (x$lhs$type == "array") {
+    before <- NULL
+    target <- obj$rewrite(x$name)
+  } else {
+    before <- sprintf("double %s = 0.0;", x$name)
+    target <- paste0("&", x$name)
+  }
   time_name <- if (obj$info$discrete) STEP else TIME
-  sprintf("cinterpolate_eval(%s, %s, %s);",
-          time_name, obj$rewrite(x$rhs$value$name), target)
+  eval <- sprintf("cinterpolate_eval(%s, %s, %s);",
+                  time_name, obj$rewrite(x$rhs$value$name), target)
+  c(before, eval)
 }
 
 
