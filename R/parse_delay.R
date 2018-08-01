@@ -149,7 +149,6 @@ odin_parse_delay_1_depends <- function(variables, obj) {
   if (ret$total_is_var) {
     ret$total <- symbol_sum(ret$len)
   }
-  ret$total
   ret$deps <- deps
   ret$deps_is_array <- deps_is_array
   ret

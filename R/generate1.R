@@ -784,7 +784,7 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
                   name = nm)
   } else {
     ret$add(indent("%s = %s;", nindent),
-                  nm, obj$rewrite(tr(x)$rhs$value_expr))
+            nm, obj$rewrite(tr(x)$rhs$value_expr))
   }
 
   if (has_default) {
