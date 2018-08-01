@@ -773,6 +773,10 @@ odin_generate1_delay_ode <- function(x, obj, eqs) {
       ret$add(indent(
                  odin_generate1_array_expr(tr(eqs[[nm_dep]]), obj), nindent),
                  name = nm)
+    } else if (isTRUE(eqs[[nm_dep]]$rhs$interpolate)) {
+      ret$add(indent(odin_generate1_interpolate_eval(eqs[[nm_dep]], obj),
+                     nindent),
+              name = nm)
     } else {
       ret$add(indent("double %s = %s;", nindent),
                     nm_dep, obj$rewrite(tr(eqs[[nm_dep]])$rhs$value),
@@ -948,13 +952,18 @@ odin_generate1_interpolate <- function(x, obj) {
   ## clear what we should do.  The safest thing is going to be to
   ## throw an error and just bail.  After that the next best thing to
   ## do is not go further than the end?
-  target <- sprintf(if (x$lhs$type == "array") "%s" else "&(%s)",
-                    obj$rewrite(nm))
-  time_name <- if (obj$info$discrete) STEP else TIME
-  obj$time$add("cinterpolate_eval(%s, %s, %s);",
-               time_name, obj$rewrite(dest), target,
-               name = nm)
+  obj$time$add(odin_generate1_interpolate_eval(x, obj), name = nm)
 }
+
+
+odin_generate1_interpolate_eval <- function(x, obj) {
+  target <- sprintf(if (x$lhs$type == "array") "%s" else "&(%s)",
+                    obj$rewrite(x$name))
+  time_name <- if (obj$info$discrete) STEP else TIME
+  sprintf("cinterpolate_eval(%s, %s, %s);",
+          time_name, obj$rewrite(x$rhs$value$name), target)
+}
+
 
 odin_generate1_dim_array_dimensions <- function(x, rewrite) {
   ret <- collector()

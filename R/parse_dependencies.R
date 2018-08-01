@@ -25,6 +25,11 @@ odin_parse_dependencies <- function(obj) {
   ## NOTE: This keeps the equations topologically sorted, though the
   ## order may vary from deps_rec; the equations are also sorted by
   ## stage.
+  ##
+  ## In models where delays and interpolated functions are used
+  ## there's a potential drama to deal with because the topological
+  ## sort doesn't properly account for setting up the data structures
+  ## that are needed.
   i <- match(intersect(names(obj$stage), names(obj$eqs)), names(obj$eqs))
   obj$eqs <- obj$eqs[i]
   obj$traits <- obj$traits[i, ]
@@ -125,6 +130,22 @@ odin_parse_dependencies_stage <- function(obj) {
   ## This should not create any impossible situations because of the
   ## stage treatent above.
 
+  ## Need to pull all interpolated functions to the top of stage 3 if
+  ## delays are involved (practically this only matters if a delay
+  ## varaiable uses an interpolated value and that _should_ be dealt
+  ## with through dependencies but at the point that's done we don't
+  ## know that things are interpolation).
+  ##
+  ## If this is not done then the required bits of 'interpolate'
+  ## machinery don't make it into the rewriting machinery before
+  ## they're used.
+  if (obj$info$has_interpolate && obj$info$has_delay) {
+    promote <- names(stage) %in% names_if(obj$traits[, "uses_interpolate"])
+    i <- order(stage, !promote)
+  } else {
+    i <- order(stage)
+  }
+
   ## NOTE: The final stage vector contains TIME and vars; it must
   ## continue to contain these unless they are filtered from the
   ## *names and contents* of deps_rec.  In that case, we can do:
@@ -133,5 +154,5 @@ odin_parse_dependencies_stage <- function(obj) {
   ##
   ## after this step to put this in the same order as eqs
 
-  stage[order(stage)]
+  stage[i]
 }
