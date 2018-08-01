@@ -1,3 +1,7 @@
+# odin 0.0.9
+
+* Delay differential equations may use interpolated functions within their delays [#130](https://github.com/mrc-ide/odin/issues/130)
+
 # odin 0.0.6
 
 * Fix caching of models specified with files (rather than inline code) [#99](https://github.com/mrc-ide/odin/issues/99)
