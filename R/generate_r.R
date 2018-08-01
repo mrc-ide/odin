@@ -67,7 +67,7 @@ odin_generate_r <- function(info, dll) {
   methods <-
     paste(vcapply(methods, function(x) paste(indent(x, 4), collapse = "\n")),
           collapse = ",\n\n")
-  ret$add(methods)
+  ret$add(methods, literal = TRUE)
   ret$add("  ))")
   ret$add(odin_generate_r_constructor(info, dll))
   ret$get()
