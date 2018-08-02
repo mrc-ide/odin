@@ -398,6 +398,8 @@ odin_generate_r_graph_data <- function(info) {
   ret$add("graph_data = function() {")
   ret$add("  structure(")
   ret$add("    list(")
+  ret$add("      discrete = %s,", deparse(info$discrete))
+  ret$add("      stochastic = %s,", deparse(info$has_stochastic))
   ret$add("      nodes = %s,", df(info$graph$nodes))
   ret$add("      edges = %s),", df(info$graph$edges))
   ret$add('    class = "odin_graph_data")')
