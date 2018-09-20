@@ -116,3 +116,19 @@ test_that("match_value", {
                fixed = TRUE)
   expect_silent(match_value("a", letters))
 })
+
+
+test_that("adrop works", {
+  x <- 1:10
+  m <- array(x, c(1, 10, 1))
+  expect_equal(adrop(m, 1), cbind(x, deparse.level = 0))
+  expect_error(adrop(m, 2), "Can't drop selected dimensions")
+  expect_equal(adrop(m, 3), rbind(x, deparse.level = 0))
+
+  expect_equal(adrop(array(x, c(1, 2, 5)), 1),
+               matrix(x, 2, 5))
+  expect_equal(adrop(array(x, c(2, 1, 5)), 2),
+               matrix(x, 2, 5))
+  expect_equal(adrop(array(x, c(2, 5, 1)), 3),
+               matrix(x, 2, 5))
+})

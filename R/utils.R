@@ -198,3 +198,14 @@ match_value <- function(x, choices, name = deparse(substitute(x))) {
   }
   choices[[i]]
 }
+
+
+adrop <- function(x, i) {
+  d <- dim(x)
+  ok <- all(d[i] == 1L)
+  if (!ok) {
+    stop("Can't drop selected dimensions")
+  }
+  dim(x) <- d[if (is.logical(i)) !i else -i]
+  x
+}
