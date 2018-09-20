@@ -323,7 +323,8 @@ make_transform_variables <- function(x) {
   ## calculated (where the output is an attribute) that we care
   ## otherwise.  In that case there is no time variable either.
   function(y) {
-    ny <- if (is.matrix(y)) ncol(y) else length(y)
+    ny <- if (is.array(y)) ncol(y) else length(y)
+
     has_time <- ny == tot
     if (!has_time) {
       if (ny != tot - 1L) {
@@ -345,9 +346,20 @@ make_transform_variables <- function(x) {
         ret[is_scalar] <- lapply(i0[is_scalar], function(i) y[, i])
       }
       if (any(is_array)) {
-        nr <- nrow(y)
+        nt <- nrow(y)
         ret[is_array] <- lapply(which(is_array), function(i)
-          array(y[, i0[[i]]:i1[[i]]], c(nr, ord[[i]])))
+          array(y[, i0[[i]]:i1[[i]]], c(nt, ord[[i]])))
+      }
+    } else if (is.array(y)) {
+      if (any(is_scalar)) {
+        ret[is_scalar] <- lapply(i0[is_scalar], function(i)
+          adrop(y[, i, , drop = FALSE], 2L))
+      }
+      if (any(is_array)) {
+        nt <- nrow(y)
+        nr <- dim(y)[[3L]]
+        ret[is_array] <- lapply(which(is_array), function(i)
+          array(y[, i0[[i]]:i1[[i]], ], c(nt, ord[[i]], nr)))
       }
     } else {
       if (any(is_scalar)) {

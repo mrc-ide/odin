@@ -176,4 +176,44 @@ test_that("mutlinomial", {
   expect_true(TRUE)
 })
 
+test_that("replicate: scalar", {
+  ## TODO: this will be a nice version to try and benchmark the dde
+  ## overheads I think...
+  gen <- odin::odin({
+    initial(x) <- 0
+    update(x) <- x + norm_rand()
+  }, verbose = TEST_VERBOSE)
+  m <- gen()
+  tt <- 0:50
+  res <- m$run(tt, replicate = 100)
+  yy <- m$transform_variables(res)
+  expect_equal(names(yy), c("t", "x"))
+  expect_equal(dim(yy[[1]]), c(51, 100))
+  expect_equal(dim(yy[[2]]), c(51, 100))
+  expect_equal(yy[[1]], res[, 1, ])
+  expect_equal(yy[[2]], res[, 2, ])
+})
+
+test_that("replicate: array", {
+  gen <- odin::odin({
+    initial(x) <- 0
+    initial(y[]) <- 0
+    update(x) <- x + norm_rand()
+    update(y[]) <- y[i] + norm_rand() / 2
+    dim(y) <- 3
+  }, verbose = TEST_VERBOSE)
+  m <- gen()
+
+  tt <- 0:20
+  res <- m$run(tt, replicate = 30)
+  yy <- m$transform_variables(res)
+  expect_equal(names(yy), c("t", "x", "y"))
+  expect_equal(dim(yy[[1]]), c(21, 30))
+  expect_equal(dim(yy[[2]]), c(21, 30))
+  expect_equal(dim(yy[[3]]), c(21, 3, 30))
+  expect_equal(yy[[1]], res[, 1, ])
+  expect_equal(yy[[2]], res[, 2, ])
+  expect_equal(yy[[3]], unname(res[, 3:5, ]))
+})
+
 unload_dlls()

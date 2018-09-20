@@ -233,6 +233,9 @@ odin_generate_r_run <- function(info, dll) {
 
   ## TODO: move to a more flexible model of building argument lists.
   args <- c(time_name, y = "NULL", "...", use_names = "TRUE")
+  if (discrete) {
+    args <- c(args, replicate = "NULL")
+  }
   if (has_interpolate) {
     args <- c(args, c(tcrit = "NULL"))
   }
@@ -261,16 +264,25 @@ odin_generate_r_run <- function(info, dll) {
     ret$add(indent(odin_generate_r_run_interpolate_check(info), 2))
   }
   if (discrete) {
-    ret$add('  ret <- dde::difeq(y, %s, "%s_update_dde", self$ptr,',
-            time, base)
-    ret$add(indent(sprintf('dllname = "%s",', dll), 20))
+    ## Two possible calls:
+    args <- list(quote(y), as.symbol(time), sprintf("%s_update_dde", base),
+                 quote(self$ptr), dllname = dll,
+                 parms_are_real = FALSE, ynames = FALSE, quote(...))
     if (info$has_output) {
-      ret$add(indent(sprintf('n_out = self$output_length,', base), 20))
+      args <- c(args, list(n_out = quote(self$output_length)))
     }
     if (info$has_delay) {
-      ret$add(indent("n_history = n_history, return_history = FALSE,", 20))
+      args <- c(args,
+                list(n_history = quote(n_history), return_history = FALSE))
     }
-    ret$add(indent("parms_are_real = FALSE, ynames = FALSE, ...)", 20))
+    call1 <- as.call(c(list(quote(dde::difeq)), args))
+    call2 <- as.call(c(list(quote(dde::difeq_replicate), quote(replicate)),
+                       args))
+    ret$add("  if (is.null(replicate)) {")
+    ret$add("    ret <- %s", deparse_str(call1))
+    ret$add("  } else {")
+    ret$add("    ret <- %s", deparse_str(call2))
+    ret$add("}")
   } else {
     ## OK throughout here I think I'll break this up a little and do
     ## it as argument collection / formatting.
