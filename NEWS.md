@@ -1,3 +1,7 @@
+# odin 0.0.10
+
+* Replication interface for discrete models (primarily for stochastic models) [#125](https://github.com/mrc-ide/odin/issues/125).
+
 # odin 0.0.9
 
 * Delay differential equations may use interpolated functions within their delays [#130](https://github.com/mrc-ide/odin/issues/130)
