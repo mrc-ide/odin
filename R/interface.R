@@ -355,6 +355,9 @@ make_transform_variables <- function(x) {
         ret[is_scalar] <- lapply(i0[is_scalar], function(i)
           adrop(y[, i, , drop = FALSE], 2L))
       }
+      if (has_time) {
+        ret[[1]] <- ret[[1]][, 1L, drop = TRUE]
+      }
       if (any(is_array)) {
         nt <- nrow(y)
         nr <- dim(y)[[3L]]
