@@ -1,13 +1,10 @@
 language: r
 cache: packages
-# Currently need development covr because of a bug in the CRAN one.
-# Once CRAN > 3.0.1, this can be replaced by:
-#
-# r_packages:
-#   - covr once CRAN > 3.0.1
+r_packages:
+  - covr
 r_github_packages:
   - r-lib/covr
-  - mrc-ide/cinterpolate@develop
+  - mrc-ide/cinterpolate
   - richfitz/dde
 after_success:
   - Rscript -e 'covr::codecov(quiet = FALSE)'
