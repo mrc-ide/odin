@@ -377,12 +377,18 @@ odin_generate_r_user_info <- function(info) {
     ret$add("    has_default = c(%s),", pastec(info$user$has_default))
     ret$add("    default_value = I(list(%s)),", pastec(default_value))
     ret$add("    rank = c(%s),", pastec(info$user$rank))
+    ret$add("    min = c(%s),", pastec(info$user$min))
+    ret$add("    max = c(%s),", pastec(info$user$max))
+    ret$add("    integer = c(%s),", pastec(info$user$integer))
     ret$add("    stringsAsFactors = FALSE)")
   } else {
     ret$add("  data.frame(name = character(), ")
     ret$add("             has_default = logical(),")
     ret$add("             default_value = I(list()),")
     ret$add("             rank = integer(),")
+    ret$add("             min = numeric(),")
+    ret$add("             max = numeric(),")
+    ret$add("             integer = logical(),")
     ret$add("             stringsAsFactors = FALSE)")
   }
   ret$add("}")
