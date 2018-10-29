@@ -396,3 +396,25 @@ make_names <- function(ord, discrete = FALSE) {
   }
   c(if (discrete) STEP else TIME, nms)
 }
+
+
+validate_user <- function(user, info) {
+  for (i in info$integer) {
+    if (!is_integer_like(user[[i]])) {
+      stop(sprintf("Expected '%s' to be integer-like", i), call. = FALSE)
+    }
+  }
+  for (i in names(info$min)) {
+    if (any(user[[i]] < info$min[[i]])) {
+      stop(sprintf("Expected '%s' to be at least %s", i, info$min[[i]]),
+           call. = FALSE)
+    }
+  }
+  for (i in names(info$max)) {
+    if (any(user[[i]] > info$max[[i]])) {
+      stop(sprintf("Expected '%s' to be at most %s", i, info$max[[i]]),
+           call. = FALSE)
+    }
+  }
+  user
+}

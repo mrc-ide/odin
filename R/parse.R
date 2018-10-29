@@ -505,8 +505,8 @@ odin_parse_user <- function(obj) {
     if (x$lhs$type == "symbol") 0L else x$lhs$nd, USE.NAMES = FALSE)
   ord <- order(has_default)
 
-  min <- vnapply(eqs_user, function(x) x$rhs$min %||% NA_real_)
-  max <- vnapply(eqs_user, function(x) x$rhs$max %||% NA_real_)
+  min <- vnapply(eqs_user, function(x) x$rhs$min %||% -Inf)
+  max <- vnapply(eqs_user, function(x) x$rhs$max %||%  Inf)
   integer <- vlapply(eqs_user, function(x) x$rhs$integer %||% FALSE)
 
   obj$info$user <- data.frame(name = name[ord],

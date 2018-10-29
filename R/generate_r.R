@@ -83,7 +83,12 @@ odin_generate_r_constructor <- function(info, dll) {
     args <- vcapply(info$user$has_default, function(x) if (x) "NULL" else "")
     names(args) <- info$user$name
     args <- c(args, c(user = collector))
-    args_use <- "user = user"
+    constrain <- generate_user_constraints(info$user)
+    if (is.null(constrain)) {
+      args_use <- "user = user"
+    } else {
+      args_use <- sprintf("user = validate_user(user, %s)", constrain)
+    }
   } else {
     args <- args_use <- character(0)
   }
@@ -174,7 +179,15 @@ odin_generate_r_set_user <- function(info, dll) {
   ## TODO: generate full interface here with the bits above, once
   ## they're written?
   ret$add("set_user = function(..., user = list(...)) {")
-  ret$add("  %s", dot_call(base, dll, "r_%s_set_user", "self$ptr", "user"))
+
+  constrain <- generate_user_constraints(info$user)
+  if (is.null(constrain)) {
+    user <- "user"
+  } else {
+    user <- sprintf("validate_user(user, %s)", constrain)
+  }
+  ret$add("  %s", dot_call(base, dll, "r_%s_set_user", "self$ptr", user))
+
   if (info$initial_stage == STAGE_USER) {
       ret$add("  self$init <- %s",
               dot_call(base, dll, "%s_initialise", "self$ptr", "NA_real_"))
@@ -429,4 +442,32 @@ odin_generate_r_graph_data <- function(info) {
 dot_call <- function(base, dll, fmt, ..., args = c(...)) {
   args <- c(args, sprintf('PACKAGE = "%s"', dll))
   sprintf('.Call("%s", %s)', sprintf(fmt, base), paste(args, collapse = ", "))
+}
+
+
+generate_user_constraints <- function(info_user) {
+  integer <- info_user$name[info_user$integer]
+  if (length(integer) > 0L) {
+    integer <- sprintf("c(%s)", dquote(integer))
+  } else {
+    integer <- NULL
+  }
+
+  f <- function(x) {
+    ret <- set_names(x[is.finite(x)], info_user$name[is.finite(x)])
+    if (length(ret) > 0L) {
+      sprintf("c(%s)", pastec(sprintf("%s = %s", names(ret), unname(ret))))
+    } else {
+      NULL
+    }
+  }
+  ret <- list(integer = integer,
+              min = f(info_user$min),
+              max = f(info_user$max))
+  ret <- ret[lengths(ret) > 0L]
+  if (length(ret) > 0L) {
+    sprintf("list(%s)", pastec(sprintf("%s = %s", names(ret), unname(ret))))
+  } else {
+    NULL
+  }
 }

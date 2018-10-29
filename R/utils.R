@@ -93,7 +93,7 @@ strrep <- function(n, x = " ") {
 }
 
 is_integer_like <- function(x, tol = sqrt(.Machine$double.eps)) {
-  is.integer(x) || (is.numeric(x) && abs(x - round(x)) < tol)
+  is.integer(x) || (is.numeric(x) && all(abs(x - round(x)) < tol))
 }
 
 is_call <- function(expr, symbol) {
@@ -207,5 +207,11 @@ adrop <- function(x, i) {
     stop("Can't drop selected dimensions")
   }
   dim(x) <- d[if (is.logical(i)) !i else -i]
+  x
+}
+
+
+set_names <- function(x, nms) {
+  names(x) <- nms
   x
 }
