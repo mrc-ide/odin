@@ -1,3 +1,7 @@
+# odin 0.1.2
+
+* Validate parameters in input
+
 # odin 0.0.10
 
 * Replication interface for discrete models (primarily for stochastic models) [#125](https://github.com/mrc-ide/odin/issues/125).
