@@ -95,8 +95,6 @@ test_that("some parse errors", {
   expect_error(odin_parse(quote(dim(x[1,2]) <- c(1, 2))),
                "must be applied to a name only")
 
-  expect_error(odin_parse(quote(x <- user(1, 2))),
-               "user() call must have zero or one argument", fixed = TRUE)
   expect_error(odin_parse(quote(x <- user(a))),
                "user() call must not reference variables", fixed = TRUE)
 

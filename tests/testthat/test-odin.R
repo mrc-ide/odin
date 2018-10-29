@@ -1240,6 +1240,9 @@ test_that("user variable information - when no user", {
                     has_default = logical(),
                     default_value = I(list()),
                     rank = integer(),
+                    min = numeric(),
+                    max = numeric(),
+                    integer = logical(),
                     stringsAsFactors = FALSE)
   expect_identical(info, cmp)
   expect_identical(gen()$user_info(), cmp)
