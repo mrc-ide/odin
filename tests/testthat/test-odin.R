@@ -1279,4 +1279,49 @@ test_that("multiline string", {
   expect_is(gen, "odin_generator")
 })
 
+
+## This is basically all ok but what is still not great is _doing_ the
+## validation.
+test_that("user integer", {
+  gen <- odin::odin({
+    deriv(y) <- 0.5
+    initial(y) <- y0
+    y0 <- user(1, integer = TRUE, min = 0)
+  }, verbose = TEST_VERBOSE)
+
+  expect_error(gen(y0 = 1.5), "Expected 'y0' to be integer-like")
+  expect_error(gen(y0 = -1L), "Expected 'y0' to be at least 0")
+
+  expect_error(mod <- gen(y0 = 1), NA)
+  expect_equal(mod$run(0:10)[, "y"], 1.0 + 0.5 * (0:10))
+})
+
+
+test_that("multiple constraints", {
+  gen <- odin::odin({
+    deriv(y) <- r
+    initial(y) <- y0
+    y0 <- user(1, min = 0)
+    r <- user(0.5, max = 10)
+  }, verbose = TEST_VERBOSE)
+
+  expect_error(gen(y0 = -1L), "Expected 'y0' to be at least 0")
+  expect_error(gen(r = 100), "Expected 'r' to be at most 10")
+})
+
+
+test_that("set_user honours constraints", {
+  gen <- odin::odin({
+    deriv(y) <- r
+    initial(y) <- y0
+    y0 <- user(1, min = 0)
+    r <- user(0.5, max = 10)
+  }, verbose = TEST_VERBOSE)
+
+  mod <- gen()
+  expect_error(mod$set_user(y0 = -1L), "Expected 'y0' to be at least 0")
+  expect_error(mod$set_user(r = 100), "Expected 'r' to be at most 10")
+})
+
+
 unload_dlls()
