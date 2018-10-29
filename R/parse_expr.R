@@ -364,10 +364,21 @@ odin_parse_expr_rhs_user <- function(rhs, line, expr) {
   if (!identical(rhs[[1L]], quote(user))) {
     odin_error("[odin bug]", line, expr) # nocov
   }
-  if (length(rhs) > 2L) {
-    odin_error("user() call must have zero or one argument", line, expr)
+
+  if (any(!nzchar(names(rhs)[-(1:2)]))) {
+    odin_error("Only first argument to user() may be unnamed", line, expr)
+  }
+  ## I'm not sure about expand.dots
+  m <- match.call(function(default, integer, min, max, ...) NULL, rhs, FALSE)
+  extra <- m[["..."]]
+  if (!is.null(extra)) {
+    odin_error(sprintf("Unknown %s to user(): %s",
+                       ngettext(length(extra), "argument", "arguments"),
+                       paste(dquote(names(extra))), collapse = ", "),
+               line, expr)
   }
 
+  ## This looks through default, integer, min, max
   deps <- find_symbols(as.list(rhs[-1L]))
   ## TODO: This could be relaxed I think, but dealing with
   ## potential cycles is hard because they could be generated at
@@ -380,11 +391,13 @@ odin_parse_expr_rhs_user <- function(rhs, line, expr) {
   if (length(deps$variables) > 0L) {
     odin_error("user() call must not reference variables", line, expr)
   }
-  default <- length(rhs) == 2L
   ret <- list(type = "expression",
               depends = deps,
-              value = if (default) rhs[[2L]] else NULL,
-              default = default,
+              value = m$default,
+              default = !is.null(m$default),
+              integer = m$integer,
+              min = m$min,
+              max = m$max,
               user = TRUE)
 }
 
