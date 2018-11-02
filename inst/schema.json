@@ -1,0 +1,146 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "odin intermediate representation",
+    "description": "Intermediate representation of odin's equations",
+
+    "definitions": {
+        "enums": {
+            "stage": {
+                "type": "string",
+                "enum": ["constant", "user", "time", "output"]
+            },
+
+            "lhs_special": {
+                "type": "string",
+                "enum": ["initial", "deriv"]
+            },
+
+            "data_type": {
+                "type": "string",
+                "enum": ["double"]
+            }
+        },
+
+        "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "expression": {
+                    "type": "string"
+                },
+                "line": {
+                    "type": "integer"
+                }
+            }
+        },
+
+        "lhs": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "special": {
+                    "$ref": "#/definitions/enums/lhs_special"
+                },
+
+                "target": {
+                    "type": "string"
+                },
+
+                "data_type": {
+                    "$ref": "#/definitions/enums/data_type"
+                }
+            },
+            "required": ["data_type"],
+            "dependencies": {
+                "special": {
+                    "required": ["target"]
+                }
+            }
+        },
+
+        "rhs_atomic": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "constant": "atomic"
+                },
+                "value": {
+                    "type": "number"
+                }
+            },
+            "required": ["type", "value"]
+        },
+
+        "rhs": {
+            "oneOf": [
+                {"$ref": "#/definitions/rhs_atomic"}
+            ]
+        },
+
+        "equation": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "source": {
+                    "$ref": "#/definitions/source"
+                },
+                "stage": {
+                    "$ref": "#/definitions/enums/stage"
+                },
+                "stochastic": {
+                    "type": "boolean"
+                },
+                "lhs": {
+                    "$ref": "#/definitions/lhs"
+                },
+                "rhs": {
+                    "$ref": "#/definitions/rhs"
+                }
+            },
+            "required": ["name", "stage", "source", "stochastic", "lhs", "rhs"]
+        }
+    },
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "config": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "base": {
+                    "type": "string"
+                }
+            },
+            "required": ["base"]
+        },
+
+        "features": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 7,
+            "properties": {
+                "discrete": { "type": "boolean" },
+                "has_array": { "type": "boolean" },
+                "has_output": { "type": "boolean" },
+                "has_user": { "type": "boolean" },
+                "has_delay": { "type": "boolean" },
+                "has_interpolate": { "type": "boolean" },
+                "has_stochastic": { "type": "boolean" }
+            }
+        },
+
+        "equations": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/equation"
+            }
+        }
+    },
+    "required": ["config", "features", "equations"]
+}

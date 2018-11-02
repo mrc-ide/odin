@@ -14,9 +14,11 @@ Imports:
     crayon,
     deSolve,
     digest,
+    jsonlite,
     ring
 Suggests:
     dde (>= 0.0.6),
+    jsonvalidate,
     knitr,
     rmarkdown,
     testthat

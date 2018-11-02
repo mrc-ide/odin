@@ -6,5 +6,6 @@ r_github_packages:
   - r-lib/covr
   - mrc-ide/cinterpolate
   - richfitz/dde
+  - ropensci/jsonvalidate@use-ajv
 after_success:
   - Rscript -e 'covr::codecov(quiet = FALSE)'
