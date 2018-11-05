@@ -21,6 +21,23 @@
             }
         },
 
+        "sexpression": {
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sexpression"
+                    }
+                }
+            ]
+        },
+
         "source": {
             "type": "object",
             "additionalProperties": false,
@@ -73,9 +90,44 @@
             "required": ["type", "value"]
         },
 
+        "rhs_expression": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "constant": "expression"
+                },
+                "value": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "depends": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "functions": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "variables": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "required": ["functions", "variables"]
+                }
+            },
+            "required": ["type", "value", "depends"]
+        },
+
         "rhs": {
             "oneOf": [
-                {"$ref": "#/definitions/rhs_atomic"}
+                {"$ref": "#/definitions/rhs_atomic"},
+                {"$ref": "#/definitions/rhs_expression"}
             ]
         },
 
@@ -123,7 +175,6 @@
         "features": {
             "type": "object",
             "additionalProperties": false,
-            "minProperties": 7,
             "properties": {
                 "discrete": { "type": "boolean" },
                 "has_array": { "type": "boolean" },
@@ -132,14 +183,18 @@
                 "has_delay": { "type": "boolean" },
                 "has_interpolate": { "type": "boolean" },
                 "has_stochastic": { "type": "boolean" }
-            }
+            },
+            "required": ["discrete", "has_array", "has_output", "has_user",
+                         "has_delay", "has_interpolate", "has_stochastic"]
         },
 
         "equations": {
             "type": "array",
+            "description": "Equations, in topological order",
             "items": {
                 "$ref": "#/definitions/equation"
-            }
+            },
+            "required": []
         }
     },
     "required": ["config", "features", "equations"]

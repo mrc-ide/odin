@@ -1,4 +1,4 @@
-odin_ir <- function(x, type = NULL, validate = FALSE) {
+odin_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ## TODO: see comments in odin validate model - this might want to
   ## flip around
   res <- odin_validate_model(x, type)
@@ -8,7 +8,7 @@ odin_ir <- function(x, type = NULL, validate = FALSE) {
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
                  equations = ir_equations(dat))
-  ir <- jsonlite::toJSON(ir_dat, null = "null")
+  ir <- jsonlite::toJSON(ir_dat, null = "null", pretty = pretty)
   if (validate) {
     ir_validate(ir, TRUE)
   }
@@ -50,6 +50,10 @@ ir_equation <- function(eq) {
   if (eq$rhs$type == "atomic") {
     rhs <- list(type = jsonlite::unbox(eq$rhs$type),
                 value = jsonlite::unbox(eq$rhs$value))
+  } else if (eq$rhs$type == "expression") {
+    rhs <- list(type = jsonlite::unbox(eq$rhs$type),
+                value = ir_expression(eq$rhs$value),
+                depends = eq$depends)
   } else {
     stop("rhs type needs implementing")
   }
@@ -61,6 +65,20 @@ ir_equation <- function(eq) {
        stochastic = jsonlite::unbox(eq$stochastic),
        lhs = lhs,
        rhs = rhs)
+}
+
+
+ir_expression <- function(expr) {
+  if (is.symbol(expr)) {
+    jsonlite::unbox(as.character(expr))
+  } else if (is.atomic(expr)) {
+    jsonlite::unbox(expr)
+  } else if (is.call(expr)) {
+    c(list(jsonlite::unbox(as.character(expr[[1L]]))),
+      lapply(expr[-1L], ir_expression))
+  } else {
+    stop("implement me")
+  }
 }
 
 
