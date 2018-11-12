@@ -1,6 +1,10 @@
+# odin 0.1.3
+
+* Graph data includes output variables [#140](https://github.com/mrc-ide/odin/issues/140)
+
 # odin 0.1.2
 
-* Validate parameters in input
+* Validate parameters in input, allowing for user parameters that are discrete or fall within a range [#137](https://github.com/mrc-ide/odin/issues/137)
 
 # odin 0.0.10
 
