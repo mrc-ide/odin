@@ -1324,4 +1324,16 @@ test_that("set_user honours constraints", {
 })
 
 
+test_that("graph data indicates output vars", {
+  gen <- odin::odin({
+    y1 <- sin(t)
+    deriv(y2) <- y1
+    initial(y2) <- -1
+    output(y1) <- TRUE
+  }, verbose = TEST_VERBOSE)
+  d <- attr(gen, "graph_data")()
+  nodes <- d$nodes
+  expect_equal(nodes$name_target[nodes$type == "output"], "y1")
+})
+
 unload_dlls()

@@ -645,6 +645,7 @@ odin_parse_graph <- function(obj) {
   type[obj$traits[, "is_dim"]] <- "dim"
   type[obj$traits[, "is_deriv"]] <- "target"
   type[obj$traits[, "is_initial"]] <- "initial"
+  type[obj$traits[, "is_output"]] <- "output"
   type[obj$traits[, "uses_user"]] <- "user"
 
   nodes <- data.frame(
