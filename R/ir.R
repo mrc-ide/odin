@@ -47,6 +47,20 @@ ir_equation <- function(eq) {
     lhs$target <- jsonlite::unbox(eq$lhs$target)
   }
 
+  ## This is the major classification of types: things really route
+  ## through different routes later based on this.  Later on we'll
+  ## push some of the logic here into the parse functions I think
+  if (identical(eq$lhs$special, "dim")) {
+    type <- "dim"
+  } else if (isTRUE(eq$rhs$interpolate)) {
+    type <- "interoplate"
+  } else if (isTRUE(eq$rhs$delay)) {
+    type <- "delay"
+  } else {
+    ## TODO: I think that user() *must* be special really?
+    type <- "expression"
+  }
+
   if (eq$rhs$type == "atomic") {
     rhs <- list(type = jsonlite::unbox(eq$rhs$type),
                 value = jsonlite::unbox(eq$rhs$value))
@@ -62,6 +76,7 @@ ir_equation <- function(eq) {
        source = list(expression = jsonlite::unbox(eq$expr_str),
                      line = jsonlite::unbox(eq$line)),
        stage = jsonlite::unbox(STAGES[[eq$stage]]),
+       type = jsonlite::unbox(type),
        stochastic = jsonlite::unbox(eq$stochastic),
        lhs = lhs,
        rhs = rhs)

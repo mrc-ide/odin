@@ -18,6 +18,11 @@
             "data_type": {
                 "type": "string",
                 "enum": ["double"]
+            },
+
+            "equation_type": {
+                "description": "The major classification of the equations",
+                "enum": ["dim", "interpolate", "delay", "expression"]
             }
         },
 
@@ -141,6 +146,9 @@
                 "source": {
                     "$ref": "#/definitions/source"
                 },
+                "type": {
+                    "$ref": "#/definitions/enums/equation_type"
+                },
                 "stage": {
                     "$ref": "#/definitions/enums/stage"
                 },
@@ -154,7 +162,8 @@
                     "$ref": "#/definitions/rhs"
                 }
             },
-            "required": ["name", "stage", "source", "stochastic", "lhs", "rhs"]
+            "required": ["name", "stage", "source", "type", "stochastic",
+                         "lhs", "rhs"]
         }
     },
 
