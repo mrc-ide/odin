@@ -164,6 +164,26 @@
             },
             "required": ["name", "stage", "source", "type", "stochastic",
                          "lhs", "rhs"]
+        },
+
+        "data": {
+            "type": "object",
+            "description": "Data required to support the model",
+            "additionalProperties": true,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "storage_type": {
+                    "$ref": "#/definitions/enums/data_type"
+                },
+                "rank": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 8
+                }
+            },
+            "required": ["name", "storage_type", "rank"]
         }
     },
 
@@ -197,6 +217,14 @@
                          "has_delay", "has_interpolate", "has_stochastic"]
         },
 
+        "data": {
+            "type": "array",
+            "description": "Data, needed to support equations",
+            "items": {
+                "$ref": "#/definitions/data"
+            }
+        },
+
         "equations": {
             "type": "array",
             "description": "Equations, in topological order",
@@ -206,5 +234,5 @@
             "required": []
         }
     },
-    "required": ["config", "features", "equations"]
+    "required": ["config", "features", "data", "equations"]
 }

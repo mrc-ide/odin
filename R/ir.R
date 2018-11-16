@@ -7,6 +7,7 @@ odin_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
 
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
+                 data = ir_data(dat),
                  equations = ir_equations(dat))
   ir <- jsonlite::toJSON(ir_dat, null = "null", pretty = pretty)
   if (validate) {
@@ -42,9 +43,9 @@ ir_equations <- function(dat) {
 
 ir_equation <- function(eq) {
   lhs <- list(data_type = jsonlite::unbox(eq$lhs$data_type))
-  if (!is.null(lhs$special)) {
+  if (!is.null(eq$lhs$special)) {
     lhs$special <- jsonlite::unbox(eq$lhs$special)
-    lhs$target <- jsonlite::unbox(eq$lhs$target)
+    lhs$target <- jsonlite::unbox(eq$lhs$name_target)
   }
 
   ## This is the major classification of types: things really route
@@ -93,6 +94,25 @@ ir_expression <- function(expr) {
       lapply(expr[-1L], ir_expression))
   } else {
     stop("implement me")
+  }
+}
+
+
+## TODO: This actually belongs in the parse stage I think
+ir_data <- function(dat) {
+  ret <- unname(lapply(dat$eqs, ir_data1))
+  ret[!vlapply(ret, is.null)]
+}
+
+
+ir_data1 <- function(eq) {
+  if (identical(eq$lhs$special, "initial") || eq$stage < STAGE_TIME) {
+    if (eq$lhs$type != "symbol") {
+      stop("FIXME")
+    }
+    list(name = jsonlite::unbox(eq$name),
+         storage_type = jsonlite::unbox(eq$lhs$data_type),
+         rank = jsonlite::unbox(0L))
   }
 }
 
