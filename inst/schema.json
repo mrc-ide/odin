@@ -166,10 +166,10 @@
                          "lhs", "rhs"]
         },
 
-        "data": {
+        "data_description": {
             "type": "object",
             "description": "Data required to support the model",
-            "additionalProperties": true,
+            "additionalProperties": false,
             "properties": {
                 "name": {
                     "type": "string"
@@ -221,7 +221,7 @@
             "type": "array",
             "description": "Data, needed to support equations",
             "items": {
-                "$ref": "#/definitions/data"
+                "$ref": "#/definitions/data_description"
             }
         },
 
