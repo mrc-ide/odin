@@ -26,6 +26,12 @@
             }
         },
 
+        "rank": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8
+        },
+
         "sexpression": {
             "oneOf": [
                 {
@@ -178,9 +184,7 @@
                     "$ref": "#/definitions/enums/data_type"
                 },
                 "rank": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 8
+                    "$ref": "#/definitions/rank"
                 }
             },
             "required": ["name", "storage_type", "rank"]
