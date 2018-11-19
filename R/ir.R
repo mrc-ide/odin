@@ -8,6 +8,7 @@ odin_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
                  data = ir_data(dat),
+                 variables = ir_variables(dat),
                  equations = ir_equations(dat))
   ir <- jsonlite::toJSON(ir_dat, null = "null", pretty = pretty)
   if (validate) {
@@ -32,13 +33,33 @@ ir_config <- function(dat) {
 ir_features <- function(dat) {
   v <- c("discrete", "has_array", "has_output", "has_user", "has_delay",
          "has_interpolate", "has_stochastic")
+  if (dat$info$has_array && dat$info$has_user) {
+    ## This is harder because it breaks the ordering code
+    stop("check for and enforce user sized arrays")
+  }
   lapply(dat$info[v], jsonlite::unbox)
+}
+
+
+ir_variables <- function(dat) {
+  vinfo <- dat$variable_info
+  info <- lapply(seq_along(vinfo$order), function(i)
+    list(name = jsonlite::unbox(vinfo$order[[i]]),
+         rank = jsonlite::unbox(vinfo$array[[i]]),
+         length = jsonlite::unbox(vinfo$len[[i]]),
+         offset = jsonlite::unbox(vinfo$offset[[i]])))
+  names(info) <- vinfo$order
+  list(length = jsonlite::unbox(vinfo$total),
+       length_stage = jsonlite::unbox(STAGES[[vinfo$total_stage]]),
+       order = vinfo$order,
+       info = info)
 }
 
 
 ir_equations <- function(dat) {
   unname(lapply(dat$eqs, ir_equation))
 }
+
 
 
 ir_equation <- function(eq) {

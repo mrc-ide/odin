@@ -188,6 +188,45 @@
                 }
             },
             "required": ["name", "storage_type", "rank"]
+        },
+
+        "variable_info": {
+            "type": "object",
+            "description": "variable size and location information",
+            "additionalProperties": false,
+            "properties": {
+                "name": { "type": "string" },
+                "offset": { "type": "integer" },
+                "length": { "type": "integer" },
+                "rank": { "$ref": "#/definitions/rank" }
+            },
+            "required": ["offset", "rank", "length"]
+        },
+
+        "variables": {
+            "type": "object",
+            "description": "This is essentially an ordered dict (array of objects) but because it will often be useful to access this by key, it's stored as an object plus an array indicating order.",
+            "additionalProperties": false,
+            "properties": {
+                "length": {
+                    "type": "integer"
+                },
+                "length_stage": {
+                    "$ref": "#/definitions/enums/stage"
+                },
+                "order": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "info": {
+                    "additionalProperties": {
+                        "$ref": "#/definitions/variable_info"
+                    }
+                }
+            },
+            "required": ["length", "length_stage", "order", "info"]
         }
     },
 
@@ -227,6 +266,10 @@
             "items": {
                 "$ref": "#/definitions/data_description"
             }
+        },
+
+        "variables": {
+            "$ref": "#/definitions/variables"
         },
 
         "equations": {
