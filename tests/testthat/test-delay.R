@@ -283,4 +283,31 @@ test_that("continue", {
 })
 
 
+test_that("continue with altered state", {
+  gen <- odin({
+    initial(y) <- 1
+    deriv(y) <- 1
+    z <- delay(y, 1)
+    output(z) <- TRUE
+  })
+
+  mod <- gen(use_dde = TRUE)
+
+  t1 <- seq(0, 10, length.out = 11)
+  t2 <- seq(10, 20, length.out = 11)
+  tc <- t2[[1]]
+
+  res1 <- mod$run(t1, n_history = 1000, restartable = TRUE)
+
+  y1 <- unname(res1[nrow(res1), "y"])
+  y2 <- y1 * 2
+
+  ## The critical time adjustment here is essential or we jump right
+  ## over the time where things are interesting and get nonsense results
+  res2 <- mod$continue(res1, t2, y2, tcrit = tc + 1)
+
+  expect_equal(res2[, "z"], c(10:11, 23:31))
+})
+
+
 unload_dlls()
