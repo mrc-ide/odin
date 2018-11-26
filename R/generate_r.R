@@ -60,6 +60,7 @@ odin_generate_r <- function(info, dll) {
     if ( discrete && !info$has_delay) odin_generate_r_update(info, dll),
     odin_generate_r_initial(info, dll),
     odin_generate_r_run(info, dll),
+    odin_generate_r_continue(info, dll),
     odin_generate_r_contents(info, dll),
     odin_generate_r_user_info(info),
     odin_generate_r_graph_data(info))
@@ -330,6 +331,23 @@ odin_generate_r_run <- function(info, dll) {
     ret$add(indent("...)", len))
     ret$add("  }")
   }
+  ret$add("  if (use_names) {")
+  ret$add("    colnames(ret) <- self$names")
+  ret$add("  } else {")
+  ret$add("    colnames(ret) <- NULL")
+  ret$add("  }")
+  ret$add("  ret")
+  ret$add("}")
+  ret$get()
+}
+
+odin_generate_r_continue <- function(info, dll) {
+  ret <- collector()
+  ret$add("continue = function(prev, t, y = NULL, ..., use_names = TRUE) {")
+  ret$add("  if (!self$use_dde) {")
+  ret$add('    stop("Can only restart dde models")')
+  ret$add("  }")
+  ret$add("  ret <- dde::dopri_continue(prev, t, y, ...)")
   ret$add("  if (use_names) {")
   ret$add("    colnames(ret) <- self$names")
   ret$add("  } else {")

@@ -258,4 +258,29 @@ test_that("delay index packing", {
                yy$b[6, i] + yy$c[6, i + 1] + yy$e[6, i + 2])
 })
 
+
+
+test_that("continue", {
+  seir <- odin_("examples/seir_odin.R")(use_dde = TRUE)
+  tol <- 1e-7
+
+  tt <- seq(0, 200, length.out = 101)
+  tt1 <- tt[tt < 80]
+  ttc <- tt1[length(tt1)]
+  tt2 <- tt[tt >= ttc]
+
+  cmp <- seir$run(tt, tcrit = ttc, atol = tol, rtol = tol)
+  cmp1 <- cmp[tt <= ttc, ]
+  cmp2 <- cmp[tt >= ttc, ]
+
+  res1 <- seir$run(tt1, restartable = TRUE, atol = tol, rtol = tol)
+  expect_is(attr(res1, "ptr"), "externalptr")
+
+  res2 <- seir$continue(res1, tt2)
+
+  expect_equal(res1, cmp1, check.attributes = FALSE)
+  expect_equal(res2, cmp2, check.attributes = FALSE)
+})
+
+
 unload_dlls()
