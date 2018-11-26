@@ -1,3 +1,7 @@
+# odin 0.1.4
+
+* DDE models can be restarted, using `dde`'s `dopri_restart` function.  This is only a useful thing for delay models as ODE models can always be trivially restarted [#141](https://github.com/mrc-ide/odin/issues/141).
+
 # odin 0.1.3
 
 * Graph data includes output variables [#140](https://github.com/mrc-ide/odin/issues/140)
