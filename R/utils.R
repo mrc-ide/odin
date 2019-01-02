@@ -220,3 +220,13 @@ set_names <- function(x, nms) {
 scalar <- function(x) {
   jsonlite::unbox(x)
 }
+
+
+from_json <- function(json) {
+  jsonlite::fromJSON(json, simplifyDataFrame = FALSE)
+}
+
+
+drop_null <- function(x) {
+  x[!vlapply(x, is.null)]
+}

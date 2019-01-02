@@ -15,9 +15,9 @@ odin_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ## represented simply as a set of arrays
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
-                 targets = ir_targets(dat),
                  data = ir_data(dat),
                  equations = ir_equations(dat))
+
   ir <- jsonlite::toJSON(ir_dat, null = "null", pretty = pretty)
   if (validate) {
     ir_validate(ir, TRUE)
@@ -34,8 +34,38 @@ ir_prep <- function(dat) {
   location[dat$traits[, "is_deriv"]] <- "variable"
   location[dat$traits[, "is_output"]] <- "output"
 
+  ## initial: this is going to be initial conditions and their
+  ## non-constant dependencies
+  dat$traits[, "is_initial"]
+
+  ## rhs:
+  ## * all equations with a time step?
+  ## * all time-dependent dependencies of derivatives? [using this one]
+  v <- names_if(dat$traits[, "is_deriv"])
+  v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
+  used_rhs <- set_names(
+    names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
+    names(dat$eqs))
+
+  ## output:
+  v <- names_if(dat$traits[, "is_output"])
+  v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
+  used_output <- set_names(
+    names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
+    names(dat$eqs))
+
+  ## create:
+  ## * all constant variables
+  used_create <- dat$stage[names(dat$eqs)] == STAGE_CONSTANT
+
+  used <- rbind(rhs = used_rhs,
+                output = used_output,
+                create = used_create)
+
   for (i in seq_along(dat$eqs)) {
     dat$eqs[[i]]$lhs$location <- location[[dat$eqs[[i]]$name]]
+    dat$eqs[[i]]$deps_rec <- dat$deps_rec[[i]] %||% stop("IR ERROR")
+    dat$eqs[[i]]$used <- used[, i]
   }
 
   dat
@@ -62,28 +92,6 @@ ir_features <- function(dat) {
     stop("check for and enforce user sized arrays")
   }
   lapply(dat$info[v], jsonlite::unbox)
-}
-
-
-ir_targets <- function(dat) {
-  list(initial = ir_target_initial(dat),
-       rhs = ir_target_rhs(dat),
-       output = ir_target_output(dat))
-}
-
-
-ir_target_initial <- function(dat) {
-  ## browser()
-}
-
-
-ir_target_rhs <- function(dat) {
-  ## browser()
-}
-
-
-ir_target_output <- function(dat) {
-  ## browser()
 }
 
 
@@ -128,7 +136,9 @@ ir_equation <- function(eq) {
        source = list(expression = jsonlite::unbox(eq$expr_str),
                      line = jsonlite::unbox(eq$line)),
        stage = jsonlite::unbox(STAGES[[eq$stage]]),
+       ## TODO: type should be in rhs I *think*
        type = jsonlite::unbox(type),
+       used = lapply(eq$used, jsonlite::unbox),
        stochastic = jsonlite::unbox(eq$stochastic),
        lhs = lhs,
        rhs = rhs)
@@ -155,6 +165,7 @@ ir_data <- function(dat) {
        output = ir_data_output(dat))
 }
 
+
 ir_data_internal <- function(dat) {
   if (!dat$info$discrete) {
     ## Add odin_use_dde as bool
@@ -169,7 +180,7 @@ ir_data_internal <- function(dat) {
          stage = jsonlite::unbox(eq$stage),
          rank = jsonlite::unbox(0L),
          transient = jsonlite::unbox(
-           eq$stage > STAGE_TIME & !identical(eq$lhs$special, "initial"))))
+           eq$stage == STAGE_TIME & !identical(eq$lhs$special, "initial"))))
 
   ## I am sure that there is more to add here - size, etc
   list(data = data)
