@@ -215,3 +215,8 @@ set_names <- function(x, nms) {
   names(x) <- nms
   x
 }
+
+
+scalar <- function(x) {
+  jsonlite::unbox(x)
+}

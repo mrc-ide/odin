@@ -2,19 +2,43 @@ odin_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ## TODO: see comments in odin validate model - this might want to
   ## flip around
   res <- odin_validate_model(x, type)
+  dat <- ir_prep(res$result)
 
-  dat <- res$result
-
+  ## The core functions that we're looking to create are:
+  ##
+  ##   - initial
+  ##   - deriv (or rhs, more generally)
+  ##   - output
+  ##
+  ## for each of these we should declare what we need by recursing
+  ## through the dependency tree.  This belongs in the ir and can be
+  ## represented simply as a set of arrays
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
+                 targets = ir_targets(dat),
                  data = ir_data(dat),
-                 variables = ir_variables(dat),
                  equations = ir_equations(dat))
   ir <- jsonlite::toJSON(ir_dat, null = "null", pretty = pretty)
   if (validate) {
     ir_validate(ir, TRUE)
   }
   ir
+}
+
+
+## This is going to do some of the prep work that should have been
+## done in the parse and which will move there once this settles down.
+ir_prep <- function(dat) {
+  location <- set_names(rep("internal", nrow(dat$traits)),
+                        rownames(dat$traits))
+  location[dat$traits[, "is_deriv"]] <- "variable"
+  location[dat$traits[, "is_output"]] <- "output"
+
+  for (i in seq_along(dat$eqs)) {
+    dat$eqs[[i]]$lhs$location <- location[[dat$eqs[[i]]$name]]
+  }
+
+  dat
 }
 
 
@@ -41,18 +65,25 @@ ir_features <- function(dat) {
 }
 
 
-ir_variables <- function(dat) {
-  vinfo <- dat$variable_info
-  info <- lapply(seq_along(vinfo$order), function(i)
-    list(name = jsonlite::unbox(vinfo$order[[i]]),
-         rank = jsonlite::unbox(vinfo$array[[i]]),
-         length = jsonlite::unbox(vinfo$len[[i]]),
-         offset = jsonlite::unbox(vinfo$offset[[i]])))
-  names(info) <- vinfo$order
-  list(length = jsonlite::unbox(vinfo$total),
-       length_stage = jsonlite::unbox(STAGES[[vinfo$total_stage]]),
-       order = vinfo$order,
-       info = info)
+ir_targets <- function(dat) {
+  list(initial = ir_target_initial(dat),
+       rhs = ir_target_rhs(dat),
+       output = ir_target_output(dat))
+}
+
+
+ir_target_initial <- function(dat) {
+  ## browser()
+}
+
+
+ir_target_rhs <- function(dat) {
+  ## browser()
+}
+
+
+ir_target_output <- function(dat) {
+  ## browser()
 }
 
 
@@ -61,9 +92,8 @@ ir_equations <- function(dat) {
 }
 
 
-
 ir_equation <- function(eq) {
-  lhs <- list(data_type = jsonlite::unbox(eq$lhs$data_type))
+  lhs <- list(location = jsonlite::unbox(eq$lhs$location))
   if (!is.null(eq$lhs$special)) {
     lhs$special <- jsonlite::unbox(eq$lhs$special)
     lhs$target <- jsonlite::unbox(eq$lhs$name_target)
@@ -118,11 +148,84 @@ ir_expression <- function(expr) {
   }
 }
 
-
-## TODO: This actually belongs in the parse stage I think
+## This is the structure of data structures that desribe how data is stored
 ir_data <- function(dat) {
-  ret <- unname(lapply(dat$eqs, ir_data1))
-  ret[!vlapply(ret, is.null)]
+  list(internal = ir_data_internal(dat),
+       variable = ir_data_variable(dat),
+       output = ir_data_output(dat))
+}
+
+ir_data_internal <- function(dat) {
+  if (!dat$info$discrete) {
+    ## Add odin_use_dde as bool
+  }
+  ## if has delay add a ring
+  ## if arrays, add this here too!
+
+  i <- vcapply(dat$eqs, function(x) x$lhs$location) == "internal"
+  data <- lapply(dat$eqs[i], function(eq)
+    list(name = jsonlite::unbox(eq$lhs$name),
+         storage_type = jsonlite::unbox(eq$lhs$data_type),
+         stage = jsonlite::unbox(eq$stage),
+         rank = jsonlite::unbox(0L),
+         transient = jsonlite::unbox(
+           eq$stage > STAGE_TIME & !identical(eq$lhs$special, "initial"))))
+
+  ## I am sure that there is more to add here - size, etc
+  list(data = data)
+}
+
+
+ir_data_variable <- function(dat) {
+  info <- dat$variable_info
+
+  if (dat$info$has_array) {
+    ## TODO: when there are arrays then the offset information becomes
+    ## much more complicated.
+    ## TODO: length needs adding if this is true
+    stop("this needs work")
+  }
+  ## I am assuming this elsewhere!
+  stopifnot(identical(dat$vars, info$order))
+
+  nms <- target_name(info$order, dat$info$discrete)
+  offset <- set_names(info$offset, nms)
+  rank <- set_names(info$array, nms)
+
+  ## For each here we store the data type only I think?  All ODE
+  ## variables are constrained to be numeric, but that doesn't hold
+  ## for discrete equations of course.
+
+
+  ## TODO: This is one of the areas where the parse code needs
+  ## completely refactoring to get us information in a better order.
+
+  i <- vcapply(dat$eqs, function(x) x$lhs$location) == "variable"
+  data <- lapply(dat$eqs[i], function(eq)
+    list(name = jsonlite::unbox(eq$lhs$name_target),
+         storage_type = jsonlite::unbox(eq$lhs$data_type),
+         stage = jsonlite::unbox(STAGE_TIME),
+         transient = jsonlite::unbox(FALSE),
+         offset = jsonlite::unbox(offset[[eq$name]]),
+         rank = jsonlite::unbox(rank[[eq$name]])))
+  names(data) <- dat$vars
+
+  ## TODO: this doesn't support lots of things required to deal with
+  ## variable length arrays, but length becomes an sexpr at some
+  ## point.
+  list(order = jsonlite::unbox(info$order),
+       length = jsonlite::unbox(info$total),
+       length_stage = jsonlite::unbox(info$total_stage),
+       length_is_var = jsonlite::unbox(info$total_is_var),
+       data = data)
+}
+
+
+ir_data_output <- function(dat) {
+  if (!dat$info$has_output) {
+    return(NULL)
+  }
+  stop("write ir_data_output")
 }
 
 
