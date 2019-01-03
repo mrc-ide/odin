@@ -180,13 +180,16 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
 
 sexp_to_rexp <- function(x, internal, meta) {
   if (is.recursive(x)) {
-    browser()
+    as.call(c(list(as.name(x[[1L]])),
+              lapply(x[-1L], sexp_to_rexp, internal, meta)))
   } else if (is.character(x)) {
     if (x %in% internal) {
       call("[[", meta$internal, x)
     } else {
       as.name(x)
     }
+  } else if (is.integer(x)) {
+    as.numeric(x)
   } else {
     x
   }

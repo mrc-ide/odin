@@ -15,3 +15,9 @@ unload_dlls <- function() {
     inherits(try(dyn.unload(x), silent = TRUE), "try-error"))
   environment(.dlls$add)$res <- drop[err]
 }
+
+
+## access private environment for testing
+r6_private <- function(cl) {
+  environment(cl$initialize)$private
+}

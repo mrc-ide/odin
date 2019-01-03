@@ -223,7 +223,7 @@ scalar <- function(x) {
 
 
 from_json <- function(json) {
-  jsonlite::fromJSON(json, simplifyDataFrame = FALSE)
+  jsonlite::fromJSON(json, simplifyVector = FALSE)
 }
 
 
