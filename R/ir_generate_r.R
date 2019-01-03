@@ -27,6 +27,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     ir_validate(ir)
   }
   dat <- from_json(ir)
+  dat$ir <- ir
 
   features_supported <- character()
   features_used <- vlapply(dat$features, identity)
@@ -159,7 +160,11 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
 
   ## LHS:
   if (location == "internal") {
-    lhs <- call("[[", meta$internal, nm)
+    if (dat$data$internal$data[[nm]]$transient) {
+      lhs <- as.name(nm)
+    } else {
+      lhs <- call("[[", meta$internal, nm)
+    }
   } else if (location == "variable") {
     pos <- offset_to_position(dat$data$variable$data[[eq$lhs$target]]$offset)
     lhs <- call("[[", meta$dstate, pos)
@@ -169,7 +174,9 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
 
   ## RHS:
   if (eq$rhs$type == "expression") {
-    rhs <- sexp_to_rexp(eq$rhs$value, names(dat$data$internal$data), meta)
+    ## TODO: this should be put into internal I think?
+    internal <- names_if(!vlapply(dat$data$internal$data, "[[", "transient"))
+    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
   } else if (eq$rhs$type == "atomic") {
     rhs <- eq$rhs$value
   }
@@ -231,6 +238,8 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       data = NULL,
       use_dde = NULL,
       init = NULL,
+      ## TODO: this is a horrible name
+      ir_ = dat$ir,
       variable_order = dat$data$variable$order,
       names = c(as.character(meta$time), dat$data$variable$order),
       transform_variables = NULL),
@@ -279,6 +288,16 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
           colnames(ret) <- NULL
         }
         ret
+      },
+
+      ## TODO: I am currently not sure if this belongs here or with
+      ## the generator...
+      ir = function() {
+        private$ir_
+      },
+
+      contents = function() {
+        private$data
       }
     ))
 
