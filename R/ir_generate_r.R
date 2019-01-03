@@ -102,12 +102,9 @@ odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
 
 
 odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve) {
-  eqs_rhs <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$rhs)])
-  if (desolve) {
-    ret <- call("list", meta[["dstate"]])
-  } else {
-    ret <- meta[["dstate"]]
-  }
+  vars <- lapply(dat$data$variable$data, function(x)
+    if (x$used$rhs) call("<-", as.name(x$name), call("[[", meta$state, x$name)))
+  vars <- unname(drop_null(vars))
 
   ## NOTE: There are two reasonable things to do here - we can look up
   ## the length of the variable (dat$data$variable$length) or we can
@@ -117,7 +114,16 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve) {
   ## is less logic and will work for variable-length cases.
   alloc <- call("<-", meta$dstate,
                 call("numeric", call("length", meta$state)))
-  body <- as.call(c(list(quote(`{`)), c(alloc, eqs_rhs, ret)))
+
+  eqs_rhs <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$rhs)])
+
+  if (desolve) {
+    ret <- call("list", meta[["dstate"]])
+  } else {
+    ret <- meta[["dstate"]]
+  }
+
+  body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_rhs, ret)))
   args <- alist(t = , y =, parms = )
   names(args)[[1]] <- as.character(meta$time)
   names(args)[[2]] <- as.character(meta$state)

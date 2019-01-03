@@ -27,7 +27,9 @@ odin_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
 
 
 ## This is going to do some of the prep work that should have been
-## done in the parse and which will move there once this settles down.
+## done in the parse and which will move there once this settles down
+## (in fact, once the ir version is working, we'll refactor the parse
+## code entirely to more directly produce the ir).
 ir_prep <- function(dat) {
   location <- set_names(rep("internal", nrow(dat$traits)),
                         rownames(dat$traits))
@@ -36,37 +38,42 @@ ir_prep <- function(dat) {
 
   ## initial: this is going to be initial conditions and their
   ## non-constant dependencies
-  dat$traits[, "is_initial"]
+  vars <- dat$variable_info$order
 
   ## rhs:
   ## * all equations with a time step?
   ## * all time-dependent dependencies of derivatives? [using this one]
   v <- names_if(dat$traits[, "is_deriv"])
   v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
-  used_rhs <- set_names(
+  eq_used_rhs <- set_names(
     names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
     names(dat$eqs))
+  var_used_rhs <- set_names(vars %in% v_dep, vars)
 
   ## output:
   v <- names_if(dat$traits[, "is_output"])
   v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
-  used_output <- set_names(
+  eq_used_output <- set_names(
     names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
     names(dat$eqs))
+  var_used_output <- set_names(vars %in% v_dep, vars)
 
   ## create:
   ## * all constant variables
-  used_create <- dat$stage[names(dat$eqs)] == STAGE_CONSTANT
+  eq_used_create <- dat$stage[names(dat$eqs)] == STAGE_CONSTANT
 
-  used <- rbind(rhs = used_rhs,
-                output = used_output,
-                create = used_create)
+  used <- rbind(rhs = eq_used_rhs,
+                output = eq_used_output,
+                create = eq_used_create)
 
   for (i in seq_along(dat$eqs)) {
     dat$eqs[[i]]$lhs$location <- location[[dat$eqs[[i]]$name]]
     dat$eqs[[i]]$deps_rec <- dat$deps_rec[[i]] %||% stop("IR ERROR")
     dat$eqs[[i]]$used <- used[, i]
   }
+
+  dat$variable_info$used <- rbind(rhs = var_used_rhs,
+                                  output = var_used_output)
 
   dat
 }
@@ -218,7 +225,8 @@ ir_data_variable <- function(dat) {
          stage = jsonlite::unbox(STAGE_TIME),
          transient = jsonlite::unbox(FALSE),
          offset = jsonlite::unbox(offset[[eq$name]]),
-         rank = jsonlite::unbox(rank[[eq$name]])))
+         rank = jsonlite::unbox(rank[[eq$name]]),
+         used = lapply(info$used[, eq$lhs$name_target], jsonlite::unbox)))
   names(data) <- dat$vars
 
   ## TODO: this doesn't support lots of things required to deal with
