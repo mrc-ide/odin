@@ -17,10 +17,13 @@ odin_ir_generate <- function(ir, safe, validate = TRUE) {
   }
 
   ## TODO: this is just punting for later
+  ##
+  ## NOTE: 'state' here is where *variables* are put.  This probably
+  ## wants tightening up later...
   meta <- list(internal = quote(INTERNAL),
-               variable = quote(VARIABLE),
                parameters = quote(PARAMETERS),
                state = quote(STATE),
+               dstate = quote(DSTATE),
                time = as.name(TIME))
 
   eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta)
@@ -101,14 +104,23 @@ odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
 odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve) {
   eqs_rhs <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$rhs)])
   if (desolve) {
-    ret <- call("list", meta[["variable"]])
+    ret <- call("list", meta[["dstate"]])
   } else {
-    ret <- meta[["variable"]]
+    ret <- meta[["dstate"]]
   }
-  body <- as.call(c(list(quote(`{`)), c(eqs_rhs, ret)))
+
+  ## NOTE: There are two reasonable things to do here - we can look up
+  ## the length of the variable (dat$data$variable$length) or we can
+  ## just make this a vector the same length as the incoming state (as
+  ## dydt is always the same length as y).  Neither seems much better
+  ## than the other, so going with the same length approach here as it
+  ## is less logic and will work for variable-length cases.
+  alloc <- call("<-", meta$dstate,
+                call("numeric", call("length", meta$state)))
+  body <- as.call(c(list(quote(`{`)), c(alloc, eqs_rhs, ret)))
   args <- alist(t = , y =, parms = )
   names(args)[[1]] <- as.character(meta$time)
-  names(args)[[2]] <- as.character(meta$variable)
+  names(args)[[2]] <- as.character(meta$state)
   names(args)[[3]] <- as.character(meta$internal)
   as.function(c(args, body), env)
 }
@@ -125,7 +137,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     lhs <- call("[[", meta$internal, nm)
   } else if (location == "variable") {
     pos <- offset_to_position(dat$data$variable$data[[eq$lhs$target]]$offset)
-    lhs <- call("[[", meta$variable, pos)
+    lhs <- call("[[", meta$dstate, pos)
   } else {
     stop("Unhandled path")
   }
@@ -183,6 +195,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
     ## should probably come from the base name
     "odin_model",
     parent_env = environment(odin),
+    cloneable = FALSE,
     public = list(
       name = dat$config$base,
       core = core,
@@ -208,7 +221,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         ## this is currently done within update_cache in the existing
         ## version.
 
-        ## Seal class:
+        ## Seal class (TODO: consider moving these to be private?)
         lockBinding(quote(core), self)
         lockBinding(quote(variable_order), self)
         lockBinding(quote(names), self)
