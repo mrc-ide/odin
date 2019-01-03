@@ -77,3 +77,40 @@ test_that("Time dependent initial conditions", {
   expect_equal(mod$contents(),
                list(initial_y3 = f(1), r = 1))
 })
+
+
+## Tests: that we can actually use state variables in a calculation
+test_that("use state in derivative calculation", {
+  gen <- odin2({
+    deriv(N) <- r * N * (1 - N / K)
+    initial(N) <- 1
+    K <- 100
+    r <- 2.0
+  })
+
+  mod <- gen()
+  ## two equilibria:
+  expect_equal(mod$deriv(0, 0), 0)
+  expect_equal(mod$deriv(0, 100), 0)
+  ## off equilibria:
+  expect_equal(mod$deriv(0, 1), 2 * 1 * 99 / 100)
+})
+
+
+## Tests: multiple scalar variables can be packed together properly
+test_that("multiple variables", {
+  gen <- odin2({
+    deriv(y1) <- sigma * (y2 - y1)
+    deriv(y2) <- R * y1 - y2 - y1 * y3
+    deriv(y3) <- -b * y3 + y1 * y2
+    initial(y1) <- 10.0
+    initial(y2) <- 1.0
+    initial(y3) <- 1.0
+    sigma <- 10.0
+    R     <- 28.0
+    b     <-  8.0 / 3.0
+  })
+  mod <- gen()
+  expect_equal(mod$initial(), c(10, 1, 1))
+  expect_equal(mod$deriv(0, mod$initial()), c(-90, 269, 22 / 3))
+})

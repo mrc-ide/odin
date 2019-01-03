@@ -15,8 +15,7 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
                  features = ir_features(dat),
                  data = ir_data(dat),
                  equations = ir_equations(dat))
-
-  ir <- jsonlite::toJSON(ir_dat, null = "null", pretty = pretty)
+  ir <- ir_serialise(ir_dat, pretty)
   if (validate) {
     ir_validate(ir, TRUE)
   }
@@ -249,7 +248,7 @@ ir_data_variable <- function(dat) {
   ## TODO: this doesn't support lots of things required to deal with
   ## variable length arrays, but length becomes an sexpr at some
   ## point.
-  list(order = jsonlite::unbox(info$order),
+  list(order = info$order,
        length = jsonlite::unbox(info$total),
        length_stage = jsonlite::unbox(info$total_stage),
        length_is_var = jsonlite::unbox(info$total_is_var),
@@ -294,4 +293,16 @@ ir_validate <- function(x, error = FALSE) {
   jsonvalidate::json_validate(x, ir_schema(),
                               verbose = TRUE, greedy = TRUE, error = error,
                               engine = "imjv")
+}
+
+
+ir_serialise <- function(dat, pretty = TRUE) {
+  jsonlite::toJSON(dat, null = "null", pretty = pretty)
+}
+
+
+ir_deserialise <- function(ir) {
+  dat <- jsonlite::fromJSON(ir, simplifyVector = FALSE)
+  dat$data$variable$order <- list_to_character(dat$data$variable$order)
+  dat
 }

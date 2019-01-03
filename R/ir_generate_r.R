@@ -26,7 +26,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   if (validate) {
     ir_validate(ir)
   }
-  dat <- from_json(ir)
+  dat <- ir_deserialise(ir)
   dat$ir <- ir
 
   features_supported <- character()
@@ -119,9 +119,13 @@ odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
 
 
 odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve) {
-  vars <- lapply(dat$data$variable$data, function(x)
-    if (x$used$rhs) call("<-", as.name(x$name), call("[[", meta$state, x$name)))
-  vars <- unname(drop_null(vars))
+  f <- function(x) {
+    if (x$used$rhs) {
+      call("<-", as.name(x$name),
+           call("[[", meta$state, offset_to_position(x$offset)))
+    }
+  }
+  vars <- unname(drop_null(lapply(dat$data$variable$data, f)))
 
   ## NOTE: There are two reasonable things to do here - we can look up
   ## the length of the variable (dat$data$variable$length) or we can

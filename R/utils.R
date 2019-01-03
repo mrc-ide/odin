@@ -230,3 +230,8 @@ from_json <- function(json) {
 drop_null <- function(x) {
   x[!vlapply(x, is.null)]
 }
+
+
+list_to_character <- function(x) {
+  vcapply(x, identity)
+}
