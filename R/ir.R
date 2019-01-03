@@ -38,6 +38,11 @@ ir_prep <- function(dat) {
   ## non-constant dependencies
   vars <- dat$variable_info$order
 
+  ## TODO: use of "used" here is problematic because what we really
+  ## mean here is "*changed*" - referencing things is just fine, but
+  ## it's the point at which they are modified that we're trying to
+  ## assess.
+
   ## rhs:
   ## * all equations with a time step?
   ## * all time-dependent dependencies of derivatives? [using this one]
@@ -60,9 +65,17 @@ ir_prep <- function(dat) {
   ## * all constant variables
   eq_used_create <- dat$stage[names(dat$eqs)] == STAGE_CONSTANT
 
+  ## initial:
+  v <- names_if(dat$traits[, "is_initial"])
+  v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
+  eq_used_initial <- set_names(
+    names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
+    names(dat$eqs))
+
   used <- rbind(rhs = eq_used_rhs,
                 output = eq_used_output,
-                create = eq_used_create)
+                create = eq_used_create,
+                initial = eq_used_initial)
 
   for (i in seq_along(dat$eqs)) {
     dat$eqs[[i]]$lhs$location <- location[[dat$eqs[[i]]$name]]
@@ -166,6 +179,7 @@ ir_expression <- function(expr) {
 ## This is the structure of data structures that desribe how data is stored
 ir_data <- function(dat) {
   list(internal = ir_data_internal(dat),
+       initial = ir_data_initial(dat),
        variable = ir_data_variable(dat),
        output = ir_data_output(dat))
 }
@@ -189,6 +203,11 @@ ir_data_internal <- function(dat) {
 
   ## I am sure that there is more to add here - size, etc
   list(data = data)
+}
+
+
+ir_data_initial <- function(dat) {
+  list(stage = jsonlite::unbox(STAGES[[dat$info$initial_stage]]))
 }
 
 

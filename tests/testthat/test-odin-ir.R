@@ -52,3 +52,28 @@ test_that("Time dependent rhs", {
                quote(r <- 2 * t))
   expect_equal(mod$contents(), list(initial_y = 1))
 })
+
+
+test_that("Time dependent initial conditions", {
+  gen <- odin2({
+    y1 <- cos(t)
+    y2 <- y1 * (r + t)
+    r <- 1
+    deriv(y3) <- y2
+    initial(y3) <- y2
+  })
+
+  mod <- gen()
+
+  f <- function(t) {
+    cos(t) * (1 + t)
+  }
+
+  expect_equal(mod$initial(0), f(0))
+  expect_equal(mod$initial(1), f(1))
+  expect_equal(mod$deriv(0, 1), f(0))
+  expect_equal(mod$deriv(1, 1), f(1))
+
+  expect_equal(mod$contents(),
+               list(initial_y3 = f(1), r = 1))
+})

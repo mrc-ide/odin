@@ -60,48 +60,45 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     set_user = odin_ir_generate_set_user(eqs, dat, env, meta),
     rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, TRUE),
     rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE))
+
   odin_ir_generate_class(core, dat, env, meta)
 }
 
 
 odin_ir_generate_create <- function(eqs, dat, env, meta) {
-  ## NOTE: this is not the most efficient way of doing this; we should
-  ## preallocate by looking up the names that the assignments will go
-  ## to.  This is not a major cost, so for now it's not worth the
-  ## complexity while we sort things out.  If the internal structure
-  ## becomes an environment it won't be needed.
+  alloc <- call("<-", meta[["internal"]], quote(new.env(parent = emptyenv())))
   eqs_create <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$create)])
-  body <- as.call(c(list(quote(`{`)),
-                    c(call("<-", meta[["internal"]], quote(list())),
-                      eqs_create,
-                      meta[["internal"]])))
+  ret <- meta[["internal"]]
+  body <- as.call(c(list(quote(`{`)), c(alloc, eqs_create, ret)))
   as.function(c(alist(), body), env)
 }
 
 
 odin_ir_generate_ic <- function(eqs, dat, env, meta) {
   if (dat$features$has_array) {
-    stop("ic will need work (has_array)")
+    stop("ic will need work (features$has_array)")
   }
   if (dat$data$variable$length_is_var) {
-    stop("ic will need work (length_is_var)")
+    stop("ic will need work (variable$length_is_var)")
   }
   if (dat$data$variable$length_stage > STAGE_CONSTANT) {
-    stop("ic will need work (length_stage)")
+    stop("ic will need work (variable$length_stage)")
   }
 
-  vars <- dat$data$variable$data[dat$data$variable$order]
+  alloc <- call("<-", meta$state,
+                call("numeric", dat$data$variable$length))
+  eqs_initial <-
+    unname(eqs[vlapply(dat$equations, function(eq) eq$used$initial)])
 
   f <- function(x) {
     call("<-",
          call("[[", meta$state, offset_to_position(x$offset)),
          call("[[", meta$internal, initial_name(x$name)))
   }
+  assign <- lapply(dat$data$variable$data[dat$data$variable$order], f)
+  ret <- meta$state
 
-  alloc <- call("<-", meta$state,
-                call("numeric", dat$data$variable$length))
-  body <- as.call(c(list(quote(`{`)),
-                    alloc, lapply(vars, f), as.name(meta$state)))
+  body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, ret))
   args <- alist(time =, internal =)
   names(args)[[1]] <- as.character(meta$time)
   names(args)[[2]] <- as.character(meta$internal)
@@ -222,7 +219,6 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       dat$features$discrete) {
     stop("more tweaks needed here...")
   }
-  ## TODO: can't detect if initial stage is important here.
 
   env[[dat$config$base]] <- R6::R6Class(
     ## TODO: use of 'odin_model' here is somewhat incorrect because
@@ -238,6 +234,8 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       data = NULL,
       use_dde = NULL,
       init = NULL,
+      ## TODO: this might change:
+      initial_time_dependent = dat$data$initial$stage == "time",
       ## TODO: this is a horrible name
       ir_ = dat$ir,
       variable_order = dat$data$variable$order,
@@ -253,8 +251,10 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         private$use_dde <- use_dde
 
         private$data <- private$core$create()
-        ## TODO: only works if initial stage is 'constant'
-        private$init <- private$core$ic(NA_real_, private$data)
+
+        if (!private$initial_time_dependent) {
+          private$init <- private$core$ic(NA_real_, private$data)
+        }
 
         ## TODO: odin_prepare here as that sorts out even more stuff -
         ## this is currently done within update_cache in the existing
@@ -267,13 +267,21 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         private$core$rhs_dde(t, y, private$data)
       },
 
+      ## TODO: This condition is actually constant for this class, so
+      ## the logic at runtime makes very little sense.  It's here at
+      ## the moment to keep things simple, and with a code-generation
+      ## approach this could be replaced.
       initial = function(t) {
-        private$init
+        if (private$initial_time_dependent) {
+          private$core$ic(t, private$data)
+        } else {
+          private$init
+        }
       },
 
       run = function(t, y = NULL, ..., use_names = TRUE) {
         if (is.null(y)) {
-          y <- private$init
+          y <- self$initial(t)
         }
         if (private$use_dde) {
           ret <- dde::dopri(y, t, private$core$rhs_dde, private$data,
@@ -297,7 +305,8 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       },
 
       contents = function() {
-        private$data
+        res <- as.list(private$data)
+        res[order(names(res))]
       }
     ))
 
