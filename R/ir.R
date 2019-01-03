@@ -1,8 +1,6 @@
-odin_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
-  ## TODO: see comments in odin validate model - this might want to
-  ## flip around
-  res <- odin_validate_model(x, type)
-  dat <- ir_prep(res$result)
+odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
+  xp <- odin_preprocess(x)
+  dat <- ir_prep(odin_parse(xp))
 
   ## The core functions that we're looking to create are:
   ##

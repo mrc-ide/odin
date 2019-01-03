@@ -1,9 +1,28 @@
+## These two are temporary!
+odin2 <- function(x, validate = FALSE) {
+  xx <- substitute(x)
+  if (is.symbol(xx)) {
+    xx <- force(x)
+  } else if (is_call(xx, quote(c)) && all(vlapply(xx[-1], is.character))) {
+    ## See #88
+    xx <- force(x)
+  }
+  odin2_(xx, validate)
+}
+
+
+odin2_ <- function(x, validate = FALSE) {
+  ir <- odin_build_ir(x)
+  odin_ir_generate(ir, validate)
+}
+
+
 ## TODO: this needs a bunch of naming work - currently the prefix here
 ## is "odin_ir_generate" but this is "ir -> r" - we'll have "ir -> c"
 ## and eventually "ir -> js" here so we'll probably move to something
 ## like "gen_<target>_xxx" once this is working properly
 
-odin_ir_generate <- function(ir, safe, validate = TRUE) {
+odin_ir_generate <- function(ir, validate = TRUE) {
   if (validate) {
     ir_validate(ir)
   }
@@ -202,61 +221,57 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
     "odin_model",
     parent_env = environment(odin),
     cloneable = FALSE,
-    public = list(
+
+    private = list(
       name = dat$config$base,
       core = core,
-      internal = NULL,
+      data = NULL,
       use_dde = NULL,
-      ## Cache:
       init = NULL,
       variable_order = dat$data$variable$order,
       names = c(as.character(meta$time), dat$data$variable$order),
-      transform_variables = NULL,
+      transform_variables = NULL),
+
+    public = list(
       ## Methods:
       initialize = function(use_dde = FALSE) {
         if (use_dde) {
           loadNamespace(dde)
         }
-        self$use_dde <- use_dde
+        private$use_dde <- use_dde
 
-        self$internal <- self$core$create()
+        private$data <- private$core$create()
         ## TODO: only works if initial stage is 'constant'
-        self$init <- self$core$ic(NA_real_, self$internal)
+        private$init <- private$core$ic(NA_real_, private$data)
 
         ## TODO: odin_prepare here as that sorts out even more stuff -
         ## this is currently done within update_cache in the existing
         ## version.
-
-        ## Seal class (TODO: consider moving these to be private?)
-        lockBinding(quote(core), self)
-        lockBinding(quote(variable_order), self)
-        lockBinding(quote(names), self)
-        lockBinding(quote(use_dde), self)
-        lockBinding(quote(init), self)
       },
 
       deriv = function(t, y) {
         ## TODO: not sure in the face of output variables what to do
         ## here, or what we do already...
-        self$core$rhs_dde(t, y, self$internal)
+        private$core$rhs_dde(t, y, private$data)
       },
 
       initial = function(t) {
-        self$init
+        private$init
       },
 
       run = function(t, y = NULL, ..., use_names = TRUE) {
         if (is.null(y)) {
-          y <- self$init
+          y <- private$init
         }
-        if (self$use_dde) {
-          ret <- dde::dopri(y, t, self$core$rhs_dde, self$internal,
+        if (private$use_dde) {
+          ret <- dde::dopri(y, t, private$core$rhs_dde, private$data,
                             ynames = FALSE, ...)
         } else {
-          ret <- deSolve::ode(y, t, self$core$rhs_desolve, self$internal, ...)
+          ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$data,
+                              ...)
         }
         if (use_names) {
-          colnames(ret) <- self$names
+          colnames(ret) <- private$names
         } else {
           colnames(ret) <- NULL
         }
