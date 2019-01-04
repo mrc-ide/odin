@@ -19,7 +19,7 @@ test_that("trivial model", {
   expect_equal(yy[, 1], tt)
   expect_equal(yy[, 2], seq(1, length.out = length(tt), by = 2))
 
-  expect_equal(mod$contents(), list(initial_y = 1, r = 2))
+  expect_equal(mod$contents(), sort_list(list(initial_y = 1, r = 2)))
 })
 
 
@@ -75,7 +75,7 @@ test_that("Time dependent initial conditions", {
   expect_equal(mod$deriv(1, 1), f(1))
 
   expect_equal(mod$contents(),
-               list(initial_y3 = f(1), r = 1))
+               sort_list(list(initial_y3 = f(1), r = 1)))
 })
 
 
@@ -130,9 +130,9 @@ test_that("user variables", {
   expect_error(gen())
 
   expect_equal(gen(r = pi)$contents(),
-               list(K = 100, N0 = 1, initial_N = 1, r = pi))
+               sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
   expect_equal(gen(r = pi, N0 = 10)$contents(),
-               list(K = 100, N0 = 10, initial_N = 10, r = pi))
+               sort_list(list(K = 100, N0 = 10, initial_N = 10, r = pi)))
   expect_equal(gen(r = pi, N0 = 10)$initial(), 10)
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))

@@ -427,8 +427,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       },
 
       contents = function() {
-        res <- as.list(private$data)
-        res[order(names(res))]
+        sort_list(as.list(private$data))
       }
     )))
 

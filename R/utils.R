@@ -235,3 +235,8 @@ drop_null <- function(x) {
 list_to_character <- function(x) {
   vcapply(x, identity)
 }
+
+
+sort_list <- function(x) {
+  x[order(names(x))]
+}
