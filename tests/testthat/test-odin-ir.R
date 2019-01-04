@@ -200,3 +200,18 @@ test_that("discrete", {
   yy <- mod$run(tt)
   expect_equal(yy, cbind(step = tt, x = tt + 1))
 })
+
+
+test_that("discrete with output", {
+  gen <- odin2({
+    initial(x) <- 1
+    update(x) <- x + 1
+    output(y) <- x + step
+  })
+  mod <- gen()
+
+  expect_equal(mod$update(2, 3), structure(4, output = 5))
+  tt <- 0:10
+  yy <- mod$run(tt)
+  expect_equal(yy, cbind(step = tt, x = tt + 1, y = 2 * tt + 1))
+})

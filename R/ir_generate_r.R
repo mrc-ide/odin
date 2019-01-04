@@ -139,16 +139,18 @@ odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
 
 
 odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
-  if (output && !dat$features$has_output) {
+  discrete <- dat$features$discrete
+  has_output <- dat$features$has_output
+  if (output && !has_output) {
     return(NULL)
   }
-  if (desolve && dat$features$discrete) {
+  if (discrete && (desolve || output)) {
     return(NULL)
   }
 
   include <- function(x) {
-    ((output || desolve) && x$used$output) ||
-      ((!output || desolve) && x$used$rhs)
+    ((output || desolve || discrete) && x$used$output) ||
+      ((!output || desolve || discrete) && x$used$rhs)
   }
 
   f <- function(x) {
@@ -169,8 +171,8 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
                          call("numeric", call("length", meta$state)))
   alloc_output <- call("<-", meta$output,
                        call("numeric", dat$data$output$length))
-  if (desolve) {
-    if (dat$features$has_output) {
+  if (desolve || discrete) {
+    if (has_output) {
       alloc <- list(alloc_result, alloc_output)
     } else {
       alloc <- list(alloc_result)
@@ -184,13 +186,17 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
   eqs_include <- unname(eqs[vlapply(dat$equations, include)])
 
   if (desolve) {
-    if (dat$features$has_output) {
+    if (has_output) {
       ret <- call("list", meta[["result"]], meta[["output"]])
     } else {
       ret <- call("list", meta[["result"]])
     }
   } else if (output) {
     ret <- meta[["output"]]
+  } else if (discrete && has_output) {
+    ret <- list(
+      call("<-", call("attr", meta[["result"]], "output"), meta[["output"]]),
+      meta[["result"]])
   } else {
     ret <- meta[["result"]]
   }
@@ -275,9 +281,6 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
   if (dat$features$has_interpolate || dat$features$has_delay) {
     stop("more tweaks needed here...")
   }
-  if (dat$features$discrete && dat$features$has_output) {
-    stop("discrete + output not done yet")
-  }
 
   env[[dat$config$base]] <- R6::R6Class(
     ## TODO: use of 'odin_model' here is somewhat incorrect because
@@ -339,10 +342,6 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         }
       },
 
-      ## NOTE: these are _extremely_ similar and code generation would
-      ## be one way of improving this.  The differences are awkward
-      ## though, being the name of the method, argument name and
-      ## variable name.
       update = if (dat$features$discrete) {
         function(step, y) {
           private$core$rhs_dde(step, y, private$data)
