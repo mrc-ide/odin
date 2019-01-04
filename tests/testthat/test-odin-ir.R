@@ -137,3 +137,49 @@ test_that("user variables", {
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))
 })
+
+
+## Tests: basic output
+##
+## This one is about as basic as I can see!
+test_that("output", {
+  gen <- odin2({
+    deriv(y) <- 2
+    initial(y) <- 1
+    output(z) <- t
+  })
+
+  tt <- 0:10
+
+  mod <- gen()
+
+  expect_equal(mod$deriv(0, 1), structure(2, output = 0))
+  expect_equal(mod$deriv(10, 1), structure(2, output = 10))
+
+  yy1 <- mod$run(tt)
+  expect_equal(colnames(yy1), c("t", "y", "z"))
+  expect_equal(yy1[, "t"], tt)
+  expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
+  expect_equal(yy1[, "z"], tt)
+
+  yy2 <- gen(TRUE)$run(tt)
+  expect_equal(colnames(yy2), c("t", "y", "z"))
+  expect_equal(yy2[, "t"], tt)
+  expect_equal(yy2[, "y"], seq(1, length.out = length(tt), by = 2))
+  expect_equal(yy2[, "z"], tt)
+})
+
+
+## Do some nontrivial calculation in the output
+test_that("output", {
+  gen <- odin2({
+    deriv(y) <- 2
+    initial(y) <- 1
+    output(z) <- a * 2
+    a <- t + y
+  })
+
+  mod <- gen()
+  expect_equal(mod$deriv(0, 1), structure(2, output = 2))
+  expect_equal(mod$deriv(10, 1), structure(2, output = 22))
+})

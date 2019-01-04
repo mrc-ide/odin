@@ -186,8 +186,8 @@ ir_data <- function(dat) {
   list(internal = ir_data_internal(dat),
        user = ir_data_user(dat),
        initial = ir_data_initial(dat),
-       variable = ir_data_variable(dat),
-       output = ir_data_output(dat))
+       variable = ir_data_variable(dat, FALSE),
+       output = ir_data_variable(dat, TRUE))
 }
 
 
@@ -248,19 +248,24 @@ ir_data_initial <- function(dat) {
 }
 
 
-ir_data_variable <- function(dat) {
-  info <- dat$variable_info
-
+ir_data_variable <- function(dat, output) {
   if (dat$info$has_array) {
     ## TODO: when there are arrays then the offset information becomes
     ## much more complicated.
     ## TODO: length needs adding if this is true
     stop("this needs work")
   }
-  ## I am assuming this elsewhere!
-  stopifnot(identical(dat$vars, info$order))
 
-  nms <- target_name(info$order, dat$info$discrete)
+  if (output) {
+    info <- dat$output_info
+  } else {
+    ## I am assuming this elsewhere, though I don't remember where.
+    ## Probably due to assigning names into data using info$order?
+    info <- dat$variable_info
+    stopifnot(identical(dat$vars, info$order))
+  }
+
+  nms <- info$names
   offset <- set_names(info$offset, nms)
   rank <- set_names(info$array, nms)
 
@@ -268,11 +273,10 @@ ir_data_variable <- function(dat) {
   ## variables are constrained to be numeric, but that doesn't hold
   ## for discrete equations of course.
 
-
   ## TODO: This is one of the areas where the parse code needs
   ## completely refactoring to get us information in a better order.
-
-  i <- vcapply(dat$eqs, function(x) x$lhs$location) == "variable"
+  location <- if (output) "output" else "variable"
+  i <- vcapply(dat$eqs, function(x) x$lhs$location) == location
   data <- lapply(dat$eqs[i], function(eq)
     list(name = jsonlite::unbox(eq$lhs$name_target),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
@@ -280,8 +284,11 @@ ir_data_variable <- function(dat) {
          transient = jsonlite::unbox(FALSE),
          offset = jsonlite::unbox(offset[[eq$name]]),
          rank = jsonlite::unbox(rank[[eq$name]]),
+         ## NOTE: this silently falls through for outputs, which are
+         ## not *used* like variables are, so for output = TRUE, used
+         ## is *always* an empty list.
          used = lapply(info$used[, eq$lhs$name_target], jsonlite::unbox)))
-  names(data) <- dat$vars
+  names(data) <- info$order
 
   ## TODO: this doesn't support lots of things required to deal with
   ## variable length arrays, but length becomes an sexpr at some
@@ -291,14 +298,6 @@ ir_data_variable <- function(dat) {
        length_stage = jsonlite::unbox(info$total_stage),
        length_is_var = jsonlite::unbox(info$total_is_var),
        data = data)
-}
-
-
-ir_data_output <- function(dat) {
-  if (!dat$info$has_output) {
-    return(NULL)
-  }
-  stop("write ir_data_output")
 }
 
 

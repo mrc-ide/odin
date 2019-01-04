@@ -30,7 +30,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   dat$ir <- ir
 
   ## Pull this out into something generally useful
-  features_supported <- c("has_user")
+  features_supported <- c("has_user", "has_output")
   features_used <- vlapply(dat$features, identity)
   msg <- setdiff(names_if(features_used), features_supported)
   if (length(msg) > 0L) {
@@ -45,6 +45,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
                user = as.name(USER),
                state = as.name(STATE),
                dstatedt = as.name(DSTATEDT),
+               output = as.name(OUTPUT),
                time = as.name(TIME),
                get_user_double = as.name("_get_user_double"))
 
@@ -66,8 +67,9 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     create = odin_ir_generate_create(eqs, dat, env, meta),
     ic = odin_ir_generate_ic(eqs, dat, env, meta),
     set_user = odin_ir_generate_set_user(eqs, dat, env, meta),
-    rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, TRUE),
-    rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE))
+    rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, TRUE, FALSE),
+    rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE, FALSE),
+    output = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE, TRUE))
 
   odin_ir_generate_class(core, dat, env, meta)
 }
@@ -133,9 +135,18 @@ odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
 }
 
 
-odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve) {
+odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
+  if (output && !dat$features$has_output) {
+    return(NULL)
+  }
+
+  include <- function(x) {
+    ((output || desolve) && x$used$output) ||
+      ((!output || desolve) && x$used$rhs)
+  }
+
   f <- function(x) {
-    if (x$used$rhs) {
+    if (include(x)) {
       call("<-", as.name(x$name),
            call("[[", meta$state, offset_to_position(x$offset)))
     }
@@ -148,18 +159,37 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve) {
   ## dydt is always the same length as y).  Neither seems much better
   ## than the other, so going with the same length approach here as it
   ## is less logic and will work for variable-length cases.
-  alloc <- call("<-", meta$dstatedt,
-                call("numeric", call("length", meta$state)))
+  alloc_dstatedt <- call("<-", meta$dstatedt,
+                         call("numeric", call("length", meta$state)))
+  alloc_output <- call("<-", meta$output,
+                       call("numeric", dat$data$output$length))
+  if (desolve) {
+    if (dat$features$has_output) {
+      alloc <- list(alloc_dstatedt, alloc_output)
+    } else {
+      alloc <- list(alloc_dstatedt)
+    }
+  } else if (output) {
+    alloc <- alloc_output
+  } else {
+    alloc <- alloc_dstatedt
+  }
 
-  eqs_rhs <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$rhs)])
+  eqs_include <- unname(eqs[vlapply(dat$equations, include)])
 
   if (desolve) {
-    ret <- call("list", meta[["dstatedt"]])
+    if (dat$features$has_output) {
+      ret <- call("list", meta[["dstatedt"]], meta[["output"]])
+    } else {
+      ret <- call("list", meta[["dstatedt"]])
+    }
+  } else if (output) {
+    ret <- meta[["output"]]
   } else {
     ret <- meta[["dstatedt"]]
   }
 
-  body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_rhs, ret)))
+  body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_include, ret)))
   args <- alist(t = , y =, parms = )
   names(args)[[1]] <- as.character(meta$time)
   names(args)[[2]] <- as.character(meta$state)
@@ -184,6 +214,9 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   } else if (location == "variable") {
     pos <- offset_to_position(dat$data$variable$data[[eq$lhs$target]]$offset)
     lhs <- call("[[", meta$dstatedt, pos)
+  } else if (location == "output") {
+    pos <- offset_to_position(dat$data$output$data[[eq$lhs$target]]$offset)
+    lhs <- call("[[", meta$output, pos)
   } else {
     stop("Unhandled path")
   }
@@ -233,8 +266,7 @@ offset_to_position <- function(x) {
 ## objects and we'll come back and generate code later on.  The latter
 ## is needed for generating package code for example.
 odin_ir_generate_class <- function(core, dat, env, meta) {
-  if (dat$features$has_output ||
-      dat$features$has_interpolate || dat$features$has_delay ||
+  if (dat$features$has_interpolate || dat$features$has_delay ||
       dat$features$discrete) {
     stop("more tweaks needed here...")
   }
@@ -257,15 +289,19 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       initial_time_dependent = dat$data$initial$stage == "time",
       ## TODO: this is a horrible name
       ir_ = dat$ir,
+      names = c(as.character(meta$time),
+                dat$data$variable$order,
+                dat$data$output$order),
+      ## These are not obviously the right bit of metadata to keep
       variable_order = dat$data$variable$order,
-      names = c(as.character(meta$time), dat$data$variable$order),
+      output_order = dat$data$output$order,
       transform_variables = NULL),
 
     public = list(
       ## Methods:
       initialize = function(user = NULL, use_dde = FALSE) {
         if (use_dde) {
-          loadNamespace(dde)
+          loadNamespace("dde")
         }
         private$use_dde <- use_dde
 
@@ -289,9 +325,11 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       },
 
       deriv = function(t, y) {
-        ## TODO: not sure in the face of output variables what to do
-        ## here, or what we do already...
-        private$core$rhs_dde(t, y, private$data)
+        ret <- private$core$rhs_dde(t, y, private$data)
+        if (!is.null(private$core$output)) {
+          attr(ret, "output") <- private$core$output(t, y, private$data)
+        }
+        ret
       },
 
       ## TODO: This condition is actually constant for this class, so
@@ -312,7 +350,8 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         }
         if (private$use_dde) {
           ret <- dde::dopri(y, t, private$core$rhs_dde, private$data,
-                            ynames = FALSE, ...)
+                            ynames = FALSE, output = private$core$output,
+                            n_out = length(private$output_order), ...)
         } else {
           ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$data,
                               ...)
