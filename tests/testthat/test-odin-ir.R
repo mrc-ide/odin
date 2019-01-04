@@ -183,3 +183,20 @@ test_that("output", {
   expect_equal(mod$deriv(0, 1), structure(2, output = 2))
   expect_equal(mod$deriv(10, 1), structure(2, output = 22))
 })
+
+
+## Basic discrete models
+test_that("discrete", {
+  gen <- odin2({
+    initial(x) <- 1
+    update(x) <- x + 1
+  })
+  mod <- gen()
+
+  expect_equal(mod$initial(), 1)
+  expect_equal(mod$update(0, 1), 2)
+
+  tt <- 0:10
+  yy <- mod$run(tt)
+  expect_equal(yy, cbind(step = tt, x = tt + 1))
+})
