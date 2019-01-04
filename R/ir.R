@@ -301,39 +301,6 @@ ir_data_variable <- function(dat, output) {
 }
 
 
-ir_data1 <- function(eq) {
-  if (identical(eq$lhs$special, "initial") || eq$stage < STAGE_TIME) {
-    if (eq$lhs$type != "symbol") {
-      stop("FIXME")
-    }
-    list(name = jsonlite::unbox(eq$name),
-         storage_type = jsonlite::unbox(eq$lhs$data_type),
-         rank = jsonlite::unbox(0L))
-  }
-}
-
-
-## Eventually this should be cached within a session, but wait until
-## it works.
-ir_schema <- function() {
-  path <- system.file("schema.json", package = "odin", mustWork = TRUE)
-  dat <- readChar(path, file.size(path))
-  ## We get somewhat better errors from jsonlite's parsers than hoping
-  ## that the json is valid.
-  jsonlite::fromJSON(dat)
-  dat
-}
-
-
-ir_validate <- function(x, error = FALSE) {
-  jsonvalidate_version <- utils::packageVersion("jsonvalidate")
-  engine <- if (jsonvalidate_version > "1.0.0") "ajv" else "imjv"
-  jsonvalidate::json_validate(x, ir_schema(),
-                              verbose = TRUE, greedy = TRUE, error = error,
-                              engine = "imjv")
-}
-
-
 ir_serialise <- function(dat, pretty = TRUE) {
   jsonlite::toJSON(dat, null = "null", pretty = pretty)
 }
