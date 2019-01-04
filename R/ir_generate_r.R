@@ -277,7 +277,13 @@ offset_to_position <- function(x) {
 ## generate R *code* or *R objects* here.  For now I am generating
 ## objects and we'll come back and generate code later on.  The latter
 ## is needed for generating package code for example.
+##
+## TODO: The other way of doing this, which might be nicer, is for a
+## top-level class and then inject dependencies into it.  We should be
+## able to do this with minimal overhead and just as much of the class
+## locked down to creation time.
 odin_ir_generate_class <- function(core, dat, env, meta) {
+  self <- private <- NULL # quieten global check: R6 adds these later
   if (dat$features$has_interpolate || dat$features$has_delay) {
     stop("more tweaks needed here...")
   }
