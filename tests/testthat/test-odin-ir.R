@@ -114,3 +114,26 @@ test_that("multiple variables", {
   expect_equal(mod$initial(), c(10, 1, 1))
   expect_equal(mod$deriv(0, mod$initial()), c(-90, 269, 22 / 3))
 })
+
+
+## Tests: scalar user variables
+test_that("user variables", {
+  gen <- odin2({
+    deriv(N) <- r * N * (1 - N / K)
+    initial(N) <- N0
+    N0 <- user(1)
+    K <- 100
+    r <- user()
+  })
+
+  ## options(error = recover)
+  expect_error(gen())
+
+  expect_equal(gen(r = pi)$contents(),
+               list(K = 100, N0 = 1, initial_N = 1, r = pi))
+  expect_equal(gen(r = pi, N0 = 10)$contents(),
+               list(K = 100, N0 = 10, initial_N = 10, r = pi))
+  expect_equal(gen(r = pi, N0 = 10)$initial(), 10)
+  expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
+               pi * 10 * (1 - 10 / 100))
+})

@@ -29,10 +29,11 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   dat <- ir_deserialise(ir)
   dat$ir <- ir
 
-  features_supported <- character()
+  ## Pull this out into something generally useful
+  features_supported <- c("has_user")
   features_used <- vlapply(dat$features, identity)
-  msg <- setdiff(names(features_used)[features_used], features_supported)
-  if (length(msg) < 0L) {
+  msg <- setdiff(names_if(features_used), features_supported)
+  if (length(msg) > 0L) {
     stop("Features not suppored: ", paste(dquote(msg), collapse = ", "))
   }
 
@@ -41,10 +42,11 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   ## NOTE: 'state' here is where *variables* are put.  This probably
   ## wants tightening up later...
   meta <- list(internal = quote(INTERNAL),
-               parameters = quote(PARAMETERS),
-               state = quote(STATE),
-               dstate = quote(DSTATE),
-               time = as.name(TIME))
+               user = as.name(USER),
+               state = as.name(STATE),
+               dstatedt = as.name(DSTATEDT),
+               time = as.name(TIME),
+               get_user_double = as.name("_get_user_double"))
 
   eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta)
   names(eqs) <- vcapply(dat$equations, "[[", "name")
@@ -54,6 +56,12 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   ## It's not clear what the correct environment here should be, so
   ## let's start with the simplest environment first.
   env <- new.env(parent = as.environment("package:base"))
+
+  ## Support functions will come in this way:
+  if (dat$features$has_user) {
+    env[[as.character(meta$get_user_double)]] <- support_get_user_double
+  }
+
   core <- list(
     create = odin_ir_generate_create(eqs, dat, env, meta),
     ic = odin_ir_generate_ic(eqs, dat, env, meta),
@@ -66,14 +74,17 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
 
 odin_ir_generate_create <- function(eqs, dat, env, meta) {
+  user <- lapply(dat$data$user, function(x)
+    call("<-", call("[[", meta[["internal"]], x$name), x$default_value))
   alloc <- call("<-", meta[["internal"]], quote(new.env(parent = emptyenv())))
   eqs_create <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$create)])
   ret <- meta[["internal"]]
-  body <- as.call(c(list(quote(`{`)), c(alloc, eqs_create, ret)))
+  body <- as.call(c(list(quote(`{`)), c(alloc, user, eqs_create, ret)))
   as.function(c(alist(), body), env)
 }
 
 
+## TODO: 'ic' ==> 'initial'
 odin_ir_generate_ic <- function(eqs, dat, env, meta) {
   if (dat$features$has_array) {
     stop("ic will need work (features$has_array)")
@@ -87,6 +98,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
   alloc <- call("<-", meta$state,
                 call("numeric", dat$data$variable$length))
+  ## These are only time dependent things
   eqs_initial <-
     unname(eqs[vlapply(dat$equations, function(eq) eq$used$initial)])
 
@@ -107,13 +119,16 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
 
 odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
-  if (dat$features$has_user) {
-    stop("This function needs updating")
-  }
-  args <- alist(t =, params =)
-  names(args)[[1]] <- as.character(meta$time)
-  names(args)[[2]] <- as.character(meta$parameters)
-  body <- call("{")
+  user <- unname(lapply(dat$data$user, function(x)
+    call(as.character(meta$get_user_double),
+         meta$user, x$name, meta$internal)))
+  eqs_user <-
+    unname(eqs[vlapply(dat$equations, function(eq) eq$used$user)])
+
+  args <- alist(user =, internal =)
+  names(args)[[1]] <- as.character(meta$user)
+  names(args)[[2]] <- as.character(meta$internal)
+  body <- as.call(c(list(quote(`{`)), user, eqs_user))
   as.function(c(args, body), env)
 }
 
@@ -133,15 +148,15 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve) {
   ## dydt is always the same length as y).  Neither seems much better
   ## than the other, so going with the same length approach here as it
   ## is less logic and will work for variable-length cases.
-  alloc <- call("<-", meta$dstate,
+  alloc <- call("<-", meta$dstatedt,
                 call("numeric", call("length", meta$state)))
 
   eqs_rhs <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$rhs)])
 
   if (desolve) {
-    ret <- call("list", meta[["dstate"]])
+    ret <- call("list", meta[["dstatedt"]])
   } else {
-    ret <- meta[["dstate"]]
+    ret <- meta[["dstatedt"]]
   }
 
   body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_rhs, ret)))
@@ -168,7 +183,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     }
   } else if (location == "variable") {
     pos <- offset_to_position(dat$data$variable$data[[eq$lhs$target]]$offset)
-    lhs <- call("[[", meta$dstate, pos)
+    lhs <- call("[[", meta$dstatedt, pos)
   } else {
     stop("Unhandled path")
   }
@@ -218,7 +233,7 @@ offset_to_position <- function(x) {
 ## objects and we'll come back and generate code later on.  The latter
 ## is needed for generating package code for example.
 odin_ir_generate_class <- function(core, dat, env, meta) {
-  if (dat$features$has_user || dat$features$has_output ||
+  if (dat$features$has_output ||
       dat$features$has_interpolate || dat$features$has_delay ||
       dat$features$discrete) {
     stop("more tweaks needed here...")
@@ -248,13 +263,14 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
 
     public = list(
       ## Methods:
-      initialize = function(use_dde = FALSE) {
+      initialize = function(user = NULL, use_dde = FALSE) {
         if (use_dde) {
           loadNamespace(dde)
         }
         private$use_dde <- use_dde
 
         private$data <- private$core$create()
+        private$core$set_user(user, private$data)
 
         if (!private$initial_time_dependent) {
           private$init <- private$core$ic(NA_real_, private$data)
@@ -263,6 +279,13 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         ## TODO: odin_prepare here as that sorts out even more stuff -
         ## this is currently done within update_cache in the existing
         ## version.
+      },
+
+      set_user = function(..., user = list(...)) {
+        private$core$set_user(user)
+        if (!private$initial_time_dependent) {
+          private$init <- private$core$ic(NA_real_, private$data)
+        }
       },
 
       deriv = function(t, y) {
@@ -315,7 +338,45 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
     ))
 
   cl_init <- call("$", as.name(dat$config$base), quote(new))
-  body <- call("{", as.call(list(cl_init, quote(use_dde))))
-  args <- alist(use_dde = FALSE)
+  ## Need to build a nice argument list here.  This is pretty ugly and
+  ## will be somewhat duplicated with different interfaces.
+  ##
+  ## TODO: this is not going to reliably preserve ordering of arguments.
+  if (dat$features$has_user) {
+    i <- vlapply(dat$data$user, function(x) x$has_default)
+    nms <- names(i)[order(i)]
+    args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i)))
+    names(args) <- nms
+    args[[meta$user]] <-
+      as.call(c(list(quote(list)),
+                set_names(lapply(nms, as.name), nms)))
+    args <- c(args, alist(use_dde = FALSE))
+    body <- call("{", as.call(list(cl_init, meta$user, quote(use_dde))))
+  } else {
+    args <- alist(use_dde = FALSE)
+    body <- call("{", as.call(list(cl_init, NULL, quote(use_dde))))
+  }
+
   as.function(c(args, body), env)
+}
+
+
+## Some support functions:
+support_get_user_double <- function(user, name, internal) {
+  given <- user[[name]]
+  if (is.null(given)) {
+    if (is.null(internal[[name]])) {
+      stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
+    }
+  } else {
+    if (length(given) != 1L) {
+      stop(sprintf("Expected a scalar numeric for '%s'", name), call. = FALSE)
+    }
+    if (is.integer(given)) {
+      given <- as.numeric(given)
+    } else if (!is.numeric(given)) {
+      stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
+    }
+    internal[[name]] <- given
+  }
 }

@@ -66,14 +66,20 @@ ir_prep <- function(dat) {
 
   ## initial:
   v <- names_if(dat$traits[, "is_initial"])
-  v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
+  v_dep <- unique(c(v, unlist(dat$deps_rec[v], use.names = FALSE)))
   eq_used_initial <- set_names(
-    names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
+    names(dat$eqs) %in% v_dep[dat$stage[v_dep] == STAGE_TIME],
     names(dat$eqs))
+
+  ## user:
+  v <- setdiff(names_if(dat$stage[names(dat$eqs)] == STAGE_USER),
+               names_if(dat$traits[, "uses_user"]))
+  eq_used_user <- set_names(names(dat$eqs) %in% v, names(dat$eqs))
 
   used <- rbind(rhs = eq_used_rhs,
                 output = eq_used_output,
                 create = eq_used_create,
+                user = eq_used_user,
                 initial = eq_used_initial)
 
   for (i in seq_along(dat$eqs)) {
@@ -178,6 +184,7 @@ ir_expression <- function(expr) {
 ## This is the structure of data structures that desribe how data is stored
 ir_data <- function(dat) {
   list(internal = ir_data_internal(dat),
+       user = ir_data_user(dat),
        initial = ir_data_initial(dat),
        variable = ir_data_variable(dat),
        output = ir_data_output(dat))
@@ -202,6 +209,37 @@ ir_data_internal <- function(dat) {
 
   ## I am sure that there is more to add here - size, etc
   list(data = data)
+}
+
+
+ir_data_user <- function(dat) {
+  if (!dat$info$has_user) {
+    return(NULL)
+  }
+
+  user <- dat$info$user
+  ## NOTE: min, max and default_value here are *optional* in the json
+  ## because otherwise representing values is a little awkward.  Using
+  ## infinities in particular don't serialise well at all!
+  f <- function(i) {
+    ret <- user[i, setdiff(names(user), "default_value")]
+    if (!is.finite(ret$min)) {
+      ret$min <- NULL
+    }
+    if (!is.finite(ret$max)) {
+      ret$max <- NULL
+    }
+    ret <- lapply(ret, jsonlite::unbox)
+    if (ret$has_default) {
+      default_value <- user$default_value[[i]]
+      if (ret$rank == 0L) {
+        default_value <- jsonlite::unbox(default_value)
+      }
+      ret$default_value <- default_value
+    }
+    ret
+  }
+  set_names(lapply(seq_len(nrow(user)), f), rownames(user))
 }
 
 
