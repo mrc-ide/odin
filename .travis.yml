@@ -2,6 +2,10 @@ language: r
 cache: packages
 r_packages:
   - covr
+addons:
+  apt:
+    packages:
+      - libv8-dev
 r_github_packages:
   - r-lib/covr
   - mrc-ide/cinterpolate
