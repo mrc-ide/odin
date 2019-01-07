@@ -29,8 +29,12 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   dat <- ir_deserialise(ir)
   dat$ir <- ir
 
+  ## TODO: decide if this belongs in the ir itself
+  dat$data$internal$contents <-
+    names_if(!vlapply(dat$data$internal$data, "[[", "transient"))
+
   ## Pull this out into something generally useful
-  features_supported <- c("has_user", "has_output", "discrete")
+  features_supported <- c("has_user", "has_output", "discrete", "has_array")
   features_used <- vlapply(dat$features, identity)
   msg <- setdiff(names_if(features_used), features_supported)
   if (length(msg) > 0L) {
@@ -49,6 +53,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     result = if (discrete) as.name(STATE_NEXT) else as.name(DSTATEDT),
     output = as.name(OUTPUT),
     time = if (discrete) as.name(STEP) else as.name(TIME),
+    index = lapply(INDEX, as.name),
     get_user_double = as.name("_get_user_double"))
 
   eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta)
@@ -91,26 +96,25 @@ odin_ir_generate_create <- function(eqs, dat, env, meta) {
 
 ## TODO: 'ic' ==> 'initial'
 odin_ir_generate_ic <- function(eqs, dat, env, meta) {
-  if (dat$features$has_array) {
-    stop("ic will need work (features$has_array)")
-  }
-  if (dat$data$variable$length_is_var) {
-    stop("ic will need work (variable$length_is_var)")
-  }
   if (dat$data$variable$length_stage > STAGE_CONSTANT) {
     stop("ic will need work (variable$length_stage)")
   }
 
-  alloc <- call("<-", meta$state,
-                call("numeric", dat$data$variable$length))
+  var_length <-
+    sexp_to_rexp(dat$data$variable$length, dat$data$internal$contents, meta)
+  alloc <- call("<-", meta$state, call("numeric", var_length))
   ## These are only time dependent things
   eqs_initial <-
     unname(eqs[vlapply(dat$equations, function(eq) eq$used$initial)])
 
   f <- function(x) {
-    call("<-",
-         call("[[", meta$state, offset_to_position(x$offset)),
-         call("[[", meta$internal, initial_name(x$name)))
+    if (x$rank == 0) {
+      target <- call("[[", meta$state, offset_to_position(x$offset))
+    } else {
+      seq <- call("seq_len", call("[[", meta$internal, array_dim_name(x$name)))
+      target <- call("[", meta$state, call("+", x$offset, seq))
+    }
+    call("<-", target, call("[[", meta$internal, initial_name(x$name)))
   }
   assign <- lapply(dat$data$variable$data[dat$data$variable$order], f)
   ret <- meta$state
@@ -210,46 +214,100 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
 }
 
 
+## TODO: this one looks like it breaks apart into different features
+## as there are two big if/else blocks here.  There are a few ways of
+## breaking this up though, and it looks like array/nonarray is better
+## than lhs/rhs
 odin_ir_generate_expression <- function(eq, dat, meta) {
   st <- eq$stage
   nm <- eq$name
 
   location <- eq$lhs$location
+  internal <- dat$data$internal$contents
+
+  ## TODO: this might move into the ir:
+  data_name <- if (location == "internal") nm else eq$lhs$target
+  data_info <- dat$data[[location]]$data[[data_name]]
 
   ## LHS:
   if (location == "internal") {
+    ## TODO: I think that this is equivalent to
+    ##   lhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     if (dat$data$internal$data[[nm]]$transient) {
       lhs <- as.name(nm)
+    } else if (eq$type == "array_expression") {
+      lhs <- call("[[", call("[[", meta$internal, nm), meta$index[[1]])
     } else {
       lhs <- call("[[", meta$internal, nm)
     }
+  } else if (eq$type == "array_expression") {
+    ## Both variable and output here, and assuming 1d
+    if (data_info$rank > 1) {
+      stop("multi-dimensional array needs work")
+    }
+    ## TODO: 'result' becomes 'dstatedt' (a little complicated by
+    ## location above - consider replacing dstatedt with result!)
+    ##
+    ## TODO: this treatment is needed in the other branches too
+    offset <- sexp_to_rexp(data_info$offset, internal, meta)
+    lhs <- call("[[",
+                if (location == "variable") meta$result else meta$output,
+                call("+", meta$index[[1]], offset))
   } else if (location == "variable") {
-    pos <- offset_to_position(dat$data$variable$data[[eq$lhs$target]]$offset)
-    lhs <- call("[[", meta$result, pos)
+    lhs <- call("[[", meta$result, offset_to_position(data_info$offset))
   } else if (location == "output") {
-    pos <- offset_to_position(dat$data$output$data[[eq$lhs$target]]$offset)
-    lhs <- call("[[", meta$output, pos)
+    lhs <- call("[[", meta$output, offset_to_position(data_info$offset))
   } else {
     stop("Unhandled path")
   }
 
-  ## RHS:
-  if (eq$rhs$type == "expression") {
-    ## TODO: this should be put into internal I think?
-    internal <- names_if(!vlapply(dat$data$internal$data, "[[", "transient"))
+  if (eq$type == "scalar_expression") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-  } else if (eq$rhs$type == "atomic") {
-    rhs <- eq$rhs$value
+    call("<-", lhs, rhs)
+  } else if (eq$type == "array_expression") {
+    ## There will be possibly more than one here.
+    if (length(eq$rhs$value) != 1L) {
+      stop("multi-part array expression")
+    }
+    ## TODO: we can do better here on translation when we have ':' but
+    ## this can go into sexp_to_rexp - use seq_along and seq_len where
+    ## appropriate, but the gains from that will be small compared
+    ## with avoiding vectorisation.
+    ##
+    ## TODO: this is just not going to work for multi-dimensional
+    ## arrays!
+    ##
+    ## TODO: we can (re-)vectorise lots of expressions here.
+    expr_index <- sexp_to_rexp(eq$lhs$index[[1L]]$value, internal, meta)
+    expr_body <- call("<-", lhs,
+                      sexp_to_rexp(eq$rhs$value[[1L]], internal, meta))
+    call("for", meta$index[[1L]], expr_index, expr_body)
+  } else if (eq$type == "dim") {
+    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+    ## TODO: soon this function will return lists of expressions so we
+    ## can drop the '{' here
+    ##
+    ## TODO: should check storage type here, but I don't know if we
+    ## actually support integer arrays, or if we need them to be ints
+    ## in R.
+    call("{",
+         call("<-", lhs, rhs),
+         call("<-",
+              call("[[", meta$internal, eq$lhs$target), call("numeric", lhs)))
+  } else {
+    stop("Unhandled type")
   }
-
-  call("<-", lhs, rhs)
 }
 
 
 sexp_to_rexp <- function(x, internal, meta) {
   if (is.recursive(x)) {
-    as.call(c(list(as.name(x[[1L]])),
-              lapply(x[-1L], sexp_to_rexp, internal, meta)))
+    if (x[[1L]] == "length") {
+      sexp_to_rexp(array_dim_name(x[[2L]]), internal, meta)
+    } else {
+      as.call(c(list(as.name(x[[1L]])),
+                lapply(x[-1L], sexp_to_rexp, internal, meta)))
+    }
   } else if (is.character(x)) {
     if (x %in% internal) {
       call("[[", meta$internal, x)
@@ -414,7 +472,8 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
           if (use_names) {
             colnames(ret) <- private$names
           } else {
-            colnames(ret) <- NULL
+            dimnames(ret) <- NULL
+            class(ret) <- "matrix"
           }
           ret
         }

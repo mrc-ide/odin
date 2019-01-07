@@ -215,3 +215,34 @@ test_that("discrete with output", {
   yy <- mod$run(tt)
   expect_equal(yy, cbind(step = tt, x = tt + 1, y = 2 * tt + 1))
 })
+
+
+## Fairly minimal array model, though it does mix array and non array
+## variables, plus an array support variable.
+test_that("array support", {
+  gen <- odin2({
+    initial(x[]) <- 1
+    initial(y) <- 2
+    deriv(x[]) <- r[i]
+    deriv(y) <- n
+    r[] <- i
+    n <- 3
+    dim(r) <- n
+    dim(x) <- n
+  })
+
+  mod <- gen()
+
+  ## internal data is ok:
+  expect_equal(mod$contents(),
+               sort_list(list(dim_r = 3, dim_x = 3, initial_x = rep(1, 3),
+                              initial_y = 2, n = 3, r = 1:3, x = rep(0, 3))))
+  expect_equal(mod$initial(), c(2, 1, 1, 1))
+  expect_equal(mod$deriv(0, c(2, 1, 1, 1)), c(3, 1, 2, 3))
+
+  tt <- 0:10
+  yy <- mod$run(tt, use_names = FALSE)
+  expect_equal(yy[, ],
+               cbind(tt, 2 + tt * 3, 1 + tt, 1 + tt * 2, 1 + tt * 3,
+                     deparse.level = 0))
+})

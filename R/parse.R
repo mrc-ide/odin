@@ -704,6 +704,9 @@ variable_offsets <- function(names, is_array, len, output = FALSE) {
     offset[[i]] <- accumulate_offset(i)
   }
 
+  ## TODO: we can do better computing the offset and length here as a
+  ## number whenever the stage is STAGE_CONSTANT because we can look
+  ## up all the numbers at build time.
   total <- accumulate_offset(n + 1L)
 
   list(offset = offset, total = total)

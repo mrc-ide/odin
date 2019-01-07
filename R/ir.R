@@ -125,7 +125,9 @@ ir_equations <- function(dat) {
 
 ir_equation <- function(eq) {
   lhs <- list(location = jsonlite::unbox(eq$lhs$location))
-  if (!is.null(eq$lhs$special)) {
+  if (is.null(eq$lhs$special)) {
+    lhs$target <- jsonlite::unbox(eq$name)
+  } else {
     lhs$special <- jsonlite::unbox(eq$lhs$special)
     lhs$target <- jsonlite::unbox(eq$lhs$name_target)
   }
@@ -133,25 +135,61 @@ ir_equation <- function(eq) {
   ## This is the major classification of types: things really route
   ## through different routes later based on this.  Later on we'll
   ## push some of the logic here into the parse functions I think
+  ##
+  ## TODO: push this into the prep stage?
   if (identical(eq$lhs$special, "dim")) {
     type <- "dim"
   } else if (isTRUE(eq$rhs$interpolate)) {
     type <- "interoplate"
   } else if (isTRUE(eq$rhs$delay)) {
     type <- "delay"
+  } else if (identical(eq$lhs$type, "symbol")) {
+    type <- "scalar_expression"
+  } else if (identical(eq$lhs$type, "array")) {
+    type <- "array_expression"
   } else {
-    ## TODO: I think that user() *must* be special really?
-    type <- "expression"
+    stop("Unclassified type")
   }
 
-  if (eq$rhs$type == "atomic") {
-    rhs <- list(type = jsonlite::unbox(eq$rhs$type),
-                value = jsonlite::unbox(eq$rhs$value))
-  } else if (eq$rhs$type == "expression") {
-    rhs <- list(type = jsonlite::unbox(eq$rhs$type),
-                value = ir_expression(eq$rhs$value),
-                depends = eq$depends)
+  ## identical(eq$lhs$special, "dim")
+  ## isTRUE(eq$rhs$interpolate)
+  ## isTRUE(x$rhs$delay)
+
+  if (type == "scalar_expression" || type == "dim") {
+    rhs <- list(
+      type = jsonlite::unbox(eq$rhs$type),
+      value = ir_expression(eq$rhs$value),
+      ## TODO: this conditional would be better in the parse?
+      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+  } else if (type == "array_expression") {
+    if (eq$rhs$inplace) {
+      stop("rhs$inplace")
+    }
+    ## NOTE: this is _almost_ the same as above, but for the 'value'
+    ## part.
+    rhs <- list(
+      type = jsonlite::unbox(eq$rhs$type),
+      value = lapply(unname(eq$rhs$value), ir_expression),
+      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+
+    if (length(eq$rhs$value) != 1L) {
+      ## TODO: This is _definitely_ not correct for the case of a
+      ## multipart array equation - it looks a bit like I've
+      ## double-listed things though.
+      stop("multipart array equation")
+    }
+
+    ## TODO: here we need to indicate if this has a *self-dependency*
+    ## that might be the "inplace" thing I have above actually.  We
+    ## can code generate some different codes here otherwise.
+
+    lhs$index <- lapply(unname(eq$lhs$index), function(el)
+      list(value = ir_expression(el$value[[1]]),
+           is_range = jsonlite::unbox(el$is_range[[1]]),
+           extent_min = ir_expression(el$extent_min[[1]]),
+           extent_max = ir_expression(el$extent_max[[1]])))
   } else {
+    browser()
     stop("rhs type needs implementing")
   }
 
@@ -159,7 +197,6 @@ ir_equation <- function(eq) {
        source = list(expression = jsonlite::unbox(eq$expr_str),
                      line = jsonlite::unbox(eq$line)),
        stage = jsonlite::unbox(STAGES[[eq$stage]]),
-       ## TODO: type should be in rhs I *think*
        type = jsonlite::unbox(type),
        used = lapply(eq$used, jsonlite::unbox),
        stochastic = jsonlite::unbox(eq$stochastic),
@@ -177,6 +214,7 @@ ir_expression <- function(expr) {
     c(list(jsonlite::unbox(as.character(expr[[1L]]))),
       lapply(expr[-1L], ir_expression))
   } else {
+    browser()
     stop("implement me")
   }
 }
@@ -249,25 +287,9 @@ ir_data_initial <- function(dat) {
 
 
 ir_data_variable <- function(dat, output) {
-  if (dat$info$has_array) {
-    ## TODO: when there are arrays then the offset information becomes
-    ## much more complicated.
-    ## TODO: length needs adding if this is true
-    stop("this needs work")
-  }
-
-  if (output) {
-    info <- dat$output_info
-  } else {
-    ## I am assuming this elsewhere, though I don't remember where.
-    ## Probably due to assigning names into data using info$order?
-    info <- dat$variable_info
-    stopifnot(identical(dat$vars, info$order))
-  }
-
-  nms <- info$names
-  offset <- set_names(info$offset, nms)
-  rank <- set_names(info$array, nms)
+  info <- if (output) dat$output_info else dat$variable_info
+  offset <- set_names(info$offset, info$order)
+  rank <- set_names(info$array, info$order)
 
   ## For each here we store the data type only I think?  All ODE
   ## variables are constrained to be numeric, but that doesn't hold
@@ -282,19 +304,16 @@ ir_data_variable <- function(dat, output) {
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          stage = jsonlite::unbox(STAGE_TIME),
          transient = jsonlite::unbox(FALSE),
-         offset = jsonlite::unbox(offset[[eq$name]]),
-         rank = jsonlite::unbox(rank[[eq$name]]),
+         offset = jsonlite::unbox(offset[[eq$lhs$name_target]]),
+         rank = jsonlite::unbox(rank[[eq$lhs$name_target]]),
          ## NOTE: this silently falls through for outputs, which are
          ## not *used* like variables are, so for output = TRUE, used
          ## is *always* an empty list.
          used = lapply(info$used[, eq$lhs$name_target], jsonlite::unbox)))
   names(data) <- info$order
 
-  ## TODO: this doesn't support lots of things required to deal with
-  ## variable length arrays, but length becomes an sexpr at some
-  ## point.
   list(order = info$order,
-       length = jsonlite::unbox(info$total),
+       length = ir_expression(info$total),
        length_stage = jsonlite::unbox(info$total_stage),
        length_is_var = jsonlite::unbox(info$total_is_var),
        data = data)
@@ -302,7 +321,7 @@ ir_data_variable <- function(dat, output) {
 
 
 ir_serialise <- function(dat, pretty = TRUE) {
-  jsonlite::toJSON(dat, null = "null", pretty = pretty)
+  jsonlite::toJSON(dat, null = "null", pretty = pretty, digits = NA)
 }
 
 
