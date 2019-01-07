@@ -252,3 +252,17 @@ test_that("array support", {
                     y = yy[, 2],
                     x = unname(yy[, 3:5])))
 })
+
+
+test_that("multi-line array expression", {
+  gen <- odin2({
+    initial(x) <- 1
+    deriv(x) <- 1
+    a[1] <- 1
+    a[2] <- 1
+    a[3:n] <- a[i - 1] + a[i - 2]
+    dim(a) <- n
+    n <- 10
+  })
+  expect_equal(gen()$contents()$a, c(1, 1, 2, 3, 5, 8, 13, 21, 34, 55))
+})

@@ -302,8 +302,8 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     call("<-", lhs, rhs)
   } else if (eq$type == "array_expression") {
     ## There will be possibly more than one here.
-    if (length(eq$rhs$value) != 1L) {
-      stop("multi-part array expression")
+    if (data_info$rank > 1) {
+      stop("multi-dimensional array expression")
     }
     ## TODO: we can do better here on translation when we have ':' but
     ## this can go into sexp_to_rexp - use seq_along and seq_len where
@@ -314,10 +314,26 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     ## arrays!
     ##
     ## TODO: we can (re-)vectorise lots of expressions here.
-    expr_index <- sexp_to_rexp(eq$lhs$index[[1L]]$value, internal, meta)
-    expr_body <- call("<-", lhs,
-                      sexp_to_rexp(eq$rhs$value[[1L]], internal, meta))
-    call("for", meta$index[[1L]], expr_index, expr_body)
+    f <- function(i) {
+      if (eq$lhs$index[[i]]$is_range) {
+        expr_index <- sexp_to_rexp(eq$lhs$index[[i]]$value, internal, meta)
+        expr_body <- call("<-", lhs,
+                          sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
+        call("for", meta$index[[1L]], expr_index, expr_body)
+      } else if (length(eq$lhs$index[[i]]$value) == 1L) {
+        expr_index <- sexp_to_rexp(eq$lhs$index[[i]]$value, internal, meta)
+        expr_body <- call("<-", lhs,
+                          sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
+        substitute_(expr_body, list(i = expr_index))
+      } else {
+        stop("Nontrivial non-range array access")
+      }
+    }
+    if (length(eq$lhs$index) == 1) {
+      f(1)
+    } else {
+      as.call(c(list(quote(`{`)), lapply(seq_along(eq$lhs$index), f)))
+    }
   } else if (eq$type == "dim") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     ## TODO: soon this function will return lists of expressions so we

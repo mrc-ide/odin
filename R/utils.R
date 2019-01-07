@@ -240,3 +240,8 @@ list_to_character <- function(x) {
 sort_list <- function(x) {
   x[order(names(x))]
 }
+
+
+substitute_ <- function(expr, env) {
+  eval(substitute(substitute(y, env), list(y = expr)))
+}

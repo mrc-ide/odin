@@ -161,41 +161,37 @@ ir_equation <- function(eq) {
       value = ir_expression(eq$rhs$value),
       ## TODO: this conditional would be better in the parse?
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+    src <- list(expression = jsonlite::unbox(eq$expr_str),
+                line = jsonlite::unbox(eq$line))
   } else if (type == "array_expression") {
-    if (eq$rhs$inplace) {
+    if (any(eq$rhs$inplace)) {
       stop("rhs$inplace")
     }
-    ## NOTE: this is _almost_ the same as above, but for the 'value'
-    ## part.
-    rhs <- list(
-      type = jsonlite::unbox(eq$rhs$type),
-      value = lapply(unname(eq$rhs$value), ir_expression),
-      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
-
-    if (length(eq$rhs$value) != 1L) {
-      ## TODO: This is _definitely_ not correct for the case of a
-      ## multipart array equation - it looks a bit like I've
-      ## double-listed things though.
-      stop("multipart array equation")
+    if (eq$lhs$nd > 1) {
+      stop("multidimensional arrays need work")
     }
+    rhs <- list(
+      type = unname(eq$rhs$type),
+      value = lapply(unname(eq$rhs$value), ir_expression),
+      depends = if (all(eq$rhs$type == "atomic")) NULL else eq$depends)
 
     ## TODO: here we need to indicate if this has a *self-dependency*
-    ## that might be the "inplace" thing I have above actually.  We
-    ## can code generate some different codes here otherwise.
-
+    ## We can code generate some different codes here otherwise.
     lhs$index <- lapply(unname(eq$lhs$index), function(el)
       list(value = ir_expression(el$value[[1]]),
            is_range = jsonlite::unbox(el$is_range[[1]]),
            extent_min = ir_expression(el$extent_min[[1]]),
            extent_max = ir_expression(el$extent_max[[1]])))
+
+    ## TODO: this will change to just a set of linenumbers at some point
+    src <- list(expression = eq$expr_str, line = eq$line)
   } else {
     browser()
     stop("rhs type needs implementing")
   }
 
   list(name = jsonlite::unbox(eq$name),
-       source = list(expression = jsonlite::unbox(eq$expr_str),
-                     line = jsonlite::unbox(eq$line)),
+       source = src,
        stage = jsonlite::unbox(STAGES[[eq$stage]]),
        type = jsonlite::unbox(type),
        used = lapply(eq$used, jsonlite::unbox),
@@ -233,15 +229,14 @@ ir_data_internal <- function(dat) {
   if (!dat$info$discrete) {
     ## Add odin_use_dde as bool
   }
-  ## if has delay add a ring
-  ## if arrays, add this here too!
 
+  ## if has delay add a ring
   i <- vcapply(dat$eqs, function(x) x$lhs$location) == "internal"
   data <- lapply(dat$eqs[i], function(eq)
     list(name = jsonlite::unbox(eq$lhs$name),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          stage = jsonlite::unbox(eq$stage),
-         rank = jsonlite::unbox(0L),
+         rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          transient = jsonlite::unbox(
            eq$stage == STAGE_TIME & !identical(eq$lhs$special, "initial"))))
 
