@@ -77,7 +77,9 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     ## TODO: These 3 true/false pairs might be a ternary categorical arg?
     rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, TRUE, FALSE),
     rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE, FALSE),
-    output = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE, TRUE))
+    output = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE, TRUE),
+    ## This one is a little different
+    metadata = odin_ir_generate_metadata(eqs, dat, env, meta))
 
   odin_ir_generate_class(core, dat, env, meta)
 }
@@ -211,6 +213,40 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
   names(args)[[2]] <- as.character(meta$state)
   names(args)[[3]] <- as.character(meta$internal)
   as.function(c(args, body), env)
+}
+
+
+odin_ir_generate_metadata <- function(eqs, dat, env, meta) {
+  f <- function(x) {
+    if (x$rank == 0L) {
+      NULL
+    } else {
+      if (x$rank > 1L) {
+        stop("more work here")
+      }
+      call("[[", meta$internal, array_dim_name(x$name))
+    }
+  }
+  ord <- function(x) {
+    as.call(c(list(quote(list)), lapply(x$data[x$order], f)))
+  }
+  ynames <- call(
+    "make_names2",
+    quote(private$variable_order), quote(private$output_order),
+    dat$features$discrete)
+  n_out <- call("support_n_out", quote(support_n_out(private$output_order)))
+
+  ## Don't use the given environment but a different one (may change
+  ## in future).
+  env2 <- new.env(parent = environment(odin))
+  body <- call(
+    "{",
+    call("<-", meta$internal, quote(private$data)),
+    call("<-", quote(private$variable_order), ord(dat$data$variable)),
+    call("<-", quote(private$output_order), ord(dat$data$output)),
+    call("<-", call("$", quote(private), quote(ynames)), ynames),
+    call("<-", call("$", quote(private), quote(n_out)), n_out))
+  as.function(c(alist(self=, private =), list(body)), env2)
 }
 
 
@@ -364,14 +400,14 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       initial_time_dependent = dat$data$initial$stage == "time",
       ## TODO: this is a horrible name
       ir_ = dat$ir,
-      names = c(as.character(meta$time),
-                dat$data$variable$order,
-                dat$data$output$order),
+
       ## These are not obviously the right bit of metadata to keep
-      variable_order = dat$data$variable$order,
-      output_order = dat$data$output$order,
+      ## All of these might want better names.
       discrete = dat$features$discrete,
-      transform_variables = NULL
+      variable_order = NULL,
+      output_order = NULL,
+      ynames = NULL,
+      n_out = NULL
     ),
 
     public = drop_null(list(
@@ -388,22 +424,15 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         }
 
         private$data <- private$core$create()
-        private$core$set_user(user, private$data)
-
-        if (!private$initial_time_dependent) {
-          private$init <- private$core$ic(NA_real_, private$data)
-        }
-
-        ## TODO: odin_prepare here as that sorts out even more stuff -
-        ## this is currently done within update_cache in the existing
-        ## version.
+        self$set_user(user = user)
       },
 
       set_user = function(..., user = list(...)) {
-        private$core$set_user(user)
+        private$core$set_user(user, private$data)
         if (!private$initial_time_dependent) {
           private$init <- private$core$ic(NA_real_, private$data)
         }
+        private$core$metadata(self, private)
       },
 
       update = if (dat$features$discrete) {
@@ -441,16 +470,15 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
           }
           if (is.null(replicate)) {
             ret <- dde::difeq(y, step, private$core$rhs_dde, private$data,
-                              ynames = FALSE,
-                              n_out = length(private$output_order), ...)
+                              ynames = FALSE, n_out = private$n_out, ...)
           } else {
             ret <- dde::difeq_replicate(
               replicate, y, step, private$core$rhs_dde, private$data,
               ynames = FALSE, output = private$core$output,
-              n_out = length(private$output_order), ...)
+              n_out = private$n_out, ...)
           }
           if (use_names) {
-            colnames(ret) <- private$names
+            colnames(ret) <- private$ynames
           } else {
             colnames(ret) <- NULL
           }
@@ -464,13 +492,13 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
           if (private$use_dde) {
             ret <- dde::dopri(y, t, private$core$rhs_dde, private$data,
                               ynames = FALSE, output = private$core$output,
-                              n_out = length(private$output_order), ...)
+                              n_out = private$n_out, ...)
           } else {
             ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$data,
                                 ...)
           }
           if (use_names) {
-            colnames(ret) <- private$names
+            colnames(ret) <- private$ynames
           } else {
             dimnames(ret) <- NULL
             class(ret) <- "matrix"
@@ -487,6 +515,11 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
 
       contents = function() {
         sort_list(as.list(private$data))
+      },
+
+      transform_variables = function(y) {
+        support_transform_variables(
+          y, private$variable_order, private$output_order, private$discrete)
       }
     )))
 

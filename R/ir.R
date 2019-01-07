@@ -328,5 +328,6 @@ ir_serialise <- function(dat, pretty = TRUE) {
 ir_deserialise <- function(ir) {
   dat <- jsonlite::fromJSON(ir, simplifyVector = FALSE)
   dat$data$variable$order <- list_to_character(dat$data$variable$order)
+  dat$data$output$order <- list_to_character(dat$data$output$order)
   dat
 }

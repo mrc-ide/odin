@@ -241,8 +241,14 @@ test_that("array support", {
   expect_equal(mod$deriv(0, c(2, 1, 1, 1)), c(3, 1, 2, 3))
 
   tt <- 0:10
-  yy <- mod$run(tt, use_names = FALSE)
-  expect_equal(yy[, ],
-               cbind(tt, 2 + tt * 3, 1 + tt, 1 + tt * 2, 1 + tt * 3,
-                     deparse.level = 0))
+  yy <- mod$run(tt)
+  expect_equivalent(yy[, ],
+                    cbind(tt, 2 + tt * 3, 1 + tt, 1 + tt * 2, 1 + tt * 3,
+                          deparse.level = 0))
+  expect_equal(colnames(yy), c("t", "y", "x[1]", "x[2]", "x[3]"))
+
+  expect_equal(mod$transform_variables(yy),
+               list(t = tt,
+                    y = yy[, 2],
+                    x = unname(yy[, 3:5])))
 })
