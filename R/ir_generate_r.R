@@ -389,17 +389,9 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     ## lives - we need to know the target rank here but can't easily
     ## get at it!  For now I will punt on that and infer it, but this
     ## information belongs in the IR.
-    ##
-    ## TODO: The IR should generally deal better with the rhs here and
-    ## drop the 'c' - this will need updating later.
-    if (eq$rhs$value[[1]] == "c") {
-      eq$rhs$value <- eq$rhs$value[-1L]
-    }
     rank <- length(eq$rhs$value)
     if (rank == 1L) {
-      rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-      expr <- call("<-", lhs, rhs)
-      rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+      rhs <- sexp_to_rexp(eq$rhs$value[[1L]], internal, meta)
       call("<-", lhs, rhs)
     } else {
       ## TODO: this makes a _total_ mess of the lhs; this function

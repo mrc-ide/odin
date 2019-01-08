@@ -155,11 +155,23 @@ ir_equation <- function(eq) {
   ## isTRUE(eq$rhs$interpolate)
   ## isTRUE(x$rhs$delay)
 
-  if (type == "scalar_expression" || type == "dim") {
+  if (type == "scalar_expression") {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
       value = ir_expression(eq$rhs$value),
       ## TODO: this conditional would be better in the parse?
+      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+    src <- list(expression = jsonlite::unbox(eq$expr_str),
+                line = jsonlite::unbox(eq$line))
+  } else if (type == "dim") {
+    if (eq$nd == 1) {
+      value <- list(ir_expression(eq$rhs$value))
+    } else {
+      value <- lapply(eq$rhs$value[-1L], ir_expression)
+    }
+    rhs <- list(
+      type = jsonlite::unbox(eq$rhs$type),
+      value = value,
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
     src <- list(expression = jsonlite::unbox(eq$expr_str),
                 line = jsonlite::unbox(eq$line))
