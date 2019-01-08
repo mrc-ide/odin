@@ -236,7 +236,7 @@ test_that("array support", {
   ## internal data is ok:
   expect_equal(mod$contents(),
                sort_list(list(dim_r = 3, dim_x = 3, initial_x = rep(1, 3),
-                              initial_y = 2, n = 3, r = 1:3, x = rep(0, 3))))
+                              initial_y = 2, n = 3, r = 1:3)))
   expect_equal(mod$initial(), c(2, 1, 1, 1))
   expect_equal(mod$deriv(0, c(2, 1, 1, 1)), c(3, 1, 2, 3))
 
@@ -265,4 +265,26 @@ test_that("multi-line array expression", {
     n <- 10
   })
   expect_equal(gen()$contents()$a, c(1, 1, 2, 3, 5, 8, 13, 21, 34, 55))
+})
+
+
+test_that("3d array", {
+  gen <- odin2({
+    initial(y[, , ]) <- 1
+    deriv(y[, , ]) <- y[i, j, k] * 0.1
+    dim(y) <- c(2, 3, 4)
+  })
+
+  mod <- gen()
+  d <- mod$contents()
+  expect_equal(d$initial_y, array(1, c(2, 3, 4)))
+
+  expect_equal(mod$initial(), rep(1, 24))
+  expect_equal(mod$deriv(0, mod$initial()), rep(0.1, 24))
+
+  tt <- 0:10
+  yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
+  expect_equal(colnames(yy)[[12]], "y[1,3,2]")
+  expect_equal(yy[, 1], tt)
+  expect_equal(unname(yy[, -1]), matrix(rep(exp(0.1 * tt), 24), 11))
 })

@@ -167,9 +167,6 @@ ir_equation <- function(eq) {
     if (any(eq$rhs$inplace)) {
       stop("rhs$inplace")
     }
-    if (eq$lhs$nd > 1) {
-      stop("multidimensional arrays need work")
-    }
     rhs <- list(
       type = unname(eq$rhs$type),
       value = lapply(unname(eq$rhs$value), ir_expression),
@@ -178,10 +175,19 @@ ir_equation <- function(eq) {
     ## TODO: here we need to indicate if this has a *self-dependency*
     ## We can code generate some different codes here otherwise.
     lhs$index <- lapply(unname(eq$lhs$index), function(el)
-      list(value = ir_expression(el$value[[1]]),
-           is_range = jsonlite::unbox(el$is_range[[1]]),
-           extent_min = ir_expression(el$extent_min[[1]]),
-           extent_max = ir_expression(el$extent_max[[1]])))
+      list(value = lapply(el$value, ir_expression),
+           is_range = el$is_range,
+           extent_min = lapply(el$extent_min, ir_expression),
+           extent_max = lapply(el$extent_max, ir_expression)))
+
+    ## This is the alternative approach:
+    ##
+    ## lhs$index <- lapply(unname(eq$lhs$index), function(el)
+    ##   lapply(seq_along(el$value), function(i)
+    ##     list(value = ir_expression(el$value[[i]]),
+    ##          is_range = jsonlite::unbox(el$is_range[[i]]),
+    ##          extent_min = ir_expression(el$extent_min[[i]]),
+    ##          extent_max = ir_expression(el$extent_max[[i]]))))
 
     ## TODO: this will change to just a set of linenumbers at some point
     src <- list(expression = eq$expr_str, line = eq$line)
@@ -230,18 +236,47 @@ ir_data_internal <- function(dat) {
     ## Add odin_use_dde as bool
   }
 
+  ## TODO: dimensionscome through with the wrong data type and wrong
+  ## rank here in parse - they should always be rank 0 integers.  Fix
+  ## this in prep (it's not a big deal for R models I believe).
+
   ## if has delay add a ring
   i <- vcapply(dat$eqs, function(x) x$lhs$location) == "internal"
   data <- lapply(dat$eqs[i], function(eq)
     list(name = jsonlite::unbox(eq$lhs$name),
-         storage_type = jsonlite::unbox(eq$lhs$data_type),
          stage = jsonlite::unbox(eq$stage),
+         storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          transient = jsonlite::unbox(
-           eq$stage == STAGE_TIME & !identical(eq$lhs$special, "initial"))))
+           eq$stage == STAGE_TIME && !identical(eq$lhs$special, "initial"))))
+
+
+  extra_dimensions <- function(eq) {
+    f <- function(i) {
+      list(name = jsonlite::unbox(array_dim_name(eq$lhs$name_target, i)),
+           stage = jsonlite::unbox(eq$stage),
+           storage_type = jsonlite::unbox("int"),
+           rank = jsonlite::unbox(0L),
+           transient = jsonlite::unbox(FALSE))
+    }
+    i <- seq_len(eq$nd)
+    if (eq$nd >= 3) {
+      i <- c(i, vcapply(3:eq$nd, function(i)
+        paste(seq_len(i - 1), collapse = "")))
+    }
+    lapply(i, f)
+  }
+
+  dimensions <- unlist(lapply(unname(dat$eqs[dat$traits[, "is_dim"]]),
+                              extra_dimensions), FALSE, FALSE)
+  if (length(dimensions) > 0L) {
+    data <- c(data, set_names(dimensions, vcapply(dimensions, "[[", "name")))
+  }
 
   ## I am sure that there is more to add here - size, etc
-  list(data = data)
+  contents <- names_if(!vlapply(data, "[[", "transient"))
+
+  list(data = data, contents = contents)
 }
 
 

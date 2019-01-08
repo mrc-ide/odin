@@ -29,10 +29,6 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   dat <- ir_deserialise(ir)
   dat$ir <- ir
 
-  ## TODO: decide if this belongs in the ir itself
-  dat$data$internal$contents <-
-    names_if(!vlapply(dat$data$internal$data, "[[", "transient"))
-
   ## Pull this out into something generally useful
   features_supported <- c("has_user", "has_output", "discrete", "has_array")
   features_used <- vlapply(dat$features, identity)
@@ -161,8 +157,21 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
 
   f <- function(x) {
     if (include(x)) {
-      call("<-", as.name(x$name),
-           call("[[", meta$state, offset_to_position(x$offset)))
+      if (x$rank == 0L) {
+        extract <- call("[[", meta$state, offset_to_position(x$offset))
+      } else {
+        seq <- call("seq_len",
+                    call("[[", meta$internal, array_dim_name(x$name)))
+        extract <- call("[", meta$state, call("+", x$offset, seq))
+        if (x$rank > 1L) {
+          dim <- as.call(c(
+            list(quote(c)),
+            lapply(seq_len(x$rank), function(i)
+              call("[[", meta$internal, array_dim_name(x$name, i)))))
+          extract <- call("array", extract, dim)
+        }
+      }
+      call("<-", as.name(x$name), extract)
     }
   }
   vars <- unname(drop_null(lapply(dat$data$variable$data, f)))
@@ -220,11 +229,12 @@ odin_ir_generate_metadata <- function(eqs, dat, env, meta) {
   f <- function(x) {
     if (x$rank == 0L) {
       NULL
-    } else {
-      if (x$rank > 1L) {
-        stop("more work here")
-      }
+    } else if (x$rank == 1L) {
       call("[[", meta$internal, array_dim_name(x$name))
+    } else {
+      as.call(c(list(quote(c)),
+                lapply(seq_len(x$rank), function(i)
+                  call("[[", meta$internal, array_dim_name(x$name, i)))))
     }
   }
   ord <- function(x) {
@@ -272,23 +282,43 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     if (dat$data$internal$data[[nm]]$transient) {
       lhs <- as.name(nm)
     } else if (eq$type == "array_expression") {
-      lhs <- call("[[", call("[[", meta$internal, nm), meta$index[[1]])
+      storage <- call("[[", meta$internal, nm)
+      if (data_info$rank == 1L) {
+        lhs <- call("[[", storage, meta$index[[1]])
+      } else {
+        lhs <- as.call(c(list(quote(`[`), storage),
+                         meta$index[seq_len(data_info$rank)]))
+      }
     } else {
       lhs <- call("[[", meta$internal, nm)
     }
   } else if (eq$type == "array_expression") {
-    ## Both variable and output here, and assuming 1d
-    if (data_info$rank > 1) {
-      stop("multi-dimensional array needs work")
-    }
     ## TODO: 'result' becomes 'dstatedt' (a little complicated by
     ## location above - consider replacing dstatedt with result!)
-    ##
-    ## TODO: this treatment is needed in the other branches too
     offset <- sexp_to_rexp(data_info$offset, internal, meta)
-    lhs <- call("[[",
-                if (location == "variable") meta$result else meta$output,
-                call("+", meta$index[[1]], offset))
+    storage <- if (location == "variable") meta$result else meta$output
+    ## TODO: in the C version this is all done in rewrite and that
+    ## might be a better place to put it frankly.
+    if (data_info$rank == 1L) {
+      index <- meta$index[[1L]]
+    } else {
+      ## TODO: once things are sorted out this is prime for tidying
+      ## up!  This is doing a lot of the bits that rewrite could just
+      ## as easily do, really.
+      f <- function(i) {
+        if (i == 1) {
+          meta$index[[i]]
+        } else {
+          n <- array_dim_name(data_info$name,
+                              paste(seq_len(i - 1), collapse = ""))
+          call("*", call("[[", meta$internal, n),
+               call("-", meta$index[[i]], 1L))
+        }
+      }
+      index <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
+    }
+    lhs <- call("[[", storage,
+                if (identical(offset, 0)) index else call("+", index, offset))
   } else if (location == "variable") {
     lhs <- call("[[", meta$result, offset_to_position(data_info$offset))
   } else if (location == "output") {
@@ -301,10 +331,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
   } else if (eq$type == "array_expression") {
-    ## There will be possibly more than one here.
-    if (data_info$rank > 1) {
-      stop("multi-dimensional array expression")
-    }
     ## TODO: we can do better here on translation when we have ':' but
     ## this can go into sexp_to_rexp - use seq_along and seq_len where
     ## appropriate, but the gains from that will be small compared
@@ -315,37 +341,89 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     ##
     ## TODO: we can (re-)vectorise lots of expressions here.
     f <- function(i) {
-      if (eq$lhs$index[[i]]$is_range) {
-        expr_index <- sexp_to_rexp(eq$lhs$index[[i]]$value, internal, meta)
-        expr_body <- call("<-", lhs,
-                          sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
-        call("for", meta$index[[1L]], expr_index, expr_body)
-      } else if (length(eq$lhs$index[[i]]$value) == 1L) {
-        expr_index <- sexp_to_rexp(eq$lhs$index[[i]]$value, internal, meta)
-        expr_body <- call("<-", lhs,
-                          sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
-        substitute_(expr_body, list(i = expr_index))
-      } else {
-        stop("Nontrivial non-range array access")
+      expr_body <- call("<-", lhs,
+                        sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
+      subs <- list()
+      for (j in rev(seq_along(eq$lhs$index[[i]]$value))) {
+        if (eq$lhs$index[[i]]$is_range[[j]]) {
+          expr_index <-
+            sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
+          expr_body <- call("for", meta$index[[j]], expr_index,
+                            call("{", expr_body))
+        } else if (length(eq$lhs$index[[i]]$value[[j]]) == 1L) {
+          subs[[as.character(meta$index[[j]])]] <-
+            sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
+        } else {
+          stop("Nontrivial non-range array access")
+        }
       }
+      if (length(subs) > 0L) {
+        expr_body <- substitute_(expr_body, subs)
+      }
+      expr_body
     }
-    if (length(eq$lhs$index) == 1) {
-      f(1)
+
+    if (location == "internal") {
+      ## TODO: look at data_info$storage_type for more storage options
+      alloc_rhs <- call("numeric",
+                        call("[[", meta$internal, array_dim_name(nm)))
+      if (data_info$rank > 1L) {
+        dim <- as.call(c(list(quote(c)),
+                         lapply(seq_len(data_info$rank), function(i)
+                           call("[[", meta$internal, array_dim_name(nm, i)))))
+        alloc_rhs <- call("array", alloc_rhs, dim)
+      }
+      alloc <- list(call("<-", call("[[", meta$internal, eq$name), alloc_rhs))
     } else {
-      as.call(c(list(quote(`{`)), lapply(seq_along(eq$lhs$index), f)))
+      alloc <- NULL
+    }
+
+    res <- c(alloc, lapply(seq_along(eq$lhs$index), f))
+    if (length(res) == 1L) {
+      res[[1L]]
+    } else {
+      as.call(c(list(quote(`{`)), res))
     }
   } else if (eq$type == "dim") {
-    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    ## TODO: soon this function will return lists of expressions so we
-    ## can drop the '{' here
+    ## TODO: in the IR we really need to indicate where the *target*
+    ## lives - we need to know the target rank here but can't easily
+    ## get at it!  For now I will punt on that and infer it, but this
+    ## information belongs in the IR.
     ##
-    ## TODO: should check storage type here, but I don't know if we
-    ## actually support integer arrays, or if we need them to be ints
-    ## in R.
-    call("{",
-         call("<-", lhs, rhs),
-         call("<-",
-              call("[[", meta$internal, eq$lhs$target), call("numeric", lhs)))
+    ## TODO: The IR should generally deal better with the rhs here and
+    ## drop the 'c' - this will need updating later.
+    if (eq$rhs$value[[1]] == "c") {
+      eq$rhs$value <- eq$rhs$value[-1L]
+    }
+    rank <- length(eq$rhs$value)
+    if (rank == 1L) {
+      rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+      expr <- call("<-", lhs, rhs)
+      rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+      call("<-", lhs, rhs)
+    } else {
+      ## TODO: this makes a _total_ mess of the lhs; this function
+      ## needs major work!
+      nm_target <- eq$lhs$target
+      dimnames <- vcapply(seq_len(rank), array_dim_name, name = nm_target)
+      dimdata <- lapply(dimnames, function(x) call("[[", meta$internal, x))
+      dim1 <- lapply(seq_len(rank), function(i)
+        call("<-", dimdata[[i]],
+             sexp_to_rexp(eq$rhs$value[[i]], internal, meta)))
+      dim <- call("<-", lhs, collapse_expr(dimdata, "*"))
+      if (rank >= 3) {
+        dim2 <- lapply(3:rank, function(i) {
+          k <- seq_len(i - 1L)
+          call("<-",
+               call("[[", meta$internal,
+                    array_dim_name(nm_target, paste(k, collapse = ""))),
+               collapse_expr(dimdata[k], "*"))
+        })
+      } else {
+        dim2 <- NULL
+      }
+      as.call(c(list(quote(`{`)), c(dim1, dim2, dim)))
+    }
   } else {
     stop("Unhandled type")
   }
@@ -354,11 +432,15 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
 
 sexp_to_rexp <- function(x, internal, meta) {
   if (is.recursive(x)) {
-    if (x[[1L]] == "length") {
-      sexp_to_rexp(array_dim_name(x[[2L]]), internal, meta)
+    fn <- x[[1L]]
+    args <- x[-1L]
+    if (fn == "length") {
+      sexp_to_rexp(array_dim_name(args[[1L]]), internal, meta)
+    } else if (fn == "dim") {
+      sexp_to_rexp(array_dim_name(args[[1L]], args[[2L]]), internal, meta)
     } else {
-      as.call(c(list(as.name(x[[1L]])),
-                lapply(x[-1L], sexp_to_rexp, internal, meta)))
+      as.call(c(list(as.name(fn)),
+                lapply(args, sexp_to_rexp, internal, meta)))
     }
   } else if (is.character(x)) {
     if (x %in% internal) {
@@ -582,4 +664,13 @@ support_get_user_double <- function(user, name, internal) {
     }
     internal[[name]] <- given
   }
+}
+
+
+collapse_expr <- function(expr, join) {
+  ret <- expr[[1L]]
+  for (i in seq_along(expr)[-1L]) {
+    ret <- call(join, ret, expr[[i]])
+  }
+  ret
 }
