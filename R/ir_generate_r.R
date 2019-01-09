@@ -127,8 +127,9 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
 odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
   user <- unname(lapply(dat$data$user, function(x)
-    call(as.character(meta$get_user_double),
-         meta$user, x$name, meta$internal)))
+     call(as.character(meta$get_user_double),
+         meta$user, x$name, meta$internal,
+         if (x$rank == 0L) NULL else dimension_vector(x$name, x$rank, meta))))
   eqs_user <-
     unname(eqs[vlapply(dat$equations, function(eq) eq$used$user)])
 
@@ -639,20 +640,37 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
 
 ## Some support functions - these are not subject to code generation
 ## at all and will be injected into the appropriate environment.
-support_get_user_double <- function(user, name, internal) {
+support_get_user_double <- function(user, name, internal, size) {
   given <- user[[name]]
   if (is.null(given)) {
     if (is.null(internal[[name]])) {
       stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
     }
   } else {
-    if (length(given) != 1L) {
-      stop(sprintf("Expected a scalar numeric for '%s'", name), call. = FALSE)
+    d <- dim(given)
+    if (is.null(size)) {
+      if (length(given) != 1L || !is.null(d)) {
+        stop(sprintf("Expected a scalar numeric for '%s'", name), call. = FALSE)
+      }
+    } else if (length(size) == 1L) {
+      if (length(given) != size || !is.null(d)) {
+        stop(sprintf("Expected a numeric vector of length %d for '%s'",
+                     size, name), call. = FALSE)
+      }
+    } else {
+      if (length(d) != length(size) || any(d != size)) {
+        stop(sprintf("Expected a numeric array with dimensions %s for '%s'",
+                     paste(size, collapse = " * "), name), call. = FALSE)
+      }
     }
+
     if (is.integer(given)) {
-      given <- as.numeric(given)
+      storage.mode(given) <- "numeric"
     } else if (!is.numeric(given)) {
       stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
+    }
+    if (any(is.na(given))) {
+      stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
     }
     internal[[name]] <- given
   }
@@ -665,4 +683,15 @@ collapse_expr <- function(expr, join) {
     ret <- call(join, ret, expr[[i]])
   }
   ret
+}
+
+
+dimension_vector <- function(name, rank, meta) {
+  if (rank == 1L) {
+    call("[[", meta$internal, array_dim_name(name))
+  } else {
+    dim <- lapply(seq_len(rank), function(i)
+      call("[[", meta$internal, array_dim_name(name, i)))
+    as.call(c(list(quote(c)), dim))
+  }
 }

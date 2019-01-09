@@ -110,10 +110,10 @@ ir_config <- function(dat) {
 ir_features <- function(dat) {
   v <- c("discrete", "has_array", "has_output", "has_user", "has_delay",
          "has_interpolate", "has_stochastic")
-  if (dat$info$has_array && dat$info$has_user) {
-    ## This is harder because it breaks the ordering code
-    stop("check for and enforce user sized arrays")
-  }
+  ## if (dat$info$has_array && dat$info$has_user) {
+  ##   ## This is harder because it breaks the ordering code
+  ##   stop("check for and enforce user sized arrays")
+  ## }
   lapply(dat$info[v], jsonlite::unbox)
 }
 

@@ -126,7 +126,6 @@ test_that("user variables", {
     r <- user()
   })
 
-  ## options(error = recover)
   expect_error(gen())
 
   expect_equal(gen(r = pi)$contents(),
@@ -287,4 +286,44 @@ test_that("3d array", {
   expect_equal(colnames(yy)[[12]], "y[1,3,2]")
   expect_equal(yy[, 1], tt)
   expect_equal(unname(yy[, -1]), matrix(rep(exp(0.1 * tt), 24), 11))
+})
+
+
+## User provided, constant defined arrays
+test_that("user array", {
+  gen <- odin2({
+    initial(x[]) <- 1
+    deriv(x[]) <- r[i]
+    r[] <- user()
+    n <- 3
+    dim(r) <- n
+    dim(x) <- n
+  })
+
+  mod <- gen(1:3)
+  expect_identical(mod$contents()$r, as.numeric(1:3))
+  expect_error(gen(1), "Expected a numeric vector of length 3 for 'r'")
+})
+
+
+test_that("user matrix", {
+  gen <- odin2({
+    initial(y[, ]) <- 1
+    deriv(y[, ]) <- y[i, j] * r[i, j]
+    dim(y) <- c(2, 3)
+    dim(r) <- c(2, 3)
+    r[, ] <- user()
+  })
+
+  r <- matrix(runif(6), 2, 3)
+  mod <- gen(r)
+  expect_identical(mod$contents()$r, r)
+
+  msg <- "Expected a numeric array with dimensions 2 * 3 for 'r'"
+
+  expect_error(gen(c(r)), msg, fixed = TRUE)
+  expect_error(gen(t(r)), msg, fixed = TRUE)
+  expect_error(gen(r[2, 2]), msg, fixed = TRUE)
+  expect_error(gen(array(1, 2:4)), msg, fixed = TRUE)
+  expect_error(gen(1), msg, fixed = TRUE)
 })
