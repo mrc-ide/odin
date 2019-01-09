@@ -127,6 +127,8 @@ test_that("user variables", {
   })
 
   expect_error(gen())
+  expect_error(gen(NULL),
+               "Expected a value for 'r'", fixed = TRUE)
 
   expect_equal(gen(r = pi)$contents(),
                sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
@@ -326,4 +328,28 @@ test_that("user matrix", {
   expect_error(gen(r[2, 2]), msg, fixed = TRUE)
   expect_error(gen(array(1, 2:4)), msg, fixed = TRUE)
   expect_error(gen(1), msg, fixed = TRUE)
+})
+
+
+test_that("user array - indirect", {
+  gen <- odin2({
+    initial(x[]) <- 1
+    deriv(x[]) <- r[i]
+    r[] <- user()
+    dim(r) <- n
+    dim(x) <- n
+    n <- user()
+  })
+
+  mod <- gen(n = 3, r = 1:3)
+  expect_equal(mod$contents(),
+               sort_list(list(
+                 dim_r = 3,
+                 dim_x = 3,
+                 initial_x = rep(1, 3),
+                 n = 3,
+                 r = 1:3)))
+
+  expect_error(gen(n = 4, r = 1:3),
+               "Expected a numeric vector of length 4 for 'r'")
 })

@@ -94,10 +94,6 @@ odin_ir_generate_create <- function(eqs, dat, env, meta) {
 
 ## TODO: 'ic' ==> 'initial'
 odin_ir_generate_ic <- function(eqs, dat, env, meta) {
-  if (dat$data$variable$length_stage > STAGE_CONSTANT) {
-    stop("ic will need work (variable$length_stage)")
-  }
-
   var_length <-
     sexp_to_rexp(dat$data$variable$length, dat$data$internal$contents, meta)
   alloc <- call("<-", meta$state, call("numeric", var_length))
@@ -126,17 +122,11 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
 
 odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
-  user <- unname(lapply(dat$data$user, function(x)
-     call(as.character(meta$get_user_double),
-         meta$user, x$name, meta$internal,
-         if (x$rank == 0L) NULL else dimension_vector(x$name, x$rank, meta))))
-  eqs_user <-
-    unname(eqs[vlapply(dat$equations, function(eq) eq$used$user)])
-
+  eqs_user <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$user)])
   args <- alist(user =, internal =)
   names(args)[[1]] <- as.character(meta$user)
   names(args)[[2]] <- as.character(meta$internal)
-  body <- as.call(c(list(quote(`{`)), user, eqs_user))
+  body <- as.call(c(list(quote(`{`)), eqs_user))
   as.function(c(args, body), env)
 }
 
@@ -417,6 +407,22 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
       }
       as.call(c(list(quote(`{`)), c(dim1, dim2, dim)))
     }
+  } else if (eq$type == "user") {
+    rank <- data_info$rank
+    if (eq$rhs$has_default) {
+      if (length(eq$rhs$depends$variables) > 0L) {
+        ## This is ruled out by the parse already
+        stop("need work to support complex user defaults")
+      }
+      default <- sexp_to_rexp(eq$rhs$value, internal, meta)
+    } else {
+      default <- NULL
+    }
+    size <- if (rank == 0L) NULL else dimension_vector(nm, rank, meta)
+    call("<-",
+         call("[[", meta$internal, nm),
+         call(as.character(meta$get_user_double),
+              meta$user, nm, meta$internal, size, default))
   } else {
     stop("Unhandled type")
   }
@@ -640,20 +646,29 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
 
 ## Some support functions - these are not subject to code generation
 ## at all and will be injected into the appropriate environment.
-support_get_user_double <- function(user, name, internal, size) {
-  given <- user[[name]]
-  if (is.null(given)) {
+support_get_user_double <- function(user, name, internal, size, default) {
+  value <- user[[name]]
+  if (is.null(value)) {
     if (is.null(internal[[name]])) {
-      stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
+      if (is.null(default)) {
+        stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
+      } else {
+        value <- default
+      }
+    } else {
+      ## This has the slightly annoying property of setting the value
+      ## to itself but that's harmless in the face of other
+      ## inefficiencies and preserves this as a pure function.
+      value <- internal[[name]]
     }
   } else {
-    d <- dim(given)
+    d <- dim(value)
     if (is.null(size)) {
-      if (length(given) != 1L || !is.null(d)) {
+      if (length(value) != 1L || !is.null(d)) {
         stop(sprintf("Expected a scalar numeric for '%s'", name), call. = FALSE)
       }
     } else if (length(size) == 1L) {
-      if (length(given) != size || !is.null(d)) {
+      if (length(value) != size || !is.null(d)) {
         stop(sprintf("Expected a numeric vector of length %d for '%s'",
                      size, name), call. = FALSE)
       }
@@ -664,16 +679,16 @@ support_get_user_double <- function(user, name, internal, size) {
       }
     }
 
-    if (is.integer(given)) {
-      storage.mode(given) <- "numeric"
-    } else if (!is.numeric(given)) {
+    if (is.integer(value)) {
+      storage.mode(value) <- "numeric"
+    } else if (!is.numeric(value)) {
       stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
     }
-    if (any(is.na(given))) {
+    if (any(is.na(value))) {
       stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
     }
-    internal[[name]] <- given
   }
+  value
 }
 
 

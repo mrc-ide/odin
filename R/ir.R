@@ -72,8 +72,7 @@ ir_prep <- function(dat) {
     names(dat$eqs))
 
   ## user:
-  v <- setdiff(names_if(dat$stage[names(dat$eqs)] == STAGE_USER),
-               names_if(dat$traits[, "uses_user"]))
+  v <- names_if(dat$stage[names(dat$eqs)] == STAGE_USER)
   eq_used_user <- set_names(names(dat$eqs) %in% v, names(dat$eqs))
 
   used <- rbind(rhs = eq_used_rhs,
@@ -139,6 +138,8 @@ ir_equation <- function(eq) {
   ## TODO: push this into the prep stage?
   if (identical(eq$lhs$special, "dim")) {
     type <- "dim"
+  } else if (isTRUE(eq$rhs$user)) {
+    type <- "user"
   } else if (isTRUE(eq$rhs$interpolate)) {
     type <- "interoplate"
   } else if (isTRUE(eq$rhs$delay)) {
@@ -203,6 +204,26 @@ ir_equation <- function(eq) {
 
     ## TODO: this will change to just a set of linenumbers at some point
     src <- list(expression = eq$expr_str, line = eq$line)
+  } else if (type == "user") {
+    ## Here if there's a default it's a scalar expression for now!
+    ##
+    ## The atomic case is easy, and the *constant* case is probably
+    ## not hard but I don't remember what else I supported here.  So
+    ## until I remember let's just fail here.  Oddly this seems to be
+    ## somewhat working for at least one user case where an atomic
+    ## value is passed in - that suggests I may have an issue with the
+    ## IR even?
+    if (!is.null(eq$rhs$integer) || !is.null(eq$rhs$min) ||
+         !is.null(eq$rhs$max)) {
+      stop("User details need supporting")
+    }
+    rhs <- list(
+      type = jsonlite::unbox(eq$rhs$type),
+      has_default = jsonlite::unbox(eq$rhs$default),
+      value = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL,
+      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+    src <- list(expression = jsonlite::unbox(eq$expr_str),
+                line = jsonlite::unbox(eq$line))
   } else {
     browser()
     stop("rhs type needs implementing")
