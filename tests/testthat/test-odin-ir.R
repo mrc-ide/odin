@@ -353,3 +353,42 @@ test_that("user array - indirect", {
   expect_error(gen(n = 4, r = 1:3),
                "Expected a numeric vector of length 4 for 'r'")
 })
+
+
+test_that("user array - direct", {
+  gen <- odin2({
+    initial(x[]) <- 1
+    deriv(x[]) <- r[i]
+    r[] <- user()
+    dim(r) <- user()
+    dim(x) <- length(r)
+  })
+
+  mod <- gen(r = 1:3)
+  expect_equal(
+    mod$contents(),
+    sort_list(list(dim_r = 3, dim_x = 3, initial_x = rep(1, 3), r = 1:3)))
+  expect_error(gen(r = matrix(1, 2, 3)),
+               "Expected a numeric vector for 'r'")
+})
+
+
+test_that("user array - direct 3d", {
+  gen <- odin2({
+    initial(y) <- 1
+    deriv(y) <- 1
+    r[, , ] <- user()
+    dim(r) <- user()
+  })
+
+
+  m <- array(runif(24), 2:4)
+  mod <- gen(m)
+  expect_equal(mod$contents(),
+               sort_list(list(dim_r = 24, dim_r_1 = 2, dim_r_12 = 6,
+                              dim_r_2 = 3, dim_r_3 = 4, initial_y = 1,
+                              r = m)))
+
+  expect_error(gen(1), "Expected a numeric array of rank 3 for 'r'")
+  expect_error(gen(matrix(1)), "Expected a numeric array of rank 3 for 'r'")
+})

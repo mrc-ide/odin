@@ -50,7 +50,8 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     output = as.name(OUTPUT),
     time = if (discrete) as.name(STEP) else as.name(TIME),
     index = lapply(INDEX, as.name),
-    get_user_double = as.name("_get_user_double"))
+    get_user_double = as.name("_get_user_double"),
+    get_user_dim = as.name("_get_user_dim"))
 
   eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta)
   names(eqs) <- vcapply(dat$equations, "[[", "name")
@@ -64,6 +65,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   ## Support functions will come in this way:
   if (dat$features$has_user) {
     env[[as.character(meta$get_user_double)]] <- support_get_user_double
+    env[[as.character(meta$get_user_dim)]] <- support_get_user_dim
   }
 
   core <- list(
@@ -381,7 +383,19 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     ## get at it!  For now I will punt on that and infer it, but this
     ## information belongs in the IR.
     rank <- length(eq$rhs$value)
-    if (rank == 1L) {
+    if (eq$rhs$user) {
+      ## TODO: this is basically punting on dimensions for now: this
+      ## is hard to do in general and the current C version is a mess!
+      ## There must be a nicer way of doing this, and I think it could
+      ## be done partly by inverting the graph here (though that might
+      ## not work well for the C case).  This function works through
+      ## side-effects unfortunately, but could be done by
+      ## code-generating the relevant parts of that function into the
+      ## main function...
+      rhs <- call(as.character(meta$get_user_dim),
+                  meta$user, eq$lhs$target, meta$internal, rank)
+      call("<-", lhs, rhs)
+    } else if (rank == 1L) {
       rhs <- sexp_to_rexp(eq$rhs$value[[1L]], internal, meta)
       call("<-", lhs, rhs)
     } else {
@@ -689,6 +703,36 @@ support_get_user_double <- function(user, name, internal, size, default) {
     }
   }
   value
+}
+
+
+support_get_user_dim <- function(user, name, internal, rank) {
+  data <- user[[name]] %||% internal[[name]]
+  if (is.null(data)) {
+    stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
+  }
+  d <- dim(data)
+  if (rank == 1) {
+    if (!is.null(d)) {
+      stop(sprintf("Expected a numeric vector for '%s'", name),
+           call. = FALSE)
+    }
+  } else {
+    if (length(d) != rank) {
+      stop(sprintf("Expected a numeric array of rank %d for '%s'", rank, name),
+           call. = FALSE)
+    }
+    for (i in seq_len(rank)) {
+      internal[[array_dim_name(name, i)]] <- d[[i]]
+    }
+    if (rank >= 3) {
+      for (i in 3:rank) {
+        j <- seq_len(i - 1)
+        internal[[array_dim_name(name, paste(j, collapse = ""))]] <- prod(d[j])
+      }
+    }
+  }
+  length(data)
 }
 
 

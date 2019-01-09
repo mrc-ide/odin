@@ -165,7 +165,13 @@ ir_equation <- function(eq) {
     src <- list(expression = jsonlite::unbox(eq$expr_str),
                 line = jsonlite::unbox(eq$line))
   } else if (type == "dim") {
-    if (eq$nd == 1) {
+    user <- isTRUE(eq$rhs$user)
+    if (user) {
+      ## TODO: I think that this wants to be looked at again, but
+      ## there's an issue here where we don't know where the data will
+      ## be stored so it's hard to tell where it should be stored.
+      value <- rep(list(NULL), eq$nd)
+    } else if (eq$nd == 1) {
       value <- list(ir_expression(eq$rhs$value))
     } else {
       value <- lapply(eq$rhs$value[-1L], ir_expression)
@@ -173,6 +179,7 @@ ir_equation <- function(eq) {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
       value = value,
+      user = jsonlite::unbox(user),
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
     src <- list(expression = jsonlite::unbox(eq$expr_str),
                 line = jsonlite::unbox(eq$line))
