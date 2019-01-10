@@ -30,7 +30,8 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   dat$ir <- ir
 
   ## Pull this out into something generally useful
-  features_supported <- c("has_user", "has_output", "discrete", "has_array")
+  features_supported <- c("has_user", "has_output", "discrete", "has_array",
+                          "has_interpolate", "has_stochastic")
   features_used <- vlapply(dat$features, identity)
   msg <- setdiff(names_if(features_used), features_supported)
   if (length(msg) > 0L) {
@@ -57,10 +58,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   names(eqs) <- vcapply(dat$equations, "[[", "name")
 
   ## Then start putting together the initial conditions
-
-  ## It's not clear what the correct environment here should be, so
-  ## let's start with the simplest environment first.
-  env <- new.env(parent = as.environment("package:base"))
+  env <- new.env(parent = odin_base_env())
 
   ## Support functions will come in this way:
   if (dat$features$has_user) {
@@ -437,6 +435,9 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
          call("[[", meta$internal, nm),
          call(as.character(meta$get_user_double),
               meta$user, nm, meta$internal, size, default))
+  } else if (eq$type == "interpolate") {
+    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+    call("<-", lhs, rhs)
   } else {
     stop("Unhandled type")
   }
@@ -451,8 +452,16 @@ sexp_to_rexp <- function(x, internal, meta) {
       sexp_to_rexp(array_dim_name(args[[1L]]), internal, meta)
     } else if (fn == "dim") {
       sexp_to_rexp(array_dim_name(args[[1L]], args[[2L]]), internal, meta)
+    } else if (fn == "interpolate_alloc") {
+      ## Special treatment as there is no string literal support in
+      ## odin yet.
+      x[[1]] <- quote(cinterpolate::interpolation_function)
+      x[2:3] <- lapply(x[2:3], sexp_to_rexp, internal, meta)
+      as.call(x)
+    } else if (fn == "norm_rand") {
+      quote(rnorm(1L))
     } else {
-      as.call(c(list(as.name(fn)),
+      as.call(c(list(sexp_to_rexp(fn, internal, meta)),
                 lapply(args, sexp_to_rexp, internal, meta)))
     }
   } else if (is.character(x)) {
@@ -489,8 +498,11 @@ offset_to_position <- function(x) {
 ## locked down to creation time.
 odin_ir_generate_class <- function(core, dat, env, meta) {
   self <- private <- NULL # quieten global check: R6 adds these later
-  if (dat$features$has_interpolate || dat$features$has_delay) {
+  if (dat$features$has_delay) {
     stop("more tweaks needed here...")
+  }
+  if (dat$features$has_interpolate) {
+    loadNamespace("cinterpolate")
   }
 
   env[[dat$config$base]] <- R6::R6Class(
@@ -753,4 +765,22 @@ dimension_vector <- function(name, rank, meta) {
       call("[[", meta$internal, array_dim_name(name, i)))
     as.call(c(list(quote(c)), dim))
   }
+}
+
+
+## In an effort to build the minimal set of functions needed, here is
+## a fully "known" set of functions.  This will grow as more functions
+## are added but stops the issue of not explicitly supporting
+## functions and getting drift between different implementations.
+## Eventually even 'base' might want to change here.
+odin_base_env <- function() {
+  env <- new.env(parent = as.environment("package:base"))
+
+  stats <- as.environment("package:stats")
+  imports <- c("rnorm")
+  for (i in imports) {
+    env[[i]] <- stats[[i]]
+  }
+
+  env
 }

@@ -37,6 +37,33 @@ ir_prep <- function(dat) {
   ## non-constant dependencies
   vars <- dat$variable_info$order
 
+  if (dat$info$has_interpolate) {
+    i <- dat$traits[, "uses_interpolate"]
+    tmp <- lapply(dat$eqs[i], ir_prep_interpolate, dat)
+    ## Now we need to patch this into the data.  This is not much fun
+    ## because we change orders of things!
+
+    ## TODO: when the parse code is refactored, look carefully at this
+    ## as the allocation and the use go into such different parts of
+    ## the graph that the current approach is pretty annoying.
+    ## However, where the original bits are put is just fine for now.
+    ## We'll organise the allocations into the right place too.
+    ##
+    ## Interpolation is a bit weird because the allocation never ends
+    ## up in a dependency and is always going to be done in the user
+    ## stage at the end.  So the *use* ends up as a dependency in
+    ## others but has no actual dependencies (save time) and the
+    ## allocation depends on others.  As such the ordering is always
+    ## safe to be: allocation as the first element before time, use as
+    ## the first element after time.
+    dat$eqs[i] <- lapply(tmp, "[[", "use")
+    alloc <- set_names(lapply(tmp, "[[", "alloc"),
+                       vcapply(tmp, function(x) x$alloc$name))
+    dat$eqs <- c(dat$eqs, alloc)
+    dat$stage <- c(dat$stage, viapply(alloc, "[[", "stage"))
+    location <- c(location, set_names(rep("internal", sum(i)), names(alloc)))
+  }
+
   ## TODO: use of "used" here is problematic because what we really
   ## mean here is "*changed*" - referencing things is just fine, but
   ## it's the point at which they are modified that we're trying to
@@ -94,6 +121,29 @@ ir_prep <- function(dat) {
 }
 
 
+ir_prep_interpolate <- function(x, dat) {
+  stage_alloc <- max(dat$stage[x$depends$variables])
+  stopifnot(stage_alloc <= STAGE_USER)
+  x_alloc <- x
+  x_alloc$name <- x$rhs$value$name
+  x_alloc$stage <- stage_alloc
+  x_alloc$lhs$data_type <- "interpolate" # not sure!
+  x_alloc$rhs$type <- "interpolate_alloc"
+  x_alloc$rhs$value <-
+    call("interpolate_alloc", x$rhs$value$t, x$rhs$value$y, x$rhs$value$type)
+
+  time <- if (dat$info$discrete) STEP else TIME
+  x_use <- x
+  x_use$rhs <- list(type = "interpolate_use",
+                    value = call(x$rhs$value$name, as.name(time)),
+                    interpolate = TRUE)
+  x_use$depends <- list(functions = character(),
+                        variables = c(time, x$rhs$value$name))
+
+  list(alloc = x_alloc, use = x_use)
+}
+
+
 ir_config <- function(dat) {
   ## We should probably add here:
   ##
@@ -141,7 +191,7 @@ ir_equation <- function(eq) {
   } else if (isTRUE(eq$rhs$user)) {
     type <- "user"
   } else if (isTRUE(eq$rhs$interpolate)) {
-    type <- "interoplate"
+    type <- "interpolate"
   } else if (isTRUE(eq$rhs$delay)) {
     type <- "delay"
   } else if (identical(eq$lhs$type, "symbol")) {
@@ -151,10 +201,6 @@ ir_equation <- function(eq) {
   } else {
     stop("Unclassified type")
   }
-
-  ## identical(eq$lhs$special, "dim")
-  ## isTRUE(eq$rhs$interpolate)
-  ## isTRUE(x$rhs$delay)
 
   if (type == "scalar_expression") {
     rhs <- list(
@@ -200,15 +246,6 @@ ir_equation <- function(eq) {
            extent_min = lapply(el$extent_min, ir_expression),
            extent_max = lapply(el$extent_max, ir_expression)))
 
-    ## This is the alternative approach:
-    ##
-    ## lhs$index <- lapply(unname(eq$lhs$index), function(el)
-    ##   lapply(seq_along(el$value), function(i)
-    ##     list(value = ir_expression(el$value[[i]]),
-    ##          is_range = jsonlite::unbox(el$is_range[[i]]),
-    ##          extent_min = ir_expression(el$extent_min[[i]]),
-    ##          extent_max = ir_expression(el$extent_max[[i]]))))
-
     ## TODO: this will change to just a set of linenumbers at some point
     src <- list(expression = eq$expr_str, line = eq$line)
   } else if (type == "user") {
@@ -231,8 +268,14 @@ ir_equation <- function(eq) {
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
     src <- list(expression = jsonlite::unbox(eq$expr_str),
                 line = jsonlite::unbox(eq$line))
+  } else if (type == "interpolate") {
+    rhs <- list(
+      type = jsonlite::unbox(eq$rhs$type),
+      value = ir_expression(eq$rhs$value),
+      depends = eq$depends)
+    src <- list(expression = jsonlite::unbox(eq$expr_str),
+                line = jsonlite::unbox(eq$line))
   } else {
-    browser()
     stop("rhs type needs implementing")
   }
 
@@ -256,7 +299,6 @@ ir_expression <- function(expr) {
     c(list(jsonlite::unbox(as.character(expr[[1L]]))),
       lapply(expr[-1L], ir_expression))
   } else {
-    browser()
     stop("implement me")
   }
 }
@@ -280,6 +322,10 @@ ir_data_internal <- function(dat) {
   ## rank here in parse - they should always be rank 0 integers.  Fix
   ## this in prep (it's not a big deal for R models I believe).
 
+  ## TODO: interpolation allocation data type needs fixing: currently
+  ## "interpolate" but we might use something more descriptive and
+  ## representative of the C data type.
+
   ## if has delay add a ring
   i <- vcapply(dat$eqs, function(x) x$lhs$location) == "internal"
   data <- lapply(dat$eqs[i], function(eq)
@@ -289,7 +335,6 @@ ir_data_internal <- function(dat) {
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          transient = jsonlite::unbox(
            eq$stage == STAGE_TIME && !identical(eq$lhs$special, "initial"))))
-
 
   extra_dimensions <- function(eq) {
     f <- function(i) {

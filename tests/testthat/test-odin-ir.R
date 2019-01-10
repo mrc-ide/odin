@@ -392,3 +392,57 @@ test_that("user array - direct 3d", {
   expect_error(gen(1), "Expected a numeric array of rank 3 for 'r'")
   expect_error(gen(matrix(1)), "Expected a numeric array of rank 3 for 'r'")
 })
+
+
+## NOTE: this is the test from test-interpolation.R
+test_that("interpolation", {
+
+  gen <- odin2({
+    deriv(y) <- pulse
+    initial(y) <- 0
+    ##
+    pulse <- interpolate(tp, zp, "constant")
+    ##
+    tp[] <- user()
+    zp[] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    output(p) <- pulse
+  })
+
+  tt <- seq(0, 3, length.out = 301)
+  tp <- c(0, 1, 2)
+  zp <- c(0, 1, 0)
+  mod <- gen(tp = tp, zp = zp)
+  dat <- mod$contents()
+
+  expect_equal(sort(names(dat)),
+               sort(c("dim_tp", "dim_zp", "initial_y", "interpolate_pulse",
+                      "tp", "zp")))
+  ## Interpolating function works
+  pulse <- cinterpolate::interpolation_function(tp, zp, "constant")(tt)
+  expect_equal(dat$interpolate_pulse(tt), pulse)
+
+  yy <- mod$run(tt)
+  zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
+  expect_equal(yy[, "y"], zz, tolerance = 1e-5)
+  expect_equal(yy[, "p"], pulse)
+})
+
+
+test_that("stochastic", {
+  gen <- odin2({
+    initial(x) <- 0
+    update(x) <- x + norm_rand()
+  })
+  mod <- gen()
+  expect_equal(mod$initial(), 0)
+
+  set.seed(1)
+  x <- rnorm(3)
+
+  set.seed(1)
+  y <- replicate(3, mod$update(0, 0))
+
+  expect_identical(x, y)
+})
