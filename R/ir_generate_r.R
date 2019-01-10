@@ -85,7 +85,7 @@ odin_ir_generate_create <- function(eqs, dat, env, meta) {
   user <- lapply(dat$data$user, function(x)
     call("<-", call("[[", meta[["internal"]], x$name), x$default_value))
   alloc <- call("<-", meta[["internal"]], quote(new.env(parent = emptyenv())))
-  eqs_create <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$create)])
+  eqs_create <- unname(eqs[dat$components$create$equations])
   ret <- meta[["internal"]]
   body <- as.call(c(list(quote(`{`)), c(alloc, user, eqs_create, ret)))
   as.function(c(alist(), body), env)
@@ -98,9 +98,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
     sexp_to_rexp(dat$data$variable$length, dat$data$internal$contents, meta)
   alloc <- call("<-", meta$state, call("numeric", var_length))
   ## These are only time dependent things
-  eqs_initial <-
-    unname(eqs[vlapply(dat$equations, function(eq) eq$used$initial)])
-
+  eqs_initial <- unname(eqs[dat$components$initial$equations])
   f <- function(x) {
     if (x$rank == 0) {
       target <- call("[[", meta$state, offset_to_position(x$offset))
@@ -122,7 +120,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
 
 odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
-  eqs_user <- unname(eqs[vlapply(dat$equations, function(eq) eq$used$user)])
+  eqs_user <- unname(eqs[dat$components$user$equations])
   args <- alist(user =, internal =)
   names(args)[[1]] <- as.character(meta$user)
   names(args)[[2]] <- as.character(meta$internal)
@@ -141,31 +139,37 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
     return(NULL)
   }
 
-  include <- function(x) {
-    ((output || desolve || discrete) && x$used$output) ||
-      ((!output || desolve || discrete) && x$used$rhs)
+  ## TODO: there's an issue here where we combine entries from both
+  ## rhs and output where the sort *might be broken.  But we'll find
+  ## out if that's a problem later.
+  use <- c(character(0),
+           if (!output || desolve || discrete) "rhs",
+           if ( output || desolve || discrete) "output")
+  join <- function(x, nm) {
+    if (length(x) == 1L) x[[1]][[nm]] else union(x[[1]][[nm]], x[[2]][[nm]])
   }
+  use_vars <- join(dat$components[use], "variables")
+  use_eqs <- join(dat$components[use], "equations")
 
   f <- function(x) {
-    if (include(x)) {
-      if (x$rank == 0L) {
-        extract <- call("[[", meta$state, offset_to_position(x$offset))
-      } else {
-        seq <- call("seq_len",
-                    call("[[", meta$internal, array_dim_name(x$name)))
-        extract <- call("[", meta$state, call("+", x$offset, seq))
-        if (x$rank > 1L) {
-          dim <- as.call(c(
-            list(quote(c)),
-            lapply(seq_len(x$rank), function(i)
-              call("[[", meta$internal, array_dim_name(x$name, i)))))
-          extract <- call("array", extract, dim)
-        }
+    if (x$rank == 0L) {
+      extract <- call("[[", meta$state, offset_to_position(x$offset))
+    } else {
+      seq <- call("seq_len",
+                  call("[[", meta$internal, array_dim_name(x$name)))
+      extract <- call("[", meta$state, call("+", x$offset, seq))
+      if (x$rank > 1L) {
+        dim <- as.call(c(
+          list(quote(c)),
+          lapply(seq_len(x$rank), function(i)
+            call("[[", meta$internal, array_dim_name(x$name, i)))))
+        extract <- call("array", extract, dim)
       }
-      call("<-", as.name(x$name), extract)
     }
+    call("<-", as.name(x$name), extract)
   }
-  vars <- unname(drop_null(lapply(dat$data$variable$data, f)))
+
+  vars <- unname(drop_null(lapply(dat$data$variable$data[use_vars], f)))
 
   ## NOTE: There are two reasonable things to do here - we can look up
   ## the length of the variable (dat$data$variable$length) or we can
@@ -189,7 +193,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
     alloc <- alloc_result
   }
 
-  eqs_include <- unname(eqs[vlapply(dat$equations, include)])
+  eqs_include <- unname(eqs[use_eqs])
 
   if (desolve) {
     if (has_output) {

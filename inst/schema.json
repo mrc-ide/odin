@@ -4,6 +4,15 @@
     "description": "Intermediate representation of odin's equations",
 
     "definitions": {
+        "basic": {
+            "character_vector": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            }
+        },
+
         "config": {
             "type": "object",
             "properties": {
@@ -35,6 +44,29 @@
         },
 
         "equations": {
+        },
+
+        "components": {
+            "type": "object",
+            "properties": {
+                "create": { "$ref": "#/definitions/component" },
+                "user": { "$ref": "#/definitions/component" },
+                "initial": { "$ref": "#/definitions/component" },
+                "rhs": { "$ref": "#/definitions/component" },
+                "output": { "$ref": "#/definitions/component" }
+            },
+            "required": ["create", "user", "initial", "rhs", "output"],
+            "additionalProperties": false
+        },
+
+        "component": {
+            "type": "object",
+            "properties": {
+                "variables": { "$ref": "#/definitions/basic/character_vector" },
+                "equations": { "$ref": "#/definitions/basic/character_vector" }
+            },
+            "required": ["variables", "equations"],
+            "additionalProperties": false
         }
     },
 
@@ -51,7 +83,11 @@
         },
         "equations": {
             "$ref": "#/definitions/equations"
+        },
+        "components": {
+            "$ref": "#/definitions/components"
         }
     },
-    "required": ["config", "features"]
+    "required": ["config", "features", "data", "equations", "components"],
+    "additionalProperties": false
 }

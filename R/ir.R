@@ -14,7 +14,8 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
                  data = ir_data(dat),
-                 equations = ir_equations(dat))
+                 equations = ir_equations(dat),
+                 components = ir_components(dat))
   ir <- ir_serialise(ir_dat, pretty)
   if (validate) {
     ir_validate(ir, TRUE)
@@ -64,17 +65,12 @@ ir_prep <- function(dat) {
     location <- c(location, set_names(rep("internal", sum(i)), names(alloc)))
   }
 
-  ## TODO: use of "used" here is problematic because what we really
-  ## mean here is "*changed*" - referencing things is just fine, but
-  ## it's the point at which they are modified that we're trying to
-  ## assess.
-
   ## rhs:
   ## * all equations with a time step?
   ## * all time-dependent dependencies of derivatives? [using this one]
   v <- names_if(dat$traits[, "is_deriv"])
   v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
-  eq_used_rhs <- set_names(
+  eq_eval_rhs <- set_names(
     names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
     names(dat$eqs))
   var_used_rhs <- set_names(vars %in% v_dep, vars)
@@ -82,40 +78,38 @@ ir_prep <- function(dat) {
   ## output:
   v <- names_if(dat$traits[, "is_output"])
   v_dep <- unique(unlist(dat$deps_rec[v], use.names = FALSE))
-  eq_used_output <- set_names(
+  eq_eval_output <- set_names(
     names(dat$eqs) %in% c(v, v_dep[dat$stage[v_dep] == STAGE_TIME]),
     names(dat$eqs))
   var_used_output <- set_names(vars %in% v_dep, vars)
 
   ## create:
   ## * all constant variables
-  eq_used_create <- dat$stage[names(dat$eqs)] == STAGE_CONSTANT
+  eq_eval_create <- dat$stage[names(dat$eqs)] == STAGE_CONSTANT
 
   ## initial:
   v <- names_if(dat$traits[, "is_initial"])
   v_dep <- unique(c(v, unlist(dat$deps_rec[v], use.names = FALSE)))
-  eq_used_initial <- set_names(
+  eq_eval_initial <- set_names(
     names(dat$eqs) %in% v_dep[dat$stage[v_dep] == STAGE_TIME],
     names(dat$eqs))
 
   ## user:
   v <- names_if(dat$stage[names(dat$eqs)] == STAGE_USER)
-  eq_used_user <- set_names(names(dat$eqs) %in% v, names(dat$eqs))
-
-  used <- rbind(rhs = eq_used_rhs,
-                output = eq_used_output,
-                create = eq_used_create,
-                user = eq_used_user,
-                initial = eq_used_initial)
+  eq_eval_user <- set_names(names(dat$eqs) %in% v, names(dat$eqs))
 
   for (i in seq_along(dat$eqs)) {
     dat$eqs[[i]]$lhs$location <- location[[dat$eqs[[i]]$name]]
     dat$eqs[[i]]$deps_rec <- dat$deps_rec[[i]] %||% stop("IR ERROR")
-    dat$eqs[[i]]$used <- used[, i]
   }
 
-  dat$variable_info$used <- rbind(rhs = var_used_rhs,
-                                  output = var_used_output)
+  dat$evaluated <- list(rhs = names_if(eq_eval_rhs),
+                        output = names_if(eq_eval_output),
+                        create = names_if(eq_eval_create),
+                        user = names_if(eq_eval_user),
+                        initial = names_if(eq_eval_initial))
+  dat$variable_info$used <- list(rhs = names_if(var_used_rhs),
+                                 output = names_if(var_used_output))
 
   dat
 }
@@ -169,6 +163,16 @@ ir_features <- function(dat) {
 
 ir_equations <- function(dat) {
   unname(lapply(dat$eqs, ir_equation))
+}
+
+
+ir_components <- function(dat) {
+  v <- c("create", "user", "initial", "rhs", "output")
+  f <- function(i) {
+    list(variables = dat$variable_info$used[[i]] %||% character(0),
+         equations = dat$evaluated[[i]] %||% character(0))
+  }
+  set_names(lapply(v, f), v)
 }
 
 
@@ -283,7 +287,6 @@ ir_equation <- function(eq) {
        source = src,
        stage = jsonlite::unbox(STAGES[[eq$stage]]),
        type = jsonlite::unbox(type),
-       used = lapply(eq$used, jsonlite::unbox),
        stochastic = jsonlite::unbox(eq$stochastic),
        lhs = lhs,
        rhs = rhs)
@@ -420,11 +423,7 @@ ir_data_variable <- function(dat, output) {
          stage = jsonlite::unbox(STAGE_TIME),
          transient = jsonlite::unbox(FALSE),
          offset = jsonlite::unbox(offset[[eq$lhs$name_target]]),
-         rank = jsonlite::unbox(rank[[eq$lhs$name_target]]),
-         ## NOTE: this silently falls through for outputs, which are
-         ## not *used* like variables are, so for output = TRUE, used
-         ## is *always* an empty list.
-         used = lapply(info$used[, eq$lhs$name_target], jsonlite::unbox)))
+         rank = jsonlite::unbox(rank[[eq$lhs$name_target]])))
   names(data) <- info$order
 
   list(order = info$order,
@@ -440,9 +439,12 @@ ir_serialise <- function(dat, pretty = TRUE) {
 }
 
 
+## TODO: we should be able to see in the schema all the cases that are
+## character vectors.
 ir_deserialise <- function(ir) {
   dat <- jsonlite::fromJSON(ir, simplifyVector = FALSE)
   dat$data$variable$order <- list_to_character(dat$data$variable$order)
   dat$data$output$order <- list_to_character(dat$data$output$order)
+  dat$components <- lapply(dat$components, lapply, list_to_character)
   dat
 }
