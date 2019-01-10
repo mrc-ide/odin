@@ -11,9 +11,13 @@ ir_schema <- function() {
 
 
 ir_validate <- function(x, error = FALSE) {
+  json_validate(x, ir_schema(), error)
+}
+
+
+json_validate <- function(x, schema, error) {
   jsonvalidate_version <- utils::packageVersion("jsonvalidate")
   engine <- if (jsonvalidate_version > "1.0.0") "ajv" else "imjv"
-  jsonvalidate::json_validate(x, ir_schema(),
-                              verbose = TRUE, greedy = TRUE, error = error,
-                              engine = "imjv")
+  jsonvalidate::json_validate(x, schema, verbose = TRUE, greedy = TRUE,
+                              error = error, engine = engine)
 }

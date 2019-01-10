@@ -1,5 +1,5 @@
 ## These two are temporary!
-odin2 <- function(x, validate = FALSE) {
+odin2 <- function(x, validate = TRUE) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -11,7 +11,7 @@ odin2 <- function(x, validate = FALSE) {
 }
 
 
-odin2_ <- function(x, validate = FALSE) {
+odin2_ <- function(x, validate = TRUE) {
   ir <- odin_build_ir(x)
   odin_ir_generate(ir, validate)
 }
@@ -24,7 +24,7 @@ odin2_ <- function(x, validate = FALSE) {
 
 odin_ir_generate <- function(ir, validate = TRUE) {
   if (validate) {
-    ir_validate(ir)
+    ir_validate(ir, error = TRUE)
   }
   dat <- ir_deserialise(ir)
   dat$ir <- ir

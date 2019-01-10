@@ -4,349 +4,19 @@
     "description": "Intermediate representation of odin's equations",
 
     "definitions": {
-        "enums": {
-            "stage": {
-                "type": "string",
-                "enum": ["constant", "user", "time", "output"]
-            },
-
-            "lhs_special": {
-                "type": "string",
-                "enum": ["initial", "deriv"]
-            },
-
-            "data_location": {
-                "type": "string",
-                "enum": ["variable", "output", "internal", "transient"]
-            },
-
-            "data_type": {
-                "type": "string",
-                "enum": ["double"]
-            },
-
-            "equation_type": {
-                "description": "The major classification of the equations",
-                "enum": ["dim", "interpolate", "delay", "expression"]
-            }
-        },
-
-        "data_info": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "data_type": {
-                    "$ref": "#/definitions/enums/data_type"
-                },
-                "rank": {
-                    "$ref": "#/definitions/rank"
-                },
-                "location": {
-                    "$ref": "#/definitions/enums/data_location"
-                }
-            },
-            "required": ["name", "data_type", "rank", "location"]
-        },
-
-        "rank": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 8
-        },
-
-        "sexpression": {
-            "oneOf": [
-                {
-                    "type": "string"
-                },
-                {
-                    "type": "number"
-                },
-                {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/sexpression"
-                    }
-                }
-            ]
-        },
-
-        "source": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "expression": {
-                    "type": "string"
-                },
-                "line": {
-                    "type": "integer"
-                }
-            }
-        },
-
-        "lhs": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "special": {
-                    "$ref": "#/definitions/enums/lhs_special"
-                },
-
-                "target": {
-                    "type": "string"
-                },
-
-                "data_type": {
-                    "$ref": "#/definitions/enums/data_type"
-                },
-
-                "destination": {
-                    "$ref": "#/definitions/enums/data_destination"
-                }
-            },
-            "required": ["data_type"],
-            "dependencies": {
-                "special": {
-                    "required": ["target"]
-                }
-            }
-        },
-
-        "rhs_atomic": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "constant": "atomic"
-                },
-                "value": {
-                    "type": "number"
-                }
-            },
-            "required": ["type", "value"]
-        },
-
-        "rhs_expression": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "constant": "expression"
-                },
-                "value": {
-                    "$ref": "#/definitions/sexpression"
-                },
-                "depends": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "functions": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        "variables": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "required": ["functions", "variables"]
-                }
-            },
-            "required": ["type", "value", "depends"]
-        },
-
-        "rhs": {
-            "oneOf": [
-                {"$ref": "#/definitions/rhs_atomic"},
-                {"$ref": "#/definitions/rhs_expression"}
-            ]
-        },
-
-        "equation": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "source": {
-                    "$ref": "#/definitions/source"
-                },
-                "type": {
-                    "$ref": "#/definitions/enums/equation_type"
-                },
-                "stage": {
-                    "$ref": "#/definitions/enums/stage"
-                },
-                "stochastic": {
-                    "type": "boolean"
-                },
-                "lhs": {
-                    "$ref": "#/definitions/lhs"
-                },
-                "rhs": {
-                    "$ref": "#/definitions/rhs"
-                }
-            },
-            "required": ["name", "stage", "source", "type", "stochastic",
-                         "lhs", "rhs"]
-        },
-
-        "internal_data": {
-            "type": "object",
-            "description": "Data required to support the model",
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "storage_type": {
-                    "$ref": "#/definitions/enums/data_type"
-                },
-                "rank": {
-                    "$ref": "#/definitions/rank"
-                }
-            },
-            "required": ["name", "storage_type", "rank"]
-        },
-
-        "data": {
-            "type": "object",
-            "description": "Information about data storage.  Data is stored in several different places and here we describe how large the data are, at what stage their size is computed, types, and locations.  This is then used by the lhs",
-            "additionalProperties": true,
-            "properties": {
-                "internal": {
-                    "$ref": "#/definitions/data_internal"
-                },
-                "variables": {
-                    "$ref": "#/definitions/data_variables"
-                },
-                "output": {
-                    "$ref": "#/definitions/data_output"
-                },
-                "transient": {
-                    "$ref": "#/definitions/data_transient"
-                }
-            },
-            "required": ["internal", "variables", "transient"]
-        },
-
-        "data_item": {
-            "description": "Data required to support the model",
-            "additionalProperties": false,
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "storage_type": {
-                    "$ref": "#/definitions/enums/data_type"
-                },
-                "rank": {
-                    "$ref": "#/definitions/rank"
-                },
-                "length": {
-                    "type": "integer"
-                }
-            },
-            "required": ["name", "storage_type", "rank"]
-        },
-
-        "data_dict": {
-            "type": "object",
-            "additionalProperties": {
-                "$ref": "#/definitions/data_item"
-            }
-        },
-
-        "data_array": {
-            "description": "This structure is for describing an array of data that has been flattened into a numeric vector. There are several ways of modelling this. We could try and extend the data_dict/data_item definitions to include an offset, possibly null for unordered types.  We can use an entirely separate internal structure.  Here, we keep an array of the *order* of the elements, and a dict to get the offset given the name.  One disadvantage of this approach is it's not clear if it's obvious that we can constrain the keys to agree",
-            "type": "object",
-            "properties": {
-                "data": {
-                    "$ref": "#/definitions/data_dict"
-                },
-                "order": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "offset": {
-                    "description": "this will need updating once we support variable-sized data because the offset will not always be an integer.",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "integer"
-                    }
-                }
-            }
-        },
-
-        "variable_info": {
-            "type": "object",
-            "description": "variable size and location information",
-            "additionalProperties": false,
-            "properties": {
-                "name": { "type": "string" },
-                "offset": { "type": "integer" },
-                "length": { "type": "integer" },
-                "rank": { "$ref": "#/definitions/rank" }
-            },
-            "required": ["offset", "rank", "length"]
-        },
-
-        "variables": {
-            "type": "object",
-            "description": "This is essentially an ordered dict (array of objects) but because it will often be useful to access this by key, it's stored as an object plus an array indicating order.",
-            "additionalProperties": false,
-            "properties": {
-                "length": {
-                    "type": "integer"
-                },
-                "length_stage": {
-                    "$ref": "#/definitions/enums/stage"
-                },
-                "order": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "info": {
-                    "additionalProperties": {
-                        "$ref": "#/definitions/variable_info"
-                    }
-                }
-            },
-            "required": ["length", "length_stage", "order", "info"]
-        }
-    },
-
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
         "config": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
                 "base": {
                     "type": "string"
                 }
             },
-            "required": ["base"]
+            "required": ["base"],
+            "additionalProperties": false
         },
 
         "features": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
                 "discrete": { "type": "boolean" },
                 "has_array": { "type": "boolean" },
@@ -357,33 +27,31 @@
                 "has_stochastic": { "type": "boolean" }
             },
             "required": ["discrete", "has_array", "has_output", "has_user",
-                         "has_delay", "has_interpolate", "has_stochastic"]
+                         "has_delay", "has_interpolate", "has_stochastic"],
+            "additionalProperties": false
         },
 
         "data": {
-            "$ref": "internal_data"
-        },
-
-        "internal": {
-            "type": "array",
-            "description": "Internal data, needed to support equations",
-            "items": {
-                "$ref": "#/definitions/data_description"
-            }
-        },
-
-        "variables": {
-            "$ref": "#/definitions/variables"
         },
 
         "equations": {
-            "type": "array",
-            "description": "Equations, in topological order",
-            "items": {
-                "$ref": "#/definitions/equation"
-            },
-            "required": []
         }
     },
-    "required": ["config", "features", "data", "equations"]
+
+    "type": "object",
+    "properties": {
+        "config": {
+            "$ref": "#/definitions/config"
+        },
+        "features": {
+            "$ref": "#/definitions/features"
+        },
+        "data": {
+            "$ref": "#/definitions/data"
+        },
+        "equations": {
+            "$ref": "#/definitions/equations"
+        }
+    },
+    "required": ["config", "features"]
 }
