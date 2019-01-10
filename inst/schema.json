@@ -17,6 +17,11 @@
             "storage_type": {
                 "type": "string",
                 "enum": ["double", "int", "interpolate_data"]
+            },
+
+            "stage": {
+                "type": "string",
+                "enum": ["constant", "user", "time", "output"]
             }
         },
 
@@ -52,7 +57,7 @@
             "properties": {
                 "internal": { "$ref": "#/definitions/data_internal" },
                 "user": { },
-                "initial": {},
+                "initial": { "$ref": "#/definitions/data_initial" },
                 "variable": {},
                 "output": {}
             },
@@ -114,6 +119,17 @@
                 }
             },
             "required": ["contents", "data"],
+            "additionalProperties": false
+        },
+
+        "data_initial": {
+            "type": "object",
+            "properties": {
+                "stage": {
+                    "$ref": "#/definitions/enum/stage"
+                }
+            },
+            "required": ["stage"],
             "additionalProperties": false
         }
     },
