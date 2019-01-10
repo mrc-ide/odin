@@ -13,6 +13,13 @@
             }
         },
 
+        "enum": {
+            "storage_type": {
+                "type": "string",
+                "enum": ["double", "int", "interpolate_data"]
+            }
+        },
+
         "config": {
             "type": "object",
             "properties": {
@@ -41,6 +48,16 @@
         },
 
         "data": {
+            "type": "object",
+            "properties": {
+                "internal": { "$ref": "#/definitions/data_internal" },
+                "user": { },
+                "initial": {},
+                "variable": {},
+                "output": {}
+            },
+            "required": ["internal", "user", "initial", "variable", "output"],
+            "additionalProperties": false
         },
 
         "equations": {
@@ -66,6 +83,37 @@
                 "equations": { "$ref": "#/definitions/basic/character_vector" }
             },
             "required": ["variables", "equations"],
+            "additionalProperties": false
+        },
+
+        "data_internal": {
+            "type": "object",
+            "properties": {
+                "contents": { "$ref": "#/definitions/basic/character_vector" },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "stage": {"type": "integer"},
+                            "storage_type": {
+                                "$ref": "#/definitions/enum/storage_type"
+                            },
+                            "rank": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 8
+                            },
+                            "transient": {"type": "boolean"}
+                        },
+                        "required": ["name", "stage", "storage_type",
+                                     "rank", "transient"],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "required": ["contents", "data"],
             "additionalProperties": false
         }
     },

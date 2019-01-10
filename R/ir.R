@@ -120,8 +120,9 @@ ir_prep_interpolate <- function(x, dat) {
   stopifnot(stage_alloc <= STAGE_USER)
   x_alloc <- x
   x_alloc$name <- x$rhs$value$name
+  x_alloc$lhs$name <- x$rhs$value$name
   x_alloc$stage <- stage_alloc
-  x_alloc$lhs$data_type <- "interpolate" # not sure!
+  x_alloc$lhs$data_type <- "interpolate_data" # (really void*)
   x_alloc$rhs$type <- "interpolate_alloc"
   x_alloc$rhs$value <-
     call("interpolate_alloc", x$rhs$value$t, x$rhs$value$y, x$rhs$value$type)
@@ -364,7 +365,12 @@ ir_data_internal <- function(dat) {
   ## I am sure that there is more to add here - size, etc
   contents <- names_if(!vlapply(data, "[[", "transient"))
 
-  list(data = data, contents = contents)
+  ## We're dropping names here: the canonical name must now be the
+  ## name element:
+  stopifnot(
+    identical(vcapply(data, "[[", "name", USE.NAMES = FALSE), names(data)))
+
+  list(data = unname(data), contents = contents)
 }
 
 
@@ -446,5 +452,11 @@ ir_deserialise <- function(ir) {
   dat$data$variable$order <- list_to_character(dat$data$variable$order)
   dat$data$output$order <- list_to_character(dat$data$output$order)
   dat$components <- lapply(dat$components, lapply, list_to_character)
+
+  ## These are stored as an array (simpler in the schema, less
+  ## duplication, order preserving) but we want to access by name:
+  names(dat$data$internal$data) <-
+    vcapply(dat$data$internal$data, "[[", "name")
+
   dat
 }
