@@ -210,9 +210,8 @@ ir_equation <- function(eq) {
   if (type == "scalar_expression") {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
-      value = ir_expression(eq$rhs$value),
-      ## TODO: this conditional would be better in the parse?
-      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+      value = ir_expression(eq$rhs$value))
+    depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
   } else if (type == "dim") {
     user <- isTRUE(eq$rhs$user)
     if (user) {
@@ -228,16 +227,16 @@ ir_equation <- function(eq) {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
       value = value,
-      user = jsonlite::unbox(user),
-      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+      user = jsonlite::unbox(user))
+    depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
   } else if (type == "array_expression") {
     if (any(eq$rhs$inplace)) {
       stop("rhs$inplace")
     }
     rhs <- list(
       type = unname(eq$rhs$type),
-      value = lapply(unname(eq$rhs$value), ir_expression),
-      depends = if (all(eq$rhs$type == "atomic")) NULL else eq$depends)
+      value = lapply(unname(eq$rhs$value), ir_expression))
+    depends <- if (all(eq$rhs$type == "atomic")) NULL else eq$depends
 
     ## TODO: here we need to indicate if this has a *self-dependency*
     ## We can code generate some different codes here otherwise.
@@ -261,19 +260,20 @@ ir_equation <- function(eq) {
     }
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
-      value = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL,
-      depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
+      value = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL)
+    depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
   } else if (type == "interpolate") {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
-      value = ir_expression(eq$rhs$value),
-      depends = eq$depends)
+      value = ir_expression(eq$rhs$value))
+    depends <- eq$depends
   } else {
     stop("rhs type needs implementing")
   }
 
   list(name = jsonlite::unbox(eq$name),
-       source = eq$line,
+       source = eq$line,  # TODO
+       depends = depends, # TODO
        stage = jsonlite::unbox(STAGES[[eq$stage]]),
        type = jsonlite::unbox(type),
        stochastic = jsonlite::unbox(eq$stochastic),
