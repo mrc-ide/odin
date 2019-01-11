@@ -268,7 +268,6 @@ ir_equation <- function(eq) {
     }
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
-      has_default = jsonlite::unbox(eq$rhs$default),
       value = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL,
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
     src <- list(expression = jsonlite::unbox(eq$expr_str),
@@ -380,28 +379,32 @@ ir_data_user <- function(dat) {
   }
 
   user <- dat$info$user
-  ## NOTE: min, max and default_value here are *optional* in the json
+  stopifnot(identical(rownames(user), user$name))
+
+  ## NOTE: min, max and default here are *optional* in the json
   ## because otherwise representing values is a little awkward.  Using
   ## infinities in particular don't serialise well at all!
+  ##
+  ## TODO: holding off on using min, max and integer because these
+  ## belong more in the data declaration I think; we can use similar
+  ## approaches to declare other constraints perhaps.
   f <- function(i) {
-    ret <- user[i, setdiff(names(user), "default_value")]
-    if (!is.finite(ret$min)) {
-      ret$min <- NULL
-    }
-    if (!is.finite(ret$max)) {
-      ret$max <- NULL
-    }
-    ret <- lapply(ret, jsonlite::unbox)
-    if (ret$has_default) {
-      default_value <- user$default_value[[i]]
+    ret <- list(name = jsonlite::unbox(user$name[[i]]),
+                rank = jsonlite::unbox(user$rank[[i]]))
+    ## NOTE: switching on this value is required for the case where we
+    ## have array inputs because otherwise user$default_value[[i]] is
+    ## a list of NULLs
+    if (user$has_default[[i]]) {
+      default <- user$default_value[[i]]
       if (ret$rank == 0L) {
-        default_value <- jsonlite::unbox(default_value)
+        default <- jsonlite::unbox(default)
       }
-      ret$default_value <- default_value
+      ret$default <- default
     }
     ret
   }
-  set_names(lapply(seq_len(nrow(user)), f), rownames(user))
+
+  lapply(seq_len(nrow(user)), f)
 }
 
 

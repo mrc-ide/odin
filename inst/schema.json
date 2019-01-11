@@ -10,6 +10,12 @@
                 "items": {
                     "type": "string"
                 }
+            },
+
+            "rank": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8
             }
         },
 
@@ -115,11 +121,7 @@
                             "storage_type": {
                                 "$ref": "#/definitions/enum/storage_type"
                             },
-                            "rank": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "maximum": 8
-                            },
+                            "rank": {"$ref": "#/definitions/basic/rank" },
                             "transient": {"type": "boolean"}
                         },
                         "required": ["name", "stage", "storage_type",
@@ -133,7 +135,17 @@
         },
 
         "data_user": {
-            "type": "object"
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "rank": {"$ref": "#/definitions/basic/rank" },
+                    "default": {"type": "number"}
+                },
+                "required": ["name", "rank"],
+                "additionalProperties": false
+            }
         },
 
         "data_initial": {

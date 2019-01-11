@@ -83,7 +83,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
 odin_ir_generate_create <- function(eqs, dat, env, meta) {
   user <- lapply(dat$data$user, function(x)
-    call("<-", call("[[", meta[["internal"]], x$name), x$default_value))
+    call("<-", call("[[", meta[["internal"]], x$name), x$default))
   alloc <- call("<-", meta[["internal"]], quote(new.env(parent = emptyenv())))
   eqs_create <- unname(eqs[dat$components$create$equations])
   ret <- meta[["internal"]]
@@ -425,14 +425,14 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     }
   } else if (eq$type == "user") {
     rank <- data_info$rank
-    if (eq$rhs$has_default) {
+    if (is.null(eq$rhs$default)) {
+      default <- NULL
+    } else {
       if (length(eq$rhs$depends$variables) > 0L) {
         ## This is ruled out by the parse already
         stop("need work to support complex user defaults")
       }
       default <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    } else {
-      default <- NULL
     }
     size <- if (rank == 0L) NULL else dimension_vector(nm, rank, meta)
     call("<-",
@@ -653,10 +653,9 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
   cl_init <- call("$", as.name(dat$config$base), quote(new))
   ## Need to build a nice argument list here.  This is pretty ugly and
   ## will be somewhat duplicated with different interfaces.
-  ##
-  ## TODO: this is not going to reliably preserve ordering of arguments.
   if (dat$features$has_user) {
-    i <- vlapply(dat$data$user, function(x) x$has_default)
+    i <- set_names(vlapply(dat$data$user, function(x) !is.null(x$default)),
+                   vcapply(dat$data$user, "[[", "name"))
     nms <- names(i)[order(i)]
     args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i)))
     names(args) <- nms
