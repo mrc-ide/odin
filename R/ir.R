@@ -179,10 +179,9 @@ ir_components <- function(dat) {
 
 ir_equation <- function(eq) {
   lhs <- list(location = jsonlite::unbox(eq$lhs$location))
-  if (is.null(eq$lhs$special)) {
+  if (is.null(eq$lhs$special) || eq$lhs$special == "initial") {
     lhs$target <- jsonlite::unbox(eq$name)
   } else {
-    lhs$special <- jsonlite::unbox(eq$lhs$special)
     lhs$target <- jsonlite::unbox(eq$lhs$name_target)
   }
 
@@ -214,8 +213,6 @@ ir_equation <- function(eq) {
       value = ir_expression(eq$rhs$value),
       ## TODO: this conditional would be better in the parse?
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
-    src <- list(expression = jsonlite::unbox(eq$expr_str),
-                line = jsonlite::unbox(eq$line))
   } else if (type == "dim") {
     user <- isTRUE(eq$rhs$user)
     if (user) {
@@ -233,8 +230,6 @@ ir_equation <- function(eq) {
       value = value,
       user = jsonlite::unbox(user),
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
-    src <- list(expression = jsonlite::unbox(eq$expr_str),
-                line = jsonlite::unbox(eq$line))
   } else if (type == "array_expression") {
     if (any(eq$rhs$inplace)) {
       stop("rhs$inplace")
@@ -251,9 +246,6 @@ ir_equation <- function(eq) {
            is_range = el$is_range,
            extent_min = lapply(el$extent_min, ir_expression),
            extent_max = lapply(el$extent_max, ir_expression)))
-
-    ## TODO: this will change to just a set of linenumbers at some point
-    src <- list(expression = eq$expr_str, line = eq$line)
   } else if (type == "user") {
     ## Here if there's a default it's a scalar expression for now!
     ##
@@ -271,21 +263,17 @@ ir_equation <- function(eq) {
       type = jsonlite::unbox(eq$rhs$type),
       value = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL,
       depends = if (eq$rhs$type == "atomic") NULL else eq$depends)
-    src <- list(expression = jsonlite::unbox(eq$expr_str),
-                line = jsonlite::unbox(eq$line))
   } else if (type == "interpolate") {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
       value = ir_expression(eq$rhs$value),
       depends = eq$depends)
-    src <- list(expression = jsonlite::unbox(eq$expr_str),
-                line = jsonlite::unbox(eq$line))
   } else {
     stop("rhs type needs implementing")
   }
 
   list(name = jsonlite::unbox(eq$name),
-       source = src,
+       source = eq$line,
        stage = jsonlite::unbox(STAGES[[eq$stage]]),
        type = jsonlite::unbox(type),
        stochastic = jsonlite::unbox(eq$stochastic),

@@ -266,8 +266,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   location <- eq$lhs$location
   internal <- dat$data$internal$contents
 
-  ## TODO: this might move into the ir:
-  data_name <- if (location == "internal") nm else eq$lhs$target
+  data_name <- eq$lhs$target
   data_info <- dat$data[[location]]$data[[data_name]]
 
   ## LHS:

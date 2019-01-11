@@ -12,6 +12,13 @@
                 }
             },
 
+            "integer_vector": {
+                "type": "array",
+                "items": {
+                    "type": "integer"
+                }
+            },
+
             "rank": {
                 "type": "integer",
                 "minimum": 0,
@@ -23,6 +30,11 @@
             "storage_type": {
                 "type": "string",
                 "enum": ["double", "int", "interpolate_data"]
+            },
+
+            "location": {
+                "type": "string",
+                "enum": ["internal", "variable", "output"]
             },
 
             "equation_type": {
@@ -144,7 +156,8 @@
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
-                "type": {"$ref": "#/definitions/enum/equation_type"}
+                "type": {"$ref": "#/definitions/enum/equation_type"},
+                "source": {}
             },
             "required": ["name", "type"]
         },
@@ -154,11 +167,11 @@
             "properties": {
                 "name": {"type": "string"},
                 "type": {"const": "dim"},
+                "source": {},
                 "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"const": false},
                 "lhs": {"type": "object"},
-                "rhs": {"type": "object"},
-                "source": {"type": "object"}
+                "rhs": {"type": "object"}
             },
             "required": ["name", "type", "stage", "stochastic",
                          "lhs", "rhs", "source"],
@@ -170,11 +183,19 @@
             "properties": {
                 "name": {"type": "string"},
                 "type": {"const": "scalar_expression"},
+                "source": {},
                 "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"type": "boolean"},
-                "lhs": {"type": "object"},
-                "rhs": {"type": "object"},
-                "source": {"type": "object"}
+                "lhs": {
+                    "type": "object",
+                    "properties": {
+                        "location": {"$ref": "#/definitions/enum/location"},
+                        "target": {"type": "string"}
+                    },
+                    "required": ["location", "target"],
+                    "additionalProperties": false
+                },
+                "rhs": {"type": "object"}
             },
             "required": ["name", "type", "stage", "stochastic",
                          "lhs", "rhs", "source"],
@@ -186,11 +207,11 @@
             "properties": {
                 "name": {"type": "string"},
                 "type": {"const": "array_expression"},
+                "source": {},
                 "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"type": "boolean"},
                 "lhs": {"type": "object"},
-                "rhs": {"type": "object"},
-                "source": {"type": "object"}
+                "rhs": {"type": "object"}
             },
             "required": ["name", "type", "stage", "stochastic",
                          "lhs", "rhs", "source"],
@@ -202,11 +223,11 @@
             "properties": {
                 "name": {"type": "string"},
                 "type": {"const": "interpolate"},
+                "source": {},
                 "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"const": false},
                 "lhs": {"type": "object"},
-                "rhs": {"type": "object"},
-                "source": {"type": "object"}
+                "rhs": {"type": "object"}
             },
             "required": [],
             "additionalProperties": false
@@ -217,11 +238,11 @@
             "properties": {
                 "name": {"type": "string"},
                 "stage": {"const": "user"},
+                "source": {},
                 "type": {"const": "user"},
                 "stochastic": {"const": false},
                 "lhs": {"type": "object"},
-                "rhs": {"type": "object"},
-                "source": {"type": "object"}
+                "rhs": {"type": "object"}
             },
             "required": ["name", "type", "stage", "stochastic", "lhs",
                          "rhs", "source"],
