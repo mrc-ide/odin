@@ -170,13 +170,12 @@
                 "type": {"const": "dim"},
                 "source": {},
                 "depends": {},
-                "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"const": false},
                 "lhs": {"type": "object"},
                 "rhs": {"type": "object"}
             },
-            "required": ["name", "type", "stage", "stochastic",
-                         "lhs", "rhs", "source"],
+            "required": ["name", "type", "stochastic",
+                         "lhs", "rhs"],
             "additionalProperties": false
         },
 
@@ -187,7 +186,6 @@
                 "type": {"const": "scalar_expression"},
                 "source": {},
                 "depends": {},
-                "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"type": "boolean"},
                 "lhs": {
                     "type": "object",
@@ -208,8 +206,7 @@
                     "additionalProperties": false
                 }
             },
-            "required": ["name", "type", "stage", "stochastic",
-                         "lhs", "rhs", "source"],
+            "required": ["name", "type", "stochastic", "lhs", "rhs"],
             "additionalProperties": false
         },
 
@@ -220,13 +217,11 @@
                 "type": {"const": "array_expression"},
                 "source": {},
                 "depends": {},
-                "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"type": "boolean"},
                 "lhs": {"type": "object"},
                 "rhs": {"type": "object"}
             },
-            "required": ["name", "type", "stage", "stochastic",
-                         "lhs", "rhs", "source"],
+            "required": ["name", "type", "stochastic", "lhs", "rhs"],
             "additionalProperties": false
         },
 
@@ -237,12 +232,11 @@
                 "type": {"const": "interpolate"},
                 "source": {},
                 "depends": {},
-                "stage": {"$ref": "#/definitions/enum/stage"},
                 "stochastic": {"const": false},
                 "lhs": {"type": "object"},
                 "rhs": {"type": "object"}
             },
-            "required": [],
+            "required": ["name", "type", "stochastic", "lhs", "rhs"],
             "additionalProperties": false
         },
 
@@ -250,7 +244,6 @@
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
-                "stage": {"const": "user"},
                 "source": {},
                 "depends": {},
                 "type": {"const": "user"},
@@ -258,7 +251,7 @@
                 "lhs": {"type": "object"},
                 "rhs": {"type": "object"}
             },
-            "required": ["name", "type", "stage", "stochastic", "lhs",
+            "required": ["name", "type", "stochastic", "lhs",
                          "rhs", "source"],
             "additionalProperties": false
         },
@@ -296,17 +289,14 @@
                         "type": "object",
                         "properties": {
                             "name": {"type": "string"},
-                            "stage": {
-                                "$ref": "#/definitions/enum/stage_integer"
-                            },
                             "storage_type": {
                                 "$ref": "#/definitions/enum/storage_type"
                             },
                             "rank": {"$ref": "#/definitions/basic/rank" },
                             "transient": {"type": "boolean"}
                         },
-                        "required": ["name", "stage", "storage_type",
-                                     "rank", "transient"],
+                        "required": ["name", "storage_type", "rank",
+                                     "transient"],
                         "additionalProperties": false
                     }
                 }

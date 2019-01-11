@@ -82,12 +82,10 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
 
 odin_ir_generate_create <- function(eqs, dat, env, meta) {
-  user <- lapply(dat$data$user, function(x)
-    call("<-", call("[[", meta[["internal"]], x$name), x$default))
   alloc <- call("<-", meta[["internal"]], quote(new.env(parent = emptyenv())))
   eqs_create <- unname(eqs[dat$components$create$equations])
   ret <- meta[["internal"]]
-  body <- as.call(c(list(quote(`{`)), c(alloc, user, eqs_create, ret)))
+  body <- as.call(c(list(quote(`{`)), c(alloc, eqs_create, ret)))
   as.function(c(alist(), body), env)
 }
 
@@ -260,7 +258,6 @@ odin_ir_generate_metadata <- function(eqs, dat, env, meta) {
 ## breaking this up though, and it looks like array/nonarray is better
 ## than lhs/rhs
 odin_ir_generate_expression <- function(eq, dat, meta) {
-  st <- eq$stage
   nm <- eq$name
 
   location <- eq$lhs$location
@@ -424,13 +421,9 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     }
   } else if (eq$type == "user") {
     rank <- data_info$rank
-    if (is.null(eq$rhs$default)) {
+    if (is.null(eq$rhs$value)) {
       default <- NULL
     } else {
-      if (length(eq$rhs$depends$variables) > 0L) {
-        ## This is ruled out by the parse already
-        stop("need work to support complex user defaults")
-      }
       default <- sexp_to_rexp(eq$rhs$value, internal, meta)
     }
     size <- if (rank == 0L) NULL else dimension_vector(nm, rank, meta)

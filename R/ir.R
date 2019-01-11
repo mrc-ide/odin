@@ -274,7 +274,6 @@ ir_equation <- function(eq) {
   list(name = jsonlite::unbox(eq$name),
        source = eq$line,  # TODO
        depends = depends, # TODO
-       stage = jsonlite::unbox(STAGES[[eq$stage]]),
        type = jsonlite::unbox(type),
        stochastic = jsonlite::unbox(eq$stochastic),
        lhs = lhs,
@@ -322,7 +321,6 @@ ir_data_internal <- function(dat) {
   i <- vcapply(dat$eqs, function(x) x$lhs$location) == "internal"
   data <- lapply(dat$eqs[i], function(eq)
     list(name = jsonlite::unbox(eq$lhs$name),
-         stage = jsonlite::unbox(eq$stage),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          transient = jsonlite::unbox(
@@ -331,7 +329,6 @@ ir_data_internal <- function(dat) {
   extra_dimensions <- function(eq) {
     f <- function(i) {
       list(name = jsonlite::unbox(array_dim_name(eq$lhs$name_target, i)),
-           stage = jsonlite::unbox(eq$stage),
            storage_type = jsonlite::unbox("int"),
            rank = jsonlite::unbox(0L),
            transient = jsonlite::unbox(FALSE))
