@@ -162,14 +162,12 @@
         "data_variable": {
             "type": "object",
             "properties": {
-                "order": { "$ref": "#/definitions/basic/character_vector" },
                 "length": { },
                 "length_stage": { "type": "integer" },
                 "length_is_var": { "type": "boolean" },
                 "data": {"type": "array"}
             },
-            "required": ["order", "length", "length_stage", "length_is_var",
-                         "data"],
+            "required": ["length", "length_stage", "length_is_var", "data"],
             "additionalProperties": false
         }
     },

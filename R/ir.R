@@ -443,8 +443,7 @@ ir_data_variable <- function(dat, output) {
                       info$order))
   names(data) <- NULL
 
-  list(order = info$order,
-       length = ir_expression(info$total),
+  list(length = ir_expression(info$total),
        length_stage = jsonlite::unbox(info$total_stage),
        length_is_var = jsonlite::unbox(info$total_is_var),
        data = data)
@@ -467,12 +466,10 @@ ir_deserialise <- function(ir) {
   names(dat$data$internal$data) <-
     vcapply(dat$data$internal$data, "[[", "name")
 
-  dat$data$variable$order <- list_to_character(dat$data$variable$order)
   names(dat$data$variable$data) <-
     vcapply(dat$data$variable$data, "[[", "name")
 
   if (dat$features$has_output) {
-    dat$data$output$order <- list_to_character(dat$data$output$order)
     names(dat$data$output$data) <-
       vcapply(dat$data$output$data, "[[", "name")
   }

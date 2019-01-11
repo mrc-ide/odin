@@ -108,7 +108,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
     }
     call("<-", target, call("[[", meta$internal, initial_name(x$name)))
   }
-  assign <- lapply(dat$data$variable$data[dat$data$variable$order], f)
+  assign <- lapply(dat$data$variable$data, f)
   ret <- meta$state
 
   body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, ret))
@@ -233,7 +233,7 @@ odin_ir_generate_metadata <- function(eqs, dat, env, meta) {
     }
   }
   ord <- function(x) {
-    as.call(c(list(quote(list)), lapply(x$data[x$order], f)))
+    as.call(c(list(quote(list)), lapply(x$data, f)))
   }
   ynames <- call(
     "make_names2",
