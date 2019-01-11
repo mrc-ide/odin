@@ -56,10 +56,20 @@
             "type": "object",
             "properties": {
                 "internal": { "$ref": "#/definitions/data_internal" },
-                "user": { },
+                "user": {
+                    "oneOf": [
+                        { "type": "null" },
+                        { "$ref": "#/definitions/data_user" }
+                    ]
+                },
                 "initial": { "$ref": "#/definitions/data_initial" },
-                "variable": {},
-                "output": {}
+                "variable": { "$ref": "#/definitions/data_variable" },
+                "output": {
+                    "oneOf": [
+                        { "type": "null" },
+                        { "$ref": "#/definitions/data_variable" }
+                    ]
+                }
             },
             "required": ["internal", "user", "initial", "variable", "output"],
             "additionalProperties": false
@@ -122,6 +132,10 @@
             "additionalProperties": false
         },
 
+        "data_user": {
+            "type": "object"
+        },
+
         "data_initial": {
             "type": "object",
             "properties": {
@@ -130,6 +144,20 @@
                 }
             },
             "required": ["stage"],
+            "additionalProperties": false
+        },
+
+        "data_variable": {
+            "type": "object",
+            "properties": {
+                "order": { "$ref": "#/definitions/basic/character_vector" },
+                "length": { },
+                "length_stage": { "type": "integer" },
+                "length_is_var": { "type": "boolean" },
+                "data": {"type": "object"}
+            },
+            "required": ["order", "length", "length_stage", "length_is_var",
+                         "data"],
             "additionalProperties": false
         }
     },

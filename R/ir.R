@@ -411,6 +411,10 @@ ir_data_initial <- function(dat) {
 
 
 ir_data_variable <- function(dat, output) {
+  if (output && !dat$info$has_output) {
+    return(NULL)
+  }
+
   info <- if (output) dat$output_info else dat$variable_info
   offset <- set_names(info$offset, info$order)
   rank <- set_names(info$array, info$order)
