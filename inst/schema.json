@@ -28,7 +28,32 @@
             "stage": {
                 "type": "string",
                 "enum": ["constant", "user", "time", "output"]
+            },
+
+            "stage_integer": {
+                "comment": "this will be factored out",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4
             }
+        },
+
+        "sexpression": {
+            "comment": "this should be tightened up; the first element must really be an enum of supported functions",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sexpression"
+                    }
+                }
+            ]
         },
 
         "config": {
@@ -117,7 +142,9 @@
                         "type": "object",
                         "properties": {
                             "name": {"type": "string"},
-                            "stage": {"type": "integer"},
+                            "stage": {
+                                "$ref": "#/definitions/enum/stage_integer"
+                            },
                             "storage_type": {
                                 "$ref": "#/definitions/enum/storage_type"
                             },
@@ -162,9 +189,12 @@
         "data_variable": {
             "type": "object",
             "properties": {
-                "length": { },
-                "length_stage": { "type": "integer" },
-                "length_is_var": { "type": "boolean" },
+                "length": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "length_stage": {
+                    "$ref": "#/definitions/enum/stage_integer"
+                },
                 "data": {
                     "type": "array",
                     "items": {
@@ -178,7 +208,7 @@
                                 "$ref": "#/definitions/basic/rank"
                             },
                             "offset": {
-                                "type": "integer"
+                                "$ref": "#/definitions/sexpression"
                             }
                         },
                         "required": ["name", "storage_type", "rank", "offset"],
@@ -186,7 +216,7 @@
                     }
                 }
             },
-            "required": ["length", "length_stage", "length_is_var", "data"],
+            "required": ["length", "length_stage", "data"],
             "additionalProperties": false
         }
     },

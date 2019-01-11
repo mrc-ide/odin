@@ -443,7 +443,6 @@ ir_data_variable <- function(dat, output) {
 
   list(length = ir_expression(info$total),
        length_stage = jsonlite::unbox(info$total_stage),
-       length_is_var = jsonlite::unbox(info$total_is_var),
        data = data)
 }
 
