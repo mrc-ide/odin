@@ -165,7 +165,26 @@
                 "length": { },
                 "length_stage": { "type": "integer" },
                 "length_is_var": { "type": "boolean" },
-                "data": {"type": "array"}
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "storage_type": {
+                                "$ref": "#/definitions/enum/storage_type"
+                            },
+                            "rank": {
+                                "$ref": "#/definitions/basic/rank"
+                            },
+                            "offset": {
+                                "type": "integer"
+                            }
+                        },
+                        "required": ["name", "storage_type", "rank", "offset"],
+                        "additionalProperties": false
+                    }
+                }
             },
             "required": ["length", "length_stage", "length_is_var", "data"],
             "additionalProperties": false

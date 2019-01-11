@@ -433,8 +433,6 @@ ir_data_variable <- function(dat, output) {
   data <- lapply(dat$eqs[i], function(eq)
     list(name = jsonlite::unbox(eq$lhs$name_target),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
-         stage = jsonlite::unbox(STAGE_TIME),
-         transient = jsonlite::unbox(FALSE),
          offset = jsonlite::unbox(offset[[eq$lhs$name_target]]),
          rank = jsonlite::unbox(rank[[eq$lhs$name_target]])))
 
