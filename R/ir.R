@@ -437,7 +437,11 @@ ir_data_variable <- function(dat, output) {
          transient = jsonlite::unbox(FALSE),
          offset = jsonlite::unbox(offset[[eq$lhs$name_target]]),
          rank = jsonlite::unbox(rank[[eq$lhs$name_target]])))
-  names(data) <- info$order
+
+  ## We require this to hold later:
+  stopifnot(identical(vcapply(data, "[[", "name", USE.NAMES = FALSE),
+                      info$order))
+  names(data) <- NULL
 
   list(order = info$order,
        length = ir_expression(info$total),
@@ -456,14 +460,22 @@ ir_serialise <- function(dat, pretty = TRUE) {
 ## character vectors.
 ir_deserialise <- function(ir) {
   dat <- jsonlite::fromJSON(ir, simplifyVector = FALSE)
-  dat$data$variable$order <- list_to_character(dat$data$variable$order)
-  dat$data$output$order <- list_to_character(dat$data$output$order)
   dat$components <- lapply(dat$components, lapply, list_to_character)
 
   ## These are stored as an array (simpler in the schema, less
   ## duplication, order preserving) but we want to access by name:
   names(dat$data$internal$data) <-
     vcapply(dat$data$internal$data, "[[", "name")
+
+  dat$data$variable$order <- list_to_character(dat$data$variable$order)
+  names(dat$data$variable$data) <-
+    vcapply(dat$data$variable$data, "[[", "name")
+
+  if (dat$features$has_output) {
+    dat$data$output$order <- list_to_character(dat$data$output$order)
+    names(dat$data$output$data) <-
+      vcapply(dat$data$output$data, "[[", "name")
+  }
 
   dat
 }
