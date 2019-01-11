@@ -198,6 +198,7 @@ ir_equation <- function(eq) {
   } else if (isTRUE(eq$rhs$interpolate)) {
     type <- "interpolate"
   } else if (isTRUE(eq$rhs$delay)) {
+    stop("delays not yet supported")
     type <- "delay"
   } else if (identical(eq$lhs$type, "symbol")) {
     type <- "scalar_expression"

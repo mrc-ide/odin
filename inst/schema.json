@@ -25,6 +25,18 @@
                 "enum": ["double", "int", "interpolate_data"]
             },
 
+            "equation_type": {
+                "type": "string",
+                "enum": [
+                    "array_expression",
+                    "dim",
+                    "interpolate",
+                    "scalar_expression",
+                    "user"
+                ],
+                "comment": "This duplicates different equation types"
+            },
+
             "stage": {
                 "type": "string",
                 "enum": ["constant", "user", "time", "output"]
@@ -107,6 +119,113 @@
         },
 
         "equations": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/equation"
+            }
+        },
+
+        "equation": {
+            "allOf": [
+                {"$ref": "#/definitions/equation_base"},
+                {
+                    "oneOf": [
+                        {"$ref": "#/definitions/equation_dim"},
+                        {"$ref": "#/definitions/equation_array_expression"},
+                        {"$ref": "#/definitions/equation_scalar_expression"},
+                        {"$ref": "#/definitions/equation_interpolate"},
+                        {"$ref": "#/definitions/equation_user"}
+                    ]
+                }
+            ]
+        },
+
+        "equation_base": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"$ref": "#/definitions/enum/equation_type"}
+            },
+            "required": ["name", "type"]
+        },
+
+        "equation_dim": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"const": "dim"},
+                "stage": {"$ref": "#/definitions/enum/stage"},
+                "stochastic": {"const": false},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"},
+                "source": {"type": "object"}
+            },
+            "required": ["name", "type", "stage", "stochastic",
+                         "lhs", "rhs", "source"],
+            "additionalProperties": false
+        },
+
+        "equation_scalar_expression": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"const": "scalar_expression"},
+                "stage": {"$ref": "#/definitions/enum/stage"},
+                "stochastic": {"type": "boolean"},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"},
+                "source": {"type": "object"}
+            },
+            "required": ["name", "type", "stage", "stochastic",
+                         "lhs", "rhs", "source"],
+            "additionalProperties": false
+        },
+
+        "equation_array_expression": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"const": "array_expression"},
+                "stage": {"$ref": "#/definitions/enum/stage"},
+                "stochastic": {"type": "boolean"},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"},
+                "source": {"type": "object"}
+            },
+            "required": ["name", "type", "stage", "stochastic",
+                         "lhs", "rhs", "source"],
+            "additionalProperties": false
+        },
+
+        "equation_interpolate": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"const": "interpolate"},
+                "stage": {"$ref": "#/definitions/enum/stage"},
+                "stochastic": {"const": false},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"},
+                "source": {"type": "object"}
+            },
+            "required": [],
+            "additionalProperties": false
+        },
+
+        "equation_user": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "stage": {"const": "user"},
+                "type": {"const": "user"},
+                "stochastic": {"const": false},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"},
+                "source": {"type": "object"}
+            },
+            "required": ["name", "type", "stage", "stochastic", "lhs",
+                         "rhs", "source"],
+            "additionalProperties": false
         },
 
         "components": {
