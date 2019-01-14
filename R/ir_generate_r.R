@@ -585,7 +585,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       run = if (dat$features$discrete) {
         function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
           if (is.null(y)) {
-            y <- self$initial(step)
+            y <- self$initial(step[[1L]])
           }
           if (is.null(replicate)) {
             ret <- dde::difeq(y, step, private$core$rhs_dde, private$data,
@@ -606,7 +606,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       } else {
         function(t, y = NULL, ..., use_names = TRUE) {
           if (is.null(y)) {
-            y <- self$initial(t)
+            y <- self$initial(t[[1L]])
           }
           if (private$use_dde) {
             ret <- dde::dopri(y, t, private$core$rhs_dde, private$data,
