@@ -375,19 +375,9 @@ ir_data_user <- function(dat) {
   ## belong more in the data declaration I think; we can use similar
   ## approaches to declare other constraints perhaps.
   f <- function(i) {
-    ret <- list(name = jsonlite::unbox(user$name[[i]]),
-                rank = jsonlite::unbox(user$rank[[i]]))
-    ## NOTE: switching on this value is required for the case where we
-    ## have array inputs because otherwise user$default_value[[i]] is
-    ## a list of NULLs
-    if (user$has_default[[i]]) {
-      default <- user$default_value[[i]]
-      if (ret$rank == 0L) {
-        default <- jsonlite::unbox(default)
-      }
-      ret$default <- default
-    }
-    ret
+    list(name = jsonlite::unbox(user$name[[i]]),
+         rank = jsonlite::unbox(user$rank[[i]]),
+         has_default = jsonlite::unbox(user$has_default[[i]]))
   }
 
   lapply(seq_len(nrow(user)), f)

@@ -646,7 +646,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
   ## Need to build a nice argument list here.  This is pretty ugly and
   ## will be somewhat duplicated with different interfaces.
   if (dat$features$has_user) {
-    i <- set_names(vlapply(dat$data$user, function(x) !is.null(x$default)),
+    i <- set_names(vlapply(dat$data$user, "[[", "has_default"),
                    vcapply(dat$data$user, "[[", "name"))
     nms <- names(i)[order(i)]
     args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i)))

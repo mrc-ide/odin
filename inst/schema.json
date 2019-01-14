@@ -244,15 +244,37 @@
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
+                "type": {"const": "user"},
                 "source": {},
                 "depends": {},
-                "type": {"const": "user"},
                 "stochastic": {"const": false},
-                "lhs": {"type": "object"},
-                "rhs": {"type": "object"}
+                "lhs": {
+                    "TODO": "this is the same as equation_scalar_expression",
+                    "type": "object",
+                    "properties": {
+                        "location": {"$ref": "#/definitions/enum/location"},
+                        "target": {"type": "string"}
+                    },
+                    "required": ["location", "target"],
+                    "additionalProperties": false
+                },
+                "rhs": {
+                    "type": "object",
+                    "TODO": "this needs tidying up a little",
+                    "properties": {
+                        "type": {"const": "expression"},
+                        "value": {
+                            "oneOf": [
+                                {"type": "null"},
+                                {"type": "number"}
+                            ]
+                        }
+                    },
+                    "required": ["type", "value"],
+                    "additionalProperties": false
+                }
             },
-            "required": ["name", "type", "stochastic", "lhs",
-                         "rhs", "source"],
+            "required": ["name", "type", "lhs", "rhs"],
             "additionalProperties": false
         },
 
@@ -312,7 +334,7 @@
                 "properties": {
                     "name": {"type": "string"},
                     "rank": {"$ref": "#/definitions/basic/rank" },
-                    "default": {"type": "number"}
+                    "has_default": {"type": "boolean"}
                 },
                 "required": ["name", "rank"],
                 "additionalProperties": false
