@@ -10,6 +10,16 @@ odin_parse_exprs <- function(exprs) {
   if (length(exprs) == 0) {
     stop("Empty input: no expressions were provided", call. = FALSE)
   }
+
+  ## Sensible defaults in the case of directly executed code from the
+  ## command-line.
+  if (is.null(lines)) {
+    lines <- seq_along(exprs)
+  }
+  if (is.null(src)) {
+    src <- vcapply(exprs, deparse_str)
+  }
+
   ret <- lapply(seq_along(exprs), function(i)
     odin_parse_expr(exprs[[i]], lines[[i]], src[[i]]))
   names(ret) <- vcapply(ret, "[[", "name")

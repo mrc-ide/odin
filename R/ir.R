@@ -15,7 +15,8 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
                  features = ir_features(dat),
                  data = ir_data(dat),
                  equations = ir_equations(dat),
-                 components = ir_components(dat))
+                 components = ir_components(dat),
+                 source = vcapply(xp$exprs, deparse_str))
   ir <- ir_serialise(ir_dat, pretty)
   if (validate) {
     ir_validate(ir, TRUE)
@@ -165,7 +166,8 @@ ir_prep_offset1 <- function(i, info, dat) {
   nm <- names(info$offset)[[i]]
   value <- info$offset[[i]]
   depends <- find_symbols(value)
-  parent <- dat$eqs[[target_name(info$order[[i]], dat$info$discrete)]]
+  parent <- dat$eqs[[info$names[[i]]]]
+  stopifnot(!is.null(parent))
   stage <- max(dat$stage[depends$variables])
   list(name = nm,
        lhs = list(type = "symbol",
@@ -366,7 +368,7 @@ ir_equation <- function(eq) {
   }
 
   list(name = jsonlite::unbox(eq$name),
-       source = eq$line,  # TODO
+       source = eq$line,
        depends = depends, # TODO
        type = jsonlite::unbox(type),
        stochastic = jsonlite::unbox(eq$stochastic),

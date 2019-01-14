@@ -23,6 +23,14 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 8
+            },
+
+            "source_reference": {
+                "type": "array",
+                "items": {
+                    "type": "integer",
+                    "minimum": 0
+                }
             }
         },
 
@@ -159,10 +167,10 @@
             "properties": {
                 "name": {"type": "string"},
                 "type": {"$ref": "#/definitions/enum/equation_type"},
-                "source": {},
+                "source": {"$ref": "#/definitions/basic/source_reference"},
                 "depends": {}
             },
-            "required": ["name", "type"]
+            "required": ["name", "type", "source", "depends"]
         },
 
         "equation_copy": {
@@ -420,8 +428,12 @@
         },
         "components": {
             "$ref": "#/definitions/components"
+        },
+        "source": {
+            "$ref": "#/definitions/basic/character_vector"
         }
     },
-    "required": ["config", "features", "data", "equations", "components"],
+    "required": ["config", "features", "data", "equations", "components",
+                 "source"],
     "additionalProperties": false
 }
