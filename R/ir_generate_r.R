@@ -293,9 +293,14 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     stopifnot(location != "internal")
     offset <- sexp_to_rexp(data_info$offset, internal, meta)
     storage <- if (location == "variable") meta$result else meta$output
-    i <- call("seq_len",
-              call("[[", meta$internal, array_dim_name(data_info$name)))
-    lhs <- call("[", storage, call("+", offset, i))
+
+    if (data_info$rank == 0) {
+      lhs <- call("[[", storage, offset_to_position(offset))
+    } else{
+      i <- call("seq_len",
+                call("[[", meta$internal, array_dim_name(data_info$name)))
+      lhs <- call("[", storage, call("+", offset, i))
+    }
   } else if (eq$type == "array_expression") {
     ## TODO: 'result' becomes 'dstatedt' (a little complicated by
     ## location above - consider replacing dstatedt with result!)

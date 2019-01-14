@@ -281,12 +281,20 @@ ir_equation <- function(eq) {
   ## rhs lines.  However, there are more expression types that can be
   ## thought of as copies I think so this might be generally useful
   ## (anything of the form x[] <- b[i] is just a copy).
-  if (type == "array_expression" &&
-      identical(eq$lhs$special, "output") &&
-      length(eq$rhs$value) == 1L &&
-      (isTRUE(eq$rhs$value[[1]]) ||
-       eq$rhs$value[[1]] == eq$lhs$name_target)) {
-    type <- "copy"
+  ##
+  ## TODO: I don't see that the second value of this is working
+  ## (checking that the value is the same as the target) because the
+  ## value is a symbol/language object.
+  if (identical(eq$lhs$special, "output")) {
+    if (type == "array_expression" &&
+        length(eq$rhs$value) == 1L &&
+        (isTRUE(eq$rhs$value[[1]]) ||
+         eq$rhs$value[[1]] == eq$lhs$name_target)) {
+      type <- "copy"
+    }
+    if (type == "scalar_expression" && isTRUE(eq$rhs$value)) {
+      type <- "copy"
+    }
   }
 
   if (type == "scalar_expression") {

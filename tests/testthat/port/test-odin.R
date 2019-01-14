@@ -1016,7 +1016,6 @@ test_that("sum for a 4d array", {
 
 test_that("self output for scalar", {
   ## This one is a bit sad really
-  skip("general failure") # schema generation failure
   gen <- odin2({
     initial(a) <- 1
     deriv(a) <- 0
@@ -1029,7 +1028,6 @@ test_that("self output for scalar", {
 })
 
 test_that("non-time sentsitive output", {
-  skip("schema validation failure") # same here
   gen <- odin2({
     initial(a) <- 1
     deriv(a) <- 0
