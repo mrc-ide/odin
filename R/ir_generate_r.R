@@ -288,6 +288,13 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     } else {
       lhs <- call("[[", meta$internal, nm)
     }
+  } else if (eq$type == "copy") {
+    stopifnot(location != "internal")
+    offset <- sexp_to_rexp(data_info$offset, internal, meta)
+    storage <- if (location == "variable") meta$result else meta$output
+    i <- call("seq_len",
+              call("[[", meta$internal, array_dim_name(data_info$name)))
+    lhs <- call("[", storage, call("+", offset, i))
   } else if (eq$type == "array_expression") {
     ## TODO: 'result' becomes 'dstatedt' (a little complicated by
     ## location above - consider replacing dstatedt with result!)
@@ -437,6 +444,9 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
          call(as.character(meta$get_user_double),
               meta$user, nm, meta$internal, size, default))
   } else if (eq$type == "interpolate") {
+    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+    call("<-", lhs, rhs)
+  } else if (eq$type == "copy") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
   } else {

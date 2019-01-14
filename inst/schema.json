@@ -41,6 +41,7 @@
                 "type": "string",
                 "enum": [
                     "array_expression",
+                    "copy",
                     "dim",
                     "interpolate",
                     "scalar_expression",
@@ -143,6 +144,7 @@
                 {
                     "oneOf": [
                         {"$ref": "#/definitions/equation_dim"},
+                        {"$ref": "#/definitions/equation_copy"},
                         {"$ref": "#/definitions/equation_array_expression"},
                         {"$ref": "#/definitions/equation_scalar_expression"},
                         {"$ref": "#/definitions/equation_interpolate"},
@@ -161,6 +163,21 @@
                 "depends": {}
             },
             "required": ["name", "type"]
+        },
+
+        "equation_copy": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"const": "copy"},
+                "source": {},
+                "depends": {},
+                "stochastic": {"const": false},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"}
+            },
+            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "additionalProperties": false
         },
 
         "equation_dim": {

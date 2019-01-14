@@ -460,23 +460,16 @@ test_that("output array", {
 
 ## (2) An existing array
 test_that("output array", {
-  skip("Failure - output array")
-
   gen <- odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
     r[] <- 0.1
     dim(r) <- 3
     dim(y) <- 3
-    ## This should probably be OK, but might need some more trickery...
     output(r[]) <- r
   })
 
   mod <- gen()
-  ## This generates entirely incorrect code:
-  r6_private(mod)$core$output
-  
-  
   tt <- seq(0, 10, length.out = 101)
   yy <- mod$run(tt)
 
@@ -831,7 +824,6 @@ test_that("non-numeric input", {
 })
 
 test_that("only used in output", {
-  skip("output array")
   gen <- odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
@@ -1025,7 +1017,7 @@ test_that("sum for a 4d array", {
 
 test_that("self output for scalar", {
   ## This one is a bit sad really
-  skip("general failure")
+  skip("general failure") # schema generation failure
   gen <- odin2({
     initial(a) <- 1
     deriv(a) <- 0
@@ -1038,7 +1030,7 @@ test_that("self output for scalar", {
 })
 
 test_that("non-time sentsitive output", {
-  skip("schema validation failure")
+  skip("schema validation failure") # same here
   gen <- odin2({
     initial(a) <- 1
     deriv(a) <- 0

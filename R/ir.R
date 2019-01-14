@@ -207,6 +207,20 @@ ir_equation <- function(eq) {
     stop("Unclassified type")
   }
 
+  ## TODO: this should be simplified away later in the parse because I
+  ## know that we have all this information.  In this case the "type"
+  ## earlier should be set to copy and we should no expand out all the
+  ## rhs lines.  However, there are more expression types that can be
+  ## thought of as copies I think so this might be generally useful
+  ## (anything of the form x[] <- b[i] is just a copy).
+  if (type == "array_expression" &&
+      identical(eq$lhs$special, "output") &&
+      length(eq$rhs$value) == 1L &&
+      (isTRUE(eq$rhs$value[[1]]) ||
+       eq$rhs$value[[1]] == eq$lhs$name_target)) {
+    type <- "copy"
+  }
+
   if (type == "scalar_expression") {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
@@ -267,6 +281,10 @@ ir_equation <- function(eq) {
       type = jsonlite::unbox(eq$rhs$type),
       value = ir_expression(eq$rhs$value))
     depends <- eq$depends
+  } else if (type == "copy") {
+    rhs <- list(type = jsonlite::unbox("copy"),
+                value = jsonlite::unbox(eq$lhs$name_target))
+    depends <- NULL
   } else {
     stop("rhs type needs implementing")
   }
