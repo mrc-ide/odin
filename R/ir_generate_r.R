@@ -101,8 +101,9 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
     if (x$rank == 0) {
       target <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
+      offset <- sexp_to_rexp(x$offset, dat$data$internal$contents, meta)
       seq <- call("seq_len", call("[[", meta$internal, array_dim_name(x$name)))
-      target <- call("[", meta$state, call("+", x$offset, seq))
+      target <- call("[", meta$state, call("+", offset, seq))
     }
     call("<-", target, call("[[", meta$internal, initial_name(x$name)))
   }

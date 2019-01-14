@@ -29,6 +29,13 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
 ## (in fact, once the ir version is working, we'll refactor the parse
 ## code entirely to more directly produce the ir).
 ir_prep <- function(dat) {
+
+  ## Add extra equations
+  dat <- ir_prep_offset(dat, FALSE)
+  if (dat$info$has_output) {
+    dat <- ir_prep_offset(dat, TRUE)
+  }
+
   location <- set_names(rep("internal", nrow(dat$traits)),
                         rownames(dat$traits))
   location[dat$traits[, "is_deriv"]] <- "variable"
@@ -112,6 +119,67 @@ ir_prep <- function(dat) {
                                  output = names_if(var_used_output))
 
   dat
+}
+
+
+ir_prep_offset <- function(dat, output) {
+  info <- if (output) dat$output_info else dat$variable_info
+  i <- vlapply(info$offset, is.language)
+  if (any(i)) {
+    ## Here, add auxillary equations into the right place - eventually
+    ## we'll do this directly from odin's parse!  Things that need
+    ## modifying:
+    ##
+    ## - traits
+    ## - eqs
+    ## - stage
+    ## - deps_rec
+    ##
+    ## base the offsets off of the dimension of the array being worked
+    ## with in terms of position in the graph, but make sure that the
+    ## stage reflects their dependenies and not the target.
+    ##
+    ## We'll base these off of the equation that defines the variable
+    ## I think, because that's the equation that requires the
+    ## existance of the offset.
+    eqs <- lapply(which(i), ir_prep_offset1, info, dat)
+    stage <- viapply(eqs, "[[", "stage")
+    deps_rec <- lapply(eqs, function(x)
+      sort(unique(unlist(dat$deps_rec[x$depends$variables]), FALSE, FALSE)))
+
+    traits <- dat$traits[seq_along(eqs), , drop = FALSE]
+    traits[] <- FALSE
+    traits[, "is_symbol"] <- TRUE
+    rownames(traits) <- names(eqs)
+
+    dat$eqs <- c(dat$eqs, eqs)
+    dat$stage <- c(dat$stage, stage)
+    dat$deps_rec <- c(dat$deps_rec, deps_rec)
+    dat$traits <- rbind(dat$traits, traits)
+  }
+  dat
+}
+
+
+ir_prep_offset1 <- function(i, info, dat) {
+  nm <- names(info$offset)[[i]]
+  value <- info$offset[[i]]
+  depends <- find_symbols(value)
+  parent <- dat$eqs[[target_name(info$order[[i]], dat$info$discrete)]]
+  stage <- max(dat$stage[depends$variables])
+  list(name = nm,
+       lhs = list(type = "symbol",
+                  name = nm,
+                  data_type = "int"),
+       rhs = list(type = "expression",
+                  value = value,
+                  depends = depends),
+       depends = depends,
+       stochastic = FALSE,
+       expr = parent$expr,
+       expr_str = parent$expr_str,
+       line = parent$line,
+       stage = stage)
 }
 
 
@@ -427,13 +495,13 @@ ir_data_variable <- function(dat, output) {
   data <- lapply(dat$eqs[i], function(eq)
     list(name = jsonlite::unbox(eq$lhs$name_target),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
-         offset = jsonlite::unbox(offset[[eq$lhs$name_target]]),
+         offset = ir_expression(offset[[eq$lhs$name_target]]),
          rank = jsonlite::unbox(rank[[eq$lhs$name_target]])))
 
   ## We require this to hold later:
-  stopifnot(identical(vcapply(data, "[[", "name", USE.NAMES = FALSE),
-                      info$order))
-  names(data) <- NULL
+  nms <- vcapply(data, "[[", "name", USE.NAMES = FALSE)
+  stopifnot(identical(sort(nms), sort(info$order)))
+  data <- unname(data[match(info$order, nms)])
 
   list(length = ir_expression(info$total),
        length_stage = jsonlite::unbox(info$total_stage),

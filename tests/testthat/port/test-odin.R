@@ -686,14 +686,13 @@ test_that("dependent dim never assigned", {
 })
 
 test_that("two output arrays", {
-  skip("output array failure")
   gen <- odin2({
     deriv(y[]) <- y[i] * r[i]
-    initial(y[]) <- i + 1
+    initial(y[]) <- i
     dim(y) <- 3
     dim(r) <- 3
     r[] <- user()
-    output(yr[]) <- y[i] / (i + 1)
+    output(yr[]) <- y[i] / i
     dim(yr) <- 3
     output(r[]) <- TRUE
   })

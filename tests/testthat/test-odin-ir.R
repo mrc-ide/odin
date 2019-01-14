@@ -446,3 +446,73 @@ test_that("stochastic", {
 
   expect_identical(x, y)
 })
+
+
+test_that("multiple arrays: constant", {
+  gen <- odin2({
+    initial(x[]) <- 1
+    initial(y[]) <- 2
+    deriv(x[]) <- r[i]
+    deriv(y[]) <- r[i]
+    r[] <- i
+    n <- 3
+    dim(r) <- n
+    dim(x) <- n
+    dim(y) <- n
+  })
+
+  mod <- gen()
+  expect_equal(mod$contents()$offset_y, 3)
+  expect_equal(mod$initial(0), rep(1:2, each = 3))
+  expect_equal(mod$deriv(0, mod$initial(0)), rep(1:3, 2))
+})
+
+
+test_that("multiple arrays: dynamic", {
+  gen <- odin2({
+    initial(x[]) <- 1
+    initial(y[]) <- 2
+    deriv(x[]) <- r[i]
+    deriv(y[]) <- r[i]
+    r[] <- i
+    n <- user()
+    dim(r) <- n
+    dim(x) <- n
+    dim(y) <- n
+  })
+
+  mod <- gen(4)
+  expect_equal(mod$contents()$offset_y, 4)
+  expect_equal(mod$initial(0), rep(1:2, each = 4))
+  expect_equal(mod$deriv(0, mod$initial(0)), rep(1:4, 2))
+})
+
+
+test_that("multiple output arrays", {
+  gen <- odin2({
+    deriv(y[]) <- y[i] * r[i]
+    initial(y[]) <- i
+    dim(y) <- 3
+    dim(r) <- 3
+    r[] <- user()
+    output(yr[]) <- y[i] / i
+    dim(yr) <- 3
+    output(r[]) <- TRUE
+  })
+
+  r <- runif(3)
+  mod <- gen(r = r)
+
+  expect_equal(mod$initial(0), 1:3)
+  expect_equal(
+    mod$deriv(0, mod$initial(0)),
+    structure(1:3 * r, output = c(r, 1:3 / 1:3)))
+
+  tt <- seq(0, 10, length.out = 101)
+  yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
+  zz <- mod$transform_variables(yy)
+
+  expect_equal(zz$y, t(1:3 * exp(outer(r, tt))), tolerance = 1e-6)
+  expect_equal(zz$r, matrix(r, length(tt), 3, TRUE))
+  expect_equal(zz$yr, t(t(zz$y) / (1:3)))
+})
