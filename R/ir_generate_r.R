@@ -176,9 +176,14 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
   ## than the other, so going with the same length approach here as it
   ## is less logic and will work for variable-length cases.
   alloc_result <- call("<-", meta$result,
-                         call("numeric", call("length", meta$state)))
-  alloc_output <- call("<-", meta$output,
-                       call("numeric", dat$data$output$length))
+                       call("numeric", call("length", meta$state)))
+
+  ## For output_length we have no real choice but to look up the
+  ## length each time.
+  output_length <- sexp_to_rexp(
+    dat$data$output$length, dat$data$internal$contents, meta)
+  alloc_output <- call("<-", meta$output, call("numeric", output_length))
+
   if (desolve || discrete) {
     if (has_output) {
       alloc <- list(alloc_result, alloc_output)
