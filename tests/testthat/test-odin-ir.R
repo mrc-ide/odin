@@ -279,6 +279,11 @@ test_that("3d array", {
   mod <- gen()
   d <- mod$contents()
   expect_equal(d$initial_y, array(1, c(2, 3, 4)))
+  expect_equal(d$dim_y, 24)
+  expect_equal(d$dim_y_1, 2)
+  expect_equal(d$dim_y_2, 3)
+  expect_equal(d$dim_y_3, 4)
+  expect_equal(d$dim_y_12, 6)
 
   expect_equal(mod$initial(), rep(1, 24))
   expect_equal(mod$deriv(0, mod$initial()), rep(0.1, 24))

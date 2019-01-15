@@ -30,11 +30,14 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
 ## (in fact, once the ir version is working, we'll refactor the parse
 ## code entirely to more directly produce the ir).
 ir_prep <- function(dat) {
-
   ## Add extra equations
   dat <- ir_prep_offset(dat, FALSE)
   if (dat$info$has_output) {
     dat <- ir_prep_offset(dat, TRUE)
+  }
+
+  if (dat$info$has_array) {
+    dat <- ir_prep_dim(dat)
   }
 
   location <- set_names(rep("internal", nrow(dat$traits)),
@@ -185,6 +188,92 @@ ir_prep_offset1 <- function(i, info, dat) {
        expr_str = parent$expr_str,
        line = parent$line,
        stage = stage)
+}
+
+
+ir_prep_interleave_index <- function(i, m) {
+  stopifnot(sum(i) == length(m))
+  j <- c(seq_along(i), rep(unname(which(i)), m))
+  j[which(i)] <- NA
+  order(j, na.last = FALSE)[-seq_len(sum(i))]
+}
+
+ir_prep_dim <- function(dat) {
+  i <- dat$traits[, "is_dim"]
+  if (any(i)) {
+    ## Here we just need to expand out the equations and the
+    ## associated other bits of the data (stage, deps_rec and traits).
+    ## This is a fiddle but not that hard.  Once that's done, we might
+    ## chase this through the generation then look at the user sized
+    ## arrays which need the f1 part of this done differently (and
+    ## that changes a few things but not a massive amount).
+    tmp <- lapply(dat$eqs[i], ir_prep_dim1, dat)
+    eqs <- unlist(tmp, FALSE, FALSE)
+    names(eqs) <- vcapply(eqs, "[[", "name")
+    eqs_len <- lengths(tmp, FALSE)
+
+    ## So here we add everything - this is going to differ for the
+    ## user dimension case again, but we can work around that as
+    ## needed.
+    traits <- dat$traits[rep(1, length(eqs)), , drop = FALSE]
+    traits[] <- FALSE
+    traits[, "is_symbol"] <- TRUE
+    rownames(traits) <- names(eqs)
+    stage <- viapply(eqs, "[[", "stage")
+    deps_rec <- lapply(eqs, function(x)
+      sort(unique(unlist(dat$deps_rec[x$depends$variables]), FALSE, FALSE))
+      %||% character(0))
+
+    ## Now interleave:
+    j <- ir_prep_interleave_index(i, eqs_len)
+    dat$eqs <- c(dat$eqs, eqs)[j]
+    dat$traits <- rbind(dat$traits, traits)[j, , drop = FALSE]
+
+    dat$stage <- c(dat$stage[!i], stage)
+    dat$deps_rec <- c(dat$deps_rec[!i], deps_rec)
+  }
+  dat
+}
+
+
+ir_prep_dim1 <- function(eq, dat) {
+  name <- eq$lhs$name_target
+  dims <- lapply(seq_len(eq$nd), function(i) as.name(array_dim_name(name, i)))
+
+  f <- function(name, value) {
+    type <- if (is.atomic(value)) "atomic" else "expression"
+    depends <- find_symbols(value)
+    list(name = name,
+         lhs = list(type = "symbol",
+                    name = name,
+                    data_type = "int"),
+         rhs = list(type = type,
+                    value = value,
+                    depends = depends),
+         depends = depends,
+         stochastic = FALSE,
+         expr = eq$expr,
+         expr_str = eq$expr_str,
+         line = eq$line,
+         stage = eq$stage)
+  }
+
+  ## Primary dimensions (will be done differently in the case of user
+  ## dimensions)
+  f1 <- function(i) {
+    f(array_dim_name(name, i), eq$rhs$value[[i + 1]])
+  }
+
+  f2 <- function(i) {
+    j <- seq_len(i - 1)
+    name <- array_dim_name(name, paste(j, collapse = ""))
+    value <- collapse_expr(dims[j], "*")
+    f(name, value)
+  }
+
+  c(lapply(seq_len(eq$nd), f1),
+    list(f(array_dim_name(name), collapse_expr(dims, "*"))),
+    if (eq$nd >= 3) lapply(3:eq$nd, f2))
 }
 
 
