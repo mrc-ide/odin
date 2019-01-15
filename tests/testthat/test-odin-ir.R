@@ -421,7 +421,7 @@ test_that("interpolation", {
                       "tp", "zp")))
   ## Interpolating function works
   pulse <- cinterpolate::interpolation_function(tp, zp, "constant")(tt)
-  expect_equal(dat$interpolate_pulse(tt), pulse)
+  expect_equal(vnapply(tt, dat$interpolate_pulse), pulse)
 
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))

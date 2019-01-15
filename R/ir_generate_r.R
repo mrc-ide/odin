@@ -472,9 +472,11 @@ sexp_to_rexp <- function(x, internal, meta) {
     } else if (fn == "interpolate_alloc") {
       ## Special treatment as there is no string literal support in
       ## odin yet.
-      x[[1]] <- quote(cinterpolate::interpolation_function)
-      x[2:3] <- lapply(x[2:3], sexp_to_rexp, internal, meta)
-      as.call(x)
+      args <- c(list(quote(cinterpolate::interpolation_function)),
+                lapply(x[2:3], sexp_to_rexp, internal, meta),
+                x[[4L]],
+                list(scalar = TRUE))
+      as.call(args)
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
     } else {

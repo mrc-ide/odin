@@ -71,6 +71,9 @@ ir_prep <- function(dat) {
     dat$eqs <- c(dat$eqs, alloc)
     dat$stage <- c(dat$stage, viapply(alloc, "[[", "stage"))
     location <- c(location, set_names(rep("internal", sum(i)), names(alloc)))
+    tmp <- dat$traits[i, , drop = FALSE]
+    rownames(tmp) <- names(alloc)
+    dat$traits <- rbind(dat$traits, tmp)
   }
 
   ## rhs:
