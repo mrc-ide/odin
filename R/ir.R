@@ -201,6 +201,13 @@ ir_prep_interleave_index <- function(i, m) {
 ir_prep_dim <- function(dat) {
   i <- dat$traits[, "is_dim"]
   if (any(i)) {
+    dim_user <- unlist(lapply(dat$eqs[i], function(x)
+      if (isTRUE(x$rhs$user)) x$lhs$name_target), FALSE, FALSE)
+    for (nm in dim_user) {
+      dat$eqs[[nm]]$exclude <- TRUE
+      dat$stage[[nm]] <- -1L
+    }
+
     ## Here we just need to expand out the equations and the
     ## associated other bits of the data (stage, deps_rec and traits).
     ## This is a fiddle but not that hard.  Once that's done, we might
@@ -236,16 +243,25 @@ ir_prep_dim <- function(dat) {
 }
 
 
+## TODO: this needs to be different for rank 1 because the whole thing
+## is much simpler.  but it still needs working on...
 ir_prep_dim1 <- function(eq, dat) {
+  rank <- eq$nd
   name <- eq$lhs$name_target
-  dims <- lapply(seq_len(eq$nd), function(i) as.name(array_dim_name(name, i)))
+  dims <- lapply(seq_len(rank), function(i) as.name(array_dim_name(name, i)))
 
-  f <- function(name, value) {
-    type <- if (is.atomic(value)) "atomic" else "expression"
-    depends <- find_symbols(value)
-    list(name = name,
+  f <- function(dim_name, value) {
+    if (is.null(value)) {
+      type <- "expression"
+      depends <- find_symbols(as.name(name))
+      value <- as.call(c(list(quote(user), as.name(name)), dims))
+    } else {
+      type <- if (is.atomic(value)) "atomic" else "expression"
+      depends <- find_symbols(value)
+    }
+    list(name = dim_name,
          lhs = list(type = "symbol",
-                    name = name,
+                    name = dim_name,
                     data_type = "int"),
          rhs = list(type = type,
                     value = value,
@@ -271,9 +287,34 @@ ir_prep_dim1 <- function(eq, dat) {
     f(name, value)
   }
 
-  c(lapply(seq_len(eq$nd), f1),
-    list(f(array_dim_name(name), collapse_expr(dims, "*"))),
-    if (eq$nd >= 3) lapply(3:eq$nd, f2))
+  f3 <- function(i) {
+    f(array_dim_name(name, i), 0L)
+  }
+
+  if (eq$rhs$user) {
+    ## NOTE: it would be really nice to stop the assignments to basic
+    ## dimensions these even being run, but that's not straightforward
+    ## at this point because equation use is how we currently work out
+    ## what the variables are.  We could strip these right out of the
+    ## IR but I think that it's better to start with initialising
+    ## things in general (especially with the C version - otherwise we
+    ## should get a compiler warning that we're passing an
+    ## uninitialised pointer around).  We could also strip out all
+    ## null equations here but I think for now we can just ignore this
+    ## weirdness and deal with it when the parse->ir code gets
+    ## refactored.
+    ret <- c(lapply(seq_len(eq$nd), f3),
+             list(f(array_dim_name(name), NULL)))
+  } else {
+    ret <- c(lapply(seq_len(eq$nd), f1),
+             list(f(array_dim_name(name), collapse_expr(dims, "*"))))
+  }
+
+  if (rank >= 3) {
+    ret <- c(ret, lapply(3:eq$nd, f2))
+  }
+
+  ret
 }
 
 
@@ -325,7 +366,8 @@ ir_features <- function(dat) {
 
 
 ir_equations <- function(dat) {
-  unname(lapply(dat$eqs, ir_equation))
+  exclude <- vlapply(dat$eqs, function(x) isTRUE(x$exclude))
+  unname(lapply(dat$eqs[!exclude], ir_equation))
 }
 
 

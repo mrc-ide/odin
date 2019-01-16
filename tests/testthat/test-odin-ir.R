@@ -386,7 +386,6 @@ test_that("user array - direct 3d", {
     dim(r) <- user()
   })
 
-
   m <- array(runif(24), 2:4)
   mod <- gen(m)
   expect_equal(mod$contents(),

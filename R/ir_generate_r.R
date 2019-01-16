@@ -469,6 +469,13 @@ sexp_to_rexp <- function(x, internal, meta) {
       sexp_to_rexp(array_dim_name(args[[1L]]), internal, meta)
     } else if (fn == "dim") {
       sexp_to_rexp(array_dim_name(args[[1L]], args[[2L]]), internal, meta)
+    } else if (fn == "user") {
+      ## TODO: formalise the treatment of some of these "special"
+      ## internal functions (get_user_dim, interpolation function,
+      ## etc?)
+      dims <- as.call(c(list(quote(c)), lapply(args[-1], as.character)))
+      call(as.character(meta$get_user_dim),
+           meta$user, meta$internal, args[[1]], dims)
     } else if (fn == "interpolate_alloc") {
       ## Special treatment as there is no string literal support in
       ## odin yet.
@@ -736,12 +743,13 @@ support_get_user_double <- function(user, name, internal, size, default) {
 }
 
 
-support_get_user_dim <- function(user, name, internal, rank) {
+support_get_user_dim <- function(user, internal, name, dims) {
   data <- user[[name]] %||% internal[[name]]
   if (is.null(data)) {
     stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
   }
   d <- dim(data)
+  rank <- length(dims)
   if (rank == 1) {
     if (!is.null(d)) {
       stop(sprintf("Expected a numeric vector for '%s'", name),
@@ -753,15 +761,10 @@ support_get_user_dim <- function(user, name, internal, rank) {
            call. = FALSE)
     }
     for (i in seq_len(rank)) {
-      internal[[array_dim_name(name, i)]] <- d[[i]]
-    }
-    if (rank >= 3) {
-      for (i in 3:rank) {
-        j <- seq_len(i - 1)
-        internal[[array_dim_name(name, paste(j, collapse = ""))]] <- prod(d[j])
-      }
+      internal[[dims[[i]]]] <- d[[i]]
     }
   }
+  internal[[name]] <- data
   length(data)
 }
 
