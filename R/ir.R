@@ -198,16 +198,45 @@ ir_prep_interleave_index <- function(i, m) {
   order(j, na.last = FALSE)[-seq_len(sum(i))]
 }
 
+
+ir_prep_dim_user <- function(nm, dat) {
+  ## if we run this lot in set user then I think that it will work -
+  ## it needs to really for this to all make any sense!  So let's give
+  ## it look.  We will rewrite:
+
+  ## * move the target equation _before_ the user provided one
+  ## * rewrite the dependencies to remove the dependency on the dimension
+  eq <- dat$eqs[[nm]]
+  eq <- list(
+    name = nm,
+    lhs = list(type = "array", name = nm, nd = eq$lhs$nd,
+               data_type = eq$lhs$data_type),
+    rhs = list(type = "null", value = NULL, depends = NULL),
+    depends = NULL,
+    stochastic = FALSE,
+    expr = eq$expr,
+    expr_str = eq$expr_str,
+    line = eq$line,
+    stage = eq$stage)
+  dat$eqs[[nm]] <- eq
+
+  ## Then reorder things a little:
+  i <- which(names(dat$eqs) == nm)
+  j <- which(names(dat$eqs) == array_dim_name(nm))
+  stopifnot(i > j)
+
+  k <- seq_along(dat$eqs)[-i]
+  k <- c(k[seq_len(j - 1)], i, k[-seq_len(j - 1)])
+  dat$eqs <- dat$eqs[k]
+  dat
+}
+
+
 ir_prep_dim <- function(dat) {
   i <- dat$traits[, "is_dim"]
   if (any(i)) {
     dim_user <- unlist(lapply(dat$eqs[i], function(x)
       if (isTRUE(x$rhs$user)) x$lhs$name_target), FALSE, FALSE)
-    for (nm in dim_user) {
-      dat$eqs[[nm]]$exclude <- TRUE
-      dat$stage[[nm]] <- -1L
-    }
-
     ## Here we just need to expand out the equations and the
     ## associated other bits of the data (stage, deps_rec and traits).
     ## This is a fiddle but not that hard.  Once that's done, we might
@@ -238,6 +267,12 @@ ir_prep_dim <- function(dat) {
 
     dat$stage <- c(dat$stage[!i], stage)
     dat$deps_rec <- c(dat$deps_rec[!i], deps_rec)
+
+    ## Here we need to move these to just before their respective
+    ## assigments:
+    for (nm in dim_user) {
+      dat <- ir_prep_dim_user(nm, dat)
+    }
   }
   dat
 }
@@ -553,8 +588,10 @@ ir_data_internal <- function(dat) {
     list(name = jsonlite::unbox(eq$lhs$name),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
-         transient = jsonlite::unbox(
-           eq$stage == STAGE_TIME && !identical(eq$lhs$special, "initial"))))
+         user = jsonlite::unbox(eq$lhs$type == "array" &&
+                                eq$rhs$type == "null"),
+         transient = jsonlite::unbox(eq$stage == STAGE_TIME &&
+                                     !identical(eq$lhs$special, "initial"))))
 
   extra_dimensions <- function(eq) {
     f <- function(i) {

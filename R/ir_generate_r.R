@@ -373,9 +373,17 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     }
 
     if (location == "internal") {
+      if (data_info$storage_type != "double") {
+        stop("Support for non-double vectors required")
+      }
       ## TODO: look at data_info$storage_type for more storage options
-      alloc_rhs <- call("numeric",
-                        call("[[", meta$internal, array_dim_name(nm)))
+      ## check data_info$rank - should be 3
+      if (data_info$user) {
+        len <- 0L
+      } else {
+        len <- call("[[", meta$internal, array_dim_name(nm))
+      }
+      alloc_rhs <- call("numeric", len)
       if (data_info$rank > 1L) {
         dim <- as.call(c(list(quote(c)),
                          lapply(seq_len(data_info$rank), function(i)

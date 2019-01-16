@@ -53,7 +53,8 @@
                     "dim",
                     "interpolate",
                     "scalar_expression",
-                    "user"
+                    "user",
+                    "null"
                 ],
                 "comment": "This duplicates different equation types"
             },
@@ -156,6 +157,7 @@
                         {"$ref": "#/definitions/equation_array_expression"},
                         {"$ref": "#/definitions/equation_scalar_expression"},
                         {"$ref": "#/definitions/equation_interpolate"},
+                        {"$ref": "#/definitions/equation_user"},
                         {"$ref": "#/definitions/equation_user"}
                     ]
                 }
@@ -303,6 +305,21 @@
             "additionalProperties": false
         },
 
+        "equation_null": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"const": "null"},
+                "source": {},
+                "depends": {"type": "null"},
+                "stochastic": {"const": false},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"}
+            },
+            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "additionalProperties": false
+        },
+
         "components": {
             "type": "object",
             "properties": {
@@ -340,10 +357,14 @@
                                 "$ref": "#/definitions/enum/storage_type"
                             },
                             "rank": {"$ref": "#/definitions/basic/rank" },
+                            "user": {
+                                "comment": "subject to change",
+                                "type": "boolean"
+                            },
                             "transient": {"type": "boolean"}
                         },
                         "required": ["name", "storage_type", "rank",
-                                     "transient"],
+                                     "user", "transient"],
                         "additionalProperties": false
                     }
                 }
