@@ -109,7 +109,9 @@ ir_prep <- function(dat) {
     names(dat$eqs))
 
   ## user:
-  v <- names_if(dat$stage[names(dat$eqs)] == STAGE_USER)
+  v <- names_if(
+    dat$stage[names(dat$eqs)] == STAGE_USER &
+    vcapply(dat$eqs, function(eq) eq$lhs$type) != "null")
   eq_eval_user <- set_names(names(dat$eqs) %in% v, names(dat$eqs))
 
   for (i in seq_along(dat$eqs)) {
@@ -287,18 +289,23 @@ ir_prep_dim1 <- function(eq, dat) {
 
   f <- function(dim_name, value) {
     if (is.null(value)) {
-      type <- "expression"
+      lhs_type <- "symbol"
+      rhs_type <- "expression"
       depends <- find_symbols(as.name(name))
       value <- as.call(c(list(quote(user), as.name(name)), dims))
+    } else if (identical(value, 0L)) {
+      lhs_type <- rhs_type <- "null"
+      depends <- NULL
     } else {
-      type <- if (is.atomic(value)) "atomic" else "expression"
+      lhs_type <- "symbol"
+      rhs_type <- if (is.atomic(value)) "atomic" else "expression"
       depends <- find_symbols(value)
     }
     list(name = dim_name,
-         lhs = list(type = "symbol",
+         lhs = list(type = lhs_type,
                     name = dim_name,
                     data_type = "int"),
-         rhs = list(type = type,
+         rhs = list(type = rhs_type,
                     value = value,
                     depends = depends),
          depends = depends,
@@ -326,7 +333,7 @@ ir_prep_dim1 <- function(eq, dat) {
     f(array_dim_name(name, i), 0L)
   }
 
-  if (eq$rhs$user) {
+  if (isTRUE(eq$rhs$user)) {
     ## NOTE: it would be really nice to stop the assignments to basic
     ## dimensions these even being run, but that's not straightforward
     ## at this point because equation use is how we currently work out
@@ -401,7 +408,12 @@ ir_features <- function(dat) {
 
 
 ir_equations <- function(dat) {
-  exclude <- vlapply(dat$eqs, function(x) isTRUE(x$exclude))
+  ## TODO: there are not actually any equations marked 'exclude'
+  ## anymore, but we are using 'null' equations here to try and filter
+  ## equations in the case where they're set by a side-effect of a
+  ## library function.
+  exclude <- vlapply(dat$eqs, function(x) isTRUE(x$exclude)) |
+    vcapply(dat$eqs, function(x) x$lhs$type) == "null"
   unname(lapply(dat$eqs[!exclude], ir_equation))
 }
 
@@ -595,8 +607,6 @@ ir_data_internal <- function(dat) {
     list(name = jsonlite::unbox(eq$lhs$name),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
-         user = jsonlite::unbox(eq$lhs$type == "array" &&
-                                eq$rhs$type == "null"),
          transient = jsonlite::unbox(eq$stage == STAGE_TIME &&
                                      !identical(eq$lhs$special, "initial"))))
 
