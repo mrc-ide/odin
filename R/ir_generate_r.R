@@ -463,6 +463,8 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   } else if (eq$type == "copy") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
+  } else if (eq$type == "null") {
+    NULL
   } else {
     stop("Unhandled type")
   }

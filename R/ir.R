@@ -209,7 +209,7 @@ ir_prep_dim_user <- function(nm, dat) {
   eq <- dat$eqs[[nm]]
   eq <- list(
     name = nm,
-    lhs = list(type = "array", name = nm, nd = eq$lhs$nd,
+    lhs = list(type = "null", name = nm, nd = eq$lhs$nd,
                data_type = eq$lhs$data_type),
     rhs = list(type = "null", value = NULL, depends = NULL),
     depends = NULL,
@@ -442,6 +442,8 @@ ir_equation <- function(eq) {
     type <- "scalar_expression"
   } else if (identical(eq$lhs$type, "array")) {
     type <- "array_expression"
+  } else if (identical(eq$lhs$type, "null")) {
+    type <- "null"
   } else {
     stop("Unclassified type")
   }
@@ -468,7 +470,12 @@ ir_equation <- function(eq) {
     }
   }
 
-  if (type == "scalar_expression") {
+  if (type == "null") {
+    rhs <- list(
+      type = jsonlite::unbox("null"),
+      value = NULL)
+    depends <- NULL
+  } else if (type == "scalar_expression") {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
       value = ir_expression(eq$rhs$value))

@@ -158,7 +158,7 @@
                         {"$ref": "#/definitions/equation_scalar_expression"},
                         {"$ref": "#/definitions/equation_interpolate"},
                         {"$ref": "#/definitions/equation_user"},
-                        {"$ref": "#/definitions/equation_user"}
+                        {"$ref": "#/definitions/equation_null"}
                     ]
                 }
             ]
