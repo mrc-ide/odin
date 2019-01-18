@@ -258,17 +258,20 @@ ir_prep_dim <- function(dat) {
     traits[, "is_symbol"] <- TRUE
     rownames(traits) <- names(eqs)
     stage <- viapply(eqs, "[[", "stage")
-    deps_rec <- lapply(eqs, function(x)
-      sort(unique(unlist(dat$deps_rec[x$depends$variables]), FALSE, FALSE))
-      %||% character(0))
+
+    deps <- function(depends) {
+      sort(unique(c(depends, unlist(dat$deps_rec[depends], FALSE, FALSE))))
+    }
+    deps_rec <- lapply(eqs, function(x) deps(x$depends$variables))
 
     ## Now interleave:
     j <- ir_prep_interleave_index(i, eqs_len)
     dat$eqs <- c(dat$eqs, eqs)[j]
     dat$traits <- rbind(dat$traits, traits)[j, , drop = FALSE]
 
-    dat$stage <- c(dat$stage[!i], stage)
-    dat$deps_rec <- c(dat$deps_rec[!i], deps_rec)
+    dat$stage <- c(dat$stage[setdiff(names(dat$stage), names_if(i))], stage)
+    dat$deps_rec <- c(dat$deps_rec[setdiff(names(dat$deps_rec), names_if(i))],
+                      deps_rec)
 
     ## Here we need to move these to just before their respective
     ## assigments:
@@ -280,11 +283,10 @@ ir_prep_dim <- function(dat) {
 }
 
 
-## TODO: this needs to be different for rank 1 because the whole thing
-## is much simpler.  but it still needs working on...
 ir_prep_dim1 <- function(eq, dat) {
   rank <- eq$nd
   name <- eq$lhs$name_target
+  user <- isTRUE(eq$rhs$user)
   dims <- lapply(seq_len(rank), function(i) as.name(array_dim_name(name, i)))
 
   f <- function(dim_name, value) {
@@ -333,27 +335,36 @@ ir_prep_dim1 <- function(eq, dat) {
     f(array_dim_name(name, i), 0L)
   }
 
-  if (isTRUE(eq$rhs$user)) {
-    ## NOTE: it would be really nice to stop the assignments to basic
-    ## dimensions these even being run, but that's not straightforward
-    ## at this point because equation use is how we currently work out
-    ## what the variables are.  We could strip these right out of the
-    ## IR but I think that it's better to start with initialising
-    ## things in general (especially with the C version - otherwise we
-    ## should get a compiler warning that we're passing an
-    ## uninitialised pointer around).  We could also strip out all
-    ## null equations here but I think for now we can just ignore this
-    ## weirdness and deal with it when the parse->ir code gets
-    ## refactored.
-    ret <- c(lapply(seq_len(eq$nd), f3),
-             list(f(array_dim_name(name), NULL)))
+  ## Looks like the rank 1 case needs special treatment here.
+  if (rank == 1) {
+    if (user) {
+      browser()
+    } else {
+      ret <- list(f(array_dim_name(name), eq$rhs$value))
+    }
   } else {
-    ret <- c(lapply(seq_len(eq$nd), f1),
-             list(f(array_dim_name(name), collapse_expr(dims, "*"))))
+    if (user) {
+      ## NOTE: it would be really nice to stop the assignments to basic
+      ## dimensions these even being run, but that's not straightforward
+      ## at this point because equation use is how we currently work out
+      ## what the variables are.  We could strip these right out of the
+      ## IR but I think that it's better to start with initialising
+      ## things in general (especially with the C version - otherwise we
+      ## should get a compiler warning that we're passing an
+      ## uninitialised pointer around).  We could also strip out all
+      ## null equations here but I think for now we can just ignore this
+      ## weirdness and deal with it when the parse->ir code gets
+      ## refactored.
+      ret <- c(lapply(seq_len(rank), f3),
+               list(f(array_dim_name(name), NULL)))
+    } else {
+      ret <- c(lapply(seq_len(rank), f1),
+               list(f(array_dim_name(name), collapse_expr(dims, "*"))))
+    }
   }
 
   if (rank >= 3) {
-    ret <- c(ret, lapply(3:eq$nd, f2))
+    ret <- c(ret, lapply(3:rank, f2))
   }
 
   ret
