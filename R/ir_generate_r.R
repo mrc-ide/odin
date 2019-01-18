@@ -395,50 +395,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     } else {
       as.call(c(list(quote(`{`)), res))
     }
-  } else if (eq$type == "dim") {
-    ## TODO: in the IR we really need to indicate where the *target*
-    ## lives - we need to know the target rank here but can't easily
-    ## get at it!  For now I will punt on that and infer it, but this
-    ## information belongs in the IR.
-    rank <- length(eq$rhs$value)
-    if (eq$rhs$user) {
-      ## TODO: this is basically punting on dimensions for now: this
-      ## is hard to do in general and the current C version is a mess!
-      ## There must be a nicer way of doing this, and I think it could
-      ## be done partly by inverting the graph here (though that might
-      ## not work well for the C case).  This function works through
-      ## side-effects unfortunately, but could be done by
-      ## code-generating the relevant parts of that function into the
-      ## main function...
-      rhs <- call(as.character(meta$get_user_dim),
-                  meta$user, eq$lhs$target, meta$internal, rank)
-      call("<-", lhs, rhs)
-    } else if (rank == 1L) {
-      rhs <- sexp_to_rexp(eq$rhs$value[[1L]], internal, meta)
-      call("<-", lhs, rhs)
-    } else {
-      ## TODO: this makes a _total_ mess of the lhs; this function
-      ## needs major work!
-      nm_target <- eq$lhs$target
-      dimnames <- vcapply(seq_len(rank), array_dim_name, name = nm_target)
-      dimdata <- lapply(dimnames, function(x) call("[[", meta$internal, x))
-      dim1 <- lapply(seq_len(rank), function(i)
-        call("<-", dimdata[[i]],
-             sexp_to_rexp(eq$rhs$value[[i]], internal, meta)))
-      dim <- call("<-", lhs, collapse_expr(dimdata, "*"))
-      if (rank >= 3) {
-        dim2 <- lapply(3:rank, function(i) {
-          k <- seq_len(i - 1L)
-          call("<-",
-               call("[[", meta$internal,
-                    array_dim_name(nm_target, paste(k, collapse = ""))),
-               collapse_expr(dimdata[k], "*"))
-        })
-      } else {
-        dim2 <- NULL
-      }
-      as.call(c(list(quote(`{`)), c(dim1, dim2, dim)))
-    }
   } else if (eq$type == "user") {
     rank <- data_info$rank
     if (is.null(eq$rhs$value)) {
@@ -457,8 +413,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   } else if (eq$type == "copy") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
-  } else if (eq$type == "null") {
-    NULL
   } else {
     stop("Unhandled type")
   }
