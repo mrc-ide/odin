@@ -116,7 +116,7 @@ ir_prep <- function(dat) {
 
   for (i in seq_along(dat$eqs)) {
     dat$eqs[[i]]$lhs$location <- location[[dat$eqs[[i]]$name]]
-    dat$eqs[[i]]$deps_rec <- dat$deps_rec[[i]] %||% stop("IR ERROR")
+    dat$eqs[[i]]$deps_rec <- dat$deps_rec[[i]] %||% character(0)
   }
 
   dat$evaluated <- list(rhs = names_if(eq_eval_rhs),
@@ -226,9 +226,13 @@ ir_prep_dim_user <- function(nm, dat) {
   i <- which(names(dat$eqs) == nm)
   j <- which(names(dat$eqs) == array_dim_name(nm))
   stopifnot(i > j)
-
   k <- seq_along(dat$eqs)[-i]
-  k <- c(k[seq_len(j - 1)], i, k[-seq_len(j - 1)])
+  if (j == 1) {
+    ## Avoids the -integer(0) indexing trap which deletes everything!
+    k <- c(i, k)
+  } else {
+    k <- c(k[seq_len(j - 1)], i, k[-seq_len(j - 1)])
+  }
   dat$eqs <- dat$eqs[k]
   dat
 }
@@ -276,6 +280,7 @@ ir_prep_dim <- function(dat) {
     ## Here we need to move these to just before their respective
     ## assigments:
     for (nm in dim_user) {
+      ## currently this breaks everything...
       dat <- ir_prep_dim_user(nm, dat)
     }
   }
@@ -294,7 +299,8 @@ ir_prep_dim1 <- function(eq, dat) {
       lhs_type <- "symbol"
       rhs_type <- "expression"
       depends <- find_symbols(as.name(name))
-      value <- as.call(c(list(quote(user), as.name(name)), dims))
+      args <- if (rank == 1) NULL else dims
+      value <- as.call(c(list(quote(user), as.name(name)), args))
     } else if (identical(value, 0L)) {
       lhs_type <- rhs_type <- "null"
       depends <- NULL
@@ -338,23 +344,12 @@ ir_prep_dim1 <- function(eq, dat) {
   ## Looks like the rank 1 case needs special treatment here.
   if (rank == 1) {
     if (user) {
-      browser()
+      ret <- list(f(array_dim_name(name), NULL))
     } else {
       ret <- list(f(array_dim_name(name), eq$rhs$value))
     }
   } else {
     if (user) {
-      ## NOTE: it would be really nice to stop the assignments to basic
-      ## dimensions these even being run, but that's not straightforward
-      ## at this point because equation use is how we currently work out
-      ## what the variables are.  We could strip these right out of the
-      ## IR but I think that it's better to start with initialising
-      ## things in general (especially with the C version - otherwise we
-      ## should get a compiler warning that we're passing an
-      ## uninitialised pointer around).  We could also strip out all
-      ## null equations here but I think for now we can just ignore this
-      ## weirdness and deal with it when the parse->ir code gets
-      ## refactored.
       ret <- c(lapply(seq_len(rank), f3),
                list(f(array_dim_name(name), NULL)))
     } else {

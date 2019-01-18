@@ -477,7 +477,11 @@ sexp_to_rexp <- function(x, internal, meta) {
       ## TODO: formalise the treatment of some of these "special"
       ## internal functions (get_user_dim, interpolation function,
       ## etc?)
-      dims <- as.call(c(list(quote(c)), lapply(args[-1], as.character)))
+      if (length(args) > 1L) {
+        dims <- as.call(c(list(quote(c)), lapply(args[-1], as.character)))
+      } else {
+        dims <- NULL
+      }
       call(as.character(meta$get_user_dim),
            meta$user, meta$internal, args[[1]], dims)
     } else if (fn == "interpolate_alloc") {
@@ -752,14 +756,22 @@ support_get_user_dim <- function(user, internal, name, dims) {
   if (is.null(data)) {
     stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
   }
+  if (is.integer(data)) {
+    storage.mode(data) <- "numeric"
+  } else if (!is.numeric(data)) {
+    stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
+  }
+  if (any(is.na(data))) {
+    stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
+  }
   d <- dim(data)
-  rank <- length(dims)
-  if (rank == 1) {
+  if (is.null(dims)) {
     if (!is.null(d)) {
       stop(sprintf("Expected a numeric vector for '%s'", name),
            call. = FALSE)
     }
   } else {
+    rank <- length(dims)
     if (length(d) != rank) {
       stop(sprintf("Expected a numeric array of rank %d for '%s'", rank, name),
            call. = FALSE)
