@@ -489,8 +489,6 @@ ir_equation <- function(eq) {
     type <- "scalar_expression"
   } else if (identical(eq$lhs$type, "array")) {
     type <- "array_expression"
-  } else if (identical(eq$lhs$type, "null")) {
-    type <- "null"
   } else {
     stop("Unclassified type")
   }
@@ -517,12 +515,7 @@ ir_equation <- function(eq) {
     }
   }
 
-  if (type == "null") {
-    rhs <- list(
-      type = jsonlite::unbox("null"),
-      value = NULL)
-    depends <- NULL
-  } else if (type == "scalar_expression") {
+  if (type == "scalar_expression") {
     rhs <- list(
       type = jsonlite::unbox(eq$rhs$type),
       value = ir_expression(eq$rhs$value))
@@ -767,6 +760,8 @@ ir_deserialise <- function(ir) {
     names(dat$data$output$data) <-
       vcapply(dat$data$output$data, "[[", "name")
   }
+
+  dat$data$internal$contents <- list_to_character(dat$data$internal$contents)
 
   dat
 }
