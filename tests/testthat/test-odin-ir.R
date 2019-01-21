@@ -520,3 +520,36 @@ test_that("multiple output arrays", {
   expect_equal(zz$r, matrix(r, length(tt), 3, TRUE))
   expect_equal(zz$yr, t(t(zz$y) / (1:3)))
 })
+
+
+test_that("3d array time dependent and variable", {
+  gen <- odin2({
+    initial(y[, , ]) <- 1
+    deriv(y[, , ]) <- y[i, j, k] * r[i, j, k]
+    dim(y) <- c(2, 3, 4)
+    dim(r) <- c(2, 3, 4)
+    r[, , ] <- t * 0.1
+  })
+
+  mod <- gen()
+  d <- mod$contents()
+  expect_equal(d$initial_y, array(1, c(2, 3, 4)))
+  expect_equal(d$dim_y, 24)
+  expect_equal(d$dim_y_1, 2)
+  expect_equal(d$dim_y_2, 3)
+  expect_equal(d$dim_y_3, 4)
+  expect_equal(d$dim_y_12, 6)
+
+  expect_equal(mod$initial(), rep(1, 24))
+  expect_equal(mod$deriv(2, mod$initial()), rep(0.2, 24))
+
+  tt <- 0:10
+  yy <- mod$run(tt)
+  expect_equal(colnames(yy)[[12]], "y[1,3,2]")
+  expect_equal(yy[, 1], tt)
+
+  cmp <- deSolve::ode(1, tt, function(t, y, p) list(y * t * 0.1))[, 2]
+  expect_equal(
+    unname(yy[, -1]),
+    matrix(rep(cmp, 24), 11))
+})

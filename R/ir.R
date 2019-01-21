@@ -280,7 +280,6 @@ ir_prep_dim <- function(dat) {
     ## Here we need to move these to just before their respective
     ## assigments:
     for (nm in dim_user) {
-      ## currently this breaks everything...
       dat <- ir_prep_dim_user(nm, dat)
     }
   }
@@ -363,17 +362,19 @@ ir_prep_dim1 <- function(eq, dat) {
   }
 
   is_internal <- !(name %in% c(dat$variable_info$order, dat$output_info$order))
-  if (is_internal && !user) {
-    args <- c(as.name(array_dim_name(name)), if (rank > 1) dims)
-    alloc <- as.call(c(quote(alloc), args))
+  is_initial <- name %in% dat$variable_info$order
+  if ((is_internal || is_initial) && !user) {
+    name_target <- if (is_initial) initial_name(name) else name
+    alloc <- call("alloc", as.name(array_dim_name(name)),
+                  if (rank > 1) as.call(c(quote(c), dims)))
     depends <- find_symbols(alloc)
     depends$functions <- character(0)
-    alloc_name <- sprintf("alloc_%s", name)
+    alloc_name <- sprintf("alloc_%s", name_target)
     eq_alloc <- list(
       name = alloc_name,
       lhs = list(type = "symbol",
-                 name = name,
-                 name_target = name,
+                 name = name_target,
+                 name_target = name_target,
                  data_type = eq$lhs$data_type),
       rhs = list(type = "alloc",
                  value = alloc,
@@ -649,6 +650,7 @@ ir_data_internal <- function(dat) {
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          transient = jsonlite::unbox(eq$stage == STAGE_TIME &&
+                                     is.null(eq$lhs$nd) &&
                                      !identical(eq$lhs$special, "initial"))))
 
   extra_dimensions <- function(eq) {
@@ -664,12 +666,6 @@ ir_data_internal <- function(dat) {
         paste(seq_len(i - 1), collapse = "")))
     }
     lapply(i, f)
-  }
-
-  dimensions <- unlist(lapply(unname(dat$eqs[dat$traits[, "is_dim"]]),
-                              extra_dimensions), FALSE, FALSE)
-  if (length(dimensions) > 0L) {
-    data <- c(data, set_names(dimensions, vcapply(dimensions, "[[", "name")))
   }
 
   ## I am sure that there is more to add here - size, etc

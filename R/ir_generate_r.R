@@ -339,16 +339,15 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   }
 
   if (eq$type == "alloc") {
-    if (data_info$storage_type != "double") {
-      stop("Support for non-double vectors required")
-    }
+    alloc_fn <- switch(data_info$storage_type,
+                       double = "numeric",
+                       int = "integer",
+                       stop(sprintf("unsupported storage type")))
     len <- call("[[", meta$internal, eq$rhs$value[[2]])
-    rhs <- call("numeric", len)
+    rhs <- call(alloc_fn, len)
     if (data_info$rank > 1L) {
-      browser()
-      dim <- as.call(c(list(quote(c)),
-                       lapply(seq_len(data_info$rank), function(i)
-                         call("[[", meta$internal, array_dim_name(nm, i)))))
+      dim <- as.call(c(quote(c), lapply(eq$rhs$value[[3]][-1], function(i)
+        call("[[", meta$internal, i))))
       rhs <- call("array", rhs, dim)
     }
     call("<-", lhs, rhs)
