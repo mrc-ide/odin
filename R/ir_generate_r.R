@@ -83,7 +83,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
 odin_ir_generate_create <- function(eqs, dat, env, meta) {
   alloc <- call("<-", meta[["internal"]], quote(new.env(parent = emptyenv())))
-  eqs_create <- unname(eqs[dat$components$create$equations])
+  eqs_create <- flatten_eqs(eqs[dat$components$create$equations])
   ret <- meta[["internal"]]
   body <- as.call(c(list(quote(`{`)), c(alloc, eqs_create, ret)))
   as.function(c(alist(), body), env)
@@ -96,7 +96,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
     sexp_to_rexp(dat$data$variable$length, dat$data$internal$contents, meta)
   alloc <- call("<-", meta$state, call("numeric", var_length))
   ## These are only time dependent things
-  eqs_initial <- unname(eqs[dat$components$initial$equations])
+  eqs_initial <- flatten_eqs(eqs[dat$components$initial$equations])
   f <- function(x) {
     if (x$rank == 0) {
       target <- call("[[", meta$state, offset_to_position(x$offset))
@@ -119,7 +119,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
 
 odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
-  eqs_user <- unname(eqs[dat$components$user$equations])
+  eqs_user <- flatten_eqs(eqs[dat$components$user$equations])
   args <- alist(user =, internal =)
   names(args)[[1]] <- as.character(meta$user)
   names(args)[[2]] <- as.character(meta$internal)
@@ -197,7 +197,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
     alloc <- alloc_result
   }
 
-  eqs_include <- unname(eqs[use_eqs])
+  eqs_include <- flatten_eqs(eqs[use_eqs])
 
   if (desolve) {
     if (has_output) {
@@ -389,12 +389,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
       alloc <- NULL
     }
 
-    res <- c(alloc, lapply(seq_along(eq$lhs$index), f))
-    if (length(res) == 1L) {
-      res[[1L]]
-    } else {
-      as.call(c(list(quote(`{`)), res))
-    }
+    c(alloc, lapply(seq_along(eq$lhs$index), f))
   } else if (eq$type == "user") {
     rank <- data_info$rank
     if (is.null(eq$rhs$value)) {
@@ -774,4 +769,13 @@ odin_base_env <- function() {
   }
 
   env
+}
+
+
+flatten_eqs <- function(x) {
+  x <- unname(x)
+  if (any(vlapply(x, is.list))) {
+    x <- unlist(x, FALSE, FALSE)
+  }
+  x
 }
