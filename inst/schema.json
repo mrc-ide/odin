@@ -19,6 +19,13 @@
                 }
             },
 
+            "boolean_vector": {
+                "type": "array",
+                "items": {
+                    "type": "boolean"
+                }
+            },
+
             "rank": {
                 "type": "integer",
                 "minimum": 0,
@@ -87,6 +94,14 @@
                     }
                 }
             ]
+        },
+
+
+        "sexpression_vector": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/sexpression"
+            }
         },
 
         "dependencies": {
@@ -181,6 +196,51 @@
             ]
         },
 
+        "equation_lhs_simple": {
+            "comment": "this could do with a better name!",
+            "type": "object",
+            "properties": {
+                "location": {"$ref": "#/definitions/enum/location"},
+                "target": {"type": "string"}
+            },
+            "required": ["location", "target"],
+            "additionalProperties": false
+        },
+
+        "equation_lhs_array": {
+            "type": "object",
+            "properties": {
+                "location": {"$ref": "#/definitions/enum/location"},
+                "target": {"type": "string"},
+                "index": {
+                    "comment": "this is a complex object: first index is equation, second is dimension",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "value": {
+                                "$ref": "#/definitions/sexpression_vector"
+                            },
+                            "is_range": {
+                                "$ref": "#/definitions/basic/boolean_vector"
+                            },
+                            "extent_min": {
+                                "$ref": "#/definitions/sexpression_vector"
+                            },
+                            "extent_max": {
+                                "$ref": "#/definitions/sexpression_vector"
+                            }
+                        },
+                        "required": ["value", "is_range",
+                                     "extent_min", "extent_max"],
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "required": ["location", "target", "index"],
+            "additionalProperties": false
+        },
+
         "equation_base": {
             "type": "object",
             "properties": {
@@ -194,14 +254,26 @@
 
         "equation_alloc": {
             "type": "object",
+            "TODO": "move stochastic elsewhere",
             "properties": {
                 "name": {"type": "string"},
                 "type": {"const": "alloc"},
                 "source": {},
                 "depends": {},
                 "stochastic": {"const": false},
-                "lhs": {"type": "object"},
-                "rhs": {"type": "object"}
+                "lhs": {
+                    "$ref": "#/definitions/equation_lhs_simple"
+                },
+                "rhs": {
+                    "TODO": "I believe rhs$type can be dropped & value needs work?",
+                    "type": "object",
+                    "properties": {
+                        "type": {"const": "alloc"},
+                        "value": {}
+                    },
+                    "required": ["type", "value"],
+                    "additionalProperties": true
+                }
             },
             "required": ["name", "type", "stochastic", "lhs", "rhs"],
             "additionalProperties": false
@@ -231,13 +303,7 @@
                 "depends": {},
                 "stochastic": {"type": "boolean"},
                 "lhs": {
-                    "type": "object",
-                    "properties": {
-                        "location": {"$ref": "#/definitions/enum/location"},
-                        "target": {"type": "string"}
-                    },
-                    "required": ["location", "target"],
-                    "additionalProperties": false
+                    "$ref": "#/definitions/equation_lhs_simple"
                 },
                 "rhs": {
                     "type": "object",
@@ -261,7 +327,7 @@
                 "source": {},
                 "depends": {},
                 "stochastic": {"type": "boolean"},
-                "lhs": {"type": "object"},
+                "lhs": {"$ref": "#/definitions/equation_lhs_array"},
                 "rhs": {"type": "object"}
             },
             "required": ["name", "type", "stochastic", "lhs", "rhs"],
