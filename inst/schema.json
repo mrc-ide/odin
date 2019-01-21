@@ -48,6 +48,7 @@
             "equation_type": {
                 "type": "string",
                 "enum": [
+                    "alloc",
                     "array_expression",
                     "copy",
                     "interpolate",
@@ -151,6 +152,7 @@
                 {
                     "oneOf": [
                         {"$ref": "#/definitions/equation_copy"},
+                        {"$ref": "#/definitions/equation_alloc"},
                         {"$ref": "#/definitions/equation_array_expression"},
                         {"$ref": "#/definitions/equation_scalar_expression"},
                         {"$ref": "#/definitions/equation_interpolate"},
@@ -169,6 +171,21 @@
                 "depends": {}
             },
             "required": ["name", "type", "source", "depends"]
+        },
+
+        "equation_alloc": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"const": "alloc"},
+                "source": {},
+                "depends": {},
+                "stochastic": {"const": false},
+                "lhs": {"type": "object"},
+                "rhs": {"type": "object"}
+            },
+            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "additionalProperties": false
         },
 
         "equation_copy": {

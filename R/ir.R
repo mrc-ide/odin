@@ -362,6 +362,31 @@ ir_prep_dim1 <- function(eq, dat) {
     ret <- c(ret, lapply(3:rank, f2))
   }
 
+  is_internal <- !(name %in% c(dat$variable_info$order, dat$output_info$order))
+  if (is_internal && !user) {
+    args <- c(as.name(array_dim_name(name)), if (rank > 1) dims)
+    alloc <- as.call(c(quote(alloc), args))
+    depends <- find_symbols(alloc)
+    depends$functions <- character(0)
+    alloc_name <- sprintf("alloc_%s", name)
+    eq_alloc <- list(
+      name = alloc_name,
+      lhs = list(type = "symbol",
+                 name = name,
+                 name_target = name,
+                 data_type = eq$lhs$data_type),
+      rhs = list(type = "alloc",
+                 value = alloc,
+                 depends = depends),
+      depends = depends,
+      stochastic = FALSE,
+      expr = eq$expr,
+      expr_str = eq$expr_str,
+      line = eq$line,
+      stage = eq$stage)
+    ret <- c(ret, list(eq_alloc))
+  }
+
   ret
 }
 
@@ -436,7 +461,8 @@ ir_components <- function(dat) {
 
 ir_equation <- function(eq) {
   lhs <- list(location = jsonlite::unbox(eq$lhs$location))
-  if (is.null(eq$lhs$special) || eq$lhs$special == "initial") {
+  if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
+      !identical(eq$rhs$type, "alloc")) {
     lhs$target <- jsonlite::unbox(eq$name)
   } else {
     lhs$target <- jsonlite::unbox(eq$lhs$name_target)
@@ -451,6 +477,8 @@ ir_equation <- function(eq) {
     type <- "dim"
   } else if (isTRUE(eq$rhs$user)) {
     type <- "user"
+  } else if (identical(eq$rhs$type, "alloc")) {
+    type <- "alloc"
   } else if (isTRUE(eq$rhs$interpolate)) {
     type <- "interpolate"
   } else if (isTRUE(eq$rhs$delay)) {
@@ -557,6 +585,10 @@ ir_equation <- function(eq) {
     rhs <- list(type = jsonlite::unbox("copy"),
                 value = jsonlite::unbox(eq$lhs$name_target))
     depends <- NULL
+  } else if (type == "alloc") {
+    rhs <- list(type = jsonlite::unbox("alloc"),
+                value = ir_expression(eq$rhs$value))
+    depends <- eq$depends
   } else {
     stop("rhs type needs implementing")
   }
@@ -608,7 +640,10 @@ ir_data_internal <- function(dat) {
   ## representative of the C data type.
 
   ## if has delay add a ring
-  i <- vcapply(dat$eqs, function(x) x$lhs$location) == "internal"
+  i <- vlapply(dat$eqs, function(x)
+    x$lhs$location == "internal" &&
+    !identical(x$rhs$type, "alloc"))
+
   data <- lapply(dat$eqs[i], function(eq)
     list(name = jsonlite::unbox(eq$lhs$name),
          storage_type = jsonlite::unbox(eq$lhs$data_type),

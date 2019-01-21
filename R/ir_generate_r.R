@@ -273,10 +273,12 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   data_info <- dat$data[[location]]$data[[data_name]]
 
   ## LHS:
-  if (location == "internal") {
+  if (eq$type == "alloc") {
+    lhs <- call("[[", meta$internal, eq$lhs$target)
+  } else if (location == "internal") {
     ## TODO: I think that this is equivalent to
     ##   lhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    if (dat$data$internal$data[[nm]]$transient) {
+    if (data_info$transient) {
       lhs <- as.name(nm)
     } else if (eq$type == "array_expression") {
       storage <- call("[[", meta$internal, nm)
@@ -336,7 +338,21 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     stop("Unhandled path")
   }
 
-  if (eq$type == "scalar_expression") {
+  if (eq$type == "alloc") {
+    if (data_info$storage_type != "double") {
+      stop("Support for non-double vectors required")
+    }
+    len <- call("[[", meta$internal, eq$rhs$value[[2]])
+    rhs <- call("numeric", len)
+    if (data_info$rank > 1L) {
+      browser()
+      dim <- as.call(c(list(quote(c)),
+                       lapply(seq_len(data_info$rank), function(i)
+                         call("[[", meta$internal, array_dim_name(nm, i)))))
+      rhs <- call("array", rhs, dim)
+    }
+    call("<-", lhs, rhs)
+  } else if (eq$type == "scalar_expression") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
   } else if (eq$type == "array_expression") {
@@ -344,9 +360,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     ## this can go into sexp_to_rexp - use seq_along and seq_len where
     ## appropriate, but the gains from that will be small compared
     ## with avoiding vectorisation.
-    ##
-    ## TODO: this is just not going to work for multi-dimensional
-    ## arrays!
     ##
     ## TODO: we can (re-)vectorise lots of expressions here.
     f <- function(i) {
@@ -371,25 +384,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
       }
       expr_body
     }
-
-    if (location == "internal") {
-      if (data_info$storage_type != "double") {
-        stop("Support for non-double vectors required")
-      }
-      len <- call("[[", meta$internal, array_dim_name(nm))
-      alloc_rhs <- call("numeric", len)
-      if (data_info$rank > 1L) {
-        dim <- as.call(c(list(quote(c)),
-                         lapply(seq_len(data_info$rank), function(i)
-                           call("[[", meta$internal, array_dim_name(nm, i)))))
-        alloc_rhs <- call("array", alloc_rhs, dim)
-      }
-      alloc <- list(call("<-", call("[[", meta$internal, eq$name), alloc_rhs))
-    } else {
-      alloc <- NULL
-    }
-
-    c(alloc, lapply(seq_along(eq$lhs$index), f))
+    lapply(seq_along(eq$lhs$index), f)
   } else if (eq$type == "user") {
     rank <- data_info$rank
     if (is.null(eq$rhs$value)) {
