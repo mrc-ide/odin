@@ -104,6 +104,17 @@
             }
         },
 
+        "sexpression_vector_null": {
+            "type": "array",
+            "TODO": "this is here until I think more carefully about extent_min",
+            "items": {
+                "oneOf": [
+                    {"$ref": "#/definitions/sexpression"},
+                    {"type": "null"}
+                ]
+            }
+        },
+
         "dependencies": {
             "oneOf": [
                 {"type": "null"},
@@ -225,7 +236,7 @@
                                 "$ref": "#/definitions/basic/boolean_vector"
                             },
                             "extent_min": {
-                                "$ref": "#/definitions/sexpression_vector"
+                                "$ref": "#/definitions/sexpression_vector_null"
                             },
                             "extent_max": {
                                 "$ref": "#/definitions/sexpression_vector"
