@@ -272,6 +272,9 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
 
   if (eq$type == "alloc") {
     return(odin_ir_generate_expression_alloc(eq, data_info, meta))
+  } else if (eq$type == "alloc_interpolate") {
+    return(odin_ir_generate_expression_alloc_interpolate(
+      eq, data_info, internal, meta))
   } else if (eq$type == "copy") {
     return(odin_ir_generate_expression_copy(eq, data_info, internal, meta))
   }
@@ -373,9 +376,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
          call("[[", meta$internal, nm),
          call(as.character(meta$get_user_double),
               meta$user, nm, meta$internal, size, default))
-  } else if (eq$type == "interpolate") {
-    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    call("<-", lhs, rhs)
   } else {
     stop("Unhandled type")
   }
@@ -390,6 +390,8 @@ sexp_to_rexp <- function(x, internal, meta) {
       sexp_to_rexp(array_dim_name(args[[1L]]), internal, meta)
     } else if (fn == "dim") {
       sexp_to_rexp(array_dim_name(args[[1L]], args[[2L]]), internal, meta)
+    } else if (fn == "interpolate") {
+      sexp_to_rexp(list(args[[2]], args[[1]]), internal, meta)
     } else if (fn == "user") {
       ## TODO: formalise the treatment of some of these "special"
       ## internal functions (get_user_dim, interpolation function,
@@ -401,14 +403,6 @@ sexp_to_rexp <- function(x, internal, meta) {
       }
       call(as.character(meta$get_user_dim),
            meta$user, meta$internal, args[[1]], dims)
-    } else if (fn == "interpolate_alloc") {
-      ## Special treatment as there is no string literal support in
-      ## odin yet.
-      args <- c(list(quote(cinterpolate::interpolation_function)),
-                lapply(x[2:3], sexp_to_rexp, internal, meta),
-                x[[4L]],
-                list(scalar = TRUE))
-      as.call(args)
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
     } else {
@@ -442,6 +436,19 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, meta) {
       call("[[", meta$internal, i))))
     rhs <- call("array", rhs, dim)
   }
+  call("<-", lhs, rhs)
+}
+
+
+odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
+                                                          internal, meta) {
+  lhs <- call("[[", meta$internal, eq$lhs$target)
+  args <- list(quote(cinterpolate::interpolation_function),
+               sexp_to_rexp(eq$interpolate$t, internal, meta),
+               sexp_to_rexp(eq$interpolate$y, internal, meta),
+               eq$interpolate$type,
+               scalar = TRUE)
+  rhs <- as.call(args)
   call("<-", lhs, rhs)
 }
 

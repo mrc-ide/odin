@@ -395,20 +395,26 @@ ir_prep_dim1 <- function(eq, dat) {
 ir_prep_interpolate <- function(x, dat) {
   stage_alloc <- max(dat$stage[x$depends$variables])
   stopifnot(stage_alloc <= STAGE_USER)
+
   x_alloc <- x
   x_alloc$name <- x$rhs$value$name
   x_alloc$lhs$name <- x$rhs$value$name
   x_alloc$stage <- stage_alloc
   x_alloc$lhs$data_type <- "interpolate_data" # (really void*)
-  x_alloc$rhs$type <- "interpolate_alloc"
-  x_alloc$rhs$value <-
-    call("interpolate_alloc", x$rhs$value$t, x$rhs$value$y, x$rhs$value$type)
+  x_alloc$alloc_interpolate <- TRUE
+  x_alloc$interpolate <- x$rhs$value[c("t", "y", "type")]
+  x_alloc$depends$functions <- character(0)
 
   time <- if (dat$info$discrete) STEP else TIME
   x_use <- x
-  x_use$rhs <- list(type = "interpolate_use",
-                    value = call(x$rhs$value$name, as.name(time)),
-                    interpolate = TRUE)
+  x_use$lhs <- list(
+    type = "symbol",
+    name = x$lhs$name,
+    data_type = x$lhs$data_type,
+    nd = x$lhs$nd)
+  x_use$rhs <- list(
+    type = "expression",
+    value = call("interpolate", as.name(time), as.name(x_alloc$lhs$name)))
   x_use$depends <- list(functions = character(),
                         variables = c(time, x$rhs$value$name))
 
@@ -472,8 +478,8 @@ ir_equation <- function(eq) {
     type <- "user"
   } else if (identical(eq$rhs$type, "alloc")) {
     return(ir_equation_alloc(eq))
-  } else if (isTRUE(eq$rhs$interpolate)) {
-    type <- "interpolate"
+  } else if (isTRUE(eq$alloc_interpolate)) {
+    return(ir_equation_alloc_interpolate(eq))
   } else if (isTRUE(eq$rhs$output_self)) {
     return(ir_equation_copy(eq))
   } else if (isTRUE(eq$rhs$delay)) {
@@ -544,11 +550,6 @@ ir_equation <- function(eq) {
       type = jsonlite::unbox(eq$rhs$type),
       value = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL)
     depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
-  } else if (type == "interpolate") {
-    rhs <- list(
-      type = jsonlite::unbox(eq$rhs$type),
-      value = ir_expression(eq$rhs$value))
-    depends <- eq$depends
   } else {
     stop("rhs type needs implementing")
   }
@@ -593,6 +594,16 @@ ir_equation_copy <- function(eq) {
 }
 
 
+ir_equation_alloc_interpolate <- function(eq) {
+  list(name = jsonlite::unbox(eq$name),
+       source = eq$line,
+       depends = eq$depends,
+       type = jsonlite::unbox("alloc_interpolate"),
+       lhs = ir_equation_lhs(eq),
+       interpolate = lapply(eq$interpolate, jsonlite::unbox))
+}
+
+
 ir_expression <- function(expr) {
   if (is.symbol(expr)) {
     jsonlite::unbox(as.character(expr))
@@ -624,10 +635,6 @@ ir_data_internal <- function(dat) {
   ## TODO: dimensionscome through with the wrong data type and wrong
   ## rank here in parse - they should always be rank 0 integers.  Fix
   ## this in prep (it's not a big deal for R models I believe).
-
-  ## TODO: interpolation allocation data type needs fixing: currently
-  ## "interpolate" but we might use something more descriptive and
-  ## representative of the C data type.
 
   ## if has delay add a ring
   i <- vlapply(dat$eqs, function(x)

@@ -56,13 +56,18 @@
                 "type": "string",
                 "enum": [
                     "alloc",
+                    "alloc_interpolate",
                     "array_expression",
                     "copy",
-                    "interpolate",
                     "scalar_expression",
                     "user"
                 ],
                 "comment": "This duplicates different equation types"
+            },
+
+            "interpolation_type": {
+                "type": "string",
+                "enum": ["constant", "linear", "spline"]
             },
 
             "stage": {
@@ -204,9 +209,9 @@
                     "oneOf": [
                         {"$ref": "#/definitions/equation_copy"},
                         {"$ref": "#/definitions/equation_alloc"},
+                        {"$ref": "#/definitions/equation_alloc_interpolate"},
                         {"$ref": "#/definitions/equation_array_expression"},
                         {"$ref": "#/definitions/equation_scalar_expression"},
-                        {"$ref": "#/definitions/equation_interpolate"},
                         {"$ref": "#/definitions/equation_user"}
                     ]
                 }
@@ -339,18 +344,30 @@
             "additionalProperties": false
         },
 
-        "equation_interpolate": {
+        "equation_alloc_interpolate": {
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
-                "type": {"const": "interpolate"},
+                "type": {"const": "alloc_interpolate"},
                 "source": {},
                 "depends": {},
-                "stochastic": {"const": false},
-                "lhs": {"type": "object"},
-                "rhs": {"type": "object"}
+                "lhs": {
+                    "$ref": "#/definitions/equation_lhs_simple"
+                },
+                "interpolate": {
+                    "type": "object",
+                    "properties": {
+                        "t": {"type": "string"},
+                        "y": {"type": "string"},
+                        "type": {
+                            "$ref": "#/definitions/enum/interpolation_type"
+                        }
+                    },
+                    "required": ["t", "y", "type"],
+                    "additionalProperties": false
+                }
             },
-            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "required": ["name", "type", "lhs", "interpolate"],
             "additionalProperties": false
         },
 
