@@ -164,15 +164,21 @@
         "data": {
             "type": "object",
             "properties": {
-                "internal": { "$ref": "#/definitions/data_internal" },
+                "internal": {
+                    "$ref": "#/definitions/data_internal"
+                },
                 "user": {
                     "oneOf": [
                         { "type": "null" },
                         { "$ref": "#/definitions/data_user" }
                     ]
                 },
-                "initial": { "$ref": "#/definitions/data_initial" },
-                "variable": { "$ref": "#/definitions/data_variable" },
+                "initial": {
+                    "$ref": "#/definitions/data_initial"
+                },
+                "variable": {
+                    "$ref": "#/definitions/data_variable"
+                },
                 "output": {
                     "oneOf": [
                         { "type": "null" },
@@ -276,7 +282,7 @@
                     "$ref": "#/definitions/equation_lhs_simple"
                 },
                 "rhs": {
-                    "TODO": "I believe rhs$type can be dropped & value needs work?",
+                    "TODO": "I believe rhs$type can be dropped & value needs work? - in fact all of ths can come out",
                     "type": "object",
                     "properties": {
                         "type": {"const": "alloc"},
@@ -434,11 +440,18 @@
                             "storage_type": {
                                 "$ref": "#/definitions/enum/storage_type"
                             },
-                            "rank": {"$ref": "#/definitions/basic/rank" },
-                            "transient": {"type": "boolean"}
+                            "rank": {
+                                "$ref": "#/definitions/basic/rank"
+                            },
+                            "dimnames": {
+                                "$ref": "#/definitions/dimnames"
+                            },
+                            "transient": {
+                                "type": "boolean"
+                            }
                         },
                         "required": ["name", "storage_type", "rank",
-                                     "transient"],
+                                     "dimnames", "transient"],
                         "additionalProperties": false
                     }
                 }
@@ -449,6 +462,7 @@
 
         "data_user": {
             "type": "array",
+            "TODO": "need to indicate destination?",
             "items": {
                 "type": "object",
                 "properties": {
@@ -493,6 +507,9 @@
                             "rank": {
                                 "$ref": "#/definitions/basic/rank"
                             },
+                            "dimnames": {
+                                "$ref": "#/definitions/dimnames"
+                            },
                             "offset": {
                                 "$ref": "#/definitions/sexpression"
                             }
@@ -503,6 +520,36 @@
                 }
             },
             "required": ["length", "length_stage", "data"],
+            "additionalProperties": false
+        },
+
+        "dimnames": {
+            "oneOf": [
+                {"type": "null"},
+                {"$ref": "#/definitions/dimnames_used"}
+            ]
+        },
+
+        "dimnames_used": {
+            "type": "object",
+            "properties": {
+                "length": {
+                    "type": "string"
+                },
+                "dim": {
+                    "oneOf": [
+                        {"$ref": "#/definitions/basic/character_vector"},
+                        {"type": "null"}
+                    ]
+                },
+                "mult": {
+                    "oneOf": [
+                        {"$ref": "#/definitions/basic/character_vector"},
+                        {"type": "null"}
+                    ]
+                }
+            },
+            "required": ["length", "dim", "mult"],
             "additionalProperties": false
         }
     },

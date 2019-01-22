@@ -642,24 +642,10 @@ ir_data_internal <- function(dat) {
     list(name = jsonlite::unbox(eq$lhs$name),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
+         dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd),
          transient = jsonlite::unbox(eq$stage == STAGE_TIME &&
                                      is.null(eq$lhs$nd) &&
                                      !identical(eq$lhs$special, "initial"))))
-
-  extra_dimensions <- function(eq) {
-    f <- function(i) {
-      list(name = jsonlite::unbox(array_dim_name(eq$lhs$name_target, i)),
-           storage_type = jsonlite::unbox("int"),
-           rank = jsonlite::unbox(0L),
-           transient = jsonlite::unbox(FALSE))
-    }
-    i <- seq_len(eq$nd)
-    if (eq$nd >= 3) {
-      i <- c(i, vcapply(3:eq$nd, function(i)
-        paste(seq_len(i - 1), collapse = "")))
-    }
-    lapply(i, f)
-  }
 
   ## I am sure that there is more to add here - size, etc
   contents <- names_if(!vlapply(data, "[[", "transient"))
@@ -671,6 +657,27 @@ ir_data_internal <- function(dat) {
 
   list(data = unname(data), contents = contents)
 }
+
+
+ir_dimnames <- function(name, rank) {
+  if (is.null(rank)) {
+    return(NULL)
+  }
+  length <- jsonlite::unbox(array_dim_name(name))
+  if (rank == 1L) {
+    dim <- NULL
+  } else {
+    dim <- vcapply(seq_len(rank), array_dim_name, name = name)
+  }
+  if (rank <= 2) {
+    mult <- NULL
+  } else {
+    mult <- c("", "", vcapply(3:rank, function(i)
+      array_dim_name(name, paste(seq_len(i - 1), collapse = ""))))
+  }
+  list(length = length, dim = dim, mult = mult)
+}
+
 
 
 ir_data_user <- function(dat) {
@@ -724,7 +731,9 @@ ir_data_variable <- function(dat, output) {
     list(name = jsonlite::unbox(eq$lhs$name_target),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          offset = ir_expression(offset[[eq$lhs$name_target]]),
-         rank = jsonlite::unbox(rank[[eq$lhs$name_target]])))
+         rank = jsonlite::unbox(rank[[eq$lhs$name_target]]),
+         dimnames = ir_dimnames(eq$lhs$name_target,
+                                rank[[eq$lhs$name_target]])))
 
   ## We require this to hold later:
   nms <- vcapply(data, "[[", "name", USE.NAMES = FALSE)
