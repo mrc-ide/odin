@@ -265,17 +265,17 @@ odin_ir_generate_metadata <- function(eqs, dat, env, meta) {
 ## than lhs/rhs
 odin_ir_generate_expression <- function(eq, dat, meta) {
   nm <- eq$name
-
   location <- eq$lhs$location
   internal <- dat$data$internal$contents
-
   data_name <- eq$lhs$target
   data_info <- dat$data[[location]]$data[[data_name]]
 
-  ## LHS:
   if (eq$type == "alloc") {
-    lhs <- call("[[", meta$internal, eq$lhs$target)
-  } else if (location == "internal") {
+    return(odin_ir_generate_expression_alloc(eq, data_info, meta))
+  }
+
+  ## LHS:
+  if (location == "internal") {
     ## TODO: I think that this is equivalent to
     ##   lhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     if (data_info$transient) {
@@ -338,20 +338,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     stop("Unhandled path")
   }
 
-  if (eq$type == "alloc") {
-    alloc_fn <- switch(data_info$storage_type,
-                       double = "numeric",
-                       int = "integer",
-                       stop(sprintf("unsupported storage type")))
-    len <- call("[[", meta$internal, eq$rhs$value[[2]])
-    rhs <- call(alloc_fn, len)
-    if (data_info$rank > 1L) {
-      dim <- as.call(c(quote(c), lapply(eq$rhs$value[[3]][-1], function(i)
-        call("[[", meta$internal, i))))
-      rhs <- call("array", rhs, dim)
-    }
-    call("<-", lhs, rhs)
-  } else if (eq$type == "scalar_expression") {
+  if (eq$type == "scalar_expression") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
   } else if (eq$type == "array_expression") {
@@ -452,6 +439,23 @@ sexp_to_rexp <- function(x, internal, meta) {
   } else {
     x
   }
+}
+
+
+odin_ir_generate_expression_alloc <- function(eq, data_info, meta) {
+  lhs <- call("[[", meta$internal, eq$lhs$target)
+  alloc_fn <- switch(data_info$storage_type,
+                     double = "numeric",
+                     int = "integer",
+                     stop(sprintf("unsupported storage type")))
+  len <- call("[[", meta$internal, data_info$dimnames$length)
+  rhs <- call(alloc_fn, len)
+  if (data_info$rank > 1L) {
+    dim <- as.call(c(quote(c), lapply(data_info$dimnames$dim, function(i)
+      call("[[", meta$internal, i))))
+    rhs <- call("array", rhs, dim)
+  }
+  call("<-", lhs, rhs)
 }
 
 

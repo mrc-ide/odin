@@ -461,14 +461,6 @@ ir_components <- function(dat) {
 
 
 ir_equation <- function(eq) {
-  lhs <- list(location = jsonlite::unbox(eq$lhs$location))
-  if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
-      !identical(eq$rhs$type, "alloc")) {
-    lhs$target <- jsonlite::unbox(eq$name)
-  } else {
-    lhs$target <- jsonlite::unbox(eq$lhs$name_target)
-  }
-
   ## This is the major classification of types: things really route
   ## through different routes later based on this.  Later on we'll
   ## push some of the logic here into the parse functions I think
@@ -479,7 +471,7 @@ ir_equation <- function(eq) {
   } else if (isTRUE(eq$rhs$user)) {
     type <- "user"
   } else if (identical(eq$rhs$type, "alloc")) {
-    type <- "alloc"
+    return(ir_equation_alloc(eq))
   } else if (isTRUE(eq$rhs$interpolate)) {
     type <- "interpolate"
   } else if (isTRUE(eq$rhs$delay)) {
@@ -492,6 +484,8 @@ ir_equation <- function(eq) {
   } else {
     stop("Unclassified type")
   }
+
+  lhs <- ir_equation_lhs(eq)
 
   ## TODO: this should be simplified away later in the parse because I
   ## know that we have all this information.  In this case the "type"
@@ -578,11 +572,8 @@ ir_equation <- function(eq) {
   } else if (type == "copy") {
     rhs <- list(type = jsonlite::unbox("copy"),
                 value = jsonlite::unbox(eq$lhs$name_target))
+    ## TODO: this is not correct...
     depends <- NULL
-  } else if (type == "alloc") {
-    rhs <- list(type = jsonlite::unbox("alloc"),
-                value = ir_expression(eq$rhs$value))
-    depends <- eq$depends
   } else {
     stop("rhs type needs implementing")
   }
@@ -594,6 +585,27 @@ ir_equation <- function(eq) {
        stochastic = jsonlite::unbox(eq$stochastic),
        lhs = lhs,
        rhs = rhs)
+}
+
+
+ir_equation_lhs <- function(eq) {
+  lhs <- list(location = jsonlite::unbox(eq$lhs$location))
+  if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
+      !identical(eq$rhs$type, "alloc")) {
+    lhs$target <- jsonlite::unbox(eq$name)
+  } else {
+    lhs$target <- jsonlite::unbox(eq$lhs$name_target)
+  }
+  lhs
+}
+
+
+ir_equation_alloc <- function(eq) {
+  list(name = jsonlite::unbox(eq$name),
+       source = eq$line,
+       depends = eq$depends,
+       type = jsonlite::unbox("alloc"),
+       lhs = ir_equation_lhs(eq))
 }
 
 
@@ -771,6 +783,18 @@ ir_deserialise <- function(ir) {
   }
 
   dat$data$internal$contents <- list_to_character(dat$data$internal$contents)
+
+  if (dat$features$has_array) {
+    fix_dimnames <- function(x) {
+      if (x$rank > 0L) {
+        v <- c("dim", "mult")
+        x$dimnames[v] <- lapply(x$dimnames[v], list_to_character)
+      }
+      x
+    }
+    dat$data$internal$data <- lapply(dat$data$internal$data, fix_dimnames)
+    dat$data$variable$data <- lapply(dat$data$variable$data, fix_dimnames)
+  }
 
   dat
 }

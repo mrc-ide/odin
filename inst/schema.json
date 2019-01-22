@@ -271,28 +271,16 @@
 
         "equation_alloc": {
             "type": "object",
-            "TODO": "move stochastic elsewhere",
             "properties": {
                 "name": {"type": "string"},
                 "type": {"const": "alloc"},
                 "source": {},
                 "depends": {},
-                "stochastic": {"const": false},
                 "lhs": {
                     "$ref": "#/definitions/equation_lhs_simple"
-                },
-                "rhs": {
-                    "TODO": "I believe rhs$type can be dropped & value needs work? - in fact all of ths can come out",
-                    "type": "object",
-                    "properties": {
-                        "type": {"const": "alloc"},
-                        "value": {}
-                    },
-                    "required": ["type", "value"],
-                    "additionalProperties": true
                 }
             },
-            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "required": ["name", "type", "lhs"],
             "additionalProperties": false
         },
 
