@@ -272,6 +272,8 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
 
   if (eq$type == "alloc") {
     return(odin_ir_generate_expression_alloc(eq, data_info, meta))
+  } else if (eq$type == "copy") {
+    return(odin_ir_generate_expression_copy(eq, data_info, internal, meta))
   }
 
   ## LHS:
@@ -290,18 +292,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
       }
     } else {
       lhs <- call("[[", meta$internal, nm)
-    }
-  } else if (eq$type == "copy") {
-    stopifnot(location != "internal")
-    offset <- sexp_to_rexp(data_info$offset, internal, meta)
-    storage <- if (location == "variable") meta$result else meta$output
-
-    if (data_info$rank == 0) {
-      lhs <- call("[[", storage, offset_to_position(offset))
-    } else{
-      i <- call("seq_len",
-                call("[[", meta$internal, array_dim_name(data_info$name)))
-      lhs <- call("[", storage, call("+", offset, i))
     }
   } else if (eq$type == "array_expression") {
     ## TODO: 'result' becomes 'dstatedt' (a little complicated by
@@ -386,9 +376,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   } else if (eq$type == "interpolate") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
-  } else if (eq$type == "copy") {
-    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    call("<-", lhs, rhs)
   } else {
     stop("Unhandled type")
   }
@@ -455,6 +442,23 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, meta) {
       call("[[", meta$internal, i))))
     rhs <- call("array", rhs, dim)
   }
+  call("<-", lhs, rhs)
+}
+
+
+odin_ir_generate_expression_copy <- function(eq, data_info, internal, meta) {
+  location <- eq$lhs$location
+  stopifnot(location != "internal")
+  offset <- sexp_to_rexp(data_info$offset, internal, meta)
+  storage <- if (location == "variable") meta$result else meta$output
+  if (data_info$rank == 0) {
+    lhs <- call("[[", storage, offset_to_position(offset))
+  } else{
+    i <- call("seq_len",
+              call("[[", meta$internal, data_info$dimnames$length))
+    lhs <- call("[", storage, call("+", offset, i))
+  }
+  rhs <- sexp_to_rexp(eq$lhs$target, internal, meta)
   call("<-", lhs, rhs)
 }
 

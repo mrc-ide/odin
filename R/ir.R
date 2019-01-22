@@ -474,6 +474,8 @@ ir_equation <- function(eq) {
     return(ir_equation_alloc(eq))
   } else if (isTRUE(eq$rhs$interpolate)) {
     type <- "interpolate"
+  } else if (isTRUE(eq$rhs$output_self)) {
+    return(ir_equation_copy(eq))
   } else if (isTRUE(eq$rhs$delay)) {
     stop("delays not yet supported")
     type <- "delay"
@@ -486,28 +488,6 @@ ir_equation <- function(eq) {
   }
 
   lhs <- ir_equation_lhs(eq)
-
-  ## TODO: this should be simplified away later in the parse because I
-  ## know that we have all this information.  In this case the "type"
-  ## earlier should be set to copy and we should no expand out all the
-  ## rhs lines.  However, there are more expression types that can be
-  ## thought of as copies I think so this might be generally useful
-  ## (anything of the form x[] <- b[i] is just a copy).
-  ##
-  ## TODO: I don't see that the second value of this is working
-  ## (checking that the value is the same as the target) because the
-  ## value is a symbol/language object.
-  if (identical(eq$lhs$special, "output")) {
-    if (type == "array_expression" &&
-        length(eq$rhs$value) == 1L &&
-        (isTRUE(eq$rhs$value[[1]]) ||
-         eq$rhs$value[[1]] == eq$lhs$name_target)) {
-      type <- "copy"
-    }
-    if (type == "scalar_expression" && isTRUE(eq$rhs$value)) {
-      type <- "copy"
-    }
-  }
 
   if (type == "scalar_expression") {
     rhs <- list(
@@ -569,11 +549,6 @@ ir_equation <- function(eq) {
       type = jsonlite::unbox(eq$rhs$type),
       value = ir_expression(eq$rhs$value))
     depends <- eq$depends
-  } else if (type == "copy") {
-    rhs <- list(type = jsonlite::unbox("copy"),
-                value = jsonlite::unbox(eq$lhs$name_target))
-    ## TODO: this is not correct...
-    depends <- NULL
   } else {
     stop("rhs type needs implementing")
   }
@@ -605,6 +580,15 @@ ir_equation_alloc <- function(eq) {
        source = eq$line,
        depends = eq$depends,
        type = jsonlite::unbox("alloc"),
+       lhs = ir_equation_lhs(eq))
+}
+
+
+ir_equation_copy <- function(eq) {
+  list(name = jsonlite::unbox(eq$name),
+       source = eq$line,
+       depends = eq$depends,
+       type = jsonlite::unbox("copy"),
        lhs = ir_equation_lhs(eq))
 }
 

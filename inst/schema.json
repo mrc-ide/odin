@@ -291,11 +291,11 @@
                 "type": {"const": "copy"},
                 "source": {},
                 "depends": {},
-                "stochastic": {"const": false},
-                "lhs": {"type": "object"},
-                "rhs": {"type": "object"}
+                "lhs": {
+                    "$ref": "#/definitions/equation_lhs_simple"
+                }
             },
-            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "required": ["name", "type", "lhs"],
             "additionalProperties": false
         },
 
