@@ -470,12 +470,6 @@ ir_components <- function(dat) {
 
 
 ir_equation <- function(eq) {
-  eq$line <- unname(eq$line) # do this elsewhere
-  ## This is the major classification of types: things really route
-  ## through different routes later based on this.  Later on we'll
-  ## push some of the logic here into the parse functions I think
-  ##
-  ## TODO: push this into the prep stage?
   if (isTRUE(eq$rhs$user)) {
     return(ir_equation_user(eq))
   } else if (identical(eq$rhs$type, "alloc")) {
@@ -485,50 +479,15 @@ ir_equation <- function(eq) {
   } else if (isTRUE(eq$rhs$output_self)) {
     return(ir_equation_copy(eq))
   } else if (isTRUE(eq$rhs$delay)) {
-    stop("delays not yet supported")
-    type <- "delay"
+    return(ir_equation_delay(eq))
   } else if (identical(eq$lhs$type, "symbol")) {
+    return(ir_equation_expression_scalar(eq))
     type <- "scalar_expression"
   } else if (identical(eq$lhs$type, "array")) {
-    type <- "array_expression"
+    return(ir_equation_expression_array(eq))
   } else {
     stop("Unclassified type")
   }
-
-  lhs <- ir_equation_lhs(eq)
-
-  if (type == "scalar_expression") {
-    rhs <- list(
-      type = jsonlite::unbox(eq$rhs$type),
-      value = ir_expression(eq$rhs$value))
-    depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
-  } else if (type == "array_expression") {
-    if (any(eq$rhs$inplace)) {
-      stop("rhs$inplace")
-    }
-    rhs <- list(
-      type = unname(eq$rhs$type),
-      value = lapply(unname(eq$rhs$value), ir_expression))
-    depends <- if (all(eq$rhs$type == "atomic")) NULL else eq$depends
-
-    ## TODO: here we need to indicate if this has a *self-dependency*
-    ## We can code generate some different codes here otherwise.
-    lhs$index <- lapply(unname(eq$lhs$index), function(el)
-      list(value = lapply(el$value, ir_expression),
-           is_range = el$is_range,
-           extent_min = lapply(el$extent_min, ir_expression),
-           extent_max = lapply(el$extent_max, ir_expression)))
-  } else {
-    stop("rhs type needs implementing")
-  }
-
-  list(name = jsonlite::unbox(eq$name),
-       source = eq$line,
-       depends = depends, # TODO
-       type = jsonlite::unbox(type),
-       stochastic = jsonlite::unbox(eq$stochastic),
-       lhs = lhs,
-       rhs = rhs)
 }
 
 
@@ -543,32 +502,65 @@ ir_equation_lhs <- function(eq) {
   lhs
 }
 
+ir_equation_base <- function(type, eq, ...) {
+  list(name = jsonlite::unbox(eq$name),
+       type = jsonlite::unbox(type),
+       source = unname(eq$line),
+       depends = ir_depends(eq$depends),
+       ...)
+}
+
+
+ir_equation_expression_scalar <- function(eq) {
+  lhs <- ir_equation_lhs(eq)
+  rhs <- list(
+    type = jsonlite::unbox(eq$rhs$type),
+    value = ir_expression(eq$rhs$value))
+  stochastic <- jsonlite::unbox(eq$stochastic)
+  ir_equation_base("scalar_expression", eq,
+                   lhs = lhs, rhs = rhs, stochastic = stochastic)
+}
+
+
+ir_equation_expression_array <- function(eq) {
+  if (any(eq$rhs$inplace)) {
+    stop("rhs$inplace")
+  }
+  lhs <- ir_equation_lhs(eq)
+  lhs$index <- lapply(unname(eq$lhs$index), function(el)
+    list(value = lapply(el$value, ir_expression),
+         is_range = el$is_range,
+         extent_min = lapply(el$extent_min, ir_expression),
+         extent_max = lapply(el$extent_max, ir_expression)))
+  rhs <- list(
+    type = unname(eq$rhs$type),
+    value = lapply(unname(eq$rhs$value), ir_expression))
+  stochastic <- jsonlite::unbox(eq$stochastic)
+  ir_equation_base("array_expression", eq,
+                   lhs = lhs, rhs = rhs, stochastic = stochastic)
+}
+
+
+ir_equation_delay <- function(eq) {
+  stop("delays not yet supported")
+}
+
 
 ir_equation_alloc <- function(eq) {
-  list(name = jsonlite::unbox(eq$name),
-       source = eq$line,
-       depends = eq$depends,
-       type = jsonlite::unbox("alloc"),
-       lhs = ir_equation_lhs(eq))
+  ir_equation_base("alloc", eq, lhs = ir_equation_lhs(eq))
 }
 
 
 ir_equation_copy <- function(eq) {
-  list(name = jsonlite::unbox(eq$name),
-       source = eq$line,
-       depends = eq$depends,
-       type = jsonlite::unbox("copy"),
-       lhs = ir_equation_lhs(eq))
+  ir_equation_base("copy", eq, lhs = ir_equation_lhs(eq))
 }
 
 
 ir_equation_alloc_interpolate <- function(eq) {
-  list(name = jsonlite::unbox(eq$name),
-       source = eq$line,
-       depends = eq$depends,
-       type = jsonlite::unbox("alloc_interpolate"),
-       lhs = ir_equation_lhs(eq),
-       interpolate = lapply(eq$interpolate, jsonlite::unbox))
+  lhs <- ir_equation_lhs(eq)
+  interpolate <- lapply(eq$interpolate, jsonlite::unbox)
+  ir_equation_base("alloc_interpolate", eq,
+                   lhs = lhs, interpolate = interpolate)
 }
 
 
@@ -577,14 +569,12 @@ ir_equation_user <- function(eq) {
       !is.null(eq$rhs$max)) {
     stop("User details need supporting")
   }
-  default <- if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL
-  list(name = jsonlite::unbox(eq$name),
-       type = jsonlite::unbox("user"),
-       source = eq$line,
-       depends = ir_depends(eq$depends),
-       lhs = ir_equation_lhs(eq),
-       user = list(default = default,
-                   dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim))))
+  lhs <- ir_equation_lhs(eq)
+  user <- list(
+    default = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL,
+    dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim)))
+  ir_equation_base("user", eq,
+                   lhs = lhs, user = user)
 }
 
 
