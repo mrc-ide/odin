@@ -271,7 +271,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
   data_info <- dat$data[[location]]$data[[data_name]]
 
   if (eq$type == "alloc") {
-    return(odin_ir_generate_expression_alloc(eq, data_info, meta))
+    return(odin_ir_generate_expression_alloc(eq, data_info, internal, meta))
   } else if (eq$type == "alloc_interpolate") {
     return(odin_ir_generate_expression_alloc_interpolate(
       eq, data_info, internal, meta))
@@ -279,95 +279,12 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     return(odin_ir_generate_expression_copy(eq, data_info, internal, meta))
   } else if (eq$type == "user") {
     return(odin_ir_generate_expression_user(eq, data_info, internal, meta))
-  }
-
-  ## LHS:
-  if (location == "internal") {
-    ## TODO: I think that this is equivalent to
-    ##   lhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    if (data_info$transient) {
-      lhs <- as.name(nm)
-    } else if (eq$type == "expression_array") {
-      storage <- call("[[", meta$internal, nm)
-      if (data_info$rank == 1L) {
-        lhs <- call("[[", storage, meta$index[[1]])
-      } else {
-        lhs <- as.call(c(list(quote(`[`), storage),
-                         meta$index[seq_len(data_info$rank)]))
-      }
-    } else {
-      lhs <- call("[[", meta$internal, nm)
-    }
+  } else if (eq$type == "expression_scalar") {
+    return(odin_ir_generate_expression_scalar(eq, data_info, internal, meta))
   } else if (eq$type == "expression_array") {
-    ## TODO: 'result' becomes 'dstatedt' (a little complicated by
-    ## location above - consider replacing dstatedt with result!)
-    offset <- sexp_to_rexp(data_info$offset, internal, meta)
-    storage <- if (location == "variable") meta$result else meta$output
-    ## TODO: in the C version this is all done in rewrite and that
-    ## might be a better place to put it frankly.
-    if (data_info$rank == 1L) {
-      index <- meta$index[[1L]]
-    } else {
-      ## TODO: once things are sorted out this is prime for tidying
-      ## up!  This is doing a lot of the bits that rewrite could just
-      ## as easily do, really.
-      f <- function(i) {
-        if (i == 1) {
-          meta$index[[i]]
-        } else {
-          n <- array_dim_name(data_info$name,
-                              paste(seq_len(i - 1), collapse = ""))
-          call("*", call("[[", meta$internal, n),
-               call("-", meta$index[[i]], 1L))
-        }
-      }
-      index <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
-    }
-    lhs <- call("[[", storage,
-                if (identical(offset, 0)) index else call("+", index, offset))
-  } else if (location == "variable") {
-    lhs <- call("[[", meta$result, offset_to_position(data_info$offset))
-  } else if (location == "output") {
-    lhs <- call("[[", meta$output, offset_to_position(data_info$offset))
+    return(odin_ir_generate_expression_array(eq, data_info, internal, meta))
   } else {
-    stop("Unhandled path")
-  }
-
-  if (eq$type == "expression_scalar") {
-    rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    call("<-", lhs, rhs)
-  } else if (eq$type == "expression_array") {
-    ## TODO: we can do better here on translation when we have ':' but
-    ## this can go into sexp_to_rexp - use seq_along and seq_len where
-    ## appropriate, but the gains from that will be small compared
-    ## with avoiding vectorisation.
-    ##
-    ## TODO: we can (re-)vectorise lots of expressions here.
-    f <- function(i) {
-      expr_body <- call("<-", lhs,
-                        sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
-      subs <- list()
-      for (j in rev(seq_along(eq$lhs$index[[i]]$value))) {
-        if (eq$lhs$index[[i]]$is_range[[j]]) {
-          expr_index <-
-            sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
-          expr_body <- call("for", meta$index[[j]], expr_index,
-                            call("{", expr_body))
-        } else if (length(eq$lhs$index[[i]]$value[[j]]) == 1L) {
-          subs[[as.character(meta$index[[j]])]] <-
-            sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
-        } else {
-          stop("Nontrivial non-range array access")
-        }
-      }
-      if (length(subs) > 0L) {
-        expr_body <- substitute_(expr_body, subs)
-      }
-      expr_body
-    }
-    lapply(seq_along(eq$lhs$index), f)
-  } else {
-    stop("Unhandled type")
+    stop("Impossible equation type")
   }
 }
 
@@ -402,7 +319,101 @@ sexp_to_rexp <- function(x, internal, meta) {
 }
 
 
-odin_ir_generate_expression_alloc <- function(eq, data_info, meta) {
+odin_ir_generate_expression_scalar <- function(eq, data_info, internal, meta) {
+  location <- eq$lhs$location
+  if (location == "internal") {
+    ## TODO: I think that this is equivalent to
+    ##   lhs <- sexp_to_rexp(eq$lhs$name, internal, meta)
+    if (data_info$transient) {
+      lhs <- as.name(eq$name)
+    } else {
+      lhs <- call("[[", meta$internal, eq$name)
+    }
+  } else if (location == "variable") {
+    lhs <- call("[[", meta$result, offset_to_position(data_info$offset))
+  } else if (location == "output") {
+    lhs <- call("[[", meta$output, offset_to_position(data_info$offset))
+  } else {
+    stop("Unhandled path")
+  }
+
+  rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+  call("<-", lhs, rhs)
+}
+
+
+odin_ir_generate_expression_array <- function(eq, data_info, internal, meta) {
+  location <- eq$lhs$location
+  if (location == "internal") {
+    storage <- call("[[", meta$internal, eq$name)
+    if (data_info$rank == 1L) {
+      lhs <- call("[[", storage, meta$index[[1]])
+    } else {
+      lhs <- as.call(c(list(quote(`[`), storage),
+                       meta$index[seq_len(data_info$rank)]))
+    }
+  } else {
+    ## TODO: 'result' becomes 'dstatedt' (a little complicated by
+    ## location above - consider replacing dstatedt with result!)
+    offset <- sexp_to_rexp(data_info$offset, internal, meta)
+    storage <- if (location == "variable") meta$result else meta$output
+    ## TODO: in the C version this is all done in rewrite and that
+    ## might be a better place to put it frankly.
+    if (data_info$rank == 1L) {
+      index <- meta$index[[1L]]
+    } else {
+      ## TODO: once things are sorted out this is prime for tidying
+      ## up!  This is doing a lot of the bits that rewrite could just
+      ## as easily do, really.
+      f <- function(i) {
+        if (i == 1) {
+          meta$index[[i]]
+        } else {
+          n <- array_dim_name(data_info$name,
+                              paste(seq_len(i - 1), collapse = ""))
+          call("*", call("[[", meta$internal, n),
+               call("-", meta$index[[i]], 1L))
+        }
+      }
+      index <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
+    }
+    lhs <- call("[[", storage,
+                if (identical(offset, 0)) index else call("+", index, offset))
+  }
+
+  ## TODO: we can do better here on translation when we have ':' but
+  ## this can go into sexp_to_rexp - use seq_along and seq_len where
+  ## appropriate, but the gains from that will be small compared
+  ## with avoiding vectorisation.
+  ##
+  ## TODO: we can (re-)vectorise lots of expressions here.
+  f <- function(i) {
+    expr_body <- call("<-", lhs,
+                      sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
+    subs <- list()
+    for (j in rev(seq_along(eq$lhs$index[[i]]$value))) {
+      if (eq$lhs$index[[i]]$is_range[[j]]) {
+        expr_index <-
+          sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
+        expr_body <- call("for", meta$index[[j]], expr_index,
+                          call("{", expr_body))
+      } else if (length(eq$lhs$index[[i]]$value[[j]]) == 1L) {
+        subs[[as.character(meta$index[[j]])]] <-
+          sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
+      } else {
+        stop("Nontrivial non-range array access")
+      }
+    }
+    if (length(subs) > 0L) {
+      expr_body <- substitute_(expr_body, subs)
+    }
+    expr_body
+  }
+  lapply(seq_along(eq$lhs$index), f)
+}
+
+
+odin_ir_generate_expression_alloc <- function(eq, data_info, internal, meta) {
   lhs <- call("[[", meta$internal, eq$lhs$target)
   alloc_fn <- switch(data_info$storage_type,
                      double = "numeric",
