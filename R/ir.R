@@ -482,7 +482,6 @@ ir_equation <- function(eq) {
     return(ir_equation_delay(eq))
   } else if (identical(eq$lhs$type, "symbol")) {
     return(ir_equation_expression_scalar(eq))
-    type <- "scalar_expression"
   } else if (identical(eq$lhs$type, "array")) {
     return(ir_equation_expression_array(eq))
   } else {
@@ -517,7 +516,7 @@ ir_equation_expression_scalar <- function(eq) {
     type = jsonlite::unbox(eq$rhs$type),
     value = ir_expression(eq$rhs$value))
   stochastic <- jsonlite::unbox(eq$stochastic)
-  ir_equation_base("scalar_expression", eq,
+  ir_equation_base("expression_scalar", eq,
                    lhs = lhs, rhs = rhs, stochastic = stochastic)
 }
 
@@ -536,7 +535,7 @@ ir_equation_expression_array <- function(eq) {
     type = unname(eq$rhs$type),
     value = lapply(unname(eq$rhs$value), ir_expression))
   stochastic <- jsonlite::unbox(eq$stochastic)
-  ir_equation_base("array_expression", eq,
+  ir_equation_base("expression_array", eq,
                    lhs = lhs, rhs = rhs, stochastic = stochastic)
 }
 

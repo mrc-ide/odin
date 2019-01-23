@@ -287,7 +287,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     ##   lhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     if (data_info$transient) {
       lhs <- as.name(nm)
-    } else if (eq$type == "array_expression") {
+    } else if (eq$type == "expression_array") {
       storage <- call("[[", meta$internal, nm)
       if (data_info$rank == 1L) {
         lhs <- call("[[", storage, meta$index[[1]])
@@ -298,7 +298,7 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     } else {
       lhs <- call("[[", meta$internal, nm)
     }
-  } else if (eq$type == "array_expression") {
+  } else if (eq$type == "expression_array") {
     ## TODO: 'result' becomes 'dstatedt' (a little complicated by
     ## location above - consider replacing dstatedt with result!)
     offset <- sexp_to_rexp(data_info$offset, internal, meta)
@@ -333,10 +333,10 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     stop("Unhandled path")
   }
 
-  if (eq$type == "scalar_expression") {
+  if (eq$type == "expression_scalar") {
     rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
     call("<-", lhs, rhs)
-  } else if (eq$type == "array_expression") {
+  } else if (eq$type == "expression_array") {
     ## TODO: we can do better here on translation when we have ':' but
     ## this can go into sexp_to_rexp - use seq_along and seq_len where
     ## appropriate, but the gains from that will be small compared

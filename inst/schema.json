@@ -57,10 +57,10 @@
                 "enum": [
                     "alloc",
                     "alloc_interpolate",
-                    "array_expression",
                     "copy",
-                    "scalar_expression",
-                    "user"
+                    "user",
+                    "expression_array",
+                    "expression_scalar"
                 ],
                 "comment": "This duplicates different equation types"
             },
@@ -209,9 +209,9 @@
                         {"$ref": "#/definitions/equation_copy"},
                         {"$ref": "#/definitions/equation_alloc"},
                         {"$ref": "#/definitions/equation_alloc_interpolate"},
-                        {"$ref": "#/definitions/equation_array_expression"},
-                        {"$ref": "#/definitions/equation_scalar_expression"},
-                        {"$ref": "#/definitions/equation_user"}
+                        {"$ref": "#/definitions/equation_user"},
+                        {"$ref": "#/definitions/equation_expression_array"},
+                        {"$ref": "#/definitions/equation_expression_scalar"}
                     ]
                 }
             ]
@@ -303,11 +303,11 @@
             "additionalProperties": false
         },
 
-        "equation_scalar_expression": {
+        "equation_expression_scalar": {
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
-                "type": {"const": "scalar_expression"},
+                "type": {"const": "expression_scalar"},
                 "source": {},
                 "depends": {},
                 "stochastic": {"type": "boolean"},
@@ -328,11 +328,11 @@
             "additionalProperties": false
         },
 
-        "equation_array_expression": {
+        "equation_expression_array": {
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
-                "type": {"const": "array_expression"},
+                "type": {"const": "expression_array"},
                 "source": {},
                 "depends": {},
                 "stochastic": {"type": "boolean"},
