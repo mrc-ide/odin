@@ -452,7 +452,7 @@ odin_ir_generate_expression_copy <- function(eq, data_info, internal, meta) {
 ## NOTE: There are two entirely separate codepaths here so this could
 ## be factored out again (and probably should be).
 odin_ir_generate_expression_user <- function(eq, data_info, internal, meta) {
-  if (eq$dim) {
+  if (eq$user$dim) {
     name <- eq$name
     len <- data_info$dimnames$length
     if (data_info$rank == 1L) {
@@ -466,10 +466,10 @@ odin_ir_generate_expression_user <- function(eq, data_info, internal, meta) {
     name <- eq$name
     lhs <- call("[[", meta$internal, name)
     rank <- data_info$rank
-    if (is.null(eq$default)) {
+    if (is.null(eq$user$default)) {
       default <- NULL
     } else {
-      default <- sexp_to_rexp(eq$default, internal, meta)
+      default <- sexp_to_rexp(eq$user$default, internal, meta)
     }
     if (rank == 0L) {
       size <- NULL

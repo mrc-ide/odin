@@ -380,15 +380,22 @@
                 "lhs": {
                     "$ref": "#/definitions/equation_lhs_simple"
                 },
-                "default": {
-                    "oneOf": [
-                        {"type": "null"},
-                        {"type": "number"}
-                    ]
-                },
-                "dim": {"type": "boolean"}
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "default": {
+                            "oneOf": [
+                                {"type": "null"},
+                                {"type": "number"}
+                            ]
+                        },
+                        "dim": {"type": "boolean"}
+                    },
+                    "required": ["default", "dim"],
+                    "additionalProperties": false
+                }
             },
-            "required": ["name", "type", "lhs", "default", "dim"],
+            "required": ["name", "type", "lhs", "user"],
             "additionalProperties": false
         },
 

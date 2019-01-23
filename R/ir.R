@@ -476,10 +476,8 @@ ir_equation <- function(eq) {
   ## push some of the logic here into the parse functions I think
   ##
   ## TODO: push this into the prep stage?
-  if (identical(eq$lhs$special, "dim")) {
-    type <- "dim"
-  } else if (isTRUE(eq$rhs$user)) {
-    type <- "user"
+  if (isTRUE(eq$rhs$user)) {
+    return(ir_equation_user(eq))
   } else if (identical(eq$rhs$type, "alloc")) {
     return(ir_equation_alloc(eq))
   } else if (isTRUE(eq$alloc_interpolate)) {
@@ -504,23 +502,6 @@ ir_equation <- function(eq) {
       type = jsonlite::unbox(eq$rhs$type),
       value = ir_expression(eq$rhs$value))
     depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
-  } else if (type == "dim") {
-    user <- isTRUE(eq$rhs$user)
-    if (user) {
-      ## TODO: I think that this wants to be looked at again, but
-      ## there's an issue here where we don't know where the data will
-      ## be stored so it's hard to tell where it should be stored.
-      value <- rep(list(NULL), eq$nd)
-    } else if (eq$nd == 1) {
-      value <- list(ir_expression(eq$rhs$value))
-    } else {
-      value <- lapply(eq$rhs$value[-1L], ir_expression)
-    }
-    rhs <- list(
-      type = jsonlite::unbox(eq$rhs$type),
-      value = value,
-      user = jsonlite::unbox(user))
-    depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
   } else if (type == "array_expression") {
     if (any(eq$rhs$inplace)) {
       stop("rhs$inplace")
@@ -537,29 +518,6 @@ ir_equation <- function(eq) {
            is_range = el$is_range,
            extent_min = lapply(el$extent_min, ir_expression),
            extent_max = lapply(el$extent_max, ir_expression)))
-  } else if (type == "user") {
-    ## Here if there's a default it's a scalar expression for now!
-    ##
-    ## The atomic case is easy, and the *constant* case is probably
-    ## not hard but I don't remember what else I supported here.  So
-    ## until I remember let's just fail here.  Oddly this seems to be
-    ## somewhat working for at least one user case where an atomic
-    ## value is passed in - that suggests I may have an issue with the
-    ## IR even?
-    if (!is.null(eq$rhs$integer) || !is.null(eq$rhs$min) ||
-         !is.null(eq$rhs$max)) {
-      stop("User details need supporting")
-    }
-    default <- if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL
-    depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
-    ret <- list(name = jsonlite::unbox(eq$name),
-                type = jsonlite::unbox(type),
-                source = eq$line,
-                depends = depends,
-                lhs = lhs,
-                default = default,
-                dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim)))
-    return(ret)
   } else {
     stop("rhs type needs implementing")
   }
@@ -611,6 +569,31 @@ ir_equation_alloc_interpolate <- function(eq) {
        type = jsonlite::unbox("alloc_interpolate"),
        lhs = ir_equation_lhs(eq),
        interpolate = lapply(eq$interpolate, jsonlite::unbox))
+}
+
+
+ir_equation_user <- function(eq) {
+  if (!is.null(eq$rhs$integer) || !is.null(eq$rhs$min) ||
+      !is.null(eq$rhs$max)) {
+    stop("User details need supporting")
+  }
+  default <- if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL
+  list(name = jsonlite::unbox(eq$name),
+       type = jsonlite::unbox("user"),
+       source = eq$line,
+       depends = ir_depends(eq$depends),
+       lhs = ir_equation_lhs(eq),
+       user = list(default = default,
+                   dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim))))
+}
+
+
+ir_depends <- function(x) {
+  if (length(x$functions) == 0L && length(x$variables) == 0L) {
+    NULL
+  } else {
+    x
+  }
 }
 
 
