@@ -101,7 +101,6 @@
             ]
         },
 
-
         "sexpression_vector": {
             "type": "array",
             "items": {
@@ -378,34 +377,18 @@
                 "type": {"const": "user"},
                 "source": {},
                 "depends": {},
-                "stochastic": {"const": false},
                 "lhs": {
-                    "TODO": "this is the same as equation_scalar_expression",
-                    "type": "object",
-                    "properties": {
-                        "location": {"$ref": "#/definitions/enum/location"},
-                        "target": {"type": "string"}
-                    },
-                    "required": ["location", "target"],
-                    "additionalProperties": false
+                    "$ref": "#/definitions/equation_lhs_simple"
                 },
-                "rhs": {
-                    "type": "object",
-                    "TODO": "this needs tidying up a little",
-                    "properties": {
-                        "type": {"const": "expression"},
-                        "value": {
-                            "oneOf": [
-                                {"type": "null"},
-                                {"type": "number"}
-                            ]
-                        }
-                    },
-                    "required": ["type", "value"],
-                    "additionalProperties": false
-                }
+                "default": {
+                    "oneOf": [
+                        {"type": "null"},
+                        {"type": "number"}
+                    ]
+                },
+                "dim": {"type": "boolean"}
             },
-            "required": ["name", "type", "lhs", "rhs"],
+            "required": ["name", "type", "lhs", "default", "dim"],
             "additionalProperties": false
         },
 

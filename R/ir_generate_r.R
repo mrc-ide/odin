@@ -382,17 +382,6 @@ sexp_to_rexp <- function(x, internal, meta) {
       sexp_to_rexp(array_dim_name(args[[1L]], args[[2L]]), internal, meta)
     } else if (fn == "interpolate") {
       sexp_to_rexp(list(args[[2]], args[[1]]), internal, meta)
-    } else if (fn == "user") {
-      ## TODO: formalise the treatment of some of these "special"
-      ## internal functions (get_user_dim, interpolation function,
-      ## etc?)
-      if (length(args) > 1L) {
-        dims <- as.call(c(list(quote(c)), lapply(args[-1], as.character)))
-      } else {
-        dims <- NULL
-      }
-      call(as.character(meta$get_user_dim),
-           meta$user, meta$internal, args[[1]], dims)
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
     } else {
@@ -460,28 +449,41 @@ odin_ir_generate_expression_copy <- function(eq, data_info, internal, meta) {
 }
 
 
+## NOTE: There are two entirely separate codepaths here so this could
+## be factored out again (and probably should be).
 odin_ir_generate_expression_user <- function(eq, data_info, internal, meta) {
-  ## TODO: move rhs$value -> default to be more explicit
-  name <- eq$name
-  rank <- data_info$rank
-  if (is.null(eq$rhs$value)) {
-    default <- NULL
+  if (eq$dim) {
+    name <- eq$name
+    len <- data_info$dimnames$length
+    if (data_info$rank == 1L) {
+      dims <- NULL
+    } else {
+      dims <- as.call(c(list(quote(c)), data_info$dimnames$dim))
+    }
+    call(as.character(meta$get_user_dim), meta$user, meta$internal,
+         name, len, dims)
   } else {
-    default <- sexp_to_rexp(eq$rhs$value, internal, meta)
+    name <- eq$name
+    lhs <- call("[[", meta$internal, name)
+    rank <- data_info$rank
+    if (is.null(eq$default)) {
+      default <- NULL
+    } else {
+      default <- sexp_to_rexp(eq$default, internal, meta)
+    }
+    if (rank == 0L) {
+      size <- NULL
+    } else if (rank == 1L) {
+      size <- call("[[", meta$internal, data_info$dimnames$length)
+    } else {
+      dim <- lapply(data_info$dimnames$dim, function(x)
+        call("[[", meta$internal, x))
+      size <- as.call(c(list(quote(c)), dim))
+    }
+    rhs <- call(as.character(meta$get_user_double),
+                meta$user, name, meta$internal, size, default)
+    call("<-", lhs, rhs)
   }
-  if (rank == 0L) {
-    size <- NULL
-  } else if (rank == 1L) {
-    size <- call("[[", meta$internal, data_info$dimnames$length)
-  } else {
-    dim <- lapply(data_info$dimnames$dim, function(x)
-      call("[[", meta$internal, x))
-    size <- as.call(c(list(quote(c)), dim))
-  }
-  lhs <- call("[[", meta$internal, name)
-  rhs <- call(as.character(meta$get_user_double),
-              meta$user, name, meta$internal, size, default)
-  call("<-", lhs, rhs)
 }
 
 
@@ -724,7 +726,9 @@ support_get_user_double <- function(user, name, internal, size, default) {
 }
 
 
-support_get_user_dim <- function(user, internal, name, dims) {
+## This one works entirely through side effects to avoid the confusion
+## and any ambiguity about what is set where.
+support_get_user_dim <- function(user, internal, name, len, dims) {
   data <- user[[name]] %||% internal[[name]]
   if (is.null(data)) {
     stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
@@ -753,8 +757,8 @@ support_get_user_dim <- function(user, internal, name, dims) {
       internal[[dims[[i]]]] <- d[[i]]
     }
   }
+  internal[[len]] <- length(data)
   internal[[name]] <- data
-  length(data)
 }
 
 

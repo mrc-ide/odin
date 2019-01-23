@@ -205,15 +205,12 @@ ir_prep_dim_user <- function(nm, dat) {
   ## if we run this lot in set user then I think that it will work -
   ## it needs to really for this to all make any sense!  So let's give
   ## it look.  We will rewrite:
-
-  ## * move the target equation _before_ the user provided one
-  ## * rewrite the dependencies to remove the dependency on the dimension
   eq <- dat$eqs[[nm]]
   eq <- list(
     name = nm,
-    lhs = list(type = "null", name = nm, nd = eq$lhs$nd,
+    lhs = list(type = "symbol", name = nm, nd = eq$lhs$nd,
                data_type = eq$lhs$data_type),
-    rhs = list(type = "null", value = NULL, depends = NULL),
+    rhs = list(type = "user", user = TRUE, user_dim = TRUE, default = FALSE),
     depends = NULL,
     stochastic = FALSE,
     expr = eq$expr,
@@ -222,9 +219,14 @@ ir_prep_dim_user <- function(nm, dat) {
     stage = eq$stage)
   dat$eqs[[nm]] <- eq
 
-  ## Then reorder things a little:
+  nm_dim <- array_dim_name(nm)
+  dat$eqs[[nm_dim]]$lhs$type <- "null"
+  dat$eqs[[nm_dim]]$rhs$type <- "null"
+
+  ## Then reorder things a little so that we are sure to process all
+  ## dimensions before the compound ones.
   i <- which(names(dat$eqs) == nm)
-  j <- which(names(dat$eqs) == array_dim_name(nm))
+  j <- which(names(dat$eqs) == nm_dim)
   stopifnot(i > j)
   k <- seq_along(dat$eqs)[-i]
   if (j == 1) {
@@ -234,6 +236,7 @@ ir_prep_dim_user <- function(nm, dat) {
     k <- c(k[seq_len(j - 1)], i, k[-seq_len(j - 1)])
   }
   dat$eqs <- dat$eqs[k]
+
   dat
 }
 
@@ -467,6 +470,7 @@ ir_components <- function(dat) {
 
 
 ir_equation <- function(eq) {
+  eq$line <- unname(eq$line) # do this elsewhere
   ## This is the major classification of types: things really route
   ## through different routes later based on this.  Later on we'll
   ## push some of the logic here into the parse functions I think
@@ -546,10 +550,16 @@ ir_equation <- function(eq) {
          !is.null(eq$rhs$max)) {
       stop("User details need supporting")
     }
-    rhs <- list(
-      type = jsonlite::unbox(eq$rhs$type),
-      value = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL)
+    default <- if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL
     depends <- if (eq$rhs$type == "atomic") NULL else eq$depends
+    ret <- list(name = jsonlite::unbox(eq$name),
+                type = jsonlite::unbox(type),
+                source = eq$line,
+                depends = depends,
+                lhs = lhs,
+                default = default,
+                dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim)))
+    return(ret)
   } else {
     stop("rhs type needs implementing")
   }
