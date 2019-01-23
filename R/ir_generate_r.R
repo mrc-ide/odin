@@ -277,6 +277,8 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
       eq, data_info, internal, meta))
   } else if (eq$type == "copy") {
     return(odin_ir_generate_expression_copy(eq, data_info, internal, meta))
+  } else if (eq$type == "user") {
+    return(odin_ir_generate_expression_user(eq, data_info, internal, meta))
   }
 
   ## LHS:
@@ -364,18 +366,6 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
       expr_body
     }
     lapply(seq_along(eq$lhs$index), f)
-  } else if (eq$type == "user") {
-    rank <- data_info$rank
-    if (is.null(eq$rhs$value)) {
-      default <- NULL
-    } else {
-      default <- sexp_to_rexp(eq$rhs$value, internal, meta)
-    }
-    size <- if (rank == 0L) NULL else dimension_vector(nm, rank, meta)
-    call("<-",
-         call("[[", meta$internal, nm),
-         call(as.character(meta$get_user_double),
-              meta$user, nm, meta$internal, size, default))
   } else {
     stop("Unhandled type")
   }
@@ -466,6 +456,31 @@ odin_ir_generate_expression_copy <- function(eq, data_info, internal, meta) {
     lhs <- call("[", storage, call("+", offset, i))
   }
   rhs <- sexp_to_rexp(eq$lhs$target, internal, meta)
+  call("<-", lhs, rhs)
+}
+
+
+odin_ir_generate_expression_user <- function(eq, data_info, internal, meta) {
+  ## TODO: move rhs$value -> default to be more explicit
+  name <- eq$name
+  rank <- data_info$rank
+  if (is.null(eq$rhs$value)) {
+    default <- NULL
+  } else {
+    default <- sexp_to_rexp(eq$rhs$value, internal, meta)
+  }
+  if (rank == 0L) {
+    size <- NULL
+  } else if (rank == 1L) {
+    size <- call("[[", meta$internal, data_info$dimnames$length)
+  } else {
+    dim <- lapply(data_info$dimnames$dim, function(x)
+      call("[[", meta$internal, x))
+    size <- as.call(c(list(quote(c)), dim))
+  }
+  lhs <- call("[[", meta$internal, name)
+  rhs <- call(as.character(meta$get_user_double),
+              meta$user, name, meta$internal, size, default)
   call("<-", lhs, rhs)
 }
 
@@ -749,17 +764,6 @@ collapse_expr <- function(expr, join) {
     ret <- call(join, ret, expr[[i]])
   }
   ret
-}
-
-
-dimension_vector <- function(name, rank, meta) {
-  if (rank == 1L) {
-    call("[[", meta$internal, array_dim_name(name))
-  } else {
-    dim <- lapply(seq_len(rank), function(i)
-      call("[[", meta$internal, array_dim_name(name, i)))
-    as.call(c(list(quote(c)), dim))
-  }
 }
 
 
