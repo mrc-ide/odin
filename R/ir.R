@@ -16,6 +16,7 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
                  data = ir_data(dat),
                  equations = ir_equations(dat),
                  components = ir_components(dat),
+                 user = ir_user(dat),
                  source = vcapply(xp$exprs, deparse_str))
   ir <- ir_serialise(ir_dat, pretty)
   if (validate) {
@@ -469,6 +470,25 @@ ir_components <- function(dat) {
 }
 
 
+ir_user <- function(dat) {
+  ## Ensure that these are always ordered by has default so that
+  ## required parameters are listed first.
+  user <- dat$info$user
+  user <- user[order(user$has_default), ]
+  stopifnot(identical(rownames(user), user$name))
+
+  ## TODO: holding off on using min, max and integer because these
+  ## belong more in the data declaration I think; we can use similar
+  ## approaches to declare other constraints perhaps.
+  f <- function(i) {
+    list(name = jsonlite::unbox(user$name[[i]]),
+         has_default = jsonlite::unbox(user$has_default[[i]]))
+  }
+
+  lapply(seq_len(nrow(user)), f)
+}
+
+
 ir_equation <- function(eq) {
   if (isTRUE(eq$rhs$user)) {
     return(ir_equation_user(eq))
@@ -602,7 +622,6 @@ ir_expression <- function(expr) {
 ## This is the structure of data structures that desribe how data is stored
 ir_data <- function(dat) {
   list(internal = ir_data_internal(dat),
-       user = ir_data_user(dat),
        initial = ir_data_initial(dat),
        variable = ir_data_variable(dat, FALSE),
        output = ir_data_variable(dat, TRUE))
@@ -661,32 +680,6 @@ ir_dimnames <- function(name, rank) {
       array_dim_name(name, paste(seq_len(i - 1), collapse = ""))))
   }
   list(length = length, dim = dim, mult = mult)
-}
-
-
-
-ir_data_user <- function(dat) {
-  if (!dat$info$has_user) {
-    return(NULL)
-  }
-
-  user <- dat$info$user
-  stopifnot(identical(rownames(user), user$name))
-
-  ## NOTE: min, max and default here are *optional* in the json
-  ## because otherwise representing values is a little awkward.  Using
-  ## infinities in particular don't serialise well at all!
-  ##
-  ## TODO: holding off on using min, max and integer because these
-  ## belong more in the data declaration I think; we can use similar
-  ## approaches to declare other constraints perhaps.
-  f <- function(i) {
-    list(name = jsonlite::unbox(user$name[[i]]),
-         rank = jsonlite::unbox(user$rank[[i]]),
-         has_default = jsonlite::unbox(user$has_default[[i]]))
-  }
-
-  lapply(seq_len(nrow(user)), f)
 }
 
 

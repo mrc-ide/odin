@@ -171,12 +171,6 @@
                 "internal": {
                     "$ref": "#/definitions/data_internal"
                 },
-                "user": {
-                    "oneOf": [
-                        { "type": "null" },
-                        { "$ref": "#/definitions/data_user" }
-                    ]
-                },
                 "initial": {
                     "$ref": "#/definitions/data_initial"
                 },
@@ -190,7 +184,7 @@
                     ]
                 }
             },
-            "required": ["internal", "user", "initial", "variable", "output"],
+            "required": ["internal", "initial", "variable", "output"],
             "additionalProperties": false
         },
 
@@ -455,21 +449,6 @@
             "additionalProperties": false
         },
 
-        "data_user": {
-            "type": "array",
-            "TODO": "need to indicate destination?",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "rank": {"$ref": "#/definitions/basic/rank" },
-                    "has_default": {"type": "boolean"}
-                },
-                "required": ["name", "rank"],
-                "additionalProperties": false
-            }
-        },
-
         "data_initial": {
             "type": "object",
             "properties": {
@@ -516,6 +495,19 @@
             },
             "required": ["length", "length_stage", "data"],
             "additionalProperties": false
+        },
+
+        "user": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "has_default": {"type": "boolean"}
+                },
+                "required": ["name", "has_default"],
+                "additionalProperties": false
+            }
         },
 
         "dimnames": {
@@ -566,11 +558,14 @@
         "components": {
             "$ref": "#/definitions/components"
         },
+        "user": {
+            "$ref": "#/definitions/user"
+        },
         "source": {
             "$ref": "#/definitions/basic/character_vector"
         }
     },
     "required": ["config", "features", "data", "equations", "components",
-                 "source"],
+                 "user", "source"],
     "additionalProperties": false
 }
