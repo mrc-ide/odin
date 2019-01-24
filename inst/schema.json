@@ -73,13 +73,6 @@
             "stage": {
                 "type": "string",
                 "enum": ["constant", "user", "time", "output"]
-            },
-
-            "stage_integer": {
-                "comment": "this will be factored out",
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 4
             }
         },
 
@@ -466,9 +459,6 @@
                 "length": {
                     "$ref": "#/definitions/sexpression"
                 },
-                "length_stage": {
-                    "$ref": "#/definitions/enum/stage_integer"
-                },
                 "data": {
                     "type": "array",
                     "items": {
@@ -493,7 +483,7 @@
                     }
                 }
             },
-            "required": ["length", "length_stage", "data"],
+            "required": ["length", "data"],
             "additionalProperties": false
         },
 

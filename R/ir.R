@@ -719,7 +719,6 @@ ir_data_variable <- function(dat, output) {
   data <- unname(data[match(info$order, nms)])
 
   list(length = ir_expression(info$total),
-       length_stage = jsonlite::unbox(info$total_stage),
        data = data)
 }
 
