@@ -159,15 +159,11 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
     if (x$rank == 0L) {
       extract <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
-      seq <- call("seq_len",
-                  call("[[", meta$internal, array_dim_name(x$name)))
+      seq <- call("seq_len", call("[[", meta$internal, x$dimnames$length))
       extract <- call("[", meta$state, call("+", x$offset, seq))
       if (x$rank > 1L) {
-        dim <- as.call(c(
-          list(quote(c)),
-          lapply(seq_len(x$rank), function(i)
-            call("[[", meta$internal, array_dim_name(x$name, i)))))
-        extract <- call("array", extract, dim)
+        dims <- lapply(x$dimnames$dim, function(x) call("[[", meta$internal, x))
+        extract <- call("array", extract, as.call(c(list(quote(c)), dims)))
       }
     }
     call("<-", as.name(x$name), extract)
@@ -360,28 +356,20 @@ odin_ir_generate_expression_array <- function(eq, data_info, internal, meta) {
   } else {
     ## TODO: 'result' becomes 'dstatedt' (a little complicated by
     ## location above - consider replacing dstatedt with result!)
-    offset <- sexp_to_rexp(data_info$offset, internal, meta)
-    storage <- if (location == "variable") meta$result else meta$output
+    ##
     ## TODO: in the C version this is all done in rewrite and that
     ## might be a better place to put it frankly.
-    if (data_info$rank == 1L) {
-      index <- meta$index[[1L]]
-    } else {
-      ## TODO: once things are sorted out this is prime for tidying
-      ## up!  This is doing a lot of the bits that rewrite could just
-      ## as easily do, really.
-      f <- function(i) {
-        if (i == 1) {
-          meta$index[[i]]
-        } else {
-          n <- array_dim_name(data_info$name,
-                              paste(seq_len(i - 1), collapse = ""))
-          call("*", call("[[", meta$internal, n),
-               call("-", meta$index[[i]], 1L))
-        }
+    offset <- sexp_to_rexp(data_info$offset, internal, meta)
+    storage <- if (location == "variable") meta$result else meta$output
+    f <- function(i) {
+      if (i == 1) {
+        meta$index[[i]]
+      } else {
+        mult <- call("[[", meta$internal, data_info$dimnames$mult[[i]])
+        call("*", mult, call("-", meta$index[[i]], 1L))
       }
-      index <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
     }
+    index <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
     lhs <- call("[[", storage,
                 if (identical(offset, 0)) index else call("+", index, offset))
   }

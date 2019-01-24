@@ -663,10 +663,10 @@ ir_dimnames <- function(name, rank) {
   } else {
     dim <- vcapply(seq_len(rank), array_dim_name, name = name)
   }
-  if (rank <= 2) {
+  if (rank == 1) {
     mult <- NULL
   } else {
-    mult <- c("", "", vcapply(3:rank, function(i)
+    mult <- c("", vcapply(2:rank, function(i)
       array_dim_name(name, paste(seq_len(i - 1), collapse = ""))))
   }
   list(length = length, dim = dim, mult = mult)
