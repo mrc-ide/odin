@@ -93,25 +93,29 @@ odin_ir_generate_create <- function(eqs, dat, env, meta) {
 
 ## TODO: 'ic' ==> 'initial'
 odin_ir_generate_ic <- function(eqs, dat, env, meta) {
+  ## Equations to run before initial conditions are computed:
+  eqs_initial <- flatten_eqs(eqs[dat$components$initial$equations])
+
+  ## Allocate space for the state vector
   var_length <-
     sexp_to_rexp(dat$data$variable$length, dat$data$internal$contents, meta)
   alloc <- call("<-", meta$state, call("numeric", var_length))
-  ## These are only time dependent things
-  eqs_initial <- flatten_eqs(eqs[dat$components$initial$equations])
+
+  ## Assign into the state vector
   f <- function(x) {
     if (x$rank == 0) {
       target <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
       offset <- sexp_to_rexp(x$offset, dat$data$internal$contents, meta)
-      seq <- call("seq_len", call("[[", meta$internal, array_dim_name(x$name)))
+      seq <- call("seq_len", call("[[", meta$internal, x$dimnames$length))
       target <- call("[", meta$state, call("+", offset, seq))
     }
     call("<-", target, call("[[", meta$internal, initial_name(x$name)))
   }
   assign <- lapply(dat$data$variable$data, f)
-  ret <- meta$state
 
-  body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, ret))
+  ## Build the function:
+  body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, meta$state))
   args <- alist(time =, internal =)
   names(args)[[1]] <- as.character(meta$time)
   names(args)[[2]] <- as.character(meta$internal)
