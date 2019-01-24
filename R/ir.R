@@ -654,7 +654,7 @@ ir_data_internal <- function(dat) {
 
 
 ir_dimnames <- function(name, rank) {
-  if (is.null(rank)) {
+  if (is.null(rank) || rank == 0L) {
     return(NULL)
   }
   length <- jsonlite::unbox(array_dim_name(name))
