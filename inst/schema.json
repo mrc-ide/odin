@@ -151,10 +151,12 @@
                 "has_user": { "type": "boolean" },
                 "has_delay": { "type": "boolean" },
                 "has_interpolate": { "type": "boolean" },
-                "has_stochastic": { "type": "boolean" }
+                "has_stochastic": { "type": "boolean" },
+                "initial_time_dependent": { "type": "boolean" }
             },
             "required": ["discrete", "has_array", "has_output", "has_user",
-                         "has_delay", "has_interpolate", "has_stochastic"],
+                         "has_delay", "has_interpolate", "has_stochastic",
+                         "initial_time_dependent"],
             "additionalProperties": false
         },
 
@@ -163,9 +165,6 @@
             "properties": {
                 "internal": {
                     "$ref": "#/definitions/data_internal"
-                },
-                "initial": {
-                    "$ref": "#/definitions/data_initial"
                 },
                 "variable": {
                     "$ref": "#/definitions/data_variable"
@@ -177,7 +176,7 @@
                     ]
                 }
             },
-            "required": ["internal", "initial", "variable", "output"],
+            "required": ["internal", "variable", "output"],
             "additionalProperties": false
         },
 
@@ -439,17 +438,6 @@
                 }
             },
             "required": ["contents", "data"],
-            "additionalProperties": false
-        },
-
-        "data_initial": {
-            "type": "object",
-            "properties": {
-                "stage": {
-                    "$ref": "#/definitions/enum/stage"
-                }
-            },
-            "required": ["stage"],
             "additionalProperties": false
         },
 

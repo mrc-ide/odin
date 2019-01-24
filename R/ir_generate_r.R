@@ -31,7 +31,8 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
   ## Pull this out into something generally useful
   features_supported <- c("has_user", "has_output", "discrete", "has_array",
-                          "has_interpolate", "has_stochastic")
+                          "has_interpolate", "has_stochastic",
+                          "initial_time_dependent")
   features_used <- vlapply(dat$features, identity)
   msg <- setdiff(names_if(features_used), features_supported)
   if (length(msg) > 0L) {
@@ -539,8 +540,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       data = NULL,
       use_dde = NULL,
       init = NULL,
-      ## TODO: this might change:
-      initial_time_dependent = dat$data$initial$stage == "time",
+      initial_time_dependent = dat$features$initial_time_dependent,
       ## TODO: this is a horrible name
       ir_ = dat$ir,
 

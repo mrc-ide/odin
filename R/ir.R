@@ -441,11 +441,10 @@ ir_config <- function(dat) {
 ir_features <- function(dat) {
   v <- c("discrete", "has_array", "has_output", "has_user", "has_delay",
          "has_interpolate", "has_stochastic")
-  ## if (dat$info$has_array && dat$info$has_user) {
-  ##   ## This is harder because it breaks the ordering code
-  ##   stop("check for and enforce user sized arrays")
-  ## }
-  lapply(dat$info[v], jsonlite::unbox)
+  ret <- lapply(dat$info[v], jsonlite::unbox)
+  ret$initial_time_dependent <-
+    jsonlite::unbox(dat$info$initial_stage == STAGE_TIME)
+  ret
 }
 
 
@@ -622,7 +621,6 @@ ir_expression <- function(expr) {
 ## This is the structure of data structures that desribe how data is stored
 ir_data <- function(dat) {
   list(internal = ir_data_internal(dat),
-       initial = ir_data_initial(dat),
        variable = ir_data_variable(dat, FALSE),
        output = ir_data_variable(dat, TRUE))
 }
