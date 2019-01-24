@@ -230,25 +230,25 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
 
 
 odin_ir_generate_metadata <- function(eqs, dat, env, meta) {
-  f <- function(x) {
+  ord1 <- function(x) {
     if (x$rank == 0L) {
       NULL
     } else if (x$rank == 1L) {
-      call("[[", meta$internal, array_dim_name(x$name))
+      call("[[", meta$internal, x$dimnames$length)
     } else {
-      as.call(c(list(quote(c)),
-                lapply(seq_len(x$rank), function(i)
-                  call("[[", meta$internal, array_dim_name(x$name, i)))))
+      dims <- lapply(x$dimnames$dim, function(d) call("[[", meta$internal, d))
+      as.call(c(list(quote(c)), dims))
     }
   }
   ord <- function(x) {
-    as.call(c(list(quote(list)), lapply(x$data, f)))
+    as.call(c(list(quote(list)), lapply(x$data, ord1)))
   }
+
   ynames <- call(
     "make_names2",
     quote(private$variable_order), quote(private$output_order),
     dat$features$discrete)
-  n_out <- call("support_n_out", quote(support_n_out(private$output_order)))
+  n_out <- quote(support_n_out(private$output_order))
 
   ## Don't use the given environment but a different one (may change
   ## in future).
