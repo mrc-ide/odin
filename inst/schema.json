@@ -296,7 +296,6 @@
                 "type": {"const": "expression_scalar"},
                 "source": {},
                 "depends": {},
-                "stochastic": {"type": "boolean"},
                 "lhs": {
                     "$ref": "#/definitions/equation_lhs_simple"
                 },
@@ -310,7 +309,7 @@
                     "additionalProperties": false
                 }
             },
-            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "required": ["name", "type", "lhs", "rhs"],
             "additionalProperties": false
         },
 
@@ -321,11 +320,10 @@
                 "type": {"const": "expression_array"},
                 "source": {},
                 "depends": {},
-                "stochastic": {"type": "boolean"},
                 "lhs": {"$ref": "#/definitions/equation_lhs_array"},
                 "rhs": {"type": "object"}
             },
-            "required": ["name", "type", "stochastic", "lhs", "rhs"],
+            "required": ["name", "type", "lhs", "rhs"],
             "additionalProperties": false
         },
 

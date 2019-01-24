@@ -186,7 +186,6 @@ ir_prep_offset1 <- function(i, info, dat) {
                   value = value,
                   depends = depends),
        depends = depends,
-       stochastic = FALSE,
        expr = parent$expr,
        expr_str = parent$expr_str,
        line = parent$line,
@@ -213,7 +212,6 @@ ir_prep_dim_user <- function(nm, dat) {
                data_type = eq$lhs$data_type),
     rhs = list(type = "user", user = TRUE, user_dim = TRUE, default = FALSE),
     depends = NULL,
-    stochastic = FALSE,
     expr = eq$expr,
     expr_str = eq$expr_str,
     line = eq$line,
@@ -320,7 +318,6 @@ ir_prep_dim1 <- function(eq, dat) {
                     value = value,
                     depends = depends),
          depends = depends,
-         stochastic = FALSE,
          expr = eq$expr,
          expr_str = eq$expr_str,
          line = eq$line,
@@ -384,7 +381,6 @@ ir_prep_dim1 <- function(eq, dat) {
                  value = alloc,
                  depends = depends),
       depends = depends,
-      stochastic = FALSE,
       expr = eq$expr,
       expr_str = eq$expr_str,
       line = eq$line,
@@ -534,9 +530,7 @@ ir_equation_expression_scalar <- function(eq) {
   rhs <- list(
     type = jsonlite::unbox(eq$rhs$type),
     value = ir_expression(eq$rhs$value))
-  stochastic <- jsonlite::unbox(eq$stochastic)
-  ir_equation_base("expression_scalar", eq,
-                   lhs = lhs, rhs = rhs, stochastic = stochastic)
+  ir_equation_base("expression_scalar", eq, lhs = lhs, rhs = rhs)
 }
 
 
@@ -553,9 +547,7 @@ ir_equation_expression_array <- function(eq) {
   rhs <- list(
     type = unname(eq$rhs$type),
     value = lapply(unname(eq$rhs$value), ir_expression))
-  stochastic <- jsonlite::unbox(eq$stochastic)
-  ir_equation_base("expression_array", eq,
-                   lhs = lhs, rhs = rhs, stochastic = stochastic)
+  ir_equation_base("expression_array", eq, lhs = lhs, rhs = rhs)
 }
 
 
