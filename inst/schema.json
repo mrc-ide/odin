@@ -65,6 +65,11 @@
                 "comment": "This duplicates different equation types"
             },
 
+            "expression_rhs_type": {
+                "type": "string",
+                "enum": ["atomic", "expression"]
+            },
+
             "interpolation_type": {
                 "type": "string",
                 "enum": ["constant", "linear", "spline"]
@@ -248,6 +253,40 @@
             "additionalProperties": false
         },
 
+        "equation_rhs_scalar": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/definitions/enum/expression_rhs_type"
+                },
+                "value": {
+                    "$ref": "#/definitions/sexpression"
+                }
+            },
+            "required": ["type", "value"],
+            "additionalProperties": false
+        },
+
+        "equation_rhs_array": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/enum/expression_rhs_type"
+                    }
+                },
+                "value": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sexpression"
+                    }
+                }
+            },
+            "required": ["type", "value"],
+            "additionalProperties": false
+        },
+
         "equation_base": {
             "type": "object",
             "properties": {
@@ -300,13 +339,7 @@
                     "$ref": "#/definitions/equation_lhs_simple"
                 },
                 "rhs": {
-                    "type": "object",
-                    "properties": {
-                        "type": {"type": "string"},
-                        "value": {"$ref": "#/definitions/sexpression"}
-                    },
-                    "required": ["type", "value"],
-                    "additionalProperties": false
+                    "$ref": "#/definitions/equation_rhs_scalar"
                 }
             },
             "required": ["name", "type", "lhs", "rhs"],
@@ -321,7 +354,7 @@
                 "source": {},
                 "depends": {},
                 "lhs": {"$ref": "#/definitions/equation_lhs_array"},
-                "rhs": {"type": "object"}
+                "rhs": {"$ref": "#/definitions/equation_rhs_array"}
             },
             "required": ["name", "type", "lhs", "rhs"],
             "additionalProperties": false
