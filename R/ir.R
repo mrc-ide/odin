@@ -622,8 +622,11 @@ ir_data <- function(dat) {
 ir_data2 <- function(dat) {
   ## quickly patch up the data because otherwise this is a pain to read:
   for (i in seq_along(dat$eqs)) {
-    if (identical(dat$eqs[[i]]$lhs$special, "deriv")) {
+    if (identical(dat$eqs[[i]]$lhs$special, "deriv") ||
+        identical(dat$eqs[[i]]$lhs$special, "update") ||
+        identical(dat$eqs[[i]]$lhs$special, "output")) {
       dat$eqs[[i]]$name <- dat$eqs[[i]]$lhs$name_target
+      dat$eqs[[i]]$lhs$name <- dat$eqs[[i]]$lhs$name_target
     }
   }
   i <- !vlapply(dat$eqs, function(x) identical(x$rhs$type, "alloc"))
@@ -796,6 +799,10 @@ ir_deserialise <- function(ir) {
   dat$data2$internal <- list_to_character(dat$data2$internal)
   dat$data2$transient <- list_to_character(dat$data2$transient)
   names(dat$data2$data) <- vcapply(dat$data2$data, "[[", "name")
+  names(dat$data2$variable$contents) <-
+    vcapply(dat$data2$variable$contents, "[[", "name")
+  names(dat$data2$output$contents) <-
+    vcapply(dat$data2$output$contents, "[[", "name")
 
   dat
 }
