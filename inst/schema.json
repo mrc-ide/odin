@@ -561,6 +561,7 @@
         "data": {
             "$ref": "#/definitions/data"
         },
+        "data2": {},
         "equations": {
             "$ref": "#/definitions/equations"
         },

@@ -98,21 +98,22 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
   ## Allocate space for the state vector
   var_length <-
-    sexp_to_rexp(dat$data$variable$length, dat$data$internal$contents, meta)
+    sexp_to_rexp(dat$data2$variable$length, dat$data2$internal, meta)
   alloc <- call("<-", meta$state, call("numeric", var_length))
 
   ## Assign into the state vector
   f <- function(x) {
-    if (x$rank == 0) {
+    d <- dat$data2$data[[x$name]]
+    if (d$rank == 0) {
       target <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
-      offset <- sexp_to_rexp(x$offset, dat$data$internal$contents, meta)
-      seq <- call("seq_len", call("[[", meta$internal, x$dimnames$length))
+      offset <- sexp_to_rexp(x$offset, dat$data2$internal, meta)
+      seq <- call("seq_len", call("[[", meta$internal, d$dimnames$length))
       target <- call("[", meta$state, call("+", offset, seq))
     }
-    call("<-", target, call("[[", meta$internal, initial_name(x$name)))
+    call("<-", target, call("[[", meta$internal, x$initial))
   }
-  assign <- lapply(dat$data$variable$data, f)
+  assign <- lapply(dat$data2$variable$contents, f)
 
   ## Build the function:
   body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, meta$state))

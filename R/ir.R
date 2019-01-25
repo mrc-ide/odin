@@ -14,6 +14,7 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
                  data = ir_data(dat),
+                 data2 = ir_data2(dat),
                  equations = ir_equations(dat),
                  components = ir_components(dat),
                  user = ir_user(dat),
@@ -618,6 +619,50 @@ ir_data <- function(dat) {
 }
 
 
+ir_data2 <- function(dat) {
+  ## quickly patch up the data because otherwise this is a pain to read:
+  for (i in seq_along(dat$eqs)) {
+    if (identical(dat$eqs[[i]]$lhs$special, "deriv")) {
+      dat$eqs[[i]]$name <- dat$eqs[[i]]$lhs$name_target
+    }
+  }
+  i <- !vlapply(dat$eqs, function(x) identical(x$rhs$type, "alloc"))
+  data <- lapply(unname(dat$eqs[i]), function(eq)
+    list(name = jsonlite::unbox(eq$name),
+         storage_type = jsonlite::unbox(eq$lhs$data_type),
+         rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
+         dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd)))
+  list(data = data,
+       internal = ir_data2_internal(dat, FALSE),
+       transient = ir_data2_internal(dat, TRUE),
+       variable = ir_data2_variable(dat, FALSE),
+       output = ir_data2_variable(dat, TRUE))
+}
+
+
+ir_data2_internal <- function(dat, transient) {
+  i <- vlapply(dat$eqs, function(x)
+    x$lhs$location == "internal" &&
+    !identical(x$rhs$type, "alloc") &&
+    (x$stage == STAGE_TIME &&
+     is.null(x$lhs$nd) &&
+     !identical(x$lhs$special, "initial")) == transient)
+  names_if(i)
+}
+
+
+ir_data2_variable <- function(dat, output) {
+  info <- if (output) dat$output_info else dat$variable_info
+  offset <- set_names(info$offset, info$order)
+  contents <- lapply(seq_along(info$order), function(i)
+    list(name = jsonlite::unbox(info$order[[i]]),
+         offset = ir_expression(info$offset[[i]]),
+         initial = if (!output) jsonlite::unbox(initial_name(info$order[[i]]))))
+  list(length = ir_expression(info$total),
+       contents = contents)
+}
+
+
 ir_data_internal <- function(dat) {
   if (!dat$info$discrete) {
     ## Add odin_use_dde as bool
@@ -672,10 +717,6 @@ ir_dimnames <- function(name, rank) {
   list(length = length, dim = dim, mult = mult)
 }
 
-
-ir_data_initial <- function(dat) {
-  list(stage = jsonlite::unbox(STAGES[[dat$info$initial_stage]]))
-}
 
 
 ir_data_variable <- function(dat, output) {
@@ -749,7 +790,12 @@ ir_deserialise <- function(ir) {
     }
     dat$data$internal$data <- lapply(dat$data$internal$data, fix_dimnames)
     dat$data$variable$data <- lapply(dat$data$variable$data, fix_dimnames)
+    dat$data2$data <- lapply(dat$data2$data, fix_dimnames)
   }
+
+  dat$data2$internal <- list_to_character(dat$data2$internal)
+  dat$data2$transient <- list_to_character(dat$data2$transient)
+  names(dat$data2$data) <- vcapply(dat$data2$data, "[[", "name")
 
   dat
 }
