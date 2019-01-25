@@ -14,7 +14,6 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ir_dat <- list(config = ir_config(dat),
                  features = ir_features(dat),
                  data = ir_data(dat),
-                 data2 = ir_data2(dat),
                  equations = ir_equations(dat),
                  components = ir_components(dat),
                  user = ir_user(dat),
@@ -611,15 +610,8 @@ ir_expression <- function(expr) {
   }
 }
 
-## This is the structure of data structures that desribe how data is stored
+
 ir_data <- function(dat) {
-  list(internal = ir_data_internal(dat),
-       variable = ir_data_variable(dat, FALSE),
-       output = ir_data_variable(dat, TRUE))
-}
-
-
-ir_data2 <- function(dat) {
   ## quickly patch up the data because otherwise this is a pain to read:
   for (i in seq_along(dat$eqs)) {
     if (identical(dat$eqs[[i]]$lhs$special, "deriv") ||
@@ -636,14 +628,14 @@ ir_data2 <- function(dat) {
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd)))
   list(data = data,
-       internal = ir_data2_internal(dat, FALSE),
-       transient = ir_data2_internal(dat, TRUE),
-       variable = ir_data2_variable(dat, FALSE),
-       output = ir_data2_variable(dat, TRUE))
+       internal = ir_data_internal(dat, FALSE),
+       transient = ir_data_internal(dat, TRUE),
+       variable = ir_data_variable(dat, FALSE),
+       output = ir_data_variable(dat, TRUE))
 }
 
 
-ir_data2_internal <- function(dat, transient) {
+ir_data_internal <- function(dat, transient) {
   i <- vlapply(dat$eqs, function(x)
     x$lhs$location == "internal" &&
     !identical(x$rhs$type, "alloc") &&
@@ -654,50 +646,23 @@ ir_data2_internal <- function(dat, transient) {
 }
 
 
-ir_data2_variable <- function(dat, output) {
+ir_data_variable <- function(dat, output) {
   info <- if (output) dat$output_info else dat$variable_info
+  if (output && !dat$info$has_output) {
+    info <- list(total = 0)
+  }
   offset <- set_names(info$offset, info$order)
   contents <- lapply(seq_along(info$order), function(i)
     list(name = jsonlite::unbox(info$order[[i]]),
-         offset = ir_expression(info$offset[[i]]),
-         initial = if (!output) jsonlite::unbox(initial_name(info$order[[i]]))))
+         offset = ir_expression(info$offset[[i]])))
+  ## Only for output:
+  if (!output) {
+    for (i in seq_along(contents)) {
+      contents[[i]]$initial <- jsonlite::unbox(initial_name(info$order[[i]]))
+    }
+  }
   list(length = ir_expression(info$total),
        contents = contents)
-}
-
-
-ir_data_internal <- function(dat) {
-  if (!dat$info$discrete) {
-    ## Add odin_use_dde as bool
-  }
-
-  ## TODO: dimensionscome through with the wrong data type and wrong
-  ## rank here in parse - they should always be rank 0 integers.  Fix
-  ## this in prep (it's not a big deal for R models I believe).
-
-  ## if has delay add a ring
-  i <- vlapply(dat$eqs, function(x)
-    x$lhs$location == "internal" &&
-    !identical(x$rhs$type, "alloc"))
-
-  data <- lapply(dat$eqs[i], function(eq)
-    list(name = jsonlite::unbox(eq$lhs$name),
-         storage_type = jsonlite::unbox(eq$lhs$data_type),
-         rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
-         dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd),
-         transient = jsonlite::unbox(eq$stage == STAGE_TIME &&
-                                     is.null(eq$lhs$nd) &&
-                                     !identical(eq$lhs$special, "initial"))))
-
-  ## I am sure that there is more to add here - size, etc
-  contents <- names_if(!vlapply(data, "[[", "transient"))
-
-  ## We're dropping names here: the canonical name must now be the
-  ## name element:
-  stopifnot(
-    identical(vcapply(data, "[[", "name", USE.NAMES = FALSE), names(data)))
-
-  list(data = unname(data), contents = contents)
 }
 
 
@@ -721,42 +686,6 @@ ir_dimnames <- function(name, rank) {
 }
 
 
-
-ir_data_variable <- function(dat, output) {
-  if (output && !dat$info$has_output) {
-    return(NULL)
-  }
-
-  info <- if (output) dat$output_info else dat$variable_info
-  offset <- set_names(info$offset, info$order)
-  rank <- set_names(info$array, info$order)
-
-  ## For each here we store the data type only I think?  All ODE
-  ## variables are constrained to be numeric, but that doesn't hold
-  ## for discrete equations of course.
-
-  ## TODO: This is one of the areas where the parse code needs
-  ## completely refactoring to get us information in a better order.
-  location <- if (output) "output" else "variable"
-  i <- vcapply(dat$eqs, function(x) x$lhs$location) == location
-  data <- lapply(dat$eqs[i], function(eq)
-    list(name = jsonlite::unbox(eq$lhs$name_target),
-         storage_type = jsonlite::unbox(eq$lhs$data_type),
-         offset = ir_expression(offset[[eq$lhs$name_target]]),
-         rank = jsonlite::unbox(rank[[eq$lhs$name_target]]),
-         dimnames = ir_dimnames(eq$lhs$name_target,
-                                rank[[eq$lhs$name_target]])))
-
-  ## We require this to hold later:
-  nms <- vcapply(data, "[[", "name", USE.NAMES = FALSE)
-  stopifnot(identical(sort(nms), sort(info$order)))
-  data <- unname(data[match(info$order, nms)])
-
-  list(length = ir_expression(info$total),
-       data = data)
-}
-
-
 ir_serialise <- function(dat, pretty = TRUE) {
   jsonlite::toJSON(dat, null = "null", pretty = pretty, digits = NA)
 }
@@ -768,21 +697,6 @@ ir_deserialise <- function(ir) {
   dat <- jsonlite::fromJSON(ir, simplifyVector = FALSE)
   dat$components <- lapply(dat$components, lapply, list_to_character)
 
-  ## These are stored as an array (simpler in the schema, less
-  ## duplication, order preserving) but we want to access by name:
-  names(dat$data$internal$data) <-
-    vcapply(dat$data$internal$data, "[[", "name")
-
-  names(dat$data$variable$data) <-
-    vcapply(dat$data$variable$data, "[[", "name")
-
-  if (dat$features$has_output) {
-    names(dat$data$output$data) <-
-      vcapply(dat$data$output$data, "[[", "name")
-  }
-
-  dat$data$internal$contents <- list_to_character(dat$data$internal$contents)
-
   if (dat$features$has_array) {
     fix_dimnames <- function(x) {
       if (x$rank > 0L) {
@@ -791,18 +705,16 @@ ir_deserialise <- function(ir) {
       }
       x
     }
-    dat$data$internal$data <- lapply(dat$data$internal$data, fix_dimnames)
-    dat$data$variable$data <- lapply(dat$data$variable$data, fix_dimnames)
-    dat$data2$data <- lapply(dat$data2$data, fix_dimnames)
+    dat$data$data <- lapply(dat$data$data, fix_dimnames)
   }
 
-  dat$data2$internal <- list_to_character(dat$data2$internal)
-  dat$data2$transient <- list_to_character(dat$data2$transient)
-  names(dat$data2$data) <- vcapply(dat$data2$data, "[[", "name")
-  names(dat$data2$variable$contents) <-
-    vcapply(dat$data2$variable$contents, "[[", "name")
-  names(dat$data2$output$contents) <-
-    vcapply(dat$data2$output$contents, "[[", "name")
+  dat$data$internal <- list_to_character(dat$data$internal)
+  dat$data$transient <- list_to_character(dat$data$transient)
+  names(dat$data$data) <- vcapply(dat$data$data, "[[", "name")
+  names(dat$data$variable$contents) <-
+    vcapply(dat$data$variable$contents, "[[", "name")
+  names(dat$data$output$contents) <-
+    vcapply(dat$data$output$contents, "[[", "name")
 
   dat
 }

@@ -98,22 +98,22 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
 
   ## Allocate space for the state vector
   var_length <-
-    sexp_to_rexp(dat$data2$variable$length, dat$data2$internal, meta)
+    sexp_to_rexp(dat$data$variable$length, dat$data$internal, meta)
   alloc <- call("<-", meta$state, call("numeric", var_length))
 
   ## Assign into the state vector
   f <- function(x) {
-    d <- dat$data2$data[[x$name]]
+    d <- dat$data$data[[x$name]]
     if (d$rank == 0L) {
       target <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
-      offset <- sexp_to_rexp(x$offset, dat$data2$internal, meta)
+      offset <- sexp_to_rexp(x$offset, dat$data$internal, meta)
       seq <- call("seq_len", call("[[", meta$internal, d$dimnames$length))
       target <- call("[", meta$state, call("+", offset, seq))
     }
     call("<-", target, call("[[", meta$internal, x$initial))
   }
-  assign <- lapply(dat$data2$variable$contents, f)
+  assign <- lapply(dat$data$variable$contents, f)
 
   ## Build the function:
   body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, meta$state))
@@ -159,7 +159,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
   ## NOTE: this is really similar to code in ic but that goes the
   ## other way, into the state vector.
   f <- function(x) {
-    d <- dat$data2$data[[x$name]]
+    d <- dat$data$data[[x$name]]
     if (d$rank == 0L) {
       extract <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
@@ -173,10 +173,10 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
     call("<-", as.name(x$name), extract)
   }
 
-  vars <- unname(drop_null(lapply(dat$data2$variable$contents[use_vars], f)))
+  vars <- unname(drop_null(lapply(dat$data$variable$contents[use_vars], f)))
 
   ## NOTE: There are two reasonable things to do here - we can look up
-  ## the length of the variable (dat$data2$variable$length) or we can
+  ## the length of the variable (dat$data$variable$length) or we can
   ## just make this a vector the same length as the incoming state (as
   ## dydt is always the same length as y).  Neither seems much better
   ## than the other, so going with the same length approach here as it
@@ -187,7 +187,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
   ## For output_length we have no real choice but to look up the
   ## length each time.
   output_length <- sexp_to_rexp(
-    dat$data2$output$length, dat$data2$internal, meta)
+    dat$data$output$length, dat$data$internal, meta)
   alloc_output <- call("<-", meta$output, call("numeric", output_length))
 
   if (desolve || discrete) {
@@ -241,7 +241,7 @@ odin_ir_generate_metadata <- function(dat, meta) {
     }
   }
   ord <- function(location) {
-    len <- lapply(dat$data2$data[names(dat$data2[[location]]$contents)], ord1)
+    len <- lapply(dat$data$data[names(dat$data[[location]]$contents)], ord1)
     as.call(c(list(quote(list)), len))
   }
 
@@ -270,9 +270,9 @@ odin_ir_generate_metadata <- function(dat, meta) {
 odin_ir_generate_expression <- function(eq, dat, meta) {
   nm <- eq$name
   location <- eq$lhs$location
-  internal <- dat$data2$internal
+  internal <- dat$data$internal
   data_name <- eq$lhs$target
-  data_info <- dat$data2$data[[data_name]]
+  data_info <- dat$data$data[[data_name]]
   stopifnot(!is.null(data_info))
 
   if (eq$type == "alloc") {
@@ -281,13 +281,13 @@ odin_ir_generate_expression <- function(eq, dat, meta) {
     return(odin_ir_generate_expression_alloc_interpolate(
       eq, data_info, internal, meta))
   } else if (eq$type == "copy") {
-    return(odin_ir_generate_expression_copy(eq, data_info, dat$data2, meta))
+    return(odin_ir_generate_expression_copy(eq, data_info, dat$data, meta))
   } else if (eq$type == "user") {
     return(odin_ir_generate_expression_user(eq, data_info, internal, meta))
   } else if (eq$type == "expression_scalar") {
-    return(odin_ir_generate_expression_scalar(eq, data_info, dat$data2, meta))
+    return(odin_ir_generate_expression_scalar(eq, data_info, dat$data, meta))
   } else if (eq$type == "expression_array") {
-    return(odin_ir_generate_expression_array(eq, data_info, dat$data2, meta))
+    return(odin_ir_generate_expression_array(eq, data_info, dat$data, meta))
   } else {
     stop("Impossible equation type")
   }

@@ -26,12 +26,6 @@
                 }
             },
 
-            "rank": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 8
-            },
-
             "source_reference": {
                 "type": "array",
                 "items": {
@@ -168,20 +162,104 @@
         "data": {
             "type": "object",
             "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data_element"
+                    }
+                },
                 "internal": {
-                    "$ref": "#/definitions/data_internal"
+                    "#$ref": "#/definitions/basic/character_vector"
+                },
+                "transient": {
+                    "#$ref": "#/definitions/basic/character_vector"
                 },
                 "variable": {
                     "$ref": "#/definitions/data_variable"
                 },
                 "output": {
-                    "oneOf": [
-                        { "type": "null" },
-                        { "$ref": "#/definitions/data_variable" }
-                    ]
+                    "$ref": "#/definitions/data_output"
                 }
             },
-            "required": ["internal", "variable", "output"],
+            "required": ["data", "internal", "transient", "variable", "output"],
+            "additionalProperties": false
+        },
+
+        "data_element": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "storage_type": {
+                    "$ref": "#/definitions/enum/storage_type"
+                },
+                "rank": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 8
+                },
+                "dimnames": {
+                    "$ref": "#/definitions/dimnames"
+                }
+            },
+            "required": ["name", "storage_type", "rank", "dimnames"],
+            "additionalProperties": false
+        },
+
+        "data_variable": {
+            "type": "object",
+            "properties": {
+                "length": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "contents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data_variable_element"
+                    }
+                }
+            },
+            "required": ["length", "contents"],
+            "additionalProperties": false
+        },
+
+        "data_variable_element": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "offset": {"$ref": "#/definitions/sexpression"},
+                "initial": {"type": "string"}
+            },
+            "required": ["name", "offset", "initial"],
+            "additionalProperties": false
+        },
+
+        "data_output": {
+            "type": "object",
+            "comment": "Almost identical to data_variable, but the contents elements do not have an 'initial' property",
+            "properties": {
+                "length": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "contents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data_output_element"
+                    }
+                }
+            },
+            "required": ["length", "contents"],
+            "additionalProperties": false
+        },
+
+        "data_output_element": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "offset": {"$ref": "#/definitions/sexpression"}
+            },
+            "required": ["name", "offset"],
             "additionalProperties": false
         },
 
@@ -439,73 +517,6 @@
             "additionalProperties": false
         },
 
-        "data_internal": {
-            "type": "object",
-            "properties": {
-                "contents": { "$ref": "#/definitions/basic/character_vector" },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string"},
-                            "storage_type": {
-                                "$ref": "#/definitions/enum/storage_type"
-                            },
-                            "rank": {
-                                "$ref": "#/definitions/basic/rank"
-                            },
-                            "dimnames": {
-                                "$ref": "#/definitions/dimnames"
-                            },
-                            "transient": {
-                                "type": "boolean"
-                            }
-                        },
-                        "required": ["name", "storage_type", "rank",
-                                     "dimnames", "transient"],
-                        "additionalProperties": false
-                    }
-                }
-            },
-            "required": ["contents", "data"],
-            "additionalProperties": false
-        },
-
-        "data_variable": {
-            "type": "object",
-            "properties": {
-                "length": {
-                    "$ref": "#/definitions/sexpression"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string"},
-                            "storage_type": {
-                                "$ref": "#/definitions/enum/storage_type"
-                            },
-                            "rank": {
-                                "$ref": "#/definitions/basic/rank"
-                            },
-                            "dimnames": {
-                                "$ref": "#/definitions/dimnames"
-                            },
-                            "offset": {
-                                "$ref": "#/definitions/sexpression"
-                            }
-                        },
-                        "required": ["name", "storage_type", "rank", "offset"],
-                        "additionalProperties": false
-                    }
-                }
-            },
-            "required": ["length", "data"],
-            "additionalProperties": false
-        },
-
         "user": {
             "type": "array",
             "items": {
@@ -561,7 +572,6 @@
         "data": {
             "$ref": "#/definitions/data"
         },
-        "data2": {},
         "equations": {
             "$ref": "#/definitions/equations"
         },
