@@ -57,7 +57,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
   ## This is our little rewriter - we'll tidy this up later
   rewrite <- function(x) {
-    sexp_to_rexp(x, dat$data$internal, meta)
+    sexp_to_rexp(x, dat$data, meta)
   }
 
   eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta, rewrite)
@@ -294,24 +294,24 @@ odin_ir_generate_expression <- function(eq, dat, meta, rewrite) {
 }
 
 
-sexp_to_rexp <- function(x, internal, meta) {
+sexp_to_rexp <- function(x, data, meta) {
   if (is.recursive(x)) {
     fn <- x[[1L]]
     args <- x[-1L]
     if (fn == "length") {
-      sexp_to_rexp(array_dim_name(args[[1L]]), internal, meta)
+      sexp_to_rexp(data$data[[args[[1L]]]]$dimnames$length, data, meta)
     } else if (fn == "dim") {
-      sexp_to_rexp(array_dim_name(args[[1L]], args[[2L]]), internal, meta)
+      nm <- data$data[[args[[1L]]]]$dimnames$dim[[args[[2L]]]]
+      sexp_to_rexp(nm, data, meta)
     } else if (fn == "interpolate") {
-      sexp_to_rexp(list(args[[2]], args[[1]]), internal, meta)
+      sexp_to_rexp(list(args[[2L]], args[[1L]]), data, meta)
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
     } else {
-      as.call(c(list(sexp_to_rexp(fn, internal, meta)),
-                lapply(args, sexp_to_rexp, internal, meta)))
+      as.call(lapply(x, sexp_to_rexp, data, meta))
     }
   } else if (is.character(x)) {
-    if (x %in% internal) {
+    if (x %in% data$internal) {
       call("[[", meta$internal, x)
     } else {
       as.name(x)
@@ -348,7 +348,7 @@ odin_ir_generate_expression_array <- function(eq, data_info, data, meta,
   if (location == "internal") {
     storage <- call("[[", meta$internal, eq$name)
     if (data_info$rank == 1L) {
-      lhs <- call("[[", storage, meta$index[[1]])
+      lhs <- call("[[", storage, meta$index[[1L]])
     } else {
       lhs <- as.call(c(list(quote(`[`), storage),
                        meta$index[seq_len(data_info$rank)]))
