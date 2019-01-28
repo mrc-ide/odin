@@ -55,7 +55,12 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     get_user_double = as.name("_get_user_double"),
     get_user_dim = as.name("_get_user_dim"))
 
-  eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta)
+  ## This is our little rewriter - we'll tidy this up later
+  rewrite <- function(x) {
+    sexp_to_rexp(x, dat$data$internal, meta)
+  }
+
+  eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta, rewrite)
   names(eqs) <- vcapply(dat$equations, "[[", "name")
 
   ## Then start putting together the initial conditions
@@ -67,14 +72,19 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     env[[as.character(meta$get_user_dim)]] <- support_get_user_dim
   }
 
+  ## TODO: for now these all have the same argument list but that's
+  ## not strictly needed and might relax soon.
   core <- list(
     create = odin_ir_generate_create(eqs, dat, env, meta),
-    ic = odin_ir_generate_ic(eqs, dat, env, meta),
+    ic = odin_ir_generate_ic(eqs, dat, env, meta, rewrite),
     set_user = odin_ir_generate_set_user(eqs, dat, env, meta),
     ## TODO: These 3 true/false pairs might be a ternary categorical arg?
-    rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, TRUE, FALSE),
-    rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE, FALSE),
-    output = odin_ir_generate_rhs(eqs, dat, env, meta, FALSE, TRUE),
+    rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,
+                                       TRUE, FALSE),
+    rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,
+                                   FALSE, FALSE),
+    output = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,
+                                  FALSE, TRUE),
     ## This one is a little different
     metadata = odin_ir_generate_metadata(dat, meta))
 
@@ -92,13 +102,12 @@ odin_ir_generate_create <- function(eqs, dat, env, meta) {
 
 
 ## TODO: 'ic' ==> 'initial'
-odin_ir_generate_ic <- function(eqs, dat, env, meta) {
+odin_ir_generate_ic <- function(eqs, dat, env, meta, rewrite) {
   ## Equations to run before initial conditions are computed:
   eqs_initial <- flatten_eqs(eqs[dat$components$initial$equations])
 
   ## Allocate space for the state vector
-  var_length <-
-    sexp_to_rexp(dat$data$variable$length, dat$data$internal, meta)
+  var_length <- rewrite(dat$data$variable$length)
   alloc <- call("<-", meta$state, call("numeric", var_length))
 
   ## Assign into the state vector
@@ -107,7 +116,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta) {
     if (d$rank == 0L) {
       target <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
-      offset <- sexp_to_rexp(x$offset, dat$data$internal, meta)
+      offset <- rewrite(x$offset)
       seq <- call("seq_len", call("[[", meta$internal, d$dimnames$length))
       target <- call("[", meta$state, call("+", offset, seq))
     }
@@ -134,7 +143,8 @@ odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
 }
 
 
-odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
+odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite,
+                                 desolve, output) {
   discrete <- dat$features$discrete
   has_output <- dat$features$has_output
   if (output && !has_output) {
@@ -186,8 +196,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, desolve, output) {
 
   ## For output_length we have no real choice but to look up the
   ## length each time.
-  output_length <- sexp_to_rexp(
-    dat$data$output$length, dat$data$internal, meta)
+  output_length <- rewrite(dat$data$output$length)
   alloc_output <- call("<-", meta$output, call("numeric", output_length))
 
   if (desolve || discrete) {
@@ -263,34 +272,25 @@ odin_ir_generate_metadata <- function(dat, meta) {
 }
 
 
-## TODO: this one looks like it breaks apart into different features
-## as there are two big if/else blocks here.  There are a few ways of
-## breaking this up though, and it looks like array/nonarray is better
-## than lhs/rhs
-odin_ir_generate_expression <- function(eq, dat, meta) {
-  nm <- eq$name
-  location <- eq$lhs$location
-  internal <- dat$data$internal
-  data_name <- eq$lhs$target
-  data_info <- dat$data$data[[data_name]]
+## TODO: this should be generate_equation I think
+##
+## TODO: separate out the scalar and array types then move to a switch
+## statement.
+odin_ir_generate_expression <- function(eq, dat, meta, rewrite) {
+  f <- switch(
+    eq$type,
+    alloc = odin_ir_generate_expression_alloc,
+    alloc_interpolate = odin_ir_generate_expression_alloc_interpolate,
+    copy = odin_ir_generate_expression_copy,
+    user = odin_ir_generate_expression_user,
+    expression_scalar = odin_ir_generate_expression_scalar,
+    expression_array = odin_ir_generate_expression_array,
+    stop("Unknown type"))
+
+  data_info <- dat$data$data[[eq$lhs$target]]
   stopifnot(!is.null(data_info))
 
-  if (eq$type == "alloc") {
-    return(odin_ir_generate_expression_alloc(eq, data_info, internal, meta))
-  } else if (eq$type == "alloc_interpolate") {
-    return(odin_ir_generate_expression_alloc_interpolate(
-      eq, data_info, internal, meta))
-  } else if (eq$type == "copy") {
-    return(odin_ir_generate_expression_copy(eq, data_info, dat$data, meta))
-  } else if (eq$type == "user") {
-    return(odin_ir_generate_expression_user(eq, data_info, internal, meta))
-  } else if (eq$type == "expression_scalar") {
-    return(odin_ir_generate_expression_scalar(eq, data_info, dat$data, meta))
-  } else if (eq$type == "expression_array") {
-    return(odin_ir_generate_expression_array(eq, data_info, dat$data, meta))
-  } else {
-    stop("Impossible equation type")
-  }
+  f(eq, data_info, dat$data, meta, rewrite)
 }
 
 
@@ -324,25 +324,25 @@ sexp_to_rexp <- function(x, internal, meta) {
 }
 
 
-odin_ir_generate_expression_scalar <- function(eq, data_info, data, meta) {
-  internal <- data$internal
+odin_ir_generate_expression_scalar <- function(eq, data_info, data, meta,
+                                               rewrite) {
   location <- eq$lhs$location
 
   if (location == "internal") {
-    lhs <- sexp_to_rexp(eq$name, internal, meta)
+    lhs <- rewrite(eq$name)
   } else {
     offset <- data[[location]]$contents[[eq$lhs$target]]$offset
     storage <- if (location == "variable") meta$result else meta$output
     lhs <- call("[[", storage, offset_to_position(offset))
   }
 
-  rhs <- sexp_to_rexp(eq$rhs$value, internal, meta)
+  rhs <- rewrite(eq$rhs$value)
   call("<-", lhs, rhs)
 }
 
 
-odin_ir_generate_expression_array <- function(eq, data_info, data, meta) {
-  internal <- data$internal
+odin_ir_generate_expression_array <- function(eq, data_info, data, meta,
+                                              rewrite) {
   location <- eq$lhs$location
 
   if (location == "internal") {
@@ -359,8 +359,7 @@ odin_ir_generate_expression_array <- function(eq, data_info, data, meta) {
     ##
     ## TODO: in the C version this is all done in rewrite and that
     ## might be a better place to put it frankly.
-    offset <- sexp_to_rexp(data[[location]]$contents[[eq$lhs$target]]$offset,
-                           internal, meta)
+    offset <- rewrite(data[[location]]$contents[[eq$lhs$target]]$offset)
     ## TODO: align meta names with data names
     storage <- if (location == "variable") meta$result else meta$output
 
@@ -384,18 +383,16 @@ odin_ir_generate_expression_array <- function(eq, data_info, data, meta) {
   ##
   ## TODO: we can (re-)vectorise lots of expressions here.
   f <- function(i) {
-    expr_body <- call("<-", lhs,
-                      sexp_to_rexp(eq$rhs$value[[i]], internal, meta))
+    expr_body <- call("<-", lhs, rewrite(eq$rhs$value[[i]]))
     subs <- list()
     for (j in rev(seq_along(eq$lhs$index[[i]]$value))) {
       if (eq$lhs$index[[i]]$is_range[[j]]) {
-        expr_index <-
-          sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
+        expr_index <- rewrite(eq$lhs$index[[i]]$value[[j]])
         expr_body <- call("for", meta$index[[j]], expr_index,
                           call("{", expr_body))
       } else if (length(eq$lhs$index[[i]]$value[[j]]) == 1L) {
         subs[[as.character(meta$index[[j]])]] <-
-          sexp_to_rexp(eq$lhs$index[[i]]$value[[j]], internal, meta)
+          rewrite(eq$lhs$index[[i]]$value[[j]])
       } else {
         stop("Nontrivial non-range array access")
       }
@@ -409,7 +406,8 @@ odin_ir_generate_expression_array <- function(eq, data_info, data, meta) {
 }
 
 
-odin_ir_generate_expression_alloc <- function(eq, data_info, internal, meta) {
+odin_ir_generate_expression_alloc <- function(eq, data_info, data, meta,
+                                              rewrite) {
   lhs <- call("[[", meta$internal, eq$lhs$target)
   alloc_fn <- switch(data_info$storage_type,
                      double = "numeric",
@@ -427,11 +425,12 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, internal, meta) {
 
 
 odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
-                                                          internal, meta) {
+                                                          data, meta,
+                                                          rewrite) {
   lhs <- call("[[", meta$internal, eq$lhs$target)
   args <- list(quote(cinterpolate::interpolation_function),
-               sexp_to_rexp(eq$interpolate$t, internal, meta),
-               sexp_to_rexp(eq$interpolate$y, internal, meta),
+               rewrite(eq$interpolate$t),
+               rewrite(eq$interpolate$y),
                eq$interpolate$type,
                scalar = TRUE)
   rhs <- as.call(args)
@@ -439,11 +438,10 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
 }
 
 
-odin_ir_generate_expression_copy <- function(eq, data_info, data, meta) {
+odin_ir_generate_expression_copy <- function(eq, data_info, data, meta,
+                                             rewrite) {
   stopifnot(eq$lhs$location == "output")
-  internal <- data$internal
-  offset <-
-    sexp_to_rexp(data$output$contents[[eq$lhs$target]]$offset, internal, meta)
+  offset <- rewrite(data$output$contents[[eq$lhs$target]]$offset)
   storage <- meta$output
 
   if (data_info$rank == 0) {
@@ -454,14 +452,15 @@ odin_ir_generate_expression_copy <- function(eq, data_info, data, meta) {
     lhs <- call("[", storage, call("+", offset, i))
   }
 
-  rhs <- sexp_to_rexp(eq$lhs$target, internal, meta)
+  rhs <- rewrite(eq$lhs$target)
   call("<-", lhs, rhs)
 }
 
 
 ## NOTE: There are two entirely separate codepaths here so this could
 ## be factored out again (and probably should be).
-odin_ir_generate_expression_user <- function(eq, data_info, internal, meta) {
+odin_ir_generate_expression_user <- function(eq, data_info, data, meta,
+                                             rewrite) {
   if (eq$user$dim) {
     name <- eq$name
     len <- data_info$dimnames$length
@@ -479,7 +478,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, internal, meta) {
     if (is.null(eq$user$default)) {
       default <- NULL
     } else {
-      default <- sexp_to_rexp(eq$user$default, internal, meta)
+      default <- rewrite(eq$user$default)
     }
     if (rank == 0L) {
       size <- NULL
