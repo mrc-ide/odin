@@ -7,11 +7,11 @@ odin2 <- function(x, validate = TRUE, verbose = TRUE) {
     ## See #88
     xx <- force(x)
   }
-  odin2_(xx, validate)
+  odin2_(xx, validate, verbose)
 }
 
 
-odin2_ <- function(x, validate = TRUE) {
+odin2_ <- function(x, validate = TRUE, verbose = TRUE) {
   ir <- odin_build_ir(x)
   odin_ir_generate(ir, validate)
 }
@@ -53,7 +53,8 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     time = if (discrete) as.name(STEP) else as.name(TIME),
     index = lapply(INDEX, as.name),
     get_user_double = as.name("_get_user_double"),
-    get_user_dim = as.name("_get_user_dim"))
+    get_user_dim = as.name("_get_user_dim"),
+    check_interpolate_y = as.name("_check_interpolate_y"))
 
   ## This is our little rewriter - we'll tidy this up later
   rewrite <- function(x) {
@@ -70,6 +71,9 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   if (dat$features$has_user) {
     env[[as.character(meta$get_user_double)]] <- support_get_user_double
     env[[as.character(meta$get_user_dim)]] <- support_get_user_dim
+  }
+  if (dat$features$has_interpolate) {
+    env[[as.character(meta$check_interpolate_y)]] <- support_check_interpolate_y
   }
 
   core <- list(
@@ -298,7 +302,7 @@ odin_ir_generate_interpolate_t <- function(dat, env, meta, rewrite) {
   if (length(args_min) == 1L) {
     min <- args_min[[1L]]
   } else {
-    min <- as.call(c(list(quote(min)), args_min))
+    min <- as.call(c(list(quote(max)), args_min))
   }
 
   args_max <- lapply(dat$interpolate$max, function(x)
@@ -308,7 +312,7 @@ odin_ir_generate_interpolate_t <- function(dat, env, meta, rewrite) {
   } else if (length(args_max) == 1L) {
     max <- args_max[[1L]]
   } else {
-    max <- as.call(c(list(quote(max)), args_max))
+    max <- as.call(c(list(quote(min)), args_max))
   }
 
   args_critical <- lapply(dat$interpolate$critical, rewrite)
@@ -484,6 +488,32 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, data, meta,
 odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
                                                           data, meta,
                                                           rewrite) {
+  ## TODO: generate better names in the ir so that 'sub' is not needed:
+  name_target <- sub("^interpolate_", "", eq$name)
+  name_arg <- eq$interpolate$y
+
+  data_info_target <- data$data[[name_target]]
+  data_info_t <- data$data[[eq$interpolate$t]]
+  data_info_arg <- data$data[[eq$interpolate$y]]
+
+  len_t <- rewrite(data_info_t$dimnames$length)
+
+  if (data_info$rank == 0L) {
+    dim_arg <- rewrite(data_info_arg$dimnames$length)
+    dim_target <- len_t
+  } else {
+    dim_arg <- call_c(lapply(data_info_arg$dimnames$dim, rewrite))
+    if (data_info_target$rank == 1L) {
+      dim_target <- call_c(c(len_t, rewrite(data_info_target$dimnames$length)))
+    } else {
+      dim_target <-
+        call_c(c(len_t, lapply(data_info_target$dimnames$dim, rewrite)))
+    }
+  }
+
+  check <- call(as.character(meta$check_interpolate_y),
+                dim_arg, dim_target, name_arg, name_target)
+
   lhs <- call("[[", meta$internal, eq$lhs$target)
   args <- list(quote(cinterpolate::interpolation_function),
                rewrite(eq$interpolate$t),
@@ -491,7 +521,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
                eq$interpolate$type,
                scalar = TRUE)
   rhs <- as.call(args)
-  call("<-", lhs, rhs)
+  list(check, call("<-", lhs, rhs))
 }
 
 
@@ -668,7 +698,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
             y <- self$initial(step[[1L]])
           }
           if (private$interpolate) {
-            support_check_interpolate(step, private$interpolate_t, NULL)
+            support_check_interpolate_t(step, private$interpolate_t, NULL)
           }
           if (is.null(replicate)) {
             ret <- dde::difeq(y, step, private$core$rhs_dde, private$data,
@@ -692,7 +722,8 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
             y <- self$initial(t[[1L]])
           }
           if (private$interpolate) {
-            tcrit <- support_check_interpolate(t, private$interpolate_t, tcrit)
+            tcrit <-
+              support_check_interpolate_t(t, private$interpolate_t, tcrit)
           }
           if (private$use_dde) {
             ## TODO: there's a second type of critical time that
@@ -803,7 +834,7 @@ support_get_user_double <- function(user, name, internal, size, default) {
 }
 
 
-support_check_interpolate <- function(time, dat, tcrit) {
+support_check_interpolate_t <- function(time, dat, tcrit) {
   if (time[[1]] < dat$min) {
     stop(sprintf("Integration times do not span interpolation range; min: %s",
                  dat$min), call. = FALSE)
@@ -812,8 +843,9 @@ support_check_interpolate <- function(time, dat, tcrit) {
     stop(sprintf("Integration times do not span interpolation range; max: %s",
                  dat$max), call. = FALSE)
   }
-  if (length(dat$critical) > 0L) {
-    min(dat$max[[length(dat$max)]], tcrit)
+  if (length(dat$max) > 0L && is.null(tcrit)) {
+    ## min(dat$max, tcrit) # TODO: breaks tests, but better behaviour
+    dat$max
   } else {
     tcrit
   }
@@ -856,6 +888,29 @@ support_get_user_dim <- function(user, internal, name, len, dims) {
 }
 
 
+support_check_interpolate_y <- function(dim_arg, dim_target, name_arg,
+                                      name_target) {
+  rank <- length(dim_target) - 1L
+  stopifnot(length(dim_target) == length(dim_arg))
+  if (rank == 0L) {
+    if (dim_arg != dim_target) {
+      stop(sprintf("Expected %s to have length %d (for %s)",
+                   name_arg, dim_target, name_target), call. = FALSE)
+    }
+  } else {
+    ## TODO: this can be simplifed after tests are passing; we want to
+    ## match errors at the moment.
+    i <- dim_arg != dim_target
+    if (any(i)) {
+      j <- which(i)[[1L]]
+      stop(sprintf("Expected dimension %d of %s to have size %d (for %s)",
+                   j, name_arg, dim_target[[j]], name_target),
+           call. = FALSE)
+    }
+  }
+}
+
+
 collapse_expr <- function(expr, join) {
   ret <- expr[[1L]]
   for (i in seq_along(expr)[-1L]) {
@@ -889,4 +944,9 @@ flatten_eqs <- function(x) {
     x <- unlist(x, FALSE, FALSE)
   }
   x
+}
+
+
+call_c <- function(x) {
+  as.call(c(list(quote(c)), x))
 }

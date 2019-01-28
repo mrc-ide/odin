@@ -1,11 +1,32 @@
 context("generate")
 
+test_that("array_dim_name", {
+  skip("not for us")
+  expect_equal(array_dim_name("delay_foo", use = TRUE), "dim_foo")
+  expect_equal(array_dim_name("delay_foo", use = FALSE), "")
+  expect_equal(array_dim_name("delay_foo_bar", use = TRUE), "dim_foo_bar")
+  expect_equal(array_dim_name("delay_foo_bar", use = FALSE), "")
+
+  ## This is overly complicated and is triggered only in the generate code.
+  expect_equal(array_dim_name("delay_i_foo", use = TRUE), "dim_delay_foo")
+  expect_equal(array_dim_name("delay_i_foo", use = FALSE), "dim_delay_foo")
+  expect_equal(array_dim_name("delay_state_foo", use = TRUE), "dim_delay_foo")
+  expect_equal(array_dim_name("delay_state_foo", use = FALSE), "")
+
+  ## Test vectorisation of the above
+  expect_equal(array_dim_name(c("delay_i_foo", "delay_state_foo"), use = TRUE),
+               c("dim_delay_foo", "dim_delay_foo"))
+  expect_equal(array_dim_name(c("delay_i_foo", "delay_state_foo"), use = FALSE),
+               c("dim_delay_foo", ""))
+})
+
+
 test_that("rewrite functions", {
   gen <- odin2({
     deriv(y) <- 0
     initial(y) <- 0
     output(a) <- abs(t)
-  })
+  }, verbose = TEST_VERBOSE)
   tt <- seq(-5, 5, length.out = 101)
   expect_equal(gen()$run(tt)[, "a"], abs(tt))
 
@@ -15,7 +36,7 @@ test_that("rewrite functions", {
     output(a) <- log(t)
     output(b) <- log(t, 2)
     output(c) <- log(t, 10)
-  })
+  }, verbose = TEST_VERBOSE)
   tt <- seq(0.0001, 5, length.out = 101)
   yy <- gen()$run(tt)
   expect_equal(yy[, "a"], log(tt))
@@ -39,7 +60,7 @@ test_that("rewrite functions", {
     initial(y) <- 0
     output(a) <- min(t, t^2 - 2, -t)
     output(b) <- max(t, t^2 - 2, -t)
-  })
+  }, verbose = TEST_VERBOSE)
   yy <- gen()$run(tt)
   expect_equal(yy[, "a"], pmin(tt, tt^2 - 2, -tt))
   expect_equal(yy[, "b"], pmax(tt, tt^2 - 2, -tt))
@@ -57,7 +78,7 @@ test_that("rewrite functions", {
     output(q2) <- -t %%  q
     output(q3) <-  t %% -q
     output(q4) <- -t %% -q
-  })
+  }, verbose = TEST_VERBOSE)
   tt <- seq(-5, 5, length.out = 101)
   mod <- gen()
   res <- mod$run(tt)
@@ -88,7 +109,7 @@ test_that("rewrite functions", {
     output(q2) <- -t %/%  q
     output(q3) <-  t %/% -q
     output(q4) <- -t %/% -q
-  })
+  }, verbose = TEST_VERBOSE)
   tt <- seq(-5, 5, length.out = 101)
   mod <- gen()
   res <- mod$run(tt)
