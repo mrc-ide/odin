@@ -824,7 +824,7 @@ support_get_user_double <- function(user, name, internal, size, default) {
     if (is.integer(value)) {
       storage.mode(value) <- "numeric"
     } else if (!is.numeric(value)) {
-      stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
+      stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
     }
     if (any(is.na(value))) {
       stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
@@ -862,7 +862,7 @@ support_get_user_dim <- function(user, internal, name, len, dims) {
   if (is.integer(data)) {
     storage.mode(data) <- "numeric"
   } else if (!is.numeric(data)) {
-    stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
+    stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
   }
   if (any(is.na(data))) {
     stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
