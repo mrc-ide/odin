@@ -558,6 +558,17 @@
             },
             "required": ["length", "dim", "mult"],
             "additionalProperties": false
+        },
+
+        "interpolation": {
+            "type": "object",
+            "properties": {
+                "min": {"$ref": "#/definitions/basic/character_vector"},
+                "max": {"$ref": "#/definitions/basic/character_vector"},
+                "critical": {"$ref": "#/definitions/basic/character_vector"}
+            },
+            "required": ["min", "max", "critical"],
+            "additionalProperties": false
         }
     },
 
@@ -581,11 +592,14 @@
         "user": {
             "$ref": "#/definitions/user"
         },
+        "interpolation": {
+            "$ref": "#/definitions/interpolation"
+        },
         "source": {
             "$ref": "#/definitions/basic/character_vector"
         }
     },
     "required": ["config", "features", "data", "equations", "components",
-                 "user", "source"],
+                 "user", "interpolation", "source"],
     "additionalProperties": false
 }
