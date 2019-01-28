@@ -1,5 +1,5 @@
 ## These two are temporary!
-odin2 <- function(x, validate = TRUE) {
+odin2 <- function(x, validate = TRUE, verbose = TRUE) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -72,8 +72,6 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     env[[as.character(meta$get_user_dim)]] <- support_get_user_dim
   }
 
-  ## TODO: for now these all have the same argument list but that's
-  ## not strictly needed and might relax soon.
   core <- list(
     create = odin_ir_generate_create(eqs, dat, env, meta),
     ic = odin_ir_generate_ic(eqs, dat, env, meta, rewrite),
@@ -85,6 +83,8 @@ odin_ir_generate <- function(ir, validate = TRUE) {
                                    FALSE, FALSE),
     output = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,
                                   FALSE, TRUE),
+    interpolate_t = odin_ir_generate_interpolate_t(
+      dat, env, meta, rewrite),
     ## This one is a little different
     metadata = odin_ir_generate_metadata(dat, meta))
 
@@ -268,14 +268,64 @@ odin_ir_generate_metadata <- function(dat, meta) {
   n_out <- quote(support_n_out(private$output_order))
 
   env <- new.env(parent = environment(odin))
-  body <- call(
-    "{",
+
+  body <- list(
     call("<-", meta$internal, quote(private$data)),
     call("<-", quote(private$variable_order), ord("variable")),
     call("<-", quote(private$output_order), ord("output")),
     call("<-", call("$", quote(private), quote(ynames)), ynames),
     call("<-", call("$", quote(private), quote(n_out)), n_out))
+
+  if (dat$features$has_interpolate) {
+    body <- c(body,
+              call("<-", quote(private$interpolate_t),
+                   quote(private$core$interpolate_t(private$data))))
+  }
+
+  body <- as.call(c(list(as.name("{")), body))
+
   as.function(c(alist(self=, private =), list(body)), env)
+}
+
+
+odin_ir_generate_interpolate_t <- function(dat, env, meta, rewrite) {
+  if (!dat$features$has_interpolate) {
+    return(function(...) NULL)
+  }
+
+  args_min <- lapply(dat$interpolate$min, function(x)
+    call("[[", rewrite(x), 1L))
+  if (length(args_min) == 1L) {
+    min <- args_min[[1L]]
+  } else {
+    min <- as.call(c(list(quote(min)), args_min))
+  }
+
+  args_max <- lapply(dat$interpolate$max, function(x)
+    call("[[", rewrite(x), call("length", rewrite(x))))
+  if (length(args_max) == 0L) {
+    max <- Inf
+  } else if (length(args_max) == 1L) {
+    max <- args_max[[1L]]
+  } else {
+    max <- as.call(c(list(quote(max)), args_max))
+  }
+
+  args_critical <- lapply(dat$interpolate$critical, rewrite)
+  if (length(args_critical) == 0L) {
+    critical <- numeric(0)
+  } else if (length(args_critical) == 1L) {
+    critical <- args_critical[[1L]]
+  } else {
+    critical <-
+      call("sort", call("unique", as.call(c(list(quote(c)), args_critical))))
+  }
+
+  args <- set_names(alist(internal = ), as.character(meta$internal))
+  body <- call("{",
+               call("list",
+                    min = min, max = max, critical = critical))
+  as.function(c(args, body), env)
 }
 
 
@@ -545,6 +595,8 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       use_dde = NULL,
       init = NULL,
       initial_time_dependent = dat$features$initial_time_dependent,
+      interpolate = dat$features$has_interpolate,
+      interpolate_t = NULL,
       ## TODO: this is a horrible name
       ir_ = dat$ir,
 
@@ -615,6 +667,9 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
           if (is.null(y)) {
             y <- self$initial(step[[1L]])
           }
+          if (private$interpolate) {
+            support_check_interpolate(step, private$interpolate_t, NULL)
+          }
           if (is.null(replicate)) {
             ret <- dde::difeq(y, step, private$core$rhs_dde, private$data,
                               ynames = FALSE, n_out = private$n_out, ...)
@@ -632,17 +687,24 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
           ret
         }
       } else {
-        function(t, y = NULL, ..., use_names = TRUE) {
+        function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
           if (is.null(y)) {
             y <- self$initial(t[[1L]])
           }
+          if (private$interpolate) {
+            tcrit <- support_check_interpolate(t, private$interpolate_t, tcrit)
+          }
           if (private$use_dde) {
+            ## TODO: there's a second type of critical time that
+            ## should be enabled here (but is not yet in mainstream
+            ## odin) -- all switch points in constant interpolations.
+            ## Let's not do this yet though.
             ret <- dde::dopri(y, t, private$core$rhs_dde, private$data,
                               ynames = FALSE, output = private$core$output,
                               n_out = private$n_out, ...)
           } else {
             ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$data,
-                                ...)
+                                tcrit = tcrit, ...)
           }
           if (use_names) {
             colnames(ret) <- private$ynames
@@ -718,8 +780,8 @@ support_get_user_double <- function(user, name, internal, size, default) {
       }
     } else if (length(size) == 1L) {
       if (length(value) != size || !is.null(d)) {
-        stop(sprintf("Expected a numeric vector of length %d for '%s'",
-                     size, name), call. = FALSE)
+        stop(sprintf("Expected length %d value for %s", size, name),
+             call. = FALSE)
       }
     } else {
       if (length(d) != length(size) || any(d != size)) {
@@ -738,6 +800,23 @@ support_get_user_double <- function(user, name, internal, size, default) {
     }
   }
   value
+}
+
+
+support_check_interpolate <- function(time, dat, tcrit) {
+  if (time[[1]] < dat$min) {
+    stop(sprintf("Integration times do not span interpolation range; min: %s",
+                 dat$min), call. = FALSE)
+  }
+  if (time[[length(time)]] > dat$max) {
+    stop(sprintf("Integration times do not span interpolation range; max: %s",
+                 dat$max), call. = FALSE)
+  }
+  if (length(dat$critical) > 0L) {
+    min(dat$max[[length(dat$max)]], tcrit)
+  } else {
+    tcrit
+  }
 }
 
 

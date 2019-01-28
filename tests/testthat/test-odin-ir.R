@@ -309,7 +309,7 @@ test_that("user array", {
 
   mod <- gen(1:3)
   expect_identical(mod$contents()$r, as.numeric(1:3))
-  expect_error(gen(1), "Expected a numeric vector of length 3 for 'r'")
+  expect_error(gen(1), "Expected length 3 value for r")
 })
 
 
@@ -356,7 +356,7 @@ test_that("user array - indirect", {
                  r = 1:3)))
 
   expect_error(gen(n = 4, r = 1:3),
-               "Expected a numeric vector of length 4 for 'r'")
+               "Expected length 4 value for r")
 })
 
 

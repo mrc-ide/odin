@@ -64,7 +64,7 @@
                 "enum": ["atomic", "expression"]
             },
 
-            "interpolation_type": {
+            "interpolate_type": {
                 "type": "string",
                 "enum": ["constant", "linear", "spline"]
             },
@@ -454,7 +454,7 @@
                         "t": {"type": "string"},
                         "y": {"type": "string"},
                         "type": {
-                            "$ref": "#/definitions/enum/interpolation_type"
+                            "$ref": "#/definitions/enum/interpolate_type"
                         }
                     },
                     "required": ["t", "y", "type"],
@@ -560,7 +560,7 @@
             "additionalProperties": false
         },
 
-        "interpolation": {
+        "interpolate": {
             "type": "object",
             "properties": {
                 "min": {"$ref": "#/definitions/basic/character_vector"},
@@ -592,14 +592,14 @@
         "user": {
             "$ref": "#/definitions/user"
         },
-        "interpolation": {
-            "$ref": "#/definitions/interpolation"
+        "interpolate": {
+            "$ref": "#/definitions/interpolate"
         },
         "source": {
             "$ref": "#/definitions/basic/character_vector"
         }
     },
     "required": ["config", "features", "data", "equations", "components",
-                 "user", "interpolation", "source"],
+                 "user", "interpolate", "source"],
     "additionalProperties": false
 }

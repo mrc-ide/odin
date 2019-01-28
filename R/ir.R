@@ -17,7 +17,7 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
                  equations = ir_equations(dat),
                  components = ir_components(dat),
                  user = ir_user(dat),
-                 interpolation = ir_interpolation(dat),
+                 interpolate = ir_interpolate(dat),
                  source = vcapply(xp$exprs, deparse_str))
   ir <- ir_serialise(ir_dat, pretty)
   if (validate) {
@@ -485,7 +485,7 @@ ir_user <- function(dat) {
 }
 
 
-ir_interpolation <- function(dat) {
+ir_interpolate <- function(dat) {
   eqs <- dat$eqs[vlapply(dat$eqs, function(x) isTRUE(x$rhs$interpolate))]
   time <- vcapply(eqs, function(x) x$interpolate$t, USE.NAMES = FALSE)
   type <- vcapply(eqs, function(x) x$interpolate$type, USE.NAMES = FALSE)
@@ -726,6 +726,7 @@ ir_deserialise <- function(ir) {
     vcapply(dat$data$variable$contents, "[[", "name")
   names(dat$data$output$contents) <-
     vcapply(dat$data$output$contents, "[[", "name")
+  dat$interpolate <- lapply(dat$interpolate, list_to_character)
 
   dat
 }
