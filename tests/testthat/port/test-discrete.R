@@ -106,15 +106,6 @@ test_that("2d array equations", {
 
 ## This turns up in one of Neil's cases:
 test_that("complex initialisation: scalar", {
-  skip("badly generated code")
-
-  ## Here we generate:
-  ##   INTERNAL[["initial_x1"]] <- rnorm(1L)
-  ##   r <- x1 * 2
-  ##
-  ## But here we also need to rewrite x1 to be initial_x1 within the
-  ## equations when they are being written.  This is not that bad
-  ## really and can be done with a "substitutions" approach perhaps?
   gen <- odin2({
     initial(x1) <- norm_rand()
     r <- x1 * 2
@@ -157,7 +148,6 @@ test_that("complex initialisation: scalar", {
 })
 
 test_that("complex initialisation: vector", {
-  skip("complete failure")
   gen <- odin2({
     initial(x1[]) <- norm_rand()
     r[] <- x1[i] * 2

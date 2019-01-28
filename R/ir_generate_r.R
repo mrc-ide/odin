@@ -106,6 +106,13 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta, rewrite) {
   ## Equations to run before initial conditions are computed:
   eqs_initial <- flatten_eqs(eqs[dat$components$initial$equations])
 
+  ## We need a little fiction here because any use of a variable must
+  ## use its "initial" name at this point.  We could filter through
+  ## dependencies and work out if this is necessary, but this should
+  ## be fairly harmless, and at the moment we don't report this well.
+  subs <- lapply(dat$data$variable$contents, function(x) rewrite(x$initial))
+  eqs_initial <- lapply(eqs_initial, substitute_, as.environment(subs))
+
   ## Allocate space for the state vector
   var_length <- rewrite(dat$data$variable$length)
   alloc <- call("<-", meta$state, call("numeric", var_length))

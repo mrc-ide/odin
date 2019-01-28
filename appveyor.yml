@@ -19,7 +19,7 @@ install:
 
 build_script:
   - travis-tool.sh install_deps
-  - travis-tool.sh install_github mrc-ide/cinterpolate@develop
+  - travis-tool.sh install_github mrc-ide/cinterpolate
   - travis-tool.sh install_github richfitz/dde
   - travis-tool.sh install_github ropensci/jsonvalidate@use-ajv
 
