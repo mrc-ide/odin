@@ -400,6 +400,7 @@ ir_prep_interpolate <- function(x, dat) {
   x_alloc <- x
   x_alloc$name <- x$rhs$value$name
   x_alloc$lhs$name <- x$rhs$value$name
+  x_alloc$lhs$name_target <- x$name
   x_alloc$stage <- stage_alloc
   x_alloc$lhs$data_type <- "interpolate_data" # (really void*)
   x_alloc$alloc_interpolate <- TRUE
@@ -518,13 +519,15 @@ ir_equation <- function(eq) {
 
 ir_equation_lhs <- function(eq) {
   if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
-      !identical(eq$rhs$type, "alloc")) {
+      !identical(eq$rhs$type, "alloc") &&
+      !isTRUE(eq$alloc_interpolate)) {
     target <- jsonlite::unbox(eq$name)
   } else {
     target <- jsonlite::unbox(eq$lhs$name_target)
   }
   list(target = target)
 }
+
 
 ir_equation_base <- function(type, eq, ...) {
   list(name = jsonlite::unbox(eq$name),

@@ -487,8 +487,7 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, data, meta,
 odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
                                                           data, meta,
                                                           rewrite) {
-  ## TODO: generate better names in the ir so that 'sub' is not needed:
-  name_target <- sub("^interpolate_", "", eq$name)
+  name_target <- eq$lhs$target
   name_arg <- eq$interpolate$y
 
   data_info_target <- data$data[[name_target]]
@@ -513,7 +512,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
   check <- call(as.character(meta$check_interpolate_y),
                 dim_arg, dim_target, name_arg, name_target)
 
-  lhs <- call("[[", meta$internal, eq$lhs$target)
+  lhs <- call("[[", meta$internal, eq$name)
   args <- list(quote(cinterpolate::interpolation_function),
                rewrite(eq$interpolate$t),
                rewrite(eq$interpolate$y),
