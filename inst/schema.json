@@ -359,86 +359,89 @@
         "equation_base": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
-                "type": {"$ref": "#/definitions/enum/equation_type"},
-                "source": {"$ref": "#/definitions/basic/source_reference"},
-                "depends": {"$ref": "#/definitions/dependencies"}
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/enum/equation_type"
+                },
+                "source": {
+                    "$ref": "#/definitions/basic/source_reference"
+                },
+                "depends": {
+                    "$ref": "#/definitions/dependencies"
+                },
+                "lhs": {
+                    "$ref": "#/definitions/equation_lhs"
+                }
             },
-            "required": ["name", "type", "source", "depends"]
+            "required": ["name", "type", "source", "depends", "lhs"]
         },
 
         "equation_alloc": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
                 "type": {"const": "alloc"},
+                "name": {},
                 "source": {},
                 "depends": {},
-                "lhs": {
-                    "$ref": "#/definitions/equation_lhs"
-                }
+                "lhs": {}
             },
-            "required": ["name", "type", "lhs"],
+            "required": ["type"],
             "additionalProperties": false
         },
 
         "equation_copy": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
                 "type": {"const": "copy"},
+                "name": {},
                 "source": {},
                 "depends": {},
-                "lhs": {
-                    "$ref": "#/definitions/equation_lhs"
-                }
+                "lhs": {}
             },
-            "required": ["name", "type", "lhs"],
+            "required": ["type"],
             "additionalProperties": false
         },
 
         "equation_expression_scalar": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
                 "type": {"const": "expression_scalar"},
+                "name": {},
                 "source": {},
                 "depends": {},
-                "lhs": {
-                    "$ref": "#/definitions/equation_lhs"
-                },
+                "lhs": {},
                 "rhs": {
                     "$ref": "#/definitions/equation_rhs_scalar"
                 }
             },
-            "required": ["name", "type", "lhs", "rhs"],
+            "required": ["type", "rhs"],
             "additionalProperties": false
         },
 
         "equation_expression_array": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
                 "type": {"const": "expression_array"},
+                "name": {},
                 "source": {},
                 "depends": {},
-                "lhs": {"$ref": "#/definitions/equation_lhs"},
+                "lhs": {},
                 "rhs": {"$ref": "#/definitions/equation_rhs_array"}
             },
-            "required": ["name", "type", "lhs", "rhs"],
+            "required": ["type", "rhs"],
             "additionalProperties": false
         },
 
         "equation_alloc_interpolate": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
                 "type": {"const": "alloc_interpolate"},
+                "name": {},
                 "source": {},
                 "depends": {},
-                "lhs": {
-                    "$ref": "#/definitions/equation_lhs"
-                },
+                "lhs": {},
                 "interpolate": {
                     "type": "object",
                     "properties": {
@@ -452,20 +455,18 @@
                     "additionalProperties": false
                 }
             },
-            "required": ["name", "type", "lhs", "interpolate"],
+            "required": ["type", "interpolate"],
             "additionalProperties": false
         },
 
         "equation_user": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
                 "type": {"const": "user"},
+                "name": {},
                 "source": {},
                 "depends": {},
-                "lhs": {
-                    "$ref": "#/definitions/equation_lhs"
-                },
+                "lhs": {},
                 "user": {
                     "type": "object",
                     "properties": {
@@ -481,7 +482,7 @@
                     "additionalProperties": false
                 }
             },
-            "required": ["name", "type", "lhs", "user"],
+            "required": ["type", "user"],
             "additionalProperties": false
         },
 
