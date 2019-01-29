@@ -61,7 +61,6 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   }
 
   eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta, rewrite)
-  names(eqs) <- vcapply(dat$equations, "[[", "name")
 
   ## Then start putting together the initial conditions
   env <- new.env(parent = odin_base_env())
@@ -80,12 +79,9 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     ic = odin_ir_generate_ic(eqs, dat, env, meta, rewrite),
     set_user = odin_ir_generate_set_user(eqs, dat, env, meta),
     ## TODO: These 3 true/false pairs might be a ternary categorical arg?
-    rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,
-                                       TRUE, FALSE, "desolve"),
-    rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,
-                                   FALSE, FALSE, "dde"),
-    output = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,
-                                  FALSE, TRUE, "output"),
+    rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite, "desolve"),
+    rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite, "dde"),
+    output = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,"output"),
     interpolate_t = odin_ir_generate_interpolate_t(dat, env, meta, rewrite),
     ## This one is a little different
     metadata = odin_ir_generate_metadata(dat, meta, rewrite))
@@ -152,24 +148,23 @@ odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
 }
 
 
-odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite,
-                                 desolve, output, rhs_type) {
-  ## browser()
+odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite, rhs_type) {
   discrete <- dat$features$discrete
   has_output <- dat$features$has_output
-  if (output && !has_output) {
+
+  if (rhs_type == "output" && !has_output) {
     return(NULL)
   }
-  if (discrete && (desolve || output)) {
+  if (discrete && rhs_type != "dde") {
     return(NULL)
   }
 
-  ## TODO: there's an issue here where we combine entries from both
-  ## rhs and output where the sort *might be broken.  But we'll find
-  ## out if that's a problem later.
-  use <- c(character(0),
-           if (!output || desolve || discrete) "rhs",
-           if ( output || desolve || discrete) "output")
+  ## This bit is surprisingly hard:
+  if (discrete || rhs_type == "desolve") {
+    use <- c("rhs", "output")
+  } else {
+    use <- if (rhs_type == "dde") "rhs" else "output"
+  }
   join <- function(x, nm) {
     if (length(x) == 1L) x[[1]][[nm]] else union(x[[1]][[nm]], x[[2]][[nm]])
   }
@@ -205,39 +200,29 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite,
 
   ## For output_length we have no real choice but to look up the
   ## length each time.
-  output_length <- rewrite(dat$data$output$length)
-  alloc_output <- call("<-", meta$output, call("numeric", output_length))
+  alloc_output <- call("<-", meta$output,
+                       call("numeric", rewrite(dat$data$output$length)))
+  alloc <- list(rhs = alloc_result, output = alloc_output)[use]
 
-  if (desolve || discrete) {
+  if (rhs_type == "desolve") {
     if (has_output) {
-      alloc <- list(alloc_result, alloc_output)
+      ret <- call("list", meta$result, meta$output)
     } else {
-      alloc <- list(alloc_result)
+      ret <- call("list", meta$result)
     }
-  } else if (output) {
-    alloc <- alloc_output
+  } else if (rhs_type == "output") {
+    ret <- meta$output
   } else {
-    alloc <- alloc_result
+    if (discrete && has_output) {
+      ret <- list(
+        call("<-", call("attr", meta$result, "output"), meta$output),
+        meta$result)
+    } else {
+      ret <- meta$result
+    }
   }
 
   eqs_include <- flatten_eqs(eqs[use_eqs])
-
-  if (desolve) {
-    if (has_output) {
-      ret <- call("list", meta[["result"]], meta[["output"]])
-    } else {
-      ret <- call("list", meta[["result"]])
-    }
-  } else if (output) {
-    ret <- meta[["output"]]
-  } else if (discrete && has_output) {
-    ret <- list(
-      call("<-", call("attr", meta[["result"]], "output"), meta[["output"]]),
-      meta[["result"]])
-  } else {
-    ret <- meta[["result"]]
-  }
-
   body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_include, ret)))
   args <- alist(t = , y =, parms = )
   names(args)[[1]] <- as.character(meta$time)

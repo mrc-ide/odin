@@ -752,11 +752,14 @@ ir_deserialise <- function(ir) {
 
   dat$data$internal <- list_to_character(dat$data$internal)
   dat$data$transient <- list_to_character(dat$data$transient)
+
   names(dat$data$data) <- vcapply(dat$data$data, "[[", "name")
   names(dat$data$variable$contents) <-
     vcapply(dat$data$variable$contents, "[[", "name")
   names(dat$data$output$contents) <-
     vcapply(dat$data$output$contents, "[[", "name")
+  names(dat$equations) <- vcapply(dat$equations, "[[", "name")
+
   dat$interpolate <- lapply(dat$interpolate, list_to_character)
 
   dat
