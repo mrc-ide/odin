@@ -250,3 +250,8 @@ sort_list <- function(x) {
 substitute_ <- function(expr, env) {
   eval(substitute(substitute(y, env), list(y = expr)))
 }
+
+
+as_function <- function(args, body, env) {
+  as.function(c(args, body), env)
+}
