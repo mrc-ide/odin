@@ -526,7 +526,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
 
 odin_ir_generate_expression_copy <- function(eq, data_info, data, meta,
                                              rewrite) {
-  stopifnot(eq$lhs$location == "output")
+  ## NOTE: this applies only to coping a variable into the output
   offset <- rewrite(data$output$contents[[eq$lhs$target]]$offset)
   storage <- meta$output
 

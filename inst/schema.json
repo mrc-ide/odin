@@ -298,10 +298,9 @@
         "equation_lhs": {
             "type": "object",
             "properties": {
-                "location": {"$ref": "#/definitions/enum/location"},
                 "target": {"type": "string"}
             },
-            "required": ["location", "target"],
+            "required": ["target"],
             "additionalProperties": false
         },
 

@@ -517,14 +517,13 @@ ir_equation <- function(eq) {
 
 
 ir_equation_lhs <- function(eq) {
-  lhs <- list(location = jsonlite::unbox(eq$lhs$location))
   if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
       !identical(eq$rhs$type, "alloc")) {
-    lhs$target <- jsonlite::unbox(eq$name)
+    target <- jsonlite::unbox(eq$name)
   } else {
-    lhs$target <- jsonlite::unbox(eq$lhs$name_target)
+    target <- jsonlite::unbox(eq$lhs$name_target)
   }
-  lhs
+  list(target = target)
 }
 
 ir_equation_base <- function(type, eq, ...) {
