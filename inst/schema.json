@@ -30,7 +30,7 @@
                 "type": "array",
                 "items": {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 1
                 }
             }
         },
@@ -105,20 +105,11 @@
             }
         },
 
-        "sexpression_vector_null": {
-            "type": "array",
-            "TODO": "this is here until I think more carefully about extent_min",
-            "items": {
-                "oneOf": [
-                    {"$ref": "#/definitions/sexpression"},
-                    {"type": "null"}
-                ]
-            }
-        },
-
         "dependencies": {
             "oneOf": [
-                {"type": "null"},
+                {
+                    "type": "null"
+                },
                 {
                     "type": "object",
                     "properties": {
@@ -230,9 +221,15 @@
         "data_variable_element": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
-                "offset": {"$ref": "#/definitions/sexpression"},
-                "initial": {"type": "string"}
+                "name": {
+                    "type": "string"
+                },
+                "offset": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "initial": {
+                    "type": "string"
+                }
             },
             "required": ["name", "offset", "initial"],
             "additionalProperties": false
@@ -259,8 +256,12 @@
         "data_output_element": {
             "type": "object",
             "properties": {
-                "name": {"type": "string"},
-                "offset": {"$ref": "#/definitions/sexpression"}
+                "name": {
+                    "type": "string"
+                },
+                "offset": {
+                    "$ref": "#/definitions/sexpression"
+                }
             },
             "required": ["name", "offset"],
             "additionalProperties": false
@@ -292,7 +293,9 @@
         "equation_lhs": {
             "type": "object",
             "properties": {
-                "target": {"type": "string"}
+                "target": {
+                    "type": "string"
+                }
             },
             "required": ["target"],
             "additionalProperties": false
@@ -442,8 +445,12 @@
                 "interpolate": {
                     "type": "object",
                     "properties": {
-                        "t": {"type": "string"},
-                        "y": {"type": "string"},
+                        "t": {
+                            "type": "string"
+                        },
+                        "y": {
+                            "type": "string"
+                        },
                         "type": {
                             "$ref": "#/definitions/enum/interpolate_type"
                         }
@@ -499,8 +506,12 @@
         "component": {
             "type": "object",
             "properties": {
-                "variables": { "$ref": "#/definitions/basic/character_vector" },
-                "equations": { "$ref": "#/definitions/basic/character_vector" }
+                "variables": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "equations": {
+                    "$ref": "#/definitions/basic/character_vector"
+                }
             },
             "required": ["variables", "equations"],
             "additionalProperties": false
@@ -511,8 +522,12 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "name": {"type": "string"},
-                    "has_default": {"type": "boolean"}
+                    "name": {
+                        "type": "string"
+                    },
+                    "has_default": {
+                        "type": "boolean"
+                    }
                 },
                 "required": ["name", "has_default"],
                 "additionalProperties": false
@@ -552,9 +567,15 @@
         "interpolate": {
             "type": "object",
             "properties": {
-                "min": {"$ref": "#/definitions/basic/character_vector"},
-                "max": {"$ref": "#/definitions/basic/character_vector"},
-                "critical": {"$ref": "#/definitions/basic/character_vector"}
+                "min": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "max": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "critical": {
+                    "$ref": "#/definitions/basic/character_vector"
+                }
             },
             "required": ["min", "max", "critical"],
             "additionalProperties": false
