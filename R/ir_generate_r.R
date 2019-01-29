@@ -186,8 +186,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite,
       seq <- call("seq_len", rewrite(d$dimnames$length))
       extract <- call("[", meta$state, call("+", x$offset, seq))
       if (d$rank > 1L) {
-        dims <- lapply(d$dimnames$dim, rewrite)
-        extract <- call("array", extract, as.call(c(list(quote(c)), dims)))
+        extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
       }
     }
     call("<-", as.name(x$name), extract)
@@ -249,17 +248,9 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite,
 
 
 odin_ir_generate_metadata <- function(dat, meta, rewrite) {
-  ord1 <- function(x) {
-    if (x$rank == 0L) {
-      NULL
-    } else if (x$rank == 1L) {
-      rewrite(x$dimnames$length)
-    } else {
-      as.call(c(list(quote(c)), lapply(x$dimnames$dim, rewrite)))
-    }
-  }
   ord <- function(location) {
-    len <- lapply(dat$data$data[names(dat$data[[location]]$contents)], ord1)
+    contents <- dat$data$data[names(dat$data[[location]]$contents)]
+    len <- lapply(contents, odin_ir_generate_dim, rewrite)
     as.call(c(list(quote(list)), len))
   }
 
@@ -333,9 +324,6 @@ odin_ir_generate_interpolate_t <- function(dat, env, meta, rewrite) {
 
 
 ## TODO: this should be generate_equation I think
-##
-## TODO: separate out the scalar and array types then move to a switch
-## statement.
 odin_ir_generate_expression <- function(eq, dat, meta, rewrite) {
   f <- switch(
     eq$type,
@@ -489,8 +477,7 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, data, meta,
   len <- rewrite(data_info$dimnames$length)
   rhs <- call(alloc_fn, len)
   if (data_info$rank > 1L) {
-    dim <- as.call(c(quote(c), lapply(data_info$dimnames$dim, rewrite)))
-    rhs <- call("array", rhs, dim)
+    rhs <- call("array", rhs, odin_ir_generate_dim(data_info, rewrite))
   }
   call("<-", lhs, rhs)
 }
@@ -506,19 +493,18 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
   data_info_t <- data$data[[eq$interpolate$t]]
   data_info_arg <- data$data[[eq$interpolate$y]]
 
-  len_t <- rewrite(data_info_t$dimnames$length)
+  dim_arg <- odin_ir_generate_dim(data_info_arg, rewrite)
 
+  len_t <- rewrite(data_info_t$dimnames$length)
   if (data_info$rank == 0L) {
-    dim_arg <- rewrite(data_info_arg$dimnames$length)
     dim_target <- len_t
   } else {
-    dim_arg <- call_c(lapply(data_info_arg$dimnames$dim, rewrite))
     if (data_info_target$rank == 1L) {
-      dim_target <- call_c(c(len_t, rewrite(data_info_target$dimnames$length)))
+      dim_target <- rewrite(data_info_target$dimnames$length)
     } else {
-      dim_target <-
-        call_c(c(len_t, lapply(data_info_target$dimnames$dim, rewrite)))
+      dim_target <- lapply(data_info_target$dimnames$dim, rewrite)
     }
+    dim_target <- as.call(c(quote(c), len_t, dim_target))
   }
 
   check <- call(as.character(meta$check_interpolate_y),
@@ -563,6 +549,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, data, meta,
     if (data_info$rank == 1L) {
       dims <- NULL
     } else {
+      ## NOTE: passing *names* in, not rewritten expressions
       dims <- as.call(c(list(quote(c)), data_info$dimnames$dim))
     }
     call(as.character(meta$get_user_dim), meta$user, meta$internal,
@@ -575,17 +562,21 @@ odin_ir_generate_expression_user <- function(eq, data_info, data, meta,
     } else {
       default <- rewrite(eq$user$default)
     }
-    if (rank == 0L) {
-      size <- NULL
-    } else if (rank == 1L) {
-      size <- rewrite(data_info$dimnames$length)
-    } else {
-      dim <- lapply(data_info$dimnames$dim, rewrite)
-      size <- as.call(c(list(quote(c)), dim))
-    }
+    size <- odin_ir_generate_dim(data_info, rewrite)
     rhs <- call(as.character(meta$get_user_double),
                 meta$user, eq$name, meta$internal, size, default)
     call("<-", lhs, rhs)
+  }
+}
+
+
+odin_ir_generate_dim <- function(data_info, rewrite) {
+  if (data_info$rank == 0L) {
+    NULL
+  } else if (data_info$rank == 1L) {
+    rewrite(data_info$dimnames$length)
+  } else {
+    as.call(c(list(quote(c)), lapply(data_info$dimnames$dim, rewrite)))
   }
 }
 
@@ -951,9 +942,4 @@ flatten_eqs <- function(x) {
     x <- unlist(x, FALSE, FALSE)
   }
   x
-}
-
-
-call_c <- function(x) {
-  as.call(c(list(quote(c)), x))
 }
