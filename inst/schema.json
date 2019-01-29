@@ -196,6 +196,9 @@
                 "name": {
                     "type": "string"
                 },
+                "location": {
+                    "$ref": "#/definitions/enum/location"
+                },
                 "storage_type": {
                     "$ref": "#/definitions/enum/storage_type"
                 },
@@ -208,7 +211,8 @@
                     "$ref": "#/definitions/dimnames"
                 }
             },
-            "required": ["name", "storage_type", "rank", "dimnames"],
+            "required": ["name", "location", "storage_type", "rank",
+                         "dimnames"],
             "additionalProperties": false
         },
 

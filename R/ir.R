@@ -640,6 +640,7 @@ ir_data <- function(dat) {
   i <- !vlapply(dat$eqs, function(x) identical(x$rhs$type, "alloc"))
   data <- lapply(unname(dat$eqs[i]), function(eq)
     list(name = jsonlite::unbox(eq$name),
+         location = jsonlite::unbox(eq$lhs$location),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd)))

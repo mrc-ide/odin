@@ -386,12 +386,12 @@ sexp_to_rexp <- function(x, data, meta) {
 
 odin_ir_generate_expression_scalar <- function(eq, data_info, data, meta,
                                                rewrite) {
-  location <- eq$lhs$location
+  location <- data_info$location
 
   if (location == "internal") {
     lhs <- rewrite(eq$name)
   } else {
-    offset <- data[[location]]$contents[[eq$lhs$target]]$offset
+    offset <- data[[location]]$contents[[data_info$name]]$offset
     storage <- if (location == "variable") meta$result else meta$output
     lhs <- call("[[", storage, offset_to_position(offset))
   }
@@ -424,10 +424,10 @@ odin_ir_generate_expression_array_lhs <- function(eq, data_info, data, meta,
   ## All the rhs have the same structure so we can use any of them
   ## here - we need only to get the index element out
   index <- lapply(eq$rhs[[1]]$index, function(x) as.name(x$index))
-  location <- eq$lhs$location
+  location <- data_info$location
 
   if (location == "internal") {
-    lhs <- as.call(c(list(quote(`[`), rewrite(eq$name)), index))
+    lhs <- as.call(c(list(quote(`[`), rewrite(data_info$name)), index))
   } else {
     f <- function(i) {
       if (i == 1) {
@@ -438,7 +438,7 @@ odin_ir_generate_expression_array_lhs <- function(eq, data_info, data, meta,
       }
     }
     pos <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
-    offset <- rewrite(data[[location]]$contents[[eq$lhs$target]]$offset)
+    offset <- rewrite(data[[location]]$contents[[data_info$name]]$offset)
     storage <- if (location == "variable") meta$result else meta$output
     lhs <- call("[[", storage, call("+", offset, pos))
   }
