@@ -371,7 +371,8 @@ sexp_to_rexp <- function(x, data, meta) {
       as.call(c(list(as.name(fn)), lapply(args, sexp_to_rexp, data, meta)))
     }
   } else if (is.character(x)) {
-    if (x %in% data$internal) {
+    location <- data$data[[x]]$location
+    if (!is.null(location) && location == "internal") {
       call("[[", meta$internal, x)
     } else {
       as.name(x)

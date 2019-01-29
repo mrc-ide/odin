@@ -655,15 +655,8 @@ ir_data <- function(dat) {
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd)))
   list(data = data,
-       internal = ir_data_internal(dat, "internal"),
-       transient = ir_data_internal(dat, "transient"),
        variable = ir_data_variable(dat, FALSE),
        output = ir_data_variable(dat, TRUE))
-}
-
-
-ir_data_internal <- function(dat, location) {
-  names_if(vcapply(dat$eqs, function(x) x$lhs$location) == location)
 }
 
 
