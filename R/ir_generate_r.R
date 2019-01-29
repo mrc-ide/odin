@@ -364,11 +364,11 @@ sexp_to_rexp <- function(x, data, meta) {
       nm <- data$data[[args[[1L]]]]$dimnames$dim[[args[[2L]]]]
       sexp_to_rexp(nm, data, meta)
     } else if (fn == "interpolate") {
-      sexp_to_rexp(list(args[[2L]], args[[1L]]), data, meta)
+      as.call(list(sexp_to_rexp(args[[1L]], data, meta), meta$time))
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
     } else {
-      as.call(lapply(x, sexp_to_rexp, data, meta))
+      as.call(c(list(as.name(fn)), lapply(args, sexp_to_rexp, data, meta)))
     }
   } else if (is.character(x)) {
     if (x %in% data$internal) {
@@ -388,7 +388,7 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, data, meta,
                                                rewrite) {
   location <- data_info$location
 
-  if (location == "internal") {
+  if (location == "internal" || location == "transient") {
     lhs <- rewrite(eq$name)
   } else {
     offset <- data[[location]]$contents[[data_info$name]]$offset

@@ -416,7 +416,7 @@ ir_prep_interpolate <- function(x, dat) {
     nd = x$lhs$nd)
   x_use$rhs <- list(
     type = "expression",
-    value = call("interpolate", as.name(time), as.name(x_alloc$lhs$name)))
+    value = call("interpolate", as.name(x_alloc$lhs$name)))
   x_use$depends <- list(functions = character(),
                         variables = c(time, x$rhs$value$name))
 
@@ -632,11 +632,19 @@ ir_expression <- function(expr) {
 ir_data <- function(dat) {
   ## quickly patch up the data because otherwise this is a pain to read:
   for (i in seq_along(dat$eqs)) {
-    if (identical(dat$eqs[[i]]$lhs$special, "deriv") ||
-        identical(dat$eqs[[i]]$lhs$special, "update") ||
-        identical(dat$eqs[[i]]$lhs$special, "output")) {
-      dat$eqs[[i]]$name <- dat$eqs[[i]]$lhs$name_target
-      dat$eqs[[i]]$lhs$name <- dat$eqs[[i]]$lhs$name_target
+    eq <- dat$eqs[[i]]
+    if (identical(eq$lhs$special, "deriv") ||
+        identical(eq$lhs$special, "update") ||
+        identical(eq$lhs$special, "output")) {
+      dat$eqs[[i]]$name <- eq$lhs$name_target
+      dat$eqs[[i]]$lhs$name <- eq$lhs$name_target
+    }
+    is_transient <- eq$lhs$location == "internal" &&
+      !identical(eq$rhs$type, "alloc") &&
+      (eq$stage == STAGE_TIME && is.null(eq$lhs$nd) &&
+       !identical(eq$lhs$special, "initial"))
+    if (is_transient) {
+      dat$eqs[[i]]$lhs$location <- "transient"
     }
   }
   i <- !vlapply(dat$eqs, function(x) identical(x$rhs$type, "alloc"))
@@ -647,21 +655,15 @@ ir_data <- function(dat) {
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd)))
   list(data = data,
-       internal = ir_data_internal(dat, FALSE),
-       transient = ir_data_internal(dat, TRUE),
+       internal = ir_data_internal(dat, "internal"),
+       transient = ir_data_internal(dat, "transient"),
        variable = ir_data_variable(dat, FALSE),
        output = ir_data_variable(dat, TRUE))
 }
 
 
-ir_data_internal <- function(dat, transient) {
-  i <- vlapply(dat$eqs, function(x)
-    x$lhs$location == "internal" &&
-    !identical(x$rhs$type, "alloc") &&
-    (x$stage == STAGE_TIME &&
-     is.null(x$lhs$nd) &&
-     !identical(x$lhs$special, "initial")) == transient)
-  names_if(i)
+ir_data_internal <- function(dat, location) {
+  names_if(vcapply(dat$eqs, function(x) x$lhs$location) == location)
 }
 
 
