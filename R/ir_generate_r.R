@@ -365,6 +365,8 @@ sexp_to_rexp <- function(x, data, meta) {
       sexp_to_rexp(nm, data, meta)
     } else if (fn == "interpolate") {
       as.call(list(sexp_to_rexp(args[[1L]], data, meta), meta$time))
+    } else if (fn == "odin_sum") {
+      sexp_to_rexp_sum(lapply(args, sexp_to_rexp, data, meta))
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
     } else {
@@ -382,6 +384,16 @@ sexp_to_rexp <- function(x, data, meta) {
   } else {
     x
   }
+}
+
+
+sexp_to_rexp_sum <- function(args) {
+  f <- function(a, b) {
+    if (identical(a, b)) a else call("seq.int", a, b, by = 1L)
+  }
+  i <- seq(2L, by = 2L, to = length(args))
+  idx <- Map(f, args[i], args[i + 1L])
+  call("sum", as.call(c(list(as.name("["), args[[1L]]), idx)))
 }
 
 

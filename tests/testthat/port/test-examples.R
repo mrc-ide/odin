@@ -202,10 +202,8 @@ test_that("lv", {
   expect_is(mod_c, "odin_model")
   expect_equal(mod_c$initial(0), pars$y0)
 
-  skip("sum not implemented")
-
-  deriv_c <- mod_c$deriv(t0, mod_c$init)
-  deriv_r <- mod_r$derivs(t0, mod_c$init)
+  deriv_c <- mod_c$deriv(t0, mod_c$initial())
+  deriv_r <- mod_r$derivs(t0, mod_c$initial())
   expect_equal(deriv_c, deriv_r[[1L]])
 
   res_r <- run_model(mod_r, t, pars)

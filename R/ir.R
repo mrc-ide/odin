@@ -81,6 +81,8 @@ ir_prep <- function(dat) {
     dat$traits <- rbind(dat$traits, tmp)
   }
 
+  dat$eqs <- lapply(dat$eqs, ir_prep_sum)
+
   ## rhs:
   ## * all equations with a time step?
   ## * all time-dependent dependencies of derivatives? [using this one]
@@ -169,6 +171,32 @@ ir_prep_offset <- function(dat, output) {
     dat$traits <- rbind(dat$traits, traits)
   }
   dat
+}
+
+
+ir_prep_sum <- function(eq) {
+  rewrite_sum <- function(x) {
+    if (is.recursive(x)) {
+      fn <- as.character(x[[1L]])
+      if (fn %in% FUNCTIONS_SUM) {
+        x <- as.call(c(list(quote(odin_sum)), as.list(x)[-1L]))
+      } else {
+        x[-1L] <- lapply(x[-1L], rewrite_sum)
+      }
+    }
+    x
+  }
+
+  if (any(FUNCTIONS_SUM %in% eq$depends$functions)) {
+    if (eq$lhs$type == "array") {
+      eq$rhs$value <- lapply(eq$rhs$value, rewrite_sum)
+    } else {
+      eq$rhs$value <- rewrite_sum(eq$rhs$value)
+    }
+    eq$depends$functions <- c(setdiff(eq$depends$functions, FUNCTIONS_SUM),
+                              "odin_sum")
+  }
+  eq
 }
 
 
