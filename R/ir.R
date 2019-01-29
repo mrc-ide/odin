@@ -550,15 +550,20 @@ ir_equation_expression_array <- function(eq) {
     stop("rhs$inplace")
   }
   lhs <- ir_equation_lhs(eq)
-  lhs$index <- lapply(unname(eq$lhs$index), function(el)
-    list(value = lapply(el$value, ir_expression),
-         is_range = el$is_range,
-         extent_min = lapply(el$extent_min, ir_expression),
-         extent_max = lapply(el$extent_max, ir_expression)))
-  rhs <- list(
-    type = unname(eq$rhs$type),
-    value = lapply(unname(eq$rhs$value), ir_expression))
+  rhs <- lapply(seq_along(eq$lhs$index), ir_equation_expression_array_rhs, eq)
   ir_equation_base("expression_array", eq, lhs = lhs, rhs = rhs)
+}
+
+
+ir_equation_expression_array_rhs <- function(i, eq) {
+  index <- eq$lhs$index[[i]]
+  list(
+    type = jsonlite::unbox(eq$rhs$type[[i]]),
+    index = lapply(seq_along(index$value), function(j)
+      list(value = ir_expression(index$value[[j]]),
+           is_range = jsonlite::unbox(index$is_range[[j]]),
+           index = jsonlite::unbox(INDEX[[j]]))),
+    value = ir_expression(eq$rhs$value[[i]]))
 }
 
 

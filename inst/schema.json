@@ -72,6 +72,11 @@
             "stage": {
                 "type": "string",
                 "enum": ["constant", "user", "time", "output"]
+            },
+
+            "index": {
+                "type": "string",
+                "enum": ["i", "j", "k", "l", "i5", "i6", "i7", "i8"]
             }
         },
 
@@ -286,48 +291,13 @@
             ]
         },
 
-        "equation_lhs_simple": {
-            "comment": "this could do with a better name!",
+        "equation_lhs": {
             "type": "object",
             "properties": {
                 "location": {"$ref": "#/definitions/enum/location"},
                 "target": {"type": "string"}
             },
             "required": ["location", "target"],
-            "additionalProperties": false
-        },
-
-        "equation_lhs_array": {
-            "type": "object",
-            "properties": {
-                "location": {"$ref": "#/definitions/enum/location"},
-                "target": {"type": "string"},
-                "index": {
-                    "comment": "this is a complex object: first index is equation, second is dimension",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "value": {
-                                "$ref": "#/definitions/sexpression_vector"
-                            },
-                            "is_range": {
-                                "$ref": "#/definitions/basic/boolean_vector"
-                            },
-                            "extent_min": {
-                                "$ref": "#/definitions/sexpression_vector_null"
-                            },
-                            "extent_max": {
-                                "$ref": "#/definitions/sexpression_vector"
-                            }
-                        },
-                        "required": ["value", "is_range",
-                                     "extent_min", "extent_max"],
-                        "additionalProperties": false
-                    }
-                }
-            },
-            "required": ["location", "target", "index"],
             "additionalProperties": false
         },
 
@@ -346,22 +316,43 @@
         },
 
         "equation_rhs_array": {
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "array",
-                    "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {
                         "$ref": "#/definitions/enum/expression_rhs_type"
+                    },
+                    "value": {
+                        "$ref": "#/definitions/sexpression"
+                    },
+                    "index": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/equation_rhs_array_index"
+                        }
                     }
                 },
+                "required": ["type", "value", "index"],
+                "additionalProperties": false
+            },
+            "minItems": 1
+        },
+
+        "equation_rhs_array_index": {
+            "type": "object",
+            "properties": {
                 "value": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/sexpression"
-                    }
+                    "$ref": "#/definitions/sexpression"
+                },
+                "is_range": {
+                    "type": "boolean"
+                },
+                "index": {
+                    "$ref": "#/definitions/enum/index"
                 }
             },
-            "required": ["type", "value"],
+            "required": ["value", "is_range", "index"],
             "additionalProperties": false
         },
 
@@ -384,7 +375,7 @@
                 "source": {},
                 "depends": {},
                 "lhs": {
-                    "$ref": "#/definitions/equation_lhs_simple"
+                    "$ref": "#/definitions/equation_lhs"
                 }
             },
             "required": ["name", "type", "lhs"],
@@ -399,7 +390,7 @@
                 "source": {},
                 "depends": {},
                 "lhs": {
-                    "$ref": "#/definitions/equation_lhs_simple"
+                    "$ref": "#/definitions/equation_lhs"
                 }
             },
             "required": ["name", "type", "lhs"],
@@ -414,7 +405,7 @@
                 "source": {},
                 "depends": {},
                 "lhs": {
-                    "$ref": "#/definitions/equation_lhs_simple"
+                    "$ref": "#/definitions/equation_lhs"
                 },
                 "rhs": {
                     "$ref": "#/definitions/equation_rhs_scalar"
@@ -431,7 +422,7 @@
                 "type": {"const": "expression_array"},
                 "source": {},
                 "depends": {},
-                "lhs": {"$ref": "#/definitions/equation_lhs_array"},
+                "lhs": {"$ref": "#/definitions/equation_lhs"},
                 "rhs": {"$ref": "#/definitions/equation_rhs_array"}
             },
             "required": ["name", "type", "lhs", "rhs"],
@@ -446,7 +437,7 @@
                 "source": {},
                 "depends": {},
                 "lhs": {
-                    "$ref": "#/definitions/equation_lhs_simple"
+                    "$ref": "#/definitions/equation_lhs"
                 },
                 "interpolate": {
                     "type": "object",
@@ -473,7 +464,7 @@
                 "source": {},
                 "depends": {},
                 "lhs": {
-                    "$ref": "#/definitions/equation_lhs_simple"
+                    "$ref": "#/definitions/equation_lhs"
                 },
                 "user": {
                     "type": "object",

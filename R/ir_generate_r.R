@@ -51,7 +51,6 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     result = if (discrete) as.name(STATE_NEXT) else as.name(DSTATEDT),
     output = as.name(OUTPUT),
     time = if (discrete) as.name(STEP) else as.name(TIME),
-    index = lapply(INDEX, as.name),
     get_user_double = as.name("_get_user_double"),
     get_user_dim = as.name("_get_user_dim"),
     check_interpolate_y = as.name("_check_interpolate_y"))
@@ -404,66 +403,66 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, data, meta,
 
 odin_ir_generate_expression_array <- function(eq, data_info, data, meta,
                                               rewrite) {
+  lhs <- odin_ir_generate_expression_array_lhs(
+    eq, data_info, data, meta, rewrite)
+  lapply(eq$rhs, odin_ir_generate_expression_array_rhs,
+         lhs, data_info, data, meta, rewrite)
+}
+
+
+## For internal storage we can do:
+##   STORAGE[[NAME]][i, j]
+## but the variable/output case is different as it's
+##   STORAGE[OFFSET + f(i, j)]
+##
+## In C we'll do this as
+##   STORAGE->NAME[f(i, j)]
+## and
+##   STORAGE[OFFSET + f(i, j)]
+odin_ir_generate_expression_array_lhs <- function(eq, data_info, data, meta,
+                                                  rewrite) {
+  ## All the rhs have the same structure so we can use any of them
+  ## here - we need only to get the index element out
+  index <- lapply(eq$rhs[[1]]$index, function(x) as.name(x$index))
   location <- eq$lhs$location
 
   if (location == "internal") {
-    storage <- call("[[", meta$internal, eq$name)
-    if (data_info$rank == 1L) {
-      lhs <- call("[[", storage, meta$index[[1L]])
-    } else {
-      lhs <- as.call(c(list(quote(`[`), storage),
-                       meta$index[seq_len(data_info$rank)]))
-    }
+    lhs <- as.call(c(list(quote(`[`), rewrite(eq$name)), index))
   } else {
-    ## TODO: 'result' becomes 'dstatedt' (a little complicated by
-    ## location above - consider replacing dstatedt with result!)
-    ##
-    ## TODO: in the C version this is all done in rewrite and that
-    ## might be a better place to put it frankly.
-    offset <- rewrite(data[[location]]$contents[[eq$lhs$target]]$offset)
-    ## TODO: align meta names with data names
-    storage <- if (location == "variable") meta$result else meta$output
-
     f <- function(i) {
       if (i == 1) {
-        meta$index[[i]]
+        index[[i]]
       } else {
-        mult <- call("[[", meta$internal, data_info$dimnames$mult[[i]])
-        call("*", mult, call("-", meta$index[[i]], 1L))
+        call("*", rewrite(data_info$dimnames$mult[[i]]),
+             call("-", index[[i]], 1L))
       }
     }
-    index <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
-    lhs <- call("[[", storage,
-                if (identical(offset, 0)) index else call("+", index, offset))
+    pos <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
+    offset <- rewrite(data[[location]]$contents[[eq$lhs$target]]$offset)
+    storage <- if (location == "variable") meta$result else meta$output
+    lhs <- call("[[", storage, call("+", offset, pos))
   }
 
-  ## TODO: we can do better here on translation when we have ':' but
-  ## this can go into sexp_to_rexp - use seq_along and seq_len where
-  ## appropriate, but the gains from that will be small compared
-  ## with avoiding vectorisation.
-  ##
-  ## TODO: we can (re-)vectorise lots of expressions here.
-  f <- function(i) {
-    expr_body <- call("<-", lhs, rewrite(eq$rhs$value[[i]]))
-    subs <- list()
-    for (j in rev(seq_along(eq$lhs$index[[i]]$value))) {
-      if (eq$lhs$index[[i]]$is_range[[j]]) {
-        expr_index <- rewrite(eq$lhs$index[[i]]$value[[j]])
-        expr_body <- call("for", meta$index[[j]], expr_index,
-                          call("{", expr_body))
-      } else if (length(eq$lhs$index[[i]]$value[[j]]) == 1L) {
-        subs[[as.character(meta$index[[j]])]] <-
-          rewrite(eq$lhs$index[[i]]$value[[j]])
-      } else {
-        stop("Nontrivial non-range array access")
-      }
+  lhs
+}
+
+
+odin_ir_generate_expression_array_rhs <- function(rhs, lhs, data_info,
+                                                  data, meta, rewrite) {
+  ret <- call("<-", lhs, rewrite(rhs$value))
+  subs <- list()
+  for (idx in rev(rhs$index)) {
+    value <- rewrite(idx$value)
+    if (idx$is_range) {
+      ret <- call("for", as.name(idx$index), value, call("{", ret))
+    } else {
+      subs[[idx$index]] <- value
     }
-    if (length(subs) > 0L) {
-      expr_body <- substitute_(expr_body, subs)
-    }
-    expr_body
   }
-  lapply(seq_along(eq$lhs$index), f)
+  if (length(subs) > 0L) {
+    ret <- substitute_(ret, subs)
+  }
+  ret
 }
 
 
