@@ -1,3 +1,17 @@
+## When it comes time to simplify the tangle of preprocessing code
+## below the two ways forward might include rewriting this to use only
+## the equations and not things like "traits".  Then we can reorder at
+## will.  If we can impose our own order at some point by resorting
+## we'd be good to go.
+##
+## * traits
+## * stage
+## * deps_rec
+##
+## * output_info & variable_info are probably ok
+## * info$has_* are ok
+## * config probably ok
+
 odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   xp <- odin_preprocess(x)
   dat <- ir_prep(odin_parse(xp))
@@ -41,6 +55,7 @@ ir_prep <- function(dat) {
   if (dat$info$has_array) {
     dat <- ir_prep_dim(dat)
   }
+  dat <- ir_prep_delay(dat)
 
   location <- set_names(rep("internal", nrow(dat$traits)),
                         rownames(dat$traits))
@@ -452,6 +467,44 @@ ir_prep_interpolate <- function(x, dat) {
 }
 
 
+ir_prep_delay <- function(dat) {
+  if (dat$info$has_delay) {
+    i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
+    tmp <- unname(lapply(dat$eqs[i], ir_prep_delay1, dat))
+
+    eqs <- unlist(unname(tmp), FALSE, FALSE)
+    names(eqs) <- vcapply(eqs, "[[", "name")
+
+    j <- ir_prep_interleave_index(i, lengths(tmp, FALSE))
+
+    traits <- dat$traits[rep(which(i), each = 2), , drop = FALSE]
+    traits[seq(1, by = 2, to = nrow(traits)), "uses_delay"] <- FALSE
+    rownames(traits) <- names(eqs)
+
+    eqs_alloc <- lapply(tmp, "[[", "alloc")
+    names(eqs_alloc) <- vcapply(eqs_alloc, "[[", "name")
+
+    dat$eqs <- c(dat$eqs, eqs)[j]
+    dat$traits <- rbind(dat$traits, traits)[j, , drop = FALSE]
+    dat$stage <- c(dat$stage, viapply(eqs_alloc, "[[", "stage"))
+    deps_rec <- c(dat$deps_rec, lapply(eqs_alloc, "[[", "deps_rec"))
+  }
+  dat
+}
+
+
+ir_prep_delay1 <- function(eq, dat) {
+  eq_alloc <- eq
+  eq_alloc$name <- sprintf("alloc_delay_%s", eq$name)
+  eq_alloc$stage <- eq$delay$expr$total_stage
+  eq_alloc$type <- "alloc_delay"
+  eq_alloc$lhs$name_target <- eq$name
+  deps <- eq$depends$variables
+  eq_alloc$deps_rec <- union(deps, unlist(dat$deps_rec[deps], FALSE, FALSE))
+  list(alloc = eq_alloc, use = eq)
+}
+
+
 ir_config <- function(dat) {
   ## We should probably add here:
   ##
@@ -533,6 +586,8 @@ ir_equation <- function(eq) {
     return(ir_equation_alloc_interpolate(eq))
   } else if (isTRUE(eq$rhs$output_self)) {
     return(ir_equation_copy(eq))
+  } else if (identical(eq$type, "alloc_delay")) {
+    return(ir_equation_alloc_delay(eq))
   } else if (isTRUE(eq$rhs$delay)) {
     return(ir_equation_delay(eq))
   } else if (identical(eq$lhs$type, "symbol")) {
@@ -548,6 +603,7 @@ ir_equation <- function(eq) {
 ir_equation_lhs <- function(eq) {
   if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
       !identical(eq$rhs$type, "alloc") &&
+      !identical(eq$type, "alloc_delay") &&
       !isTRUE(eq$alloc_interpolate)) {
     target <- jsonlite::unbox(eq$name)
   } else {
@@ -562,16 +618,16 @@ ir_equation_base <- function(type, eq, ...) {
        type = jsonlite::unbox(type),
        source = unname(eq$line),
        depends = ir_depends(eq$depends),
+       lhs = ir_equation_lhs(eq),
        ...)
 }
 
 
 ir_equation_expression_scalar <- function(eq) {
-  lhs <- ir_equation_lhs(eq)
   rhs <- list(
     type = jsonlite::unbox(eq$rhs$type),
     value = ir_expression(eq$rhs$value))
-  ir_equation_base("expression_scalar", eq, lhs = lhs, rhs = rhs)
+  ir_equation_base("expression_scalar", eq, rhs = rhs)
 }
 
 
@@ -579,9 +635,8 @@ ir_equation_expression_array <- function(eq) {
   if (any(eq$rhs$inplace)) {
     stop("rhs$inplace")
   }
-  lhs <- ir_equation_lhs(eq)
   rhs <- lapply(seq_along(eq$lhs$index), ir_equation_expression_array_rhs, eq)
-  ir_equation_base("expression_array", eq, lhs = lhs, rhs = rhs)
+  ir_equation_base("expression_array", eq, rhs = rhs)
 }
 
 
@@ -597,26 +652,44 @@ ir_equation_expression_array_rhs <- function(i, eq) {
 }
 
 
+ir_equation_alloc_delay <- function(eq) {
+  ir_equation_base("alloc_delay", eq)
+}
+
+
 ir_equation_delay <- function(eq) {
-  stop("delays not yet supported")
+  ## TODO: for now assuming continuous; this totally changes for
+  ## discrete system.
+  if (!is.null(eq$delay$default)) {
+    stop("add delay default support")
+  }
+
+  info <- eq$delay$expr
+  vars <- list(length = ir_expression(info$total),
+               contents = lapply(seq_along(info$order), function(i)
+                 list(name = jsonlite::unbox(info$order[[i]]),
+                      offset = ir_expression(info$offset[[i]]))))
+  rhs <- list(vars = vars,
+              eqs = info$deps,
+              expr = ir_expression(eq$rhs$value_expr))
+
+  ir_equation_base("delay_continuous", eq, rhs = rhs)
 }
 
 
 ir_equation_alloc <- function(eq) {
-  ir_equation_base("alloc", eq, lhs = ir_equation_lhs(eq))
+  ir_equation_base("alloc", eq)
 }
 
 
 ir_equation_copy <- function(eq) {
-  ir_equation_base("copy", eq, lhs = ir_equation_lhs(eq))
+  ir_equation_base("copy", eq)
 }
 
 
 ir_equation_alloc_interpolate <- function(eq) {
-  lhs <- ir_equation_lhs(eq)
   interpolate <- lapply(eq$interpolate, jsonlite::unbox)
-  ir_equation_base("alloc_interpolate", eq,
-                   lhs = lhs, interpolate = interpolate)
+  ir_equation_base("alloc_interpolate", eq, interpolate = interpolate)
 }
 
 
@@ -625,12 +698,10 @@ ir_equation_user <- function(eq) {
       !is.null(eq$rhs$max)) {
     stop("User details need supporting")
   }
-  lhs <- ir_equation_lhs(eq)
   user <- list(
     default = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL,
     dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim)))
-  ir_equation_base("user", eq,
-                   lhs = lhs, user = user)
+  ir_equation_base("user", eq, user = user)
 }
 
 

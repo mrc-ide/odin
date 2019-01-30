@@ -51,10 +51,12 @@
                 "enum": [
                     "alloc",
                     "alloc_interpolate",
+                    "alloc_delay",
                     "copy",
                     "user",
                     "expression_array",
-                    "expression_scalar"
+                    "expression_scalar",
+                    "delay_continuous"
                 ],
                 "comment": "This duplicates different equation types"
             },
@@ -281,10 +283,12 @@
                     "oneOf": [
                         {"$ref": "#/definitions/equation_copy"},
                         {"$ref": "#/definitions/equation_alloc"},
+                        {"$ref": "#/definitions/equation_alloc_delay"},
                         {"$ref": "#/definitions/equation_alloc_interpolate"},
                         {"$ref": "#/definitions/equation_user"},
                         {"$ref": "#/definitions/equation_expression_array"},
-                        {"$ref": "#/definitions/equation_expression_scalar"}
+                        {"$ref": "#/definitions/equation_expression_scalar"},
+                        {"$ref": "#/definitions/equation_delay_continuous"}
                     ]
                 }
             ]
@@ -391,6 +395,19 @@
             "additionalProperties": false
         },
 
+        "equation_alloc_delay": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "alloc_delay"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {}
+            },
+            "required": ["type"],
+            "additionalProperties": false
+        },
+
         "equation_copy": {
             "type": "object",
             "properties": {
@@ -487,6 +504,20 @@
                 }
             },
             "required": ["type", "user"],
+            "additionalProperties": false
+        },
+
+        "equation_delay_continuous": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "delay_continuous"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {}
+            },
+            "required": ["type", "rhs"],
             "additionalProperties": false
         },
 
