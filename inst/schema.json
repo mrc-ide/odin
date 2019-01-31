@@ -51,12 +51,12 @@
                 "enum": [
                     "alloc",
                     "alloc_interpolate",
-                    "alloc_delay",
                     "copy",
+                    "delay_index",
+                    "delay_continuous",
                     "user",
                     "expression_array",
-                    "expression_scalar",
-                    "delay_continuous"
+                    "expression_scalar"
                 ],
                 "comment": "This duplicates different equation types"
             },
@@ -171,6 +171,8 @@
                 },
                 "output": {
                     "$ref": "#/definitions/data_output"
+                },
+                "delay": {
                 }
             },
             "required": ["data", "variable", "output"],
@@ -283,11 +285,11 @@
                     "oneOf": [
                         {"$ref": "#/definitions/equation_copy"},
                         {"$ref": "#/definitions/equation_alloc"},
-                        {"$ref": "#/definitions/equation_alloc_delay"},
                         {"$ref": "#/definitions/equation_alloc_interpolate"},
                         {"$ref": "#/definitions/equation_user"},
                         {"$ref": "#/definitions/equation_expression_array"},
                         {"$ref": "#/definitions/equation_expression_scalar"},
+                        {"$ref": "#/definitions/equation_delay_index"},
                         {"$ref": "#/definitions/equation_delay_continuous"}
                     ]
                 }
@@ -395,16 +397,17 @@
             "additionalProperties": false
         },
 
-        "equation_alloc_delay": {
+        "equation_delay_index": {
             "type": "object",
             "properties": {
-                "type": {"const": "alloc_delay"},
+                "type": {"const": "delay_index"},
                 "name": {},
                 "source": {},
                 "depends": {},
-                "lhs": {}
+                "lhs": {},
+                "delay": {}
             },
-            "required": ["type"],
+            "required": ["type", "delay"],
             "additionalProperties": false
         },
 

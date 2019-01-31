@@ -477,31 +477,68 @@ ir_prep_delay <- function(dat) {
 
     j <- ir_prep_interleave_index(i, lengths(tmp, FALSE))
 
-    traits <- dat$traits[rep(which(i), each = 2), , drop = FALSE]
-    traits[seq(1, by = 2, to = nrow(traits)), "uses_delay"] <- FALSE
+    ## This is mostly ignored for us now, so punt here:
+    traits <- dat$traits[rep(which(i), each = 4), , drop = FALSE]
     rownames(traits) <- names(eqs)
 
-    eqs_alloc <- lapply(tmp, "[[", "alloc")
-    names(eqs_alloc) <- vcapply(eqs_alloc, "[[", "name")
+    eqs_new <- eqs[!(names(eqs) %in% names(dat$eqs))]
 
     dat$eqs <- c(dat$eqs, eqs)[j]
     dat$traits <- rbind(dat$traits, traits)[j, , drop = FALSE]
-    dat$stage <- c(dat$stage, viapply(eqs_alloc, "[[", "stage"))
-    deps_rec <- c(dat$deps_rec, lapply(eqs_alloc, "[[", "deps_rec"))
+    dat$stage <- c(dat$stage, viapply(eqs_new, "[[", "stage"))
+    deps_rec <- c(dat$deps_rec, lapply(eqs_new, "[[", "deps_rec"))
   }
   dat
 }
 
 
 ir_prep_delay1 <- function(eq, dat) {
-  eq_alloc <- eq
-  eq_alloc$name <- sprintf("alloc_delay_%s", eq$name)
-  eq_alloc$stage <- eq$delay$expr$total_stage
-  eq_alloc$type <- "alloc_delay"
-  eq_alloc$lhs$name_target <- eq$name
-  deps <- eq$depends$variables
-  eq_alloc$deps_rec <- union(deps, unlist(dat$deps_rec[deps], FALSE, FALSE))
-  list(alloc = eq_alloc, use = eq)
+  nm <- eq$name
+  nm_state <- sprintf("delay_%s_%s", STATE, nm)
+  nm_idx <- sprintf("delay_idx_%s", nm)
+  nm_dim <- array_dim_name(nm_state)
+
+  stage <- eq$delay$expr$total_stage
+  value_len <- eq$delay$expr$total
+  depends_len <- find_symbols(value_len)
+  deps_rec_len <- unique(unlist(dat$deps_rec[depends_len$variables]))
+  deps_rec_other <- c(nm_dim, deps_rec_len)
+
+  eq_len <- list(
+    name = nm_dim,
+    lhs = list(type = "symbol", name = nm_dim, data_type = "int"),
+    rhs = list(type = if (is.atomic(value_len)) "atomic" else "expression",
+               value = value_len),
+    for_delay = TRUE, # this is me being lazy
+    depends = find_symbols(value_len),
+    deps_rec = deps_rec_len %||% character(0),
+    line = eq$line,
+    stage = stage)
+
+  eq_idx <- list(
+    name = nm_idx,
+    lhs = list(type = "delay_index", name = nm_idx, data_type = "int",
+               nd = 1L, length = nm_dim),
+    for_delay = nm,
+    depends = find_symbols(as.name(nm_dim)),
+    deps_rec = deps_rec_other,
+    line = eq$line,
+    stage = stage)
+
+  eq_state <- list(
+    name = nm_state,
+    lhs = list(type = "null", name = nm_state, data_type = "double",
+               nd = 1L, length = nm_dim),
+    rhs = list(type = "null"),
+    for_delay = nm,
+    depends = find_symbols(as.name(nm_dim)),
+    deps_rec = deps_rec_other,
+    line = eq$line,
+    stage = stage)
+
+  eq$delay$expr$length <- nm_dim
+
+  list(len = eq_len, idx = eq_idx, state = eq_state, use = eq)
 }
 
 
@@ -586,8 +623,8 @@ ir_equation <- function(eq) {
     return(ir_equation_alloc_interpolate(eq))
   } else if (isTRUE(eq$rhs$output_self)) {
     return(ir_equation_copy(eq))
-  } else if (identical(eq$type, "alloc_delay")) {
-    return(ir_equation_alloc_delay(eq))
+  } else if (identical(eq$lhs$type, "delay_index")) {
+    return(ir_equation_delay_index(eq))
   } else if (isTRUE(eq$rhs$delay)) {
     return(ir_equation_delay(eq))
   } else if (identical(eq$lhs$type, "symbol")) {
@@ -603,7 +640,6 @@ ir_equation <- function(eq) {
 ir_equation_lhs <- function(eq) {
   if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
       !identical(eq$rhs$type, "alloc") &&
-      !identical(eq$type, "alloc_delay") &&
       !isTRUE(eq$alloc_interpolate)) {
     target <- jsonlite::unbox(eq$name)
   } else {
@@ -652,8 +688,9 @@ ir_equation_expression_array_rhs <- function(i, eq) {
 }
 
 
-ir_equation_alloc_delay <- function(eq) {
-  ir_equation_base("alloc_delay", eq)
+ir_equation_delay_index <- function(eq) {
+  ir_equation_base("delay_index", eq,
+                   delay = jsonlite::unbox(eq$for_delay))
 }
 
 
@@ -752,10 +789,18 @@ ir_data <- function(dat) {
          location = jsonlite::unbox(eq$lhs$location),
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
-         dimnames = ir_dimnames(eq$lhs$name, eq$lhs$nd)))
+         dimnames = ir_dimnames(eq$lhs$length %||% eq$lhs$name, eq$lhs$nd)))
+  if (dat$info$has_delay) {
+    i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
+    delay <- lapply(unname(dat$eqs[i]), ir_data_delay)
+  } else {
+    delay <- NULL
+  }
+
   list(data = data,
        variable = ir_data_variable(dat, FALSE),
-       output = ir_data_variable(dat, TRUE))
+       output = ir_data_variable(dat, TRUE),
+       delay = delay)
 }
 
 
@@ -779,11 +824,33 @@ ir_data_variable <- function(dat, output) {
 }
 
 
+ir_data_delay <- function(eq) {
+  info <- eq$delay$expr
+  if (!all(vlapply(seq_along(info$order), function(i)
+    identical(info$offset[[i]], info$access[[i]])))) {
+    stop("take a look here")
+  }
+  contents <- lapply(seq_along(info$order), function(i)
+    list(name = jsonlite::unbox(info$order[[i]]),
+         offset = ir_expression(info$offset[[i]])))
+  list(name = eq$name,
+       length = info$length,
+       contents = contents)
+}
+
+
 ir_dimnames <- function(name, rank) {
   if (is.null(rank) || rank == 0L) {
     return(NULL)
   }
-  length <- jsonlite::unbox(array_dim_name(name))
+  ## This is a hack for the delay hack
+  if (grepl("^dim_", name)) {
+    length <- jsonlite::unbox(name)
+    stopifnot(rank == 1L)
+  } else {
+    length <- jsonlite::unbox(array_dim_name(name))
+  }
+
   if (rank == 1L) {
     dim <- NULL
   } else {

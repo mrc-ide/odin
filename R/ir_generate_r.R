@@ -31,7 +31,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
   ## Pull this out into something generally useful
   features_supported <- c("has_user", "has_output", "discrete", "has_array",
-                          "has_interpolate", "has_stochastic",
+                          "has_interpolate", "has_stochastic", "has_delay",
                           "initial_time_dependent")
   features_used <- vlapply(dat$features, identity)
   msg <- setdiff(names_if(features_used), features_supported)
