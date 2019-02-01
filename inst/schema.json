@@ -38,7 +38,7 @@
         "enum": {
             "storage_type": {
                 "type": "string",
-                "enum": ["double", "int", "interpolate_data"]
+                "enum": ["double", "int", "bool", "interpolate_data"]
             },
 
             "location": {

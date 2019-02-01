@@ -1,3 +1,5 @@
+USE_DDE <- "odin_use_dde"
+
 ## When it comes time to simplify the tangle of preprocessing code
 ## below the two ways forward might include rewriting this to use only
 ## the equations and not things like "traits".  Then we can reorder at
@@ -484,10 +486,37 @@ ir_prep_delay <- function(dat) {
 
     eqs_new <- eqs[!(names(eqs) %in% names(dat$eqs))]
 
-    dat$eqs <- c(dat$eqs, eqs)[j]
-    dat$traits <- rbind(dat$traits, traits)[j, , drop = FALSE]
-    dat$stage <- c(dat$stage, viapply(eqs_new, "[[", "stage"))
-    deps_rec <- c(dat$deps_rec, lapply(eqs_new, "[[", "deps_rec"))
+    ## shared things:
+    initial_time <- initial_name(if (dat$info$discrete) STEP else TIME)
+
+    eqs_common <- list(
+      list(
+        name = initial_time,
+        lhs = list(type = "null", data_type = "int"),
+        rhs = list(type = "null"),
+        line = integer(0),
+        stage = STAGE_USER,
+        deps_rec = character(0)),
+      list(
+        name = USE_DDE,
+        lhs = list(type = "null", data_type = "bool"),
+        rhs = list(type = "null"),
+        line = integer(0),
+        stage = STAGE_USER,
+        deps_rec = character(0)))
+    names(eqs_common) <- vcapply(eqs_common, "[[", "name")
+
+    t <- traits[rep(1, 2), ]
+    t[] <- FALSE
+    t[, "is_symbol"] <- TRUE
+    rownames(t) <- names(eqs_common)
+
+    dat$eqs <- c(c(dat$eqs, eqs)[j], eqs_common)
+    dat$traits <- rbind(rbind(dat$traits, traits)[j, , drop = FALSE], t)
+    dat$stage <- c(dat$stage,
+                   viapply(c(eqs_new, eqs_common), "[[", "stage"))
+    dat$deps_rec <- c(dat$deps_rec,
+                      lapply(c(eqs_new, eqs_common), "[[", "deps_rec"))
   }
   dat
 }
@@ -538,6 +567,8 @@ ir_prep_delay1 <- function(eq, dat) {
     stage = stage)
 
   eq$delay$expr$length <- nm_dim
+  eq$delay$expr$state <- nm_state
+  eq$delay$expr$index <- nm_idx
 
   list(len = eq_len, idx = eq_idx, state = eq_state, use = eq)
 }
@@ -698,19 +729,9 @@ ir_equation_delay_index <- function(eq) {
 ir_equation_delay <- function(eq) {
   ## TODO: for now assuming continuous; this totally changes for
   ## discrete system.
-  if (!is.null(eq$delay$default)) {
-    stop("add delay default support")
-  }
-
-  info <- eq$delay$expr
-  vars <- list(length = ir_expression(info$total),
-               contents = lapply(seq_along(info$order), function(i)
-                 list(name = jsonlite::unbox(info$order[[i]]),
-                      offset = ir_expression(info$offset[[i]]))))
-  rhs <- list(vars = vars,
-              eqs = info$deps,
+  rhs <- list(default = ir_expression(eq$delay$default),
+              time = ir_expression(eq$delay$time),
               value = ir_expression(eq$rhs$value_expr))
-
   ir_equation_base("delay_continuous", eq, rhs = rhs)
 }
 
@@ -822,38 +843,36 @@ ir_delay <- function(dat) {
     return(NULL)
   }
   i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
-  lapply(unname(dat$eqs[i]), ir_delay1)
+  lapply(unname(dat$eqs[i]), ir_delay1, dat$stage)
 }
 
 
-ir_delay1 <- function(eq) {
+ir_delay1 <- function(eq, stage) {
   info <- eq$delay$expr
   if (!all(vlapply(seq_along(info$order), function(i)
     identical(info$offset[[i]], info$access[[i]])))) {
     stop("take a look here")
   }
-  if (info$deps_is_array) {
+  if (any(info$deps_is_array)) {
     stop("need to work on this")
     ## The trick here is to work out a mapping of names and arrange
-    ## for some additional variables to be created.  We can put at
-    ## least the mapping into the delay index for now, but we might
-    ## also hold off adding them to the contents as "real" equations
-    ## too?  Not sure.  We can add them in the prep stage if needed
-    ## and then here just create the map.  Later we can use a
-    ## `substitute_` call to rewrite using them
+    ## for some additional variables to be created.  I think that
+    ## realistically this should happen during the prep stage.  Create
+    ## for an array "a" used in equation "x" the new variable
+    ## "delay_x_a" then use substitute to rewrite it...proper faffage
+    ## really.
   }
   contents <- lapply(seq_along(info$order), function(i)
     list(name = jsonlite::unbox(info$order[[i]]),
          offset = ir_expression(info$offset[[i]])))
-  ## TODO: info$deps here needs filtering down to be only time
-  ## dependent; should be just info$deps[stage[info$deps]] ==
-  ## STAGE_TIME after passing in stage too
-  browser()
+  equations <- names_if(stage[info$deps] == STAGE_TIME)
   list(name = jsonlite::unbox(eq$name),
+       state = jsonlite::unbox(info$state),
+       index = jsonlite::unbox(info$index),
        variables = list(
          length = jsonlite::unbox(info$length),
          contents = contents),
-       equations = info$deps)
+       equations = equations)
 }
 
 

@@ -51,6 +51,8 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     result = if (discrete) as.name(STATE_NEXT) else as.name(DSTATEDT),
     output = as.name(OUTPUT),
     time = if (discrete) as.name(STEP) else as.name(TIME),
+    initial_time = as.name(paste0("initial_", if (discrete) STEP else TIME)),
+    use_dde = as.name(USE_DDE),
     get_user_double = as.name("_get_user_double"),
     get_user_dim = as.name("_get_user_dim"),
     check_interpolate_y = as.name("_check_interpolate_y"))
@@ -83,6 +85,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite, "dde"),
     output = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,"output"),
     interpolate_t = odin_ir_generate_interpolate_t(dat, env, meta, rewrite),
+    set_initial = odin_ir_generate_set_initial(dat, env, meta, rewrite),
     ## This one is a little different
     metadata = odin_ir_generate_metadata(dat, meta, rewrite))
 
@@ -305,6 +308,29 @@ odin_ir_generate_interpolate_t <- function(dat, env, meta, rewrite) {
                call("list",
                     min = min, max = max, critical = critical))
   as_function(args, body, env)
+}
+
+
+odin_ir_generate_set_initial <- function(dat, env, meta, rewrite) {
+  if (!dat$features$has_delay) {
+    return(function(...) NULL)
+  }
+
+  set_y <- call("if", call("!", call("is.null", meta$state)),
+                call("stop", "this needs work"))
+  set_t <- call("<-",
+                rewrite(as.character(meta$initial_time)),
+                meta$time)
+  set_use_dde <- call("<-",
+                      rewrite(as.character(meta$use_dde)),
+                      meta$use_dde)
+  body <- list(set_y, set_t, set_use_dde)
+  args <- set_names(
+    alist(, , ),
+    c(as.character(meta$time), as.character(meta$state),
+      as.character(meta$use_dde)))
+
+  as_function(args, expr_block(body), env)
 }
 
 
@@ -588,18 +614,16 @@ odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
 
 odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
                                                          dat, meta, rewrite) {
-  browser()
-
   d <- dat$delay[[eq$lhs$target]]
 
-  ## TODO: this needs to be in the ir!
-  tau <- 1
-  ## TODO: so does this, and also in the ir?
-  initial_time <- 0
-  ## TODO: indicate if we have a default in the ir because this goes a
-  ## very different wany otherwise
-  state <- rewrite("delay_state_r")
-  index <- rewrite("delay_idx_r")
+  tau <- rewrite(eq$rhs$time)
+  initial_time <- rewrite(as.character(meta$initial_time))
+  state <- rewrite(d$state)
+  index <- rewrite(d$index)
+
+  if (!is.null(eq$rhs$default)) {
+    stop("delayed variable has a default")
+  }
 
   ## TODO: If we have an array then we need to have the expressions
   ## rewritten.  I think that the easiest way of doing that is in the
@@ -607,11 +631,12 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   ## But then it's done in only one place and will generally work.  We
   ## just end up with even more equations added, but they can be put
   ## right after the canonical version (or just at the end of the
-  ## block really).
+  ## block really).  The problem is it sort of breaks the graph and
+  ## adds a lot of junk.
   time <- call("<-", meta$time, call("-", meta$time, tau))
 
   lookup <- expr_if(
-    rewrite("use_dde"),
+    rewrite(as.character(meta$use_dde)),
     call("<-", state, as.call(c(quote(dde::ylag), meta$time, index))),
     call("<-", state, as.call(c(quote(deSolve::lagvalue), meta$time, index))))
 
@@ -662,9 +687,6 @@ offset_to_position <- function(x) {
 ## locked down to creation time.
 odin_ir_generate_class <- function(core, dat, env, meta) {
   self <- private <- NULL # quieten global check: R6 adds these later
-  if (dat$features$has_delay) {
-    stop("more tweaks needed here...")
-  }
   if (dat$features$has_interpolate) {
     loadNamespace("cinterpolate")
   }
@@ -686,6 +708,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       initial_time_dependent = dat$features$initial_time_dependent,
       interpolate = dat$features$has_interpolate,
       interpolate_t = NULL,
+      delay = dat$features$has_delay,
       ## TODO: this is a horrible name
       ir_ = dat$ir,
 
@@ -725,12 +748,18 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
 
       update = if (dat$features$discrete) {
         function(step, y) {
+          if (private$delay) {
+            stop("Can't call deriv() on delay models")
+          }
           private$core$rhs_dde(step, y, private$data)
         }
       },
 
       deriv = if (!dat$features$discrete) {
         function(t, y) {
+          if (private$delay) {
+            stop("Can't call deriv() on delay models")
+          }
           ret <- private$core$rhs_dde(t, y, private$data)
           if (!is.null(private$core$output)) {
             attr(ret, "output") <- private$core$output(t, y, private$data)
@@ -777,12 +806,18 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         }
       } else {
         function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
+          if (private$delay) {
+            private$core$set_initial(t, y, use_dde)
+          }
           if (is.null(y)) {
             y <- self$initial(t[[1L]])
           }
           if (private$interpolate) {
             tcrit <-
               support_check_interpolate_t(t, private$interpolate_t, tcrit)
+          }
+          if (private$delay) {
+            private$core$set_initial(t, use_dde)
           }
           if (private$use_dde) {
             ## TODO: there's a second type of critical time that
