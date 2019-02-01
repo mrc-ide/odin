@@ -171,8 +171,6 @@
                 },
                 "output": {
                     "$ref": "#/definitions/data_output"
-                },
-                "delay": {
                 }
             },
             "required": ["data", "variable", "output"],
@@ -635,6 +633,8 @@
         },
         "user": {
             "$ref": "#/definitions/user"
+        },
+        "delay": {
         },
         "interpolate": {
             "$ref": "#/definitions/interpolate"

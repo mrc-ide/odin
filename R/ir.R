@@ -31,6 +31,7 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
                  equations = ir_equations(dat),
                  components = ir_components(dat),
                  user = ir_user(dat),
+                 delay = ir_delay(dat),
                  interpolate = ir_interpolate(dat),
                  source = vcapply(xp$exprs, deparse_str))
   ir <- ir_serialise(ir_dat, pretty)
@@ -708,7 +709,7 @@ ir_equation_delay <- function(eq) {
                       offset = ir_expression(info$offset[[i]]))))
   rhs <- list(vars = vars,
               eqs = info$deps,
-              expr = ir_expression(eq$rhs$value_expr))
+              value = ir_expression(eq$rhs$value_expr))
 
   ir_equation_base("delay_continuous", eq, rhs = rhs)
 }
@@ -790,17 +791,9 @@ ir_data <- function(dat) {
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          dimnames = ir_dimnames(eq$lhs$length %||% eq$lhs$name, eq$lhs$nd)))
-  if (dat$info$has_delay) {
-    i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
-    delay <- lapply(unname(dat$eqs[i]), ir_data_delay)
-  } else {
-    delay <- NULL
-  }
-
   list(data = data,
        variable = ir_data_variable(dat, FALSE),
-       output = ir_data_variable(dat, TRUE),
-       delay = delay)
+       output = ir_data_variable(dat, TRUE))
 }
 
 
@@ -824,18 +817,43 @@ ir_data_variable <- function(dat, output) {
 }
 
 
-ir_data_delay <- function(eq) {
+ir_delay <- function(dat) {
+  if (!dat$info$has_delay) {
+    return(NULL)
+  }
+  i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
+  lapply(unname(dat$eqs[i]), ir_delay1)
+}
+
+
+ir_delay1 <- function(eq) {
   info <- eq$delay$expr
   if (!all(vlapply(seq_along(info$order), function(i)
     identical(info$offset[[i]], info$access[[i]])))) {
     stop("take a look here")
   }
+  if (info$deps_is_array) {
+    stop("need to work on this")
+    ## The trick here is to work out a mapping of names and arrange
+    ## for some additional variables to be created.  We can put at
+    ## least the mapping into the delay index for now, but we might
+    ## also hold off adding them to the contents as "real" equations
+    ## too?  Not sure.  We can add them in the prep stage if needed
+    ## and then here just create the map.  Later we can use a
+    ## `substitute_` call to rewrite using them
+  }
   contents <- lapply(seq_along(info$order), function(i)
     list(name = jsonlite::unbox(info$order[[i]]),
          offset = ir_expression(info$offset[[i]])))
-  list(name = eq$name,
-       length = info$length,
-       contents = contents)
+  ## TODO: info$deps here needs filtering down to be only time
+  ## dependent; should be just info$deps[stage[info$deps]] ==
+  ## STAGE_TIME after passing in stage too
+  browser()
+  list(name = jsonlite::unbox(eq$name),
+       variables = list(
+         length = jsonlite::unbox(info$length),
+         contents = contents),
+       equations = info$deps)
 }
 
 
@@ -899,6 +917,14 @@ ir_deserialise <- function(ir) {
   names(dat$equations) <- vcapply(dat$equations, "[[", "name")
 
   dat$interpolate <- lapply(dat$interpolate, list_to_character)
+  if (!is.null(dat$delay)) {
+    names(dat$delay) <- vcapply(dat$delay, "[[", "name")
+    for (i in seq_along(dat$delay)) {
+      dat$delay[[i]]$equations <- list_to_character(dat$delay[[i]]$equations)
+      names(dat$delay[[i]]$variables$contents) <-
+        vcapply(dat$delay[[i]]$variables$contents, "[[", "name")
+    }
+  }
 
   dat
 }

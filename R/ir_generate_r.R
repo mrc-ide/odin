@@ -60,7 +60,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     sexp_to_rexp(x, dat$data, meta)
   }
 
-  eqs <- lapply(dat$equations, odin_ir_generate_expression, dat, meta, rewrite)
+  eqs <- odin_ir_generate_expressions(dat, meta, rewrite)
 
   ## Then start putting together the initial conditions
   env <- new.env(parent = odin_base_env())
@@ -318,12 +318,19 @@ odin_ir_generate_expression <- function(eq, dat, meta, rewrite) {
     user = odin_ir_generate_expression_user,
     expression_scalar = odin_ir_generate_expression_scalar,
     expression_array = odin_ir_generate_expression_array,
+    delay_index = odin_ir_generate_expression_delay_index,
+    delay_continuous = odin_ir_generate_expression_delay_continuous,
     stop("Unknown type"))
 
   data_info <- dat$data$data[[eq$lhs$target]]
   stopifnot(!is.null(data_info))
 
-  f(eq, data_info, dat$data, meta, rewrite)
+  f(eq, data_info, dat, meta, rewrite)
+}
+
+
+odin_ir_generate_expressions <- function(dat, meta, rewrite) {
+  lapply(dat$equations, odin_ir_generate_expression, dat, meta, rewrite)
 }
 
 
@@ -370,14 +377,14 @@ sexp_to_rexp_sum <- function(args) {
 }
 
 
-odin_ir_generate_expression_scalar <- function(eq, data_info, data, meta,
+odin_ir_generate_expression_scalar <- function(eq, data_info, dat, meta,
                                                rewrite) {
   location <- data_info$location
 
   if (location == "internal" || location == "transient") {
     lhs <- rewrite(eq$name)
   } else {
-    offset <- data[[location]]$contents[[data_info$name]]$offset
+    offset <- dat$data[[location]]$contents[[data_info$name]]$offset
     storage <- if (location == "variable") meta$result else meta$output
     lhs <- call("[[", storage, offset_to_position(offset))
   }
@@ -387,12 +394,12 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, data, meta,
 }
 
 
-odin_ir_generate_expression_array <- function(eq, data_info, data, meta,
+odin_ir_generate_expression_array <- function(eq, data_info, dat, meta,
                                               rewrite) {
   lhs <- odin_ir_generate_expression_array_lhs(
-    eq, data_info, data, meta, rewrite)
+    eq, data_info, dat$data, meta, rewrite)
   lapply(eq$rhs, odin_ir_generate_expression_array_rhs,
-         lhs, data_info, data, meta, rewrite)
+         lhs, data_info, dat$data, meta, rewrite)
 }
 
 
@@ -452,7 +459,7 @@ odin_ir_generate_expression_array_rhs <- function(rhs, lhs, data_info,
 }
 
 
-odin_ir_generate_expression_alloc <- function(eq, data_info, data, meta,
+odin_ir_generate_expression_alloc <- function(eq, data_info, dat, meta,
                                               rewrite) {
   lhs <- rewrite(eq$lhs$target)
   alloc_fn <- switch(data_info$storage_type,
@@ -469,11 +476,12 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, data, meta,
 
 
 odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
-                                                          data, meta,
+                                                          dat, meta,
                                                           rewrite) {
   name_target <- eq$lhs$target
   name_arg <- eq$interpolate$y
 
+  data <- dat$data
   data_info_target <- data$data[[name_target]]
   data_info_t <- data$data[[eq$interpolate$t]]
   data_info_arg <- data$data[[eq$interpolate$y]]
@@ -506,10 +514,10 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
 }
 
 
-odin_ir_generate_expression_copy <- function(eq, data_info, data, meta,
+odin_ir_generate_expression_copy <- function(eq, data_info, dat, meta,
                                              rewrite) {
-  ## NOTE: this applies only to coping a variable into the output
-  offset <- rewrite(data$output$contents[[eq$lhs$target]]$offset)
+  ## NOTE: this applies only to copying a variable into the output
+  offset <- rewrite(dat$data$output$contents[[eq$lhs$target]]$offset)
   storage <- meta$output
 
   if (data_info$rank == 0) {
@@ -526,7 +534,7 @@ odin_ir_generate_expression_copy <- function(eq, data_info, data, meta,
 
 ## NOTE: There are two entirely separate codepaths here so this could
 ## be factored out again (and probably should be).
-odin_ir_generate_expression_user <- function(eq, data_info, data, meta,
+odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
                                              rewrite) {
   if (eq$user$dim) {
     name <- eq$name
@@ -552,6 +560,74 @@ odin_ir_generate_expression_user <- function(eq, data_info, data, meta,
                 meta$user, eq$name, meta$internal, size, default)
     call("<-", lhs, rhs)
   }
+}
+
+
+odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
+                                                    rewrite) {
+  d <- dat$delay[[eq$delay]]
+  variables <- d$variables$contents
+
+  ## There's some care needed here to build up the index - this is
+  ## easy in the scalar case so let's start there
+  v <- vcapply(variables, "[[", "name")
+  if (any(viapply(dat$data$data[v], "[[", "rank") != 0L)) {
+    stop("fix nonscalar delay variables")
+  }
+
+  target <- rewrite(eq$name)
+  alloc <- call("<-", target, call("integer", rewrite(d$variables$length)))
+  index <- lapply(seq_along(variables), function(i)
+    call("<-",
+         call("[[", target, offset_to_position(variables[[i]]$offset)),
+         offset_to_position(
+           dat$data$variable$contents[[variables[[i]]$name]]$offset)))
+  c(alloc, index)
+}
+
+
+odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
+                                                         dat, meta, rewrite) {
+  browser()
+
+  d <- dat$delay[[eq$lhs$target]]
+
+  ## TODO: this needs to be in the ir!
+  tau <- 1
+  ## TODO: so does this, and also in the ir?
+  initial_time <- 0
+  ## TODO: indicate if we have a default in the ir because this goes a
+  ## very different wany otherwise
+  state <- rewrite("delay_state_r")
+  index <- rewrite("delay_idx_r")
+
+  ## TODO: If we have an array then we need to have the expressions
+  ## rewritten.  I think that the easiest way of doing that is in the
+  ## ir where we just go through and rewrite the whole lot, really.
+  ## But then it's done in only one place and will generally work.  We
+  ## just end up with even more equations added, but they can be put
+  ## right after the canonical version (or just at the end of the
+  ## block really).
+  time <- call("<-", meta$time, call("-", meta$time, tau))
+
+  lookup <- expr_if(
+    rewrite("use_dde"),
+    call("<-", state, as.call(c(quote(dde::ylag), meta$time, index))),
+    call("<-", state, as.call(c(quote(deSolve::lagvalue), meta$time, index))))
+
+  unpack1 <- lapply(dat$data$variable$contents[names(d$variables$contents)],
+                    unpack_variable, dat$data$data, meta$state)
+  unpack2 <- lapply(d$variables$contents,
+                    unpack_variable, dat$data$data, state)
+  unpack <- expr_if(call("<=", meta$time, initial_time),
+                    unpack1, c(lookup, unpack2))
+
+  eqs <- lapply(dat$equations[d$equations], odin_ir_generate_expression,
+                dat, meta, rewrite)
+  rhs <- rewrite(eq$rhs$value)
+
+  body <- expr_block(c(time, unpack, flatten_eqs(eqs), rhs))
+  call("<-", rewrite(eq$name), call("local", body))
 }
 
 
@@ -927,4 +1003,29 @@ flatten_eqs <- function(x) {
     x <- unlist(x, FALSE, FALSE)
   }
   x
+}
+
+
+unpack_variable <- function(x, data, state) {
+  d <- data[[x$name]]
+  if (d$rank == 0L) {
+    extract <- call("[[", state, offset_to_position(x$offset))
+  } else {
+    seq <- call("seq_len", rewrite(d$dimnames$length))
+    extract <- call("[", state, call("+", x$offset, seq))
+    if (d$rank > 1L) {
+      extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
+    }
+  }
+  call("<-", as.name(x$name), extract)
+}
+
+
+expr_block <- function(exprs) {
+  as.call(c(list(as.name("{")), flatten_eqs(exprs)))
+}
+
+
+  expr_if <- function(condition, a, b) {
+    call("if", condition, expr_block(a), expr_block(b))
 }
