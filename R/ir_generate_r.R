@@ -326,9 +326,9 @@ odin_ir_generate_set_initial <- function(dat, env, meta, rewrite) {
                       meta$use_dde)
   body <- list(set_y, set_t, set_use_dde)
   args <- set_names(
-    alist(, , ),
+    alist(, , , ),
     c(as.character(meta$time), as.character(meta$state),
-      as.character(meta$use_dde)))
+      as.character(meta$use_dde), as.character(meta$internal)))
 
   as_function(args, expr_block(body), env)
 }
@@ -807,7 +807,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
       } else {
         function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
           if (private$delay) {
-            private$core$set_initial(t, y, use_dde)
+            private$core$set_initial(t[[1L]], y, private$use_dde, private$data)
           }
           if (is.null(y)) {
             y <- self$initial(t[[1L]])
@@ -815,9 +815,6 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
           if (private$interpolate) {
             tcrit <-
               support_check_interpolate_t(t, private$interpolate_t, tcrit)
-          }
-          if (private$delay) {
-            private$core$set_initial(t, use_dde)
           }
           if (private$use_dde) {
             ## TODO: there's a second type of critical time that
@@ -828,8 +825,13 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
                               ynames = FALSE, output = private$core$output,
                               n_out = private$n_out, ...)
           } else {
-            ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$data,
-                                tcrit = tcrit, ...)
+            if (private$delay) {
+              ret <- deSolve::dede(y, t, private$core$rhs_desolve, private$data,
+                                   tcrit = tcrit, ...)
+            } else {
+              ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$data,
+                                  tcrit = tcrit, ...)
+            }
           }
           if (use_names) {
             colnames(ret) <- private$ynames
