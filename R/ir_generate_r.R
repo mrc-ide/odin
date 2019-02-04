@@ -55,7 +55,8 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     use_dde = as.name(USE_DDE),
     get_user_double = as.name("_get_user_double"),
     get_user_dim = as.name("_get_user_dim"),
-    check_interpolate_y = as.name("_check_interpolate_y"))
+    check_interpolate_y = as.name("_check_interpolate_y"),
+    check_interpolate_t = as.name("_check_interpolate_t"))
 
   ## This is our little rewriter - we'll tidy this up later
   rewrite <- function(x) {
@@ -74,22 +75,28 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   }
   if (dat$features$has_interpolate) {
     env[[as.character(meta$check_interpolate_y)]] <- support_check_interpolate_y
+    env[[as.character(meta$check_interpolate_t)]] <- support_check_interpolate_t
   }
 
+  core <- odin_ir_generate_core(eqs, dat, env, meta, rewrite)
+  odin_ir_generate_class(core, dat, env, meta)
+}
+
+
+odin_ir_generate_core <- function(eqs, dat, env, meta, rewrite) {
   core <- list(
     create = odin_ir_generate_create(eqs, dat, env, meta),
     ic = odin_ir_generate_ic(eqs, dat, env, meta, rewrite),
     set_user = odin_ir_generate_set_user(eqs, dat, env, meta),
-    ## TODO: These 3 true/false pairs might be a ternary categorical arg?
     rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite, "desolve"),
     rhs_dde = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite, "dde"),
     output = odin_ir_generate_rhs(eqs, dat, env, meta, rewrite,"output"),
     interpolate_t = odin_ir_generate_interpolate_t(dat, env, meta, rewrite),
     set_initial = odin_ir_generate_set_initial(dat, env, meta, rewrite),
-    ## This one is a little different
+    run = odin_ir_generate_run(dat, env, meta, rewrite),
     metadata = odin_ir_generate_metadata(dat, meta, rewrite))
-
-  odin_ir_generate_class(core, dat, env, meta)
+  list2env(core, env)
+  core
 }
 
 
@@ -329,6 +336,118 @@ odin_ir_generate_set_initial <- function(dat, env, meta, rewrite) {
     alist(, , , ),
     c(as.character(meta$time), as.character(meta$state),
       as.character(meta$use_dde), as.character(meta$internal)))
+
+  as_function(args, expr_block(body), env)
+}
+
+
+## Thos feels pretty messy, but I think we can clean it up later.
+## It's quite likely that we'd be better off with two separate
+## generators - one for discrete and one for continuous models.
+odin_ir_generate_run <- function(dat, env, meta, rewrite) {
+  args <- alist(data =, t =, y = , n_out =, ynames =, ...=,
+                  ## These are only used in some cases!
+                  interpolate_t =)
+  if (dat$features$discrete) {
+    args <- c(args, alist(replicate =))
+  } else {
+    args <- c(args, alist(use_dde =, tcrit =))
+  }
+  if (dat$features$has_delay) {
+    args <- c(args, alist(n_history = 1000L))
+  }
+
+  names(args)[[1L]] <- as.character(meta$internal)
+  names(args)[[2L]] <- as.character(meta$time)
+  names(args)[[3L]] <- as.character(meta$state)
+  ## for now at least, quote these - we might have to fix this up
+  ## later by having a second (non-ir driven) meta list.
+  n_out <- quote(n_out)
+  ynames <- quote(ynames)
+  tcrit <- if (dat$features$discrete) NULL else quote(tcrit)
+
+  replicate <- quote(replicate)
+  use_dde <- quote(use_dde)
+  n_history <- quote(n_history)
+  interpolate_t <- quote(interpolate_t)
+
+  ret <- quote(ret)
+
+  t0 <- call("[[", meta$time, 1L)
+
+  if (dat$features$has_delay) {
+    set_initial <- call("set_initial", t0, meta$state, use_dde, meta$internal)
+  } else {
+    set_initial <- NULL
+  }
+
+  if (dat$features$has_interpolate) {
+    check_interpolate_t <-
+      call(as.character(meta$check_interpolate_t),
+           meta$time, interpolate_t, tcrit)
+    if (!dat$features$discrete) {
+      check_interpolate_t <- call("<-", tcrit, check_interpolate_t)
+    }
+  } else {
+    check_interpolate_t <- NULL
+  }
+
+  compute_initial <-
+    call("if", call("is.null", meta$state),
+         expr_block(call("<-", meta$state, call("ic", t0, meta$internal))))
+
+  output <- if (dat$features$has_output) quote(output) else NULL
+
+  run_args_dde <- list(meta$state, meta$time, quote(rhs_dde),
+                       meta$internal, ynames = FALSE, quote(`...`))
+  run_args_desolve <- list(meta$state, meta$time, quote(rhs_desolve),
+                           meta$internal, quote(`...`))
+  if (!dat$features$discrete) {
+    run_args_desolve <- c(run_args_desolve, tcrit = tcrit)
+  }
+  if (dat$features$has_output) {
+    run_args_dde <- c(run_args_dde, list(n_out = n_out))
+    if (!dat$features$discrete) {
+      run_args_dde <- c(run_args_dde, list(output = quote(output)))
+    }
+  }
+  if (dat$features$has_delay) {
+    run_args_dde <- c(run_args_dde, list(n_history = n_history))
+    run_args_desolve <- c(run_args_desolve,
+                          list(control = call("list", mxhist = n_history)))
+  }
+
+  if (dat$features$discrete) {
+    run_replicate <-
+      as.call(c(list(quote(dde::difeq_replicate), replicate), run_args_dde))
+    run_single <-
+      as.call(c(list(quote(dde::difeq)), run_args_dde))
+    run <- expr_if(
+      call("is.null", replicate),
+      call("<-", ret, run_single),
+      call("<-", ret, run_replicate))
+  } else {
+    run_fn_dde <- quote(dde::dopri)
+    if (dat$features$has_delay) {
+      run_fn_desolve <- quote(deSolve::dede)
+    } else {
+      run_fn_desolve <- quote(deSolve::ode)
+    }
+    run <- expr_if(
+      use_dde,
+      call("<-", ret, as.call(c(list(run_fn_dde), run_args_dde))),
+      call("<-", ret, as.call(c(list(run_fn_desolve), run_args_desolve))))
+  }
+
+  set_names <- expr_if(
+    call("is.null", ynames),
+    list(call("<-", call("colnames", ret), NULL),
+         call("<-", call("class", ret), "matrix")),
+    call("<-", call("colnames", ret), ynames))
+
+
+  body <- drop_null(list(set_initial, check_interpolate_t, compute_initial, run,
+                         set_names, ret))
 
   as_function(args, expr_block(body), env)
 }
@@ -691,6 +810,30 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
     loadNamespace("cinterpolate")
   }
 
+
+  ## This bit needs thinking about carefully - there are two
+  ## user-focussed changes here that change between
+  ## discrete/nondiscrete.  This is unfortunately affected by the
+  ## delays too because if there are delays then we need to keep track
+  ## of history size.
+  if (dat$features$discrete) {
+    run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
+      private$core$run(private$data, step, y, private$n_out,
+                       if (use_names) private$ynames else NULL,
+                       ...,
+                       replicate = replicate,
+                       interpolate_t = private$interpolate_t)
+    }
+  } else {
+    run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
+      private$core$run(private$data, t, y, private$n_out,
+                       if (use_names) private$ynames else NULL,
+                       tcrit = tcrit, ...,
+                       use_dde = private$use_dde,
+                       interpolate_t = private$interpolate_t)
+    }
+  }
+
   env[[dat$config$base]] <- R6::R6Class(
     ## TODO: use of 'odin_model' here is somewhat incorrect because
     ## the objects are not really substituable within a class.  This
@@ -780,68 +923,7 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
         }
       },
 
-      run = if (dat$features$discrete) {
-        function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
-          if (is.null(y)) {
-            y <- self$initial(step[[1L]])
-          }
-          if (private$interpolate) {
-            support_check_interpolate_t(step, private$interpolate_t, NULL)
-          }
-          if (is.null(replicate)) {
-            ret <- dde::difeq(y, step, private$core$rhs_dde, private$data,
-                              ynames = FALSE, n_out = private$n_out, ...)
-          } else {
-            ret <- dde::difeq_replicate(
-              replicate, y, step, private$core$rhs_dde, private$data,
-              ynames = FALSE, output = private$core$output,
-              n_out = private$n_out, ...)
-          }
-          if (use_names) {
-            colnames(ret) <- private$ynames
-          } else {
-            colnames(ret) <- NULL
-          }
-          ret
-        }
-      } else {
-        function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
-          if (private$delay) {
-            private$core$set_initial(t[[1L]], y, private$use_dde, private$data)
-          }
-          if (is.null(y)) {
-            y <- self$initial(t[[1L]])
-          }
-          if (private$interpolate) {
-            tcrit <-
-              support_check_interpolate_t(t, private$interpolate_t, tcrit)
-          }
-          if (private$use_dde) {
-            ## TODO: there's a second type of critical time that
-            ## should be enabled here (but is not yet in mainstream
-            ## odin) -- all switch points in constant interpolations.
-            ## Let's not do this yet though.
-            ret <- dde::dopri(y, t, private$core$rhs_dde, private$data,
-                              ynames = FALSE, output = private$core$output,
-                              n_out = private$n_out, ...)
-          } else {
-            if (private$delay) {
-              ret <- deSolve::dede(y, t, private$core$rhs_desolve, private$data,
-                                   tcrit = tcrit, ...)
-            } else {
-              ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$data,
-                                  tcrit = tcrit, ...)
-            }
-          }
-          if (use_names) {
-            colnames(ret) <- private$ynames
-          } else {
-            dimnames(ret) <- NULL
-            class(ret) <- "matrix"
-          }
-          ret
-        }
-      },
+      run = run,
 
       ## TODO: I am currently not sure if this belongs here or with
       ## the generator...
