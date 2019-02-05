@@ -760,7 +760,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     call("<-", state, as.call(c(quote(deSolve::lagvalue), meta$time, index))))
 
   unpack1 <- lapply(dat$data$variable$contents[names(d$variables$contents)],
-                    unpack_variable, dat$data$data, meta$state)
+                    function(x) call("<-", as.name(x$name), rewrite(x$initial)))
   unpack2 <- lapply(d$variables$contents,
                     unpack_variable, dat$data$data, state)
   unpack <- expr_if(call("<=", meta$time, initial_time),
