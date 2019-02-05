@@ -324,7 +324,9 @@ odin_ir_generate_set_initial <- function(dat, env, meta, rewrite) {
   }
 
   set_y <- call("if", call("!", call("is.null", meta$state)),
-                call("stop", "this needs work"))
+                expr_block(lapply(dat$data$variable$contents, function(x)
+                  call("<-", rewrite(x$initial),
+                       extract_variable(x, dat$data$data, meta$state)))))
   set_t <- call("<-",
                 rewrite(as.character(meta$initial_time)),
                 meta$time)
@@ -1126,6 +1128,11 @@ flatten_eqs <- function(x) {
 
 
 unpack_variable <- function(x, data, state) {
+  call("<-", as.name(x$name), extract_variable(x, data, state))
+}
+
+
+extract_variable <- function(x, data, state) {
   d <- data[[x$name]]
   if (d$rank == 0L) {
     extract <- call("[[", state, offset_to_position(x$offset))
@@ -1136,7 +1143,7 @@ unpack_variable <- function(x, data, state) {
       extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
     }
   }
-  call("<-", as.name(x$name), extract)
+  extract
 }
 
 

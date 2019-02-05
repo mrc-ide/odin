@@ -71,7 +71,6 @@ test_that("user variables on models with none", {
 })
 
 test_that("non-numeric time", {
-  skip("delays")
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
   gen <- odin2({
@@ -86,7 +85,6 @@ test_that("non-numeric time", {
 })
 
 test_that("delays and initial conditions", {
-  skip("delays")
   gen <- odin2({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
