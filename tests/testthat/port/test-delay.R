@@ -8,7 +8,7 @@ test_that("mixed delay model", {
   ##
   ## At the same time this will pick up user sized delayed arrays.
 
-  gen <- odin::odin({
+  gen <- odin2({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
@@ -69,19 +69,19 @@ test_that("mixed delay model", {
 })
 
 test_that("missing variables in delay", {
-  expect_error(odin::odin({
+  expect_error(odin2({
     ylag <- delay(x, 10)
     initial(y) <- 0.5
     deriv(y) <- y + ylag
   }), "Missing variable in delay expression")
 
-  expect_error(odin::odin({
+  expect_error(odin2({
     ylag <- delay(x + y, 10)
     initial(y) <- 0.5
     deriv(y) <- y + ylag
   }), "Missing variable in delay expression")
 
-  expect_error(odin::odin({
+  expect_error(odin2({
     ylag <- delay(x + z, 10)
     initial(y) <- 0.5
     deriv(y) <- y + ylag
@@ -89,7 +89,7 @@ test_that("missing variables in delay", {
 })
 
 test_that("use subset of variables", {
-  gen <- odin::odin({
+  gen <- odin2({
     deriv(a) <- 1
     deriv(b) <- 2
     deriv(c) <- 3
@@ -109,7 +109,7 @@ test_that("use subset of variables", {
 })
 
 test_that("delay array storage", {
-  gen <- odin::odin({
+  gen <- odin2({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
@@ -161,7 +161,7 @@ test_that("delay array storage", {
 })
 
 test_that("3 arg delay", {
-  gen <- odin::odin({
+  gen <- odin2({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
@@ -184,7 +184,7 @@ test_that("3 arg delay", {
 })
 
 test_that("3 arg delay with array", {
-  gen <- odin::odin({
+  gen <- odin2({
     deriv(a[]) <- i + 1
     initial(a[]) <- i / 10
     dim(a) <- 5
@@ -213,7 +213,7 @@ test_that("3 arg delay with array", {
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
 test_that("delay index packing", {
-  gen <- odin::odin({
+  gen <- odin2({
     deriv(a[]) <- i
     deriv(b[]) <- i
     deriv(c[]) <- i
