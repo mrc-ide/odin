@@ -162,7 +162,6 @@ test_that("delay array storage", {
 })
 
 test_that("3 arg delay", {
-  skip("delay: default")
   gen <- odin2({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5

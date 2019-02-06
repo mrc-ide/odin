@@ -746,10 +746,6 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   state <- rewrite(d$state)
   index <- rewrite(d$index)
 
-  if (!is.null(eq$rhs$default)) {
-    stop("delayed variable has a default")
-  }
-
   ## TODO: If we have an array then we need to have the expressions
   ## rewritten.  I think that the easiest way of doing that is in the
   ## ir where we just go through and rewrite the whole lot, really.
@@ -760,23 +756,38 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   ## adds a lot of junk.
   time <- call("<-", meta$time, call("-", meta$time, tau))
 
-  lookup <- expr_if(
+  lookup_vars <- expr_if(
     rewrite(as.character(meta$use_dde)),
     call("<-", state, as.call(c(quote(dde::ylag), meta$time, index))),
     call("<-", state, as.call(c(quote(deSolve::lagvalue), meta$time, index))))
+  unpack_vars <- lapply(d$variables$contents,
+                        unpack_variable, dat$data$data, state, rewrite)
 
-  unpack1 <- lapply(dat$data$variable$contents[names(d$variables$contents)],
-                    function(x) call("<-", as.name(x$name), rewrite(x$initial)))
-  unpack2 <- lapply(d$variables$contents,
-                    unpack_variable, dat$data$data, state, rewrite)
-  unpack <- expr_if(call("<=", meta$time, initial_time),
-                    unpack1, c(lookup, unpack2))
-
-  eqs <- lapply(dat$equations[d$equations], odin_ir_generate_expression,
-                dat, meta, rewrite)
+  eqs <- flatten_eqs(lapply(dat$equations[d$equations],
+                            odin_ir_generate_expression, dat, meta, rewrite))
   rhs <- rewrite(eq$rhs$value)
 
-  body <- expr_block(c(time, unpack, flatten_eqs(eqs), rhs))
+  if (is.null(eq$rhs$default)) {
+    unpack_initial <-
+      lapply(dat$data$variable$contents[names(d$variables$contents)],
+             function(x) call("<-", as.name(x$name), rewrite(x$initial)))
+    unpack <- expr_if(call("<=", meta$time, initial_time),
+                      unpack_initial, c(lookup_vars, unpack_vars))
+    body <- expr_block(c(time, unpack, eqs, rhs))
+  } else {
+    if (data_info$rank > 0L) {
+      ## I think this is stopped by a parse?
+      stop("can't do delay default for arrays")
+    }
+    default <- rewrite(eq$rhs$default)
+    body <- expr_block(list(
+      time,
+      expr_if(
+        call("<=", meta$time, initial_time),
+        default,
+        c(lookup_vars, unpack_vars, eqs, rhs))))
+  }
+
   call("<-", rewrite(eq$name), call("local", body))
 }
 

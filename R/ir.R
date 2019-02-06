@@ -729,7 +729,7 @@ ir_equation_delay_index <- function(eq) {
 ir_equation_delay <- function(eq) {
   ## TODO: for now assuming continuous; this totally changes for
   ## discrete system.
-  rhs <- list(default = ir_expression(eq$delay$default),
+  rhs <- list(default = ir_expression(eq$delay$default$value),
               time = ir_expression(eq$delay$time),
               value = ir_expression(eq$rhs$value_expr))
   ir_equation_base("delay_continuous", eq, rhs = rhs)
