@@ -185,10 +185,9 @@ test_that("3 arg delay", {
 })
 
 test_that("3 arg delay with array", {
-  skip("delay: default and array")
   gen <- odin2({
-    deriv(a[]) <- i + 1
-    initial(a[]) <- i / 10
+    deriv(a[]) <- i
+    initial(a[]) <- (i - 1) / 10
     dim(a) <- 5
     alt[] <- user()
     dim(alt) <- length(a)

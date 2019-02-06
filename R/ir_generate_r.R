@@ -607,6 +607,24 @@ odin_ir_generate_expression_array_rhs <- function(rhs, lhs, data_info,
 }
 
 
+odin_ir_generate_expression_array_rhs2 <- function(value, index, lhs, rewrite) {
+  ret <- call("<-", lhs, rewrite(value))
+  subs <- list()
+  for (idx in rev(index)) {
+    value <- rewrite(idx$value)
+    if (idx$is_range) {
+      ret <- call("for", as.name(idx$index), value, call("{", ret))
+    } else {
+      subs[[idx$index]] <- value
+    }
+  }
+  if (length(subs) > 0L) {
+    ret <- substitute_(ret, subs)
+  }
+  ret
+}
+
+
 odin_ir_generate_expression_alloc <- function(eq, data_info, dat, meta,
                                               rewrite) {
   lhs <- rewrite(eq$lhs$target)
@@ -765,30 +783,52 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
 
   eqs <- flatten_eqs(lapply(dat$equations[d$equations],
                             odin_ir_generate_expression, dat, meta, rewrite))
-  rhs <- rewrite(eq$rhs$value)
 
-  if (is.null(eq$rhs$default)) {
-    unpack_initial <-
-      lapply(dat$data$variable$contents[names(d$variables$contents)],
-             function(x) call("<-", as.name(x$name), rewrite(x$initial)))
-    unpack <- expr_if(call("<=", meta$time, initial_time),
-                      unpack_initial, c(lookup_vars, unpack_vars))
-    body <- expr_block(c(time, unpack, eqs, rhs))
-  } else {
-    if (data_info$rank > 0L) {
-      ## I think this is stopped by a parse?
-      stop("can't do delay default for arrays")
+  ## Only used where there is no default:
+  unpack_initial <-
+    lapply(dat$data$variable$contents[names(d$variables$contents)],
+           function(x) call("<-", as.name(x$name), rewrite(x$initial)))
+  unpack <- expr_if(call("<=", meta$time, initial_time),
+                    unpack_initial, c(lookup_vars, unpack_vars))
+
+  if (data_info$rank == 0L) {
+    rhs <- rewrite(eq$rhs$value)
+    if (is.null(eq$rhs$default)) {
+      body <- expr_local(c(time, unpack, eqs, rhs))
+      ret <- call("<-", rewrite(eq$name), body)
+    } else {
+      default <- rewrite(eq$rhs$default)
+      body <- expr_local(list(
+        time,
+        expr_if(
+          call("<=", meta$time, initial_time),
+          default,
+          c(lookup_vars, unpack_vars, eqs, rhs))))
+      ret <- call("<-", rewrite(eq$name), body)
     }
-    default <- rewrite(eq$rhs$default)
-    body <- expr_block(list(
-      time,
-      expr_if(
-        call("<=", meta$time, initial_time),
-        default,
-        c(lookup_vars, unpack_vars, eqs, rhs))))
+  } else {
+    ## TODO: generating the lhs by hand because
+    ## 'odin_ir_generate_expression_array_lhs' assumes things about
+    ## expressions that are not correct here.
+    index <- lapply(eq$rhs$index, function(x) as.name(x$index))
+    lhs <- as.call(c(list(quote(`[`), rewrite(data_info$name)), index))
+    expr <- odin_ir_generate_expression_array_rhs2(
+      eq$rhs$value, eq$rhs$index, lhs, rewrite)
+    if (is.null(eq$rhs$default)) {
+      ret <- expr_local(c(time, unpack, eqs, expr))
+    } else {
+      default <- odin_ir_generate_expression_array_rhs2(
+        eq$rhs$default, eq$rhs$index, lhs, rewrite)
+      ret <- expr_local(list(
+        time,
+        expr_if(
+          call("<=", meta$time, initial_time),
+          default,
+          c(lookup_vars, unpack_vars, eqs, expr))))
+    }
   }
 
-  call("<-", rewrite(eq$name), call("local", body))
+  ret
 }
 
 
@@ -1167,6 +1207,11 @@ expr_block <- function(exprs) {
 }
 
 
-  expr_if <- function(condition, a, b) {
+expr_if <- function(condition, a, b) {
     call("if", condition, expr_block(a), expr_block(b))
+}
+
+
+expr_local <- function(exprs) {
+  call("local", expr_block(exprs))
 }

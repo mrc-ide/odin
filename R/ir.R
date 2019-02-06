@@ -732,6 +732,21 @@ ir_equation_delay <- function(eq) {
   rhs <- list(default = ir_expression(eq$delay$default$value),
               time = ir_expression(eq$delay$time),
               value = ir_expression(eq$rhs$value_expr))
+  if (!is.null(eq$lhs$nd) && eq$lhs$nd > 0) {
+    index1 <- function(i) {
+      if (eq$lhs$nd == 1L) {
+        len <- list(jsonlite::unbox("length"), jsonlite::unbox(eq$name))
+      } else {
+        len <- list(jsonlite::unbox("dim"), jsonlite::unbox(eq$name),
+                    jsonlite::unbox(i))
+      }
+      list(value = list(jsonlite::unbox(":"), jsonlite::unbox(1), len),
+           is_range = jsonlite::unbox(TRUE),
+           index = jsonlite::unbox(INDEX[[i]]))
+    }
+    rhs$index <- lapply(seq_len(eq$lhs$nd), index1)
+  }
+
   ir_equation_base("delay_continuous", eq, rhs = rhs)
 }
 
