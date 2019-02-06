@@ -173,10 +173,22 @@ ir_prep_offset <- function(dat, output) {
     ## We'll base these off of the equation that defines the variable
     ## I think, because that's the equation that requires the
     ## existance of the offset.
-    eqs <- lapply(which(i), ir_prep_offset1, info, dat)
-    stage <- viapply(eqs, "[[", "stage")
-    deps_rec <- lapply(eqs, function(x)
-      sort(unique(unlist(dat$deps_rec[x$depends$variables]), FALSE, FALSE)))
+
+    deps_rec <- dat$deps_rec
+    stage <- dat$stage
+
+    eqs <- vector("list", sum(i))
+
+    for (j in seq_along(eqs)) {
+      eq <- ir_prep_offset1(which(i)[[j]], info, dat)
+      deps_rec[[eq$name]] <- sort(unique(c(
+        eq$depends$variables,
+        unlist(deps_rec[eq$depends$variables], FALSE, FALSE))))
+      eq$stage <- max(stage[eq$depends$variables])
+      stage[[eq$name]] <- eq$stage
+      eqs[[j]] <- eq
+    }
+    names(eqs) <- vcapply(eqs, "[[", "name")
 
     traits <- dat$traits[seq_along(eqs), , drop = FALSE]
     traits[] <- FALSE
@@ -184,8 +196,8 @@ ir_prep_offset <- function(dat, output) {
     rownames(traits) <- names(eqs)
 
     dat$eqs <- c(dat$eqs, eqs)
-    dat$stage <- c(dat$stage, stage)
-    dat$deps_rec <- c(dat$deps_rec, deps_rec)
+    dat$stage <- stage
+    dat$deps_rec <- deps_rec
     dat$traits <- rbind(dat$traits, traits)
   }
   dat
@@ -224,7 +236,6 @@ ir_prep_offset1 <- function(i, info, dat) {
   depends <- find_symbols(value)
   parent <- dat$eqs[[info$names[[i]]]]
   stopifnot(!is.null(parent))
-  stage <- max(dat$stage[depends$variables])
   list(name = nm,
        lhs = list(type = "symbol",
                   name = nm,
@@ -235,8 +246,7 @@ ir_prep_offset1 <- function(i, info, dat) {
        depends = depends,
        expr = parent$expr,
        expr_str = parent$expr_str,
-       line = parent$line,
-       stage = stage)
+       line = parent$line)
 }
 
 
