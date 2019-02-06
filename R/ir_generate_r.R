@@ -323,10 +323,11 @@ odin_ir_generate_set_initial <- function(dat, env, meta, rewrite) {
     return(function(...) NULL)
   }
 
-  set_y <- call("if", call("!", call("is.null", meta$state)),
-                expr_block(lapply(dat$data$variable$contents, function(x)
-                  call("<-", rewrite(x$initial),
-                       extract_variable(x, dat$data$data, meta$state)))))
+  set_y <- call(
+    "if", call("!", call("is.null", meta$state)),
+    expr_block(lapply(dat$data$variable$contents, function(x)
+      call("<-", rewrite(x$initial),
+           extract_variable(x, dat$data$data, meta$state, rewrite)))))
   set_t <- call("<-",
                 rewrite(as.character(meta$initial_time)),
                 meta$time)
@@ -713,22 +714,25 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
 odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
                                                     rewrite) {
   d <- dat$delay[[eq$delay]]
-  variables <- d$variables$contents
-
-  ## There's some care needed here to build up the index - this is
-  ## easy in the scalar case so let's start there
-  v <- vcapply(variables, "[[", "name")
-  if (any(viapply(dat$data$data[v], "[[", "rank") != 0L)) {
-    stop("fix nonscalar delay variables")
-  }
-
   target <- rewrite(eq$name)
   alloc <- call("<-", target, call("integer", rewrite(d$variables$length)))
-  index <- lapply(seq_along(variables), function(i)
-    call("<-",
-         call("[[", target, offset_to_position(variables[[i]]$offset)),
-         offset_to_position(
-           dat$data$variable$contents[[variables[[i]]$name]]$offset)))
+
+  index1 <- function(v) {
+    d <- dat$data$data[[v$name]]
+    offset <- dat$data$variable$contents[[v$name]]$offset
+    if (d$rank == 0L) {
+      call("<-",
+           call("[[", target, offset_to_position(v$offset)),
+           offset_to_position(offset))
+    } else {
+      seq <- call("seq_len", rewrite(d$dimnames$length))
+      call("<-",
+           call("[", target, call("+", rewrite(v$offset), seq)),
+           call("+", rewrite(offset), seq))
+    }
+  }
+
+  index <- unname(lapply(d$variables$contents, index1))
   c(alloc, index)
 }
 
@@ -764,7 +768,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   unpack1 <- lapply(dat$data$variable$contents[names(d$variables$contents)],
                     function(x) call("<-", as.name(x$name), rewrite(x$initial)))
   unpack2 <- lapply(d$variables$contents,
-                    unpack_variable, dat$data$data, state)
+                    unpack_variable, dat$data$data, state, rewrite)
   unpack <- expr_if(call("<=", meta$time, initial_time),
                     unpack1, c(lookup, unpack2))
 
@@ -1127,12 +1131,12 @@ flatten_eqs <- function(x) {
 }
 
 
-unpack_variable <- function(x, data, state) {
-  call("<-", as.name(x$name), extract_variable(x, data, state))
+unpack_variable <- function(x, data, state, rewrite) {
+  call("<-", as.name(x$name), extract_variable(x, data, state, rewrite))
 }
 
 
-extract_variable <- function(x, data, state) {
+extract_variable <- function(x, data, state, rewrite) {
   d <- data[[x$name]]
   if (d$rank == 0L) {
     extract <- call("[[", state, offset_to_position(x$offset))
