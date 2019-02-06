@@ -546,8 +546,8 @@ odin_ir_generate_expression_array <- function(eq, data_info, dat, meta,
                                               rewrite) {
   lhs <- odin_ir_generate_expression_array_lhs(
     eq, data_info, dat$data, meta, rewrite)
-  lapply(eq$rhs, odin_ir_generate_expression_array_rhs,
-         lhs, data_info, dat$data, meta, rewrite)
+  lapply(eq$rhs, function(x)
+    odin_ir_generate_expression_array_rhs(x$value, x$index, lhs, rewrite))
 }
 
 
@@ -588,26 +588,7 @@ odin_ir_generate_expression_array_lhs <- function(eq, data_info, data, meta,
 }
 
 
-odin_ir_generate_expression_array_rhs <- function(rhs, lhs, data_info,
-                                                  data, meta, rewrite) {
-  ret <- call("<-", lhs, rewrite(rhs$value))
-  subs <- list()
-  for (idx in rev(rhs$index)) {
-    value <- rewrite(idx$value)
-    if (idx$is_range) {
-      ret <- call("for", as.name(idx$index), value, call("{", ret))
-    } else {
-      subs[[idx$index]] <- value
-    }
-  }
-  if (length(subs) > 0L) {
-    ret <- substitute_(ret, subs)
-  }
-  ret
-}
-
-
-odin_ir_generate_expression_array_rhs2 <- function(value, index, lhs, rewrite) {
+odin_ir_generate_expression_array_rhs <- function(value, index, lhs, rewrite) {
   ret <- call("<-", lhs, rewrite(value))
   subs <- list()
   for (idx in rev(index)) {
@@ -812,12 +793,12 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     ## expressions that are not correct here.
     index <- lapply(eq$rhs$index, function(x) as.name(x$index))
     lhs <- as.call(c(list(quote(`[`), rewrite(data_info$name)), index))
-    expr <- odin_ir_generate_expression_array_rhs2(
+    expr <- odin_ir_generate_expression_array_rhs(
       eq$rhs$value, eq$rhs$index, lhs, rewrite)
     if (is.null(eq$rhs$default)) {
       ret <- expr_local(c(time, unpack, eqs, expr))
     } else {
-      default <- odin_ir_generate_expression_array_rhs2(
+      default <- odin_ir_generate_expression_array_rhs(
         eq$rhs$default, eq$rhs$index, lhs, rewrite)
       ret <- expr_local(list(
         time,
