@@ -214,7 +214,6 @@ test_that("3 arg delay with array", {
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
 test_that("delay index packing", {
-  skip("general failure")
   gen <- odin2({
     deriv(a[]) <- i
     deriv(b[]) <- i
@@ -242,10 +241,10 @@ test_that("delay index packing", {
   mod <- gen()
   dat <- mod$contents()
 
-  seq0 <- function(n) seq_len(n) - 1L
+  seq0 <- function(n) seq_len(n)
 
   expect_equal(dat$dim_delay_foo, dat$dim_b + dat$dim_c + dat$dim_e)
-  expect_equal(dat$delay_i_foo,
+  expect_equal(dat$delay_idx_foo,
                c(dat$offset_b + seq0(dat$dim_b),
                  dat$offset_c + seq0(dat$dim_c),
                  dat$offset_e + seq0(dat$dim_e)))

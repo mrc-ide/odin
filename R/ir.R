@@ -909,6 +909,13 @@ ir_delay1 <- function(eq, stage) {
     ## "delay_x_a" then use substitute to rewrite it...proper faffage
     ## really.
   }
+
+  ## For now at least, we need to substitute out the offsets here,
+  ## because we're not creating appropriate variables for them.  This
+  ## will likely change later on, but for now can't be helped without
+  ## complicating things even more.
+  info$offset <- variable_offsets2(info$order, info$is_array, info$len)
+
   contents <- lapply(seq_along(info$order), function(i)
     list(name = jsonlite::unbox(info$order[[i]]),
          offset = ir_expression(info$offset[[i]])))
@@ -993,4 +1000,28 @@ ir_deserialise <- function(ir) {
   }
 
   dat
+}
+
+
+## For delays, based on code in parse.R
+variable_offsets2 <- function(names, is_array, len) {
+  n <- length(names)
+  offset <- as.list(seq_len(n) - 1L)
+  accumulate_offset <- function(i) {
+    if (i == 1L) {
+      0L
+    } else if (!is_array[[i - 1L]]) {
+      offset[[i - 1L]] + 1L
+    } else if (identical(offset[[i - 1L]], 0L)) {
+      as.name(array_dim_name(names[[i - 1L]]))
+    } else {
+      prev <- offset[[i - 1L]]
+      call("+", prev, as.name(len[[i - 1L]]))
+    }
+  }
+  for (i in which(is_array)) {
+    offset[[i]] <- accumulate_offset(i)
+  }
+
+  offset
 }

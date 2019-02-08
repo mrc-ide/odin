@@ -1174,7 +1174,7 @@ extract_variable <- function(x, data, state, rewrite) {
     extract <- call("[[", state, offset_to_position(x$offset))
   } else {
     seq <- call("seq_len", rewrite(d$dimnames$length))
-    extract <- call("[", state, call("+", x$offset, seq))
+    extract <- call("[", state, call("+", rewrite(x$offset), seq))
     if (d$rank > 1L) {
       extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
     }
