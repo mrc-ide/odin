@@ -538,17 +538,44 @@ ir_prep_delay <- function(dat) {
         deps_rec = character(0)))
     names(eqs_common) <- vcapply(eqs_common, "[[", "name")
 
-    t <- traits[rep(1, 2), ]
-    t[] <- FALSE
-    t[, "is_symbol"] <- TRUE
-    rownames(t) <- names(eqs_common)
+    traits_common <- traits[rep(1, 2), ]
+    traits_common[] <- FALSE
+    traits_common[, "is_symbol"] <- TRUE
+    rownames(traits_common) <- names(eqs_common)
 
-    dat$eqs <- c(c(dat$eqs, eqs)[j], eqs_common)
-    dat$traits <- rbind(rbind(dat$traits, traits)[j, , drop = FALSE], t)
+    arr <- lapply(tmp, function(x) names_if(x$use$delay$expr$deps_is_array))
+    arr <- unlist(arr, FALSE, FALSE)
+    if (length(arr) > 0L) {
+      f <- function(x) {
+        nm <- sprintf("delay_arr_%s", x)
+        list(
+          name = nm,
+          lhs = list(type = "delay_array", length = x, name = nm,
+                     nd = dat$eqs[[x]]$lhs$nd),
+          depends = find_symbols(as.name(x)),
+          deps_rec = c(x, dat$deps_rec[[x]]),
+          line = dat$eqs[[x]]$line,
+          stage = dat$eqs[[x]]$stage)
+      }
+      eqs_arr <- lapply(arr, f)
+      names(eqs_arr) <- vcapply(eqs_arr, "[[", "name")
+
+      traits_arr <- traits[rep(1, length(eqs_arr)), , drop = FALSE]
+      traits_arr[] <- FALSE
+      traits_arr[, "is_array"] <- TRUE
+      rownames(traits_arr) <- names(eqs_arr)
+    } else {
+      eqs_arr <- NULL
+      traits_arr <- NULL
+    }
+
+    dat$eqs <- c(c(dat$eqs, eqs)[j], eqs_common, eqs_arr)
+    dat$traits <- rbind(rbind(dat$traits, traits)[j, , drop = FALSE],
+                        traits_common, traits_arr)
     dat$stage <- c(dat$stage,
-                   viapply(c(eqs_new, eqs_common), "[[", "stage"))
+                   viapply(c(eqs_new, eqs_common, eqs_arr), "[[", "stage"))
     dat$deps_rec <- c(dat$deps_rec,
-                      lapply(c(eqs_new, eqs_common), "[[", "deps_rec"))
+                      lapply(c(eqs_new, eqs_common, eqs_arr), "[[", "deps_rec"))
   }
   dat
 }
@@ -689,6 +716,8 @@ ir_equation <- function(eq) {
     return(ir_equation_copy(eq))
   } else if (identical(eq$lhs$type, "delay_index")) {
     return(ir_equation_delay_index(eq))
+  } else if (identical(eq$lhs$type, "delay_array")) {
+    return(ir_equation_delay_array(eq))
   } else if (isTRUE(eq$rhs$delay)) {
     return(ir_equation_delay(eq))
   } else if (identical(eq$lhs$type, "symbol")) {
@@ -755,6 +784,11 @@ ir_equation_expression_array_rhs <- function(i, eq) {
 ir_equation_delay_index <- function(eq) {
   ir_equation_base("delay_index", eq,
                    delay = jsonlite::unbox(eq$for_delay))
+}
+
+
+ir_equation_delay_array <- function(eq) {
+  ir_equation_base("alloc", eq)
 }
 
 
@@ -846,6 +880,7 @@ ir_data <- function(dat) {
     }
     is_transient <- eq$lhs$location == "internal" &&
       !identical(eq$rhs$type, "alloc") &&
+      !identical(eq$lhs$type, "delay_array") &&
       (eq$stage == STAGE_TIME && is.null(eq$lhs$nd) &&
        !identical(eq$lhs$special, "initial"))
     if (is_transient) {
@@ -901,13 +936,11 @@ ir_delay1 <- function(eq, stage) {
     stop("take a look here")
   }
   if (any(info$deps_is_array)) {
-    stop("need to work on this")
-    ## The trick here is to work out a mapping of names and arrange
-    ## for some additional variables to be created.  I think that
-    ## realistically this should happen during the prep stage.  Create
-    ## for an array "a" used in equation "x" the new variable
-    ## "delay_x_a" then use substitute to rewrite it...proper faffage
-    ## really.
+    arr <- names_if(info$deps_is_array)
+    subs <- lapply(set_names(arr, sprintf("delay_arr_%s", arr)),
+                   jsonlite::unbox)
+  } else {
+    subs <- NULL
   }
 
   ## For now at least, we need to substitute out the offsets here,
@@ -923,6 +956,7 @@ ir_delay1 <- function(eq, stage) {
   list(name = jsonlite::unbox(eq$name),
        state = jsonlite::unbox(info$state),
        index = jsonlite::unbox(info$index),
+       subs = subs,
        variables = list(
          length = jsonlite::unbox(info$length),
          contents = contents),
