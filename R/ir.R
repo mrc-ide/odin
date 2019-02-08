@@ -199,6 +199,20 @@ ir_prep_offset <- function(dat, output) {
     dat$stage <- stage
     dat$deps_rec <- deps_rec
     dat$traits <- rbind(dat$traits, traits)
+
+    if (!output) {
+      after <- match(array_dim_name(sub("^offset_", "", names(eqs))),
+                     names(dat$eqs))
+      stopifnot(!any(is.na(after)))
+      ## This is not strictly correct and would be better dealt with
+      ## by doing the topological sort differently with these
+      ## auxiliary equations included properly.  But that can wait for
+      ## the rewrite.
+      j <- ir_prep_interleave_after(after, length(dat$eqs))
+      stopifnot(identical(names(dat$eqs), rownames(dat$traits)))
+      dat$eqs <- dat$eqs[j]
+      dat$traits <- dat$traits[j, , drop = FALSE]
+    }
   }
   dat
 }
@@ -255,6 +269,14 @@ ir_prep_interleave_index <- function(i, m) {
   j <- c(seq_along(i), rep(unname(which(i)), m))
   j[which(i)] <- NA
   order(j, na.last = FALSE)[-seq_len(sum(i))]
+}
+
+
+ir_prep_interleave_after <- function(after, len) {
+  x <- seq_along(after) + len - length(after)
+  i <- seq_len(max(x))
+  i[x] <- after + 0.5
+  order(i)
 }
 
 
