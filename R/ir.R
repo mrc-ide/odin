@@ -551,7 +551,8 @@ ir_prep_delay <- function(dat) {
         list(
           name = nm,
           lhs = list(type = "delay_array", length = x, name = nm,
-                     nd = dat$eqs[[x]]$lhs$nd),
+                     nd = dat$eqs[[x]]$lhs$nd,
+                     data_type = dat$eqs[[x]]$lhs$data_type),
           depends = find_symbols(as.name(x)),
           deps_rec = c(x, dat$deps_rec[[x]]),
           line = dat$eqs[[x]]$line,
