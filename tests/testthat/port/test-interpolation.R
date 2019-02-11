@@ -324,7 +324,6 @@ test_that("interpolation with two variables", {
 
 
 test_that("interpolation in a delay", {
-  skip("delays")
   gen <- odin2({
     deriv(y) <- ud
     initial(y) <- 0

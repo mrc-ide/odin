@@ -116,16 +116,15 @@ test_that("basic interface", {
 })
 
 test_that("user arrays", {
-  skip("not ready yet") # don't know why this is not working.
   ## In the first version we have constant sized arrays:
-  gen1 <- odin2("../examples/array_odin.R")
-  gen2 <- odin2("../examples/array_odin_user.R")
+  gen1 <- odin2("examples/array_odin.R")
+  gen2 <- odin2("examples/array_odin_user.R")
 
   mod1 <- gen1()
   age_width <- mod1$contents()$age_width
 
   expect_error(gen2(age_width[-1L]), "Expected length 5 value for age_width")
-  expect_error(gen2(NULL), "Expected value for age_width")
+  ## expect_error(gen2(NULL), "Expected value for age_width")
   expect_error(gen2(numeric(0)), "Expected length 5 value for age_width")
   expect_error(gen2(rep(age_width, 2)),
                "Expected length 5 value for age_width")
@@ -193,9 +192,9 @@ test_that("lv", {
                          c(2.33, 0.00, 1.00, 0.47),
                          c(1.21, 0.51, 0.35, 1.00)),
                y0 = c(0.3013, 0.4586, 0.1307, 0.3557))
-  mod_r <- source1("../examples/lv4_deSolve.R")
+  mod_r <- source1("examples/lv4_deSolve.R")
   invisible(mod_r$initial(pars = pars))
-  gen <- odin2("../examples/lv4_odin.R")
+  gen <- odin2("examples/lv4_odin.R")
   mod_c <- gen(user = pars)
 
   t <- seq_range(mod_r$t, 10000)
@@ -220,7 +219,6 @@ test_that("lv", {
 
 test_that("dde", {
   skip_if_not_installed("dde")
-  skip("not ready yet")
 
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
@@ -244,8 +242,8 @@ test_that("dde", {
     mod_dde <- gen(use_dde = TRUE)
 
     ## Looks good:
-    expect_false(mod_ds$use_dde)
-    expect_true(mod_dde$use_dde)
+    expect_false(r6_private(mod_ds)$use_dde)
+    expect_true(r6_private(mod_dde)$use_dde)
 
     ## Let's go.
     res_ds <- mod_ds$run(t)
@@ -255,8 +253,10 @@ test_that("dde", {
     attr(res_ds, "istate") <- NULL
     attr(res_ds, "rstate") <- NULL
     attr(res_ds, "type") <- NULL
+    attr(res_ds, "lengthvar") <- NULL
     class(res_ds) <- "matrix"
     dimnames(res_dde) <- NULL
+    attr(res_dde, "history") <- NULL
 
     ## The tolerances here are going to be not spectacular for some of
     ## the models, because Lorenz is chaotic...
