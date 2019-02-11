@@ -773,8 +773,9 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   unpack <- expr_if(call("<=", meta$time, initial_time),
                     unpack_initial, c(lookup_vars, unpack_vars))
 
+  rhs_expr <- ir_substitute_sexpr(eq$rhs$value, d$subs)
   if (data_info$rank == 0L) {
-    rhs <- rewrite(eq$rhs$value)
+    rhs <- rewrite(rhs_expr)
     if (is.null(eq$rhs$default)) {
       body <- expr_local(c(time, unpack, eqs, rhs))
       ret <- call("<-", rewrite(eq$name), body)
@@ -795,7 +796,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     index <- lapply(eq$rhs$index, function(x) as.name(x$index))
     lhs <- as.call(c(list(quote(`[`), rewrite(data_info$name)), index))
     expr <- odin_ir_generate_expression_array_rhs(
-      eq$rhs$value, eq$rhs$index, lhs, rewrite)
+      rhs_expr, eq$rhs$index, lhs, rewrite)
     if (is.null(eq$rhs$default)) {
       ret <- expr_local(c(time, unpack, eqs, expr))
     } else {
@@ -1230,7 +1231,9 @@ ir_substitute1 <- function(eq, subs) {
 
 
 ir_substitute_sexpr <- function(expr, subs) {
-  if (is.recursive(expr)) {
+  if (is.null(subs)) {
+    expr
+  } else if (is.recursive(expr)) {
     lapply(expr, ir_substitute_sexpr, subs)
   } else if (is.character(expr) && expr %in% names(subs)) {
     subs[[expr]]

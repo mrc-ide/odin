@@ -24,7 +24,6 @@ test_that("deSolve implementations work", {
 })
 
 test_that("basic interface", {
-  skip("not ready yet")
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
@@ -52,17 +51,20 @@ test_that("basic interface", {
     mod_c <- gen()
     expect_is(mod_c, "odin_model")
 
-    expect_equal(mod_c$init,
-                 if (has_delay) NULL else unname(mod_r$initial(t0)))
-    expect_equal(mod_c$initial(t0), unname(mod_r$initial(t0)))
+    ## expect_equal(mod_c$init,
+    ##              if (has_delay) NULL else unname(mod_r$initial(t0)))
+    expect_equal(mod_c$initial(t0), unname(mod_r$initial(t0)),
+                 check.attributes = FALSE)
 
-    has_output <- !is.null(mod_c$output_length)
+    priv <- r6_private(mod_c)
+    has_output <- priv$n_out > 0
 
     if (has_delay) {
-      expect_error(mod_c$deriv(t0, mod_c$init), "attempt to apply non-function")
+      expect_error(mod_c$deriv(t0, mod_c$init),
+                   "Can't call deriv() on delay models", fixed = TRUE)
     } else {
-      deriv_c <- mod_c$deriv(t0, mod_c$init)
-      deriv_r <- mod_r$derivs(t0, mod_c$init)
+      deriv_c <- mod_c$deriv(t0, mod_c$initial(t0))
+      deriv_r <- mod_r$derivs(t0, mod_c$initial(t0))
       expect_equal(deriv_c, deriv_r[[1L]], check.attributes = FALSE)
 
       if (has_output) {
@@ -91,9 +93,9 @@ test_that("basic interface", {
     expect_is(y, "list")
 
     if (has_output) {
-      order <- c(mod_c$variable_order, mod_c$output_order)
+      order <- c(priv$variable_order, priv$output_order)
     } else {
-      order <- mod_c$variable_order
+      order <- priv$variable_order
     }
     expect_equal(names(y), c(TIME, names(order)))
     is_array <- c(FALSE, !vlapply(order, is.null))
