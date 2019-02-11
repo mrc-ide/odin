@@ -189,7 +189,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite, rhs_type) {
       extract <- call("[[", meta$state, offset_to_position(x$offset))
     } else {
       seq <- call("seq_len", rewrite(d$dimnames$length))
-      extract <- call("[", meta$state, call("+", x$offset, seq))
+      extract <- call("[", meta$state, call("+", rewrite(x$offset), seq))
       if (d$rank > 1L) {
         extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
       }
