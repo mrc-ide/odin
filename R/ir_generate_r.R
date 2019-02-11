@@ -762,8 +762,9 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   unpack_vars <- lapply(d$variables$contents,
                         unpack_variable, dat$data$data, state, rewrite)
 
-  eqs <- flatten_eqs(lapply(dat$equations[d$equations],
-                            odin_ir_generate_expression, dat, meta, rewrite))
+  eqs_src <- ir_substitute(dat$equations[d$equations], d$subs)
+  eqs <- flatten_eqs(lapply(eqs_src, odin_ir_generate_expression,
+                            dat, meta, rewrite))
 
   ## Only used where there is no default:
   unpack_initial <-
@@ -1195,4 +1196,45 @@ expr_if <- function(condition, a, b) {
 
 expr_local <- function(exprs) {
   call("local", expr_block(exprs))
+}
+
+
+## ir_substitute and callees is used to rewrite expressions that use
+## arrays within delay blocks
+ir_substitute <- function(eqs, subs) {
+  if (is.null(subs)) {
+    return(eqs)
+  }
+
+  lapply(eqs, ir_substitute1, list_to_character(subs))
+}
+
+
+ir_substitute1 <- function(eq, subs) {
+  from <- names(subs)
+  if (any(from %in% eq$depends$variables)) {
+    if (eq$type == "expression_array") {
+      eq$rhs$value <- lapply(eq$rhs$value, ir_substitute_sexpr, subs)
+    } else {
+      eq$rhs$value <- ir_substitute_sexpr(eq$rhs$value, subs)
+    }
+  }
+  if (eq$name %in% from) {
+    eq$name <- subs[[eq$name]]
+  }
+  if (eq$lhs$target %in% from) {
+    eq$lhs$target <- subs[[eq$lhs$target]]
+  }
+  eq
+}
+
+
+ir_substitute_sexpr <- function(expr, subs) {
+  if (is.recursive(expr)) {
+    lapply(expr, ir_substitute_sexpr, subs)
+  } else if (is.character(expr) && expr %in% names(subs)) {
+    subs[[expr]]
+  } else {
+    expr
+  }
 }

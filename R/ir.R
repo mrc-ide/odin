@@ -938,7 +938,7 @@ ir_delay1 <- function(eq, stage) {
   }
   if (any(info$deps_is_array)) {
     arr <- names_if(info$deps_is_array)
-    subs <- lapply(set_names(arr, sprintf("delay_arr_%s", arr)),
+    subs <- lapply(set_names(sprintf("delay_arr_%s", arr), arr),
                    jsonlite::unbox)
   } else {
     subs <- NULL
@@ -1031,6 +1031,13 @@ ir_deserialise <- function(ir) {
       dat$delay[[i]]$equations <- list_to_character(dat$delay[[i]]$equations)
       names(dat$delay[[i]]$variables$contents) <-
         vcapply(dat$delay[[i]]$variables$contents, "[[", "name")
+    }
+  }
+
+  for (i in seq_along(dat$equations)) {
+    if (!is.null(dat$equations[[i]]$depends)) {
+      dat$equations[[i]]$depends <- lapply(dat$equations[[i]]$depends,
+                                           list_to_character)
     }
   }
 

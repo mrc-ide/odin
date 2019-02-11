@@ -109,7 +109,6 @@ test_that("use subset of variables", {
 })
 
 test_that("delay array storage", {
-  skip("delay: array dependencies")
   gen <- odin2({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
