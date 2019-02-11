@@ -932,10 +932,6 @@ ir_delay <- function(dat) {
 
 ir_delay1 <- function(eq, stage) {
   info <- eq$delay$expr
-  if (!all(vlapply(seq_along(info$order), function(i)
-    identical(info$offset[[i]], info$access[[i]])))) {
-    stop("take a look here")
-  }
   if (any(info$deps_is_array)) {
     arr <- names_if(info$deps_is_array)
     subs <- lapply(set_names(sprintf("delay_arr_%s", arr), arr),
@@ -1013,9 +1009,6 @@ ir_deserialise <- function(ir) {
     }
     dat$data$data <- lapply(dat$data$data, fix_dimnames)
   }
-
-  dat$data$internal <- list_to_character(dat$data$internal)
-  dat$data$transient <- list_to_character(dat$data$transient)
 
   names(dat$data$data) <- vcapply(dat$data$data, "[[", "name")
   names(dat$data$variable$contents) <-
