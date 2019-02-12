@@ -123,7 +123,6 @@ test_that("disallow stochastic functions on array rhs", {
 })
 
 test_that("exotic stochastic functions", {
-  skip("library support")
   gen <- odin2({
     initial(x) <- 0
     mu <- 1
@@ -140,7 +139,6 @@ test_that("exotic stochastic functions", {
 })
 
 test_that("round & rbinom", {
-  skip("library support")
   gen <- odin2({
     size <- user()
     p <- user()

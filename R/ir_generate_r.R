@@ -502,8 +502,19 @@ sexp_to_rexp <- function(x, data, meta) {
       sexp_to_rexp_sum(lapply(args, sexp_to_rexp, data, meta))
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
+    } else if (fn == "unif_rand") {
+      quote(runif(1L))
+    } else if (fn == "exp_rand") {
+      quote(rexp(1L))
     } else {
-      as.call(c(list(as.name(fn)), lapply(args, sexp_to_rexp, data, meta)))
+      args <- lapply(args, sexp_to_rexp, data, meta)
+      if (fn %in% names(FUNCTIONS_STOCHASTIC)) {
+        args <- c(list(1L), args)
+      }
+      if (fn == "rbinom") {
+        args[[2L]] <- call("round", args[[2L]])
+      }
+      as.call(c(list(as.name(fn)), args))
     }
   } else if (is.character(x)) {
     location <- data$data[[x]]$location
@@ -1140,7 +1151,8 @@ odin_base_env <- function() {
   env <- new.env(parent = as.environment("package:base"))
 
   stats <- as.environment("package:stats")
-  imports <- c("rnorm")
+  imports <- grep("_rand$", names(FUNCTIONS_STOCHASTIC),
+                  invert = TRUE, value = TRUE)
   for (i in imports) {
     env[[i]] <- stats[[i]]
   }
