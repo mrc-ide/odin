@@ -61,11 +61,6 @@
                 "comment": "This duplicates different equation types"
             },
 
-            "expression_rhs_type": {
-                "type": "string",
-                "enum": ["atomic", "expression"]
-            },
-
             "interpolate_type": {
                 "type": "string",
                 "enum": ["constant", "linear", "spline"]
@@ -308,25 +303,20 @@
         "equation_rhs_scalar": {
             "type": "object",
             "properties": {
-                "type": {
-                    "$ref": "#/definitions/enum/expression_rhs_type"
-                },
                 "value": {
                     "$ref": "#/definitions/sexpression"
                 }
             },
-            "required": ["type", "value"],
+            "required": ["value"],
             "additionalProperties": false
         },
 
         "equation_rhs_array": {
             "type": "array",
+            "TODO": "Factor out element definition for reuse",
             "items": {
                 "type": "object",
                 "properties": {
-                    "type": {
-                        "$ref": "#/definitions/enum/expression_rhs_type"
-                    },
                     "value": {
                         "$ref": "#/definitions/sexpression"
                     },
@@ -334,7 +324,7 @@
                         "$ref": "#/definitions/equation_rhs_array_index"
                     }
                 },
-                "required": ["type", "value", "index"],
+                "required": ["value", "index"],
                 "additionalProperties": false
             },
             "minItems": 1
@@ -343,10 +333,6 @@
         "equation_rhs_delay_continuous": {
             "type": "object",
             "properties": {
-                "type": {
-                    "type": "string",
-                    "const": "expression"
-                },
                 "value": {
                     "$ref": "#/definitions/sexpression"
                 },
@@ -355,7 +341,7 @@
                     "$ref": "#/definitions/equation_rhs_array_index"
                 }
             },
-            "required": ["type", "value"],
+            "required": ["value"],
             "additionalProperties": false
         },
 

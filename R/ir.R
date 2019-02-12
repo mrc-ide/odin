@@ -757,7 +757,6 @@ ir_equation_base <- function(type, eq, ...) {
 
 ir_equation_expression_scalar <- function(eq) {
   rhs <- list(
-    type = jsonlite::unbox(eq$rhs$type),
     value = ir_expression(eq$rhs$value))
   ir_equation_base("expression_scalar", eq, rhs = rhs)
 }
@@ -775,7 +774,6 @@ ir_equation_expression_array <- function(eq) {
 ir_equation_expression_array_rhs <- function(i, eq) {
   index <- eq$lhs$index[[i]]
   list(
-    type = jsonlite::unbox(eq$rhs$type[[i]]),
     index = lapply(seq_along(index$value), function(j)
       list(value = ir_expression(index$value[[j]]),
            is_range = jsonlite::unbox(index$is_range[[j]]),
@@ -798,8 +796,7 @@ ir_equation_delay_array <- function(eq) {
 ir_equation_delay <- function(eq) {
   ## TODO: for now assuming continuous; this totally changes for
   ## discrete system.
-  rhs <- list(type = jsonlite::unbox("expression"),
-              value = ir_expression(eq$rhs$value_expr))
+  rhs <- list(value = ir_expression(eq$rhs$value_expr))
   if (!is.null(eq$lhs$nd) && eq$lhs$nd > 0) {
     index1 <- function(i) {
       if (eq$lhs$nd == 1L) {
