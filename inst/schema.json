@@ -343,6 +343,55 @@
             "minItems": 1
         },
 
+        "equation_rhs_delay_continuous": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "const": "expression"
+                },
+                "value": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "index": {
+                }
+            },
+            "required": ["type", "value"],
+            "additionalProperties": false
+        },
+
+        "equation_delay_data": {
+            "type": "object",
+            "properties": {
+                "state": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "string"
+                },
+                "subs": {
+                },
+                "variables": {
+                    "$ref": "#/definitions/data_output"
+                },
+                "equations": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "default": {
+                    "oneOf": [
+                        {"type": "null"},
+                        {"$ref": "#/definitions/sexpression"}
+                    ]
+                },
+                "time": {
+                    "$ref": "#/definitions/sexpression"
+                }
+            },
+            "required": ["state", "index", "subs", "variables", "equations",
+                         "default", "time"],
+            "additionalProperties": false
+        },
+
         "equation_rhs_array_index": {
             "type": "object",
             "properties": {
@@ -403,7 +452,10 @@
                 "source": {},
                 "depends": {},
                 "lhs": {},
-                "delay": {}
+                "delay": {
+                    "comment": "Refers back to the equation that the delay is for; that equation contains information about the required variables and their order that make up this index",
+                    "type": "string"
+                }
             },
             "required": ["type", "delay"],
             "additionalProperties": false
@@ -511,13 +563,19 @@
         "equation_delay_continuous": {
             "type": "object",
             "properties": {
-                "type": {"const": "delay_continuous"},
+                "type": {
+                    "const": "delay_continuous"
+                },
                 "name": {},
                 "source": {},
                 "depends": {},
                 "lhs": {},
-                "rhs": {},
-                "delay": {}
+                "rhs": {
+                    "$ref": "#/definitions/equation_rhs_delay_continuous"
+                },
+                "delay": {
+                    "$ref": "#/definitions/equation_delay_data"
+                }
             },
             "required": ["type", "rhs"],
             "additionalProperties": false
