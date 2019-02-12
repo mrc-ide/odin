@@ -40,11 +40,21 @@ odin_ir_generate <- function(ir, validate = TRUE) {
   }
 
   meta <- list(
-    use_dde = as.name(USE_DDE),
     get_user_double = as.name("_get_user_double"),
     get_user_dim = as.name("_get_user_dim"),
     check_interpolate_y = as.name("_check_interpolate_y"),
     check_interpolate_t = as.name("_check_interpolate_t"))
+
+  if (dat$features$has_delay) {
+    ## We're going to need an additional bit of internal data here,
+    ## but this sits outside the core odin ir
+    dat$meta$use_dde <- "odin_use_dde"
+    dat$data$data[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
+                                              location = "internal",
+                                              storage_type = "boolean",
+                                              rank = 0L,
+                                              dimnames = NULL)
+  }
 
   ## This is our little rewriter - we'll tidy this up later
   rewrite <- function(x) {
@@ -324,14 +334,12 @@ odin_ir_generate_set_initial <- function(dat, env, meta, rewrite) {
            extract_variable(x, dat$data$data, as.name(dat$meta$state),
                             rewrite)))))
   set_t <- call("<-", rewrite(dat$meta$initial_time), as.name(dat$meta$time))
-  set_use_dde <- call("<-",
-                      rewrite(as.character(meta$use_dde)),
-                      meta$use_dde)
+  set_use_dde <- call("<-", rewrite(dat$meta$use_dde),
+                      as.name(dat$meta$use_dde))
   body <- list(set_y, set_t, set_use_dde)
   args <- set_names(
     alist(, , , ),
-    c(dat$meta$time, dat$meta$state,
-      as.character(meta$use_dde), dat$meta$internal))
+    c(dat$meta$time, dat$meta$state, dat$meta$use_dde, dat$meta$internal))
 
   as_function(args, expr_block(body), env)
 }
@@ -745,7 +753,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   time_set <- call("<-", time, call("-", time, rewrite(delay$time)))
 
   lookup_vars <- expr_if(
-    rewrite(as.character(meta$use_dde)),
+    rewrite(dat$meta$use_dde),
     call("<-", state, as.call(c(quote(dde::ylag), time, index))),
     call("<-", state, as.call(c(quote(deSolve::lagvalue), time, index))))
   unpack_vars <- lapply(delay$variables$contents,

@@ -1,5 +1,3 @@
-USE_DDE <- "odin_use_dde"
-
 ## When it comes time to simplify the tangle of preprocessing code
 ## below the two ways forward might include rewriting this to use only
 ## the equations and not things like "traits".  Then we can reorder at
@@ -529,17 +527,10 @@ ir_prep_delay <- function(dat) {
         rhs = list(type = "null"),
         line = integer(0),
         stage = STAGE_USER,
-        deps_rec = character(0)),
-      list(
-        name = USE_DDE,
-        lhs = list(type = "null", data_type = "bool"),
-        rhs = list(type = "null"),
-        line = integer(0),
-        stage = STAGE_USER,
         deps_rec = character(0)))
     names(eqs_common) <- vcapply(eqs_common, "[[", "name")
 
-    traits_common <- traits[rep(1, 2), ]
+    traits_common <- traits[rep(1, length(eqs_common)), , drop = FALSE]
     traits_common[] <- FALSE
     traits_common[, "is_symbol"] <- TRUE
     rownames(traits_common) <- names(eqs_common)
