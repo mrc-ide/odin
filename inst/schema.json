@@ -635,8 +635,6 @@
         "user": {
             "$ref": "#/definitions/user"
         },
-        "delay": {
-        },
         "interpolate": {
             "$ref": "#/definitions/interpolate"
         },

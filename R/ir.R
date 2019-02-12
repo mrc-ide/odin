@@ -33,7 +33,6 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
                  equations = ir_equations(dat),
                  components = ir_components(dat),
                  user = ir_user(dat),
-                 delay = ir_delay(dat),
                  interpolate = ir_interpolate(dat),
                  source = vcapply(xp$exprs, deparse_str))
   ir <- ir_serialise(ir_dat, pretty)
@@ -953,46 +952,6 @@ ir_data_variable <- function(dat, output) {
   }
   list(length = ir_expression(info$total),
        contents = contents)
-}
-
-
-ir_delay <- function(dat) {
-  if (!dat$info$has_delay) {
-    return(NULL)
-  }
-  i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
-  lapply(unname(dat$eqs[i]), ir_delay1, dat$stage)
-}
-
-
-ir_delay1 <- function(eq, stage) {
-  info <- eq$delay$expr
-  if (any(info$deps_is_array)) {
-    arr <- names_if(info$deps_is_array)
-    subs <- lapply(set_names(sprintf("delay_arr_%s", arr), arr),
-                   jsonlite::unbox)
-  } else {
-    subs <- NULL
-  }
-
-  ## For now at least, we need to substitute out the offsets here,
-  ## because we're not creating appropriate variables for them.  This
-  ## will likely change later on, but for now can't be helped without
-  ## complicating things even more.
-  info$offset <- variable_offsets2(info$order, info$is_array, info$len)
-
-  contents <- lapply(seq_along(info$order), function(i)
-    list(name = jsonlite::unbox(info$order[[i]]),
-         offset = ir_expression(info$offset[[i]])))
-  equations <- names_if(stage[info$deps] == STAGE_TIME)
-  list(name = jsonlite::unbox(eq$name),
-       state = jsonlite::unbox(info$state),
-       index = jsonlite::unbox(info$index),
-       subs = subs,
-       variables = list(
-         length = jsonlite::unbox(info$length),
-         contents = contents),
-       equations = equations)
 }
 
 
