@@ -470,7 +470,7 @@ odin_ir_generate_expression <- function(eq, dat, meta, rewrite) {
     delay_continuous = odin_ir_generate_expression_delay_continuous,
     stop("Unknown type"))
 
-  data_info <- dat$data$data[[eq$lhs$target]]
+  data_info <- dat$data$data[[eq$lhs]]
   stopifnot(!is.null(data_info))
 
   f(eq, data_info, dat, meta, rewrite)
@@ -530,7 +530,7 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, dat, meta,
   location <- data_info$location
 
   if (location == "internal" || location == "transient") {
-    lhs <- rewrite(eq$lhs$target)
+    lhs <- rewrite(eq$lhs)
   } else {
     offset <- dat$data[[location]]$contents[[data_info$name]]$offset
     storage <- if (location == "variable") meta$result else meta$output
@@ -608,7 +608,7 @@ odin_ir_generate_expression_array_rhs <- function(value, index, lhs, rewrite) {
 
 odin_ir_generate_expression_alloc <- function(eq, data_info, dat, meta,
                                               rewrite) {
-  lhs <- rewrite(eq$lhs$target)
+  lhs <- rewrite(eq$lhs)
   alloc_fn <- switch(data_info$storage_type,
                      double = "numeric",
                      int = "integer",
@@ -650,7 +650,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
   check <- call(as.character(meta$check_interpolate_y),
                 dim_arg, dim_target, name_arg, name_target)
 
-  lhs <- rewrite(eq$lhs$target)
+  lhs <- rewrite(eq$lhs)
   args <- list(quote(cinterpolate::interpolation_function),
                rewrite(eq$interpolate$t),
                rewrite(eq$interpolate$y),
@@ -664,7 +664,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
 odin_ir_generate_expression_copy <- function(eq, data_info, dat, meta,
                                              rewrite) {
   ## NOTE: this applies only to copying a variable into the output
-  offset <- rewrite(dat$data$output$contents[[eq$lhs$target]]$offset)
+  offset <- rewrite(dat$data$output$contents[[eq$lhs]]$offset)
   storage <- meta$output
 
   if (data_info$rank == 0) {
@@ -674,7 +674,7 @@ odin_ir_generate_expression_copy <- function(eq, data_info, dat, meta,
     lhs <- call("[", storage, call("+", offset, i))
   }
 
-  rhs <- rewrite(eq$lhs$target)
+  rhs <- rewrite(eq$lhs)
   call("<-", lhs, rhs)
 }
 
@@ -692,9 +692,9 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
       dims <- as.call(c(list(quote(c)), data_info$dimnames$dim))
     }
     call(as.character(meta$get_user_dim), meta$user, meta$internal,
-         eq$lhs$target, len, dims)
+         eq$lhs, len, dims)
   } else {
-    lhs <- rewrite(eq$lhs$target)
+    lhs <- rewrite(eq$lhs)
     rank <- data_info$rank
     if (is.null(eq$user$default)) {
       default <- NULL
@@ -703,7 +703,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
     }
     size <- odin_ir_generate_dim(data_info, rewrite)
     rhs <- call(as.character(meta$get_user_double),
-                meta$user, eq$lhs$target, meta$internal, size, default)
+                meta$user, eq$lhs, meta$internal, size, default)
     call("<-", lhs, rhs)
   }
 }
@@ -712,7 +712,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
 odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
                                                     rewrite) {
   delay <- dat$equations[[eq$delay]]$delay
-  lhs <- rewrite(eq$lhs$target)
+  lhs <- rewrite(eq$lhs)
   alloc <- call("<-", lhs, call("integer", rewrite(delay$variables$length)))
 
   index1 <- function(v) {
@@ -765,7 +765,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
 
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
   if (data_info$rank == 0L) {
-    lhs <- rewrite(eq$lhs$target)
+    lhs <- rewrite(eq$lhs)
     rhs <- rewrite(rhs_expr)
     if (is.null(delay$default)) {
       body <- expr_local(c(time, unpack, eqs, rhs))
@@ -1211,8 +1211,8 @@ ir_substitute1 <- function(eq, substitutions) {
       eq$rhs$value <- ir_substitute_sexpr(eq$rhs$value, substitutions)
     }
   }
-  if (eq$lhs$target %in% from) {
-    eq$lhs$target <- substitutions[[eq$lhs$target]]
+  if (eq$lhs %in% from) {
+    eq$lhs <- substitutions[[eq$lhs]]
   }
   eq
 }

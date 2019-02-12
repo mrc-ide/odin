@@ -738,11 +738,11 @@ ir_equation_lhs <- function(eq) {
   if ((is.null(eq$lhs$special) || eq$lhs$special == "initial") &&
       !identical(eq$rhs$type, "alloc") &&
       !isTRUE(eq$alloc_interpolate)) {
-    target <- jsonlite::unbox(eq$name)
+    target <- eq$name
   } else {
-    target <- jsonlite::unbox(eq$lhs$name_target)
+    target <- eq$lhs$name_target
   }
-  list(target = target)
+  jsonlite::unbox(target)
 }
 
 
