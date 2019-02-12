@@ -35,9 +35,10 @@ ir_deserialise_equation <- function(eq) {
     eq$delay$equations <- list_to_character(eq$delay$equations)
     names(eq$delay$variables$contents) <-
       vcapply(eq$delay$variables$contents, "[[", "name")
-    if (!is.null(eq$delay$subs)) {
-      eq$delay$subs <- list_to_character(eq$delay$subs)
-    }
+    eq$delay$substitutions <-
+      set_names(
+        vcapply(eq$delay$substitutions, "[[", "to"),
+        vcapply(eq$delay$substitutions, "[[", "from"))
   }
   eq
 }

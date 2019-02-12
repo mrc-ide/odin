@@ -753,7 +753,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   unpack_vars <- lapply(delay$variables$contents,
                         unpack_variable, dat$data$data, state, rewrite)
 
-  eqs_src <- ir_substitute(dat$equations[delay$equations], delay$subs)
+  eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
   eqs <- flatten_eqs(lapply(eqs_src, odin_ir_generate_expression,
                             dat, meta, rewrite))
 
@@ -764,7 +764,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   unpack <- expr_if(call("<=", meta$time, initial_time),
                     unpack_initial, c(lookup_vars, unpack_vars))
 
-  rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$subs)
+  rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
   if (data_info$rank == 0L) {
     rhs <- rewrite(rhs_expr)
     if (is.null(delay$default)) {
@@ -1193,41 +1193,41 @@ expr_local <- function(exprs) {
 
 ## ir_substitute and callees is used to rewrite expressions that use
 ## arrays within delay blocks
-ir_substitute <- function(eqs, subs) {
-  if (is.null(subs)) {
+ir_substitute <- function(eqs, substitutions) {
+  if (length(substitutions) == 0L) {
     return(eqs)
   }
 
-  lapply(eqs, ir_substitute1, subs)
+  lapply(eqs, ir_substitute1, substitutions)
 }
 
 
-ir_substitute1 <- function(eq, subs) {
-  from <- names(subs)
+ir_substitute1 <- function(eq, substitutions) {
+  from <- names(substitutions)
   if (any(from %in% eq$depends$variables)) {
     if (eq$type == "expression_array") {
-      eq$rhs$value <- lapply(eq$rhs$value, ir_substitute_sexpr, subs)
+      eq$rhs$value <- lapply(eq$rhs$value, ir_substitute_sexpr, substitutions)
     } else {
-      eq$rhs$value <- ir_substitute_sexpr(eq$rhs$value, subs)
+      eq$rhs$value <- ir_substitute_sexpr(eq$rhs$value, substitutions)
     }
   }
   if (eq$name %in% from) {
-    eq$name <- subs[[eq$name]]
+    eq$name <- substitutions[[eq$name]]
   }
   if (eq$lhs$target %in% from) {
-    eq$lhs$target <- subs[[eq$lhs$target]]
+    eq$lhs$target <- substitutions[[eq$lhs$target]]
   }
   eq
 }
 
 
-ir_substitute_sexpr <- function(expr, subs) {
-  if (is.null(subs)) {
+ir_substitute_sexpr <- function(expr, substitutions) {
+  if (length(substitutions) == 0L) {
     expr
   } else if (is.recursive(expr)) {
-    lapply(expr, ir_substitute_sexpr, subs)
-  } else if (is.character(expr) && expr %in% names(subs)) {
-    subs[[expr]]
+    lapply(expr, ir_substitute_sexpr, substitutions)
+  } else if (is.character(expr) && expr %in% names(substitutions)) {
+    substitutions[[expr]]
   } else {
     expr
   }

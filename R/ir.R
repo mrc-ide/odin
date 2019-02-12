@@ -822,10 +822,11 @@ ir_equation_delay <- function(eq) {
     if (length(setdiff(names(arr), info$equations)) > 0L) {
       stop("FIXME")
     }
-    subs <- lapply(set_names(sprintf("delay_arr_%s", arr), arr),
-                   jsonlite::unbox)
+    substitutions <- lapply(arr, function(i)
+      list(from = jsonlite::unbox(i),
+           to = jsonlite::unbox(sprintf("delay_arr_%s", arr))))
   } else {
-    subs <- NULL
+    substitutions <- list()
   }
 
   ## For now at least, we need to substitute out the offsets here,
@@ -839,7 +840,7 @@ ir_equation_delay <- function(eq) {
          offset = ir_expression(info$offset[[i]])))
   delay <- list(state = jsonlite::unbox(info$state),
                 index = jsonlite::unbox(info$index),
-                subs = subs,
+                substitutions = substitutions,
                 variables = list(
                   length = jsonlite::unbox(info$length),
                   contents = contents),

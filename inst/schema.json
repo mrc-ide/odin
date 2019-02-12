@@ -331,10 +331,7 @@
                         "$ref": "#/definitions/sexpression"
                     },
                     "index": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/definitions/equation_rhs_array_index"
-                        }
+                        "$ref": "#/definitions/equation_rhs_array_index"
                     }
                 },
                 "required": ["type", "value", "index"],
@@ -354,6 +351,8 @@
                     "$ref": "#/definitions/sexpression"
                 },
                 "index": {
+                    "comment": "Note that this is optional, in contrast with non-delayed array expressions.  These are much simpler equations than full array equations because the primary equation must be only one line",
+                    "$ref": "#/definitions/equation_rhs_array_index"
                 }
             },
             "required": ["type", "value"],
@@ -369,7 +368,17 @@
                 "index": {
                     "type": "string"
                 },
-                "subs": {
+                "substitutions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "from": {"type": "string"},
+                            "to": {"type": "string"}
+                        },
+                        "required": ["from", "to"],
+                        "additionalProperties": false
+                    }
                 },
                 "variables": {
                     "$ref": "#/definitions/data_output"
@@ -387,26 +396,29 @@
                     "$ref": "#/definitions/sexpression"
                 }
             },
-            "required": ["state", "index", "subs", "variables", "equations",
-                         "default", "time"],
+            "required": ["state", "index", "substitutions", "variables",
+                         "equations", "default", "time"],
             "additionalProperties": false
         },
 
         "equation_rhs_array_index": {
-            "type": "object",
-            "properties": {
-                "value": {
-                    "$ref": "#/definitions/sexpression"
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "$ref": "#/definitions/sexpression"
+                    },
+                    "is_range": {
+                        "type": "boolean"
+                    },
+                    "index": {
+                        "$ref": "#/definitions/enum/index"
+                    }
                 },
-                "is_range": {
-                    "type": "boolean"
-                },
-                "index": {
-                    "$ref": "#/definitions/enum/index"
-                }
-            },
-            "required": ["value", "is_range", "index"],
-            "additionalProperties": false
+                "required": ["value", "is_range", "index"],
+                "additionalProperties": false
+            }
         },
 
         "equation_base": {
