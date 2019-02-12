@@ -477,11 +477,12 @@ ir_prep_interpolate <- function(x, dat) {
   x_alloc <- x
   x_alloc$name <- x$rhs$value$name
   x_alloc$lhs$name <- x$rhs$value$name
-  x_alloc$lhs$name_target <- x$name
+  x_alloc$lhs$name_target <- x$rhs$value$name
   x_alloc$stage <- stage_alloc
   x_alloc$lhs$data_type <- "interpolate_data" # (really void*)
   x_alloc$alloc_interpolate <- TRUE
-  x_alloc$interpolate <- x$rhs$value[c("t", "y", "type")]
+  x_alloc$interpolate <- c(x$rhs$value[c("t", "y", "type")],
+                           list(equation = x$name))
   x_alloc$depends$functions <- character(0)
 
   time <- if (dat$info$discrete) STEP else TIME

@@ -530,7 +530,7 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, dat, meta,
   location <- data_info$location
 
   if (location == "internal" || location == "transient") {
-    lhs <- rewrite(eq$name)
+    lhs <- rewrite(eq$lhs$target)
   } else {
     offset <- dat$data[[location]]$contents[[data_info$name]]$offset
     storage <- if (location == "variable") meta$result else meta$output
@@ -625,7 +625,7 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, dat, meta,
 odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
                                                           dat, meta,
                                                           rewrite) {
-  name_target <- eq$lhs$target
+  name_target <- eq$interpolate$equation
   name_arg <- eq$interpolate$y
 
   data <- dat$data
@@ -650,7 +650,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
   check <- call(as.character(meta$check_interpolate_y),
                 dim_arg, dim_target, name_arg, name_target)
 
-  lhs <- rewrite(eq$name)
+  lhs <- rewrite(eq$lhs$target)
   args <- list(quote(cinterpolate::interpolation_function),
                rewrite(eq$interpolate$t),
                rewrite(eq$interpolate$y),
@@ -684,7 +684,6 @@ odin_ir_generate_expression_copy <- function(eq, data_info, dat, meta,
 odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
                                              rewrite) {
   if (eq$user$dim) {
-    name <- eq$name
     len <- data_info$dimnames$length
     if (data_info$rank == 1L) {
       dims <- NULL
@@ -693,9 +692,9 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
       dims <- as.call(c(list(quote(c)), data_info$dimnames$dim))
     }
     call(as.character(meta$get_user_dim), meta$user, meta$internal,
-         name, len, dims)
+         eq$lhs$target, len, dims)
   } else {
-    lhs <- rewrite(eq$name)
+    lhs <- rewrite(eq$lhs$target)
     rank <- data_info$rank
     if (is.null(eq$user$default)) {
       default <- NULL
@@ -704,7 +703,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
     }
     size <- odin_ir_generate_dim(data_info, rewrite)
     rhs <- call(as.character(meta$get_user_double),
-                meta$user, eq$name, meta$internal, size, default)
+                meta$user, eq$lhs$target, meta$internal, size, default)
     call("<-", lhs, rhs)
   }
 }
@@ -713,20 +712,20 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
 odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
                                                     rewrite) {
   delay <- dat$equations[[eq$delay]]$delay
-  target <- rewrite(eq$name)
-  alloc <- call("<-", target, call("integer", rewrite(delay$variables$length)))
+  lhs <- rewrite(eq$lhs$target)
+  alloc <- call("<-", lhs, call("integer", rewrite(delay$variables$length)))
 
   index1 <- function(v) {
     d <- dat$data$data[[v$name]]
     offset <- dat$data$variable$contents[[v$name]]$offset
     if (d$rank == 0L) {
       call("<-",
-           call("[[", target, offset_to_position(v$offset)),
+           call("[[", lhs, offset_to_position(v$offset)),
            offset_to_position(offset))
     } else {
       seq <- call("seq_len", rewrite(d$dimnames$length))
       call("<-",
-           call("[", target, call("+", rewrite(v$offset), seq)),
+           call("[", lhs, call("+", rewrite(v$offset), seq)),
            call("+", rewrite(offset), seq))
     }
   }
@@ -766,10 +765,11 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
 
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
   if (data_info$rank == 0L) {
+    lhs <- rewrite(eq$lhs$target)
     rhs <- rewrite(rhs_expr)
     if (is.null(delay$default)) {
       body <- expr_local(c(time, unpack, eqs, rhs))
-      ret <- call("<-", rewrite(eq$name), body)
+      ret <- call("<-", lhs, body)
     } else {
       default <- rewrite(delay$default)
       body <- expr_local(list(
@@ -778,7 +778,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
           call("<=", meta$time, initial_time),
           default,
           c(lookup_vars, unpack_vars, eqs, rhs))))
-      ret <- call("<-", rewrite(eq$name), body)
+      ret <- call("<-", lhs, body)
     }
   } else {
     ## TODO: generating the lhs by hand because
@@ -1210,9 +1210,6 @@ ir_substitute1 <- function(eq, substitutions) {
     } else {
       eq$rhs$value <- ir_substitute_sexpr(eq$rhs$value, substitutions)
     }
-  }
-  if (eq$name %in% from) {
-    eq$name <- substitutions[[eq$name]]
   }
   if (eq$lhs$target %in% from) {
     eq$lhs$target <- substitutions[[eq$lhs$target]]

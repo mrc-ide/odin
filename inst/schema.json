@@ -291,6 +291,7 @@
 
         "equation_lhs": {
             "type": "object",
+            "comment": "The equation name is often the same as the target of the lhs but that's not the case for things like deriv(x), output(x) and some allocation commands.  To avoid any logic, this always holds the name of the symbol that the assignment is really to",
             "properties": {
                 "target": {
                     "type": "string"
@@ -521,9 +522,12 @@
                         },
                         "type": {
                             "$ref": "#/definitions/enum/interpolate_type"
+                        },
+                        "equation": {
+                            "type": "string"
                         }
                     },
-                    "required": ["t", "y", "type"],
+                    "required": ["t", "y", "type", "equation"],
                     "additionalProperties": false
                 }
             },
