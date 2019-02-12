@@ -1,5 +1,6 @@
 test_that("delays", {
-  gen <- odin::odin({
+  skip("discrete delays")
+  gen <- odin2({
     initial(y) <- 1
     update(y) <- y + yprev
     yprev <- delay(y, 1)
@@ -16,7 +17,8 @@ test_that("delays", {
 ## This also catches a corner case in the inclusion of sum() in the
 ## headers.
 test_that("delays: scalar variable", {
-  gen <- odin::odin({
+  skip("discrete delays")
+  gen <- odin2({
     r <- 3.6
     update(y) <- r * y * (1 - y)
     initial(y) <- 0.2
@@ -38,7 +40,8 @@ test_that("delays: scalar variable", {
 })
 
 test_that("delays: scalar expression", {
-  gen <- odin::odin({
+  skip("discrete delays")
+  gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
     initial(y[1]) <- 0.2
@@ -62,7 +65,8 @@ test_that("delays: scalar expression", {
 })
 
 test_that("delays: vector variable", {
-  gen <- odin::odin({
+  skip("discrete delays")
+  gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
     initial(y[1]) <- 0.2
@@ -87,7 +91,8 @@ test_that("delays: vector variable", {
 })
 
 test_that("delays: vector expression", {
-  gen <- odin::odin({
+  skip("discrete delays")
+  gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
     initial(y[1]) <- 0.2
@@ -113,7 +118,8 @@ test_that("delays: vector expression", {
 })
 
 test_that("delay vars that depend on time", {
-  gen <- odin::odin({
+  skip("discrete delays")
+  gen <- odin2({
     initial(x) <- 0
     update(x) <- x + v
 
