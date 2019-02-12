@@ -516,7 +516,8 @@
                 "source": {},
                 "depends": {},
                 "lhs": {},
-                "rhs": {}
+                "rhs": {},
+                "delay": {}
             },
             "required": ["type", "rhs"],
             "additionalProperties": false

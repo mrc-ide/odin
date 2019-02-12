@@ -630,6 +630,9 @@ ir_prep_delay1 <- function(eq, dat) {
   eq$delay$expr$state <- nm_state
   eq$delay$expr$index <- nm_idx
 
+  eq$delay$expr$equations <-
+    names_if(dat$stage[eq$delay$expr$deps] == STAGE_TIME)
+
   list(len = eq_len, idx = eq_idx, state = eq_state, use = eq)
 }
 
@@ -796,8 +799,7 @@ ir_equation_delay_array <- function(eq) {
 ir_equation_delay <- function(eq) {
   ## TODO: for now assuming continuous; this totally changes for
   ## discrete system.
-  rhs <- list(default = ir_expression(eq$delay$default$value),
-              time = ir_expression(eq$delay$time),
+  rhs <- list(type = jsonlite::unbox("expression"),
               value = ir_expression(eq$rhs$value_expr))
   if (!is.null(eq$lhs$nd) && eq$lhs$nd > 0) {
     index1 <- function(i) {
@@ -814,7 +816,40 @@ ir_equation_delay <- function(eq) {
     rhs$index <- lapply(seq_len(eq$lhs$nd), index1)
   }
 
-  ir_equation_base("delay_continuous", eq, rhs = rhs)
+  info <- eq$delay$expr
+  if (any(info$deps_is_array)) {
+    arr <- names_if(info$deps_is_array)
+    ## TODO: this should be *time sensitive* arrays only.
+    if (length(setdiff(names(arr), info$equations)) > 0L) {
+      stop("FIXME")
+    }
+    subs <- lapply(set_names(sprintf("delay_arr_%s", arr), arr),
+                   jsonlite::unbox)
+  } else {
+    subs <- NULL
+  }
+
+  ## For now at least, we need to substitute out the offsets here,
+  ## because we're not creating appropriate variables for them.  This
+  ## will likely change later on, but for now can't be helped without
+  ## complicating things even more.
+  info$offset <- variable_offsets2(info$order, info$is_array, info$len)
+
+  contents <- lapply(seq_along(info$order), function(i)
+    list(name = jsonlite::unbox(info$order[[i]]),
+         offset = ir_expression(info$offset[[i]])))
+  delay <- list(state = jsonlite::unbox(info$state),
+                index = jsonlite::unbox(info$index),
+                subs = subs,
+                variables = list(
+                  length = jsonlite::unbox(info$length),
+                  contents = contents),
+                equations = info$equations,
+                default = ir_expression(eq$delay$default$value),
+                time = ir_expression(eq$delay$time))
+
+
+  ir_equation_base("delay_continuous", eq, rhs = rhs, delay = delay)
 }
 
 
@@ -1018,14 +1053,6 @@ ir_deserialise <- function(ir) {
   names(dat$equations) <- vcapply(dat$equations, "[[", "name")
 
   dat$interpolate <- lapply(dat$interpolate, list_to_character)
-  if (!is.null(dat$delay)) {
-    names(dat$delay) <- vcapply(dat$delay, "[[", "name")
-    for (i in seq_along(dat$delay)) {
-      dat$delay[[i]]$equations <- list_to_character(dat$delay[[i]]$equations)
-      names(dat$delay[[i]]$variables$contents) <-
-        vcapply(dat$delay[[i]]$variables$contents, "[[", "name")
-    }
-  }
 
   for (i in seq_along(dat$equations)) {
     if (!is.null(dat$equations[[i]]$depends)) {

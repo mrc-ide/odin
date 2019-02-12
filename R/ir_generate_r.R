@@ -712,9 +712,9 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
 
 odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
                                                     rewrite) {
-  d <- dat$delay[[eq$delay]]
+  delay <- dat$equations[[eq$delay]]$delay
   target <- rewrite(eq$name)
-  alloc <- call("<-", target, call("integer", rewrite(d$variables$length)))
+  alloc <- call("<-", target, call("integer", rewrite(delay$variables$length)))
 
   index1 <- function(v) {
     d <- dat$data$data[[v$name]]
@@ -731,56 +731,52 @@ odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
     }
   }
 
-  index <- unname(lapply(d$variables$contents, index1))
+  index <- unname(lapply(delay$variables$contents, index1))
   c(alloc, index)
 }
 
 
 odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
                                                          dat, meta, rewrite) {
-  d <- dat$delay[[eq$lhs$target]]
+  delay <- eq$delay
 
-  tau <- rewrite(eq$rhs$time)
   initial_time <- rewrite(as.character(meta$initial_time))
-  state <- rewrite(d$state)
-  index <- rewrite(d$index)
+  state <- rewrite(delay$state)
+  index <- rewrite(delay$index)
 
-  ## TODO: If we have an array then we need to have the expressions
-  ## rewritten.  I think that the easiest way of doing that is in the
-  ## ir where we just go through and rewrite the whole lot, really.
-  ## But then it's done in only one place and will generally work.  We
-  ## just end up with even more equations added, but they can be put
-  ## right after the canonical version (or just at the end of the
-  ## block really).  The problem is it sort of breaks the graph and
-  ## adds a lot of junk.
-  time <- call("<-", meta$time, call("-", meta$time, tau))
+  time <- call("<-", meta$time, call("-", meta$time, rewrite(delay$time)))
 
   lookup_vars <- expr_if(
     rewrite(as.character(meta$use_dde)),
     call("<-", state, as.call(c(quote(dde::ylag), meta$time, index))),
     call("<-", state, as.call(c(quote(deSolve::lagvalue), meta$time, index))))
-  unpack_vars <- lapply(d$variables$contents,
+  unpack_vars <- lapply(delay$variables$contents,
                         unpack_variable, dat$data$data, state, rewrite)
 
-  eqs_src <- ir_substitute(dat$equations[d$equations], d$subs)
+  ## these should move into the ir deserialisation
+  equations <- list_to_character(delay$equations)
+  names(delay$variables$contents) <-
+    vcapply(delay$variables$contents, "[[", "name")
+
+  eqs_src <- ir_substitute(dat$equations[equations], delay$subs)
   eqs <- flatten_eqs(lapply(eqs_src, odin_ir_generate_expression,
                             dat, meta, rewrite))
 
   ## Only used where there is no default:
   unpack_initial <-
-    lapply(dat$data$variable$contents[names(d$variables$contents)],
+    lapply(dat$data$variable$contents[names(delay$variables$contents)],
            function(x) call("<-", as.name(x$name), rewrite(x$initial)))
   unpack <- expr_if(call("<=", meta$time, initial_time),
                     unpack_initial, c(lookup_vars, unpack_vars))
 
-  rhs_expr <- ir_substitute_sexpr(eq$rhs$value, d$subs)
+  rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$subs)
   if (data_info$rank == 0L) {
     rhs <- rewrite(rhs_expr)
-    if (is.null(eq$rhs$default)) {
+    if (is.null(delay$default)) {
       body <- expr_local(c(time, unpack, eqs, rhs))
       ret <- call("<-", rewrite(eq$name), body)
     } else {
-      default <- rewrite(eq$rhs$default)
+      default <- rewrite(delay$default)
       body <- expr_local(list(
         time,
         expr_if(
@@ -797,11 +793,11 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     lhs <- as.call(c(list(quote(`[`), rewrite(data_info$name)), index))
     expr <- odin_ir_generate_expression_array_rhs(
       rhs_expr, eq$rhs$index, lhs, rewrite)
-    if (is.null(eq$rhs$default)) {
+    if (is.null(delay$default)) {
       ret <- expr_local(c(time, unpack, eqs, expr))
     } else {
       default <- odin_ir_generate_expression_array_rhs(
-        eq$rhs$default, eq$rhs$index, lhs, rewrite)
+        delay$default, eq$rhs$index, lhs, rewrite)
       ret <- expr_local(list(
         time,
         expr_if(
