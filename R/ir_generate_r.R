@@ -39,19 +39,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     stop("Features not suppored: ", paste(dquote(msg), collapse = ", "))
   }
 
-  ## TODO: this is just punting for later
-  ##
-  ## NOTE: 'state' here is where *variables* are put.  This probably
-  ## wants tightening up later...
-  discrete <- dat$features$discrete
   meta <- list(
-    internal = quote(INTERNAL),
-    user = as.name(USER),
-    state = as.name(STATE),
-    result = if (discrete) as.name(STATE_NEXT) else as.name(DSTATEDT),
-    output = as.name(OUTPUT),
-    time = if (discrete) as.name(STEP) else as.name(TIME),
-    initial_time = as.name(paste0("initial_", if (discrete) STEP else TIME)),
     use_dde = as.name(USE_DDE),
     get_user_double = as.name("_get_user_double"),
     get_user_dim = as.name("_get_user_dim"),
@@ -60,7 +48,7 @@ odin_ir_generate <- function(ir, validate = TRUE) {
 
   ## This is our little rewriter - we'll tidy this up later
   rewrite <- function(x) {
-    sexp_to_rexp(x, dat$data, meta)
+    sexp_to_rexp(x, dat$data, dat$meta)
   }
 
   eqs <- odin_ir_generate_expressions(dat, meta, rewrite)
@@ -101,9 +89,10 @@ odin_ir_generate_core <- function(eqs, dat, env, meta, rewrite) {
 
 
 odin_ir_generate_create <- function(eqs, dat, env, meta) {
-  alloc <- call("<-", meta[["internal"]], quote(new.env(parent = emptyenv())))
+  alloc <- call("<-", as.name(dat$meta$internal),
+                quote(new.env(parent = emptyenv())))
   eqs_create <- flatten_eqs(eqs[dat$components$create$equations])
-  ret <- meta[["internal"]]
+  ret <- as.name(dat$meta$internal)
   body <- as.call(c(list(quote(`{`)), c(alloc, eqs_create, ret)))
   as_function(alist(), body, env)
 }
@@ -122,28 +111,29 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta, rewrite) {
   eqs_initial <- lapply(eqs_initial, substitute_, as.environment(subs))
 
   ## Allocate space for the state vector
+  state <- as.name(dat$meta$state)
   var_length <- rewrite(dat$data$variable$length)
-  alloc <- call("<-", meta$state, call("numeric", var_length))
+  alloc <- call("<-", state, call("numeric", var_length))
 
   ## Assign into the state vector
   f <- function(x) {
     d <- dat$data$data[[x$name]]
     if (d$rank == 0L) {
-      target <- call("[[", meta$state, offset_to_position(x$offset))
+      target <- call("[[", state, offset_to_position(x$offset))
     } else {
       offset <- rewrite(x$offset)
       seq <- call("seq_len", rewrite(d$dimnames$length))
-      target <- call("[", meta$state, call("+", offset, seq))
+      target <- call("[", state, call("+", offset, seq))
     }
     call("<-", target, rewrite(x$initial))
   }
   assign <- lapply(dat$data$variable$contents, f)
 
   ## Build the function:
-  body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, meta$state))
+  body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, state))
   args <- alist(time =, internal =)
-  names(args)[[1]] <- as.character(meta$time)
-  names(args)[[2]] <- as.character(meta$internal)
+  names(args)[[1]] <- dat$meta$time
+  names(args)[[2]] <- dat$meta$internal
   as_function(args, body, env)
 }
 
@@ -151,8 +141,8 @@ odin_ir_generate_ic <- function(eqs, dat, env, meta, rewrite) {
 odin_ir_generate_set_user <- function(eqs, dat, env, meta) {
   eqs_user <- flatten_eqs(eqs[dat$components$user$equations])
   args <- alist(user =, internal =)
-  names(args)[[1]] <- as.character(meta$user)
-  names(args)[[2]] <- as.character(meta$internal)
+  names(args)[[1]] <- dat$meta$user
+  names(args)[[2]] <- dat$meta$internal
   body <- as.call(c(list(quote(`{`)), eqs_user))
   as_function(args, body, env)
 }
@@ -185,11 +175,12 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite, rhs_type) {
   ## other way, into the state vector.
   f <- function(x) {
     d <- dat$data$data[[x$name]]
+    state <- as.name(dat$meta$state)
     if (d$rank == 0L) {
-      extract <- call("[[", meta$state, offset_to_position(x$offset))
+      extract <- call("[[", state, offset_to_position(x$offset))
     } else {
       seq <- call("seq_len", rewrite(d$dimnames$length))
-      extract <- call("[", meta$state, call("+", rewrite(x$offset), seq))
+      extract <- call("[", state, call("+", rewrite(x$offset), seq))
       if (d$rank > 1L) {
         extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
       }
@@ -205,39 +196,42 @@ odin_ir_generate_rhs <- function(eqs, dat, env, meta, rewrite, rhs_type) {
   ## dydt is always the same length as y).  Neither seems much better
   ## than the other, so going with the same length approach here as it
   ## is less logic and will work for variable-length cases.
-  alloc_result <- call("<-", meta$result,
-                       call("numeric", call("length", meta$state)))
+  alloc_result <- call("<-", as.name(dat$meta$result),
+                       call("numeric", call("length", as.name(dat$meta$state))))
 
   ## For output_length we have no real choice but to look up the
   ## length each time.
-  alloc_output <- call("<-", meta$output,
+  alloc_output <- call("<-", as.name(dat$meta$output),
                        call("numeric", rewrite(dat$data$output$length)))
   alloc <- list(rhs = alloc_result, output = alloc_output)[use]
 
+  result <- as.name(dat$meta$result)
+  output <- as.name(dat$meta$output)
+
   if (rhs_type == "desolve") {
     if (has_output) {
-      ret <- call("list", meta$result, meta$output)
+      ret <- call("list", result, output)
     } else {
-      ret <- call("list", meta$result)
+      ret <- call("list", result)
     }
   } else if (rhs_type == "output") {
-    ret <- meta$output
+    ret <- output
   } else {
     if (discrete && has_output) {
       ret <- list(
-        call("<-", call("attr", meta$result, "output"), meta$output),
-        meta$result)
+        call("<-", call("attr", result, "output"), output),
+        result)
     } else {
-      ret <- meta$result
+      ret <- result
     }
   }
 
   eqs_include <- flatten_eqs(eqs[use_eqs])
   body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_include, ret)))
   args <- alist(t = , y =, parms = )
-  names(args)[[1]] <- as.character(meta$time)
-  names(args)[[2]] <- as.character(meta$state)
-  names(args)[[3]] <- as.character(meta$internal)
+  names(args)[[1]] <- dat$meta$time
+  names(args)[[2]] <- dat$meta$state
+  names(args)[[3]] <- dat$meta$internal
   as_function(args, body, env)
 }
 
@@ -258,7 +252,7 @@ odin_ir_generate_metadata <- function(dat, meta, rewrite) {
   env <- new.env(parent = environment(odin))
 
   body <- list(
-    call("<-", meta$internal, quote(private$data)),
+    call("<-", as.name(dat$meta$internal), quote(private$data)),
     call("<-", quote(private$variable_order), ord("variable")),
     call("<-", quote(private$output_order), ord("output")),
     call("<-", call("$", quote(private), quote(ynames)), ynames),
@@ -310,7 +304,7 @@ odin_ir_generate_interpolate_t <- function(dat, env, meta, rewrite) {
       call("sort", call("unique", as.call(c(list(quote(c)), args_critical))))
   }
 
-  args <- set_names(alist(internal = ), as.character(meta$internal))
+  args <- set_names(alist(internal = ), dat$meta$internal)
   body <- call("{",
                call("list",
                     min = min, max = max, critical = critical))
@@ -324,21 +318,20 @@ odin_ir_generate_set_initial <- function(dat, env, meta, rewrite) {
   }
 
   set_y <- call(
-    "if", call("!", call("is.null", meta$state)),
+    "if", call("!", call("is.null", as.name(dat$meta$state))),
     expr_block(lapply(dat$data$variable$contents, function(x)
       call("<-", rewrite(x$initial),
-           extract_variable(x, dat$data$data, meta$state, rewrite)))))
-  set_t <- call("<-",
-                rewrite(as.character(meta$initial_time)),
-                meta$time)
+           extract_variable(x, dat$data$data, as.name(dat$meta$state),
+                            rewrite)))))
+  set_t <- call("<-", rewrite(dat$meta$initial_time), as.name(dat$meta$time))
   set_use_dde <- call("<-",
                       rewrite(as.character(meta$use_dde)),
                       meta$use_dde)
   body <- list(set_y, set_t, set_use_dde)
   args <- set_names(
     alist(, , , ),
-    c(as.character(meta$time), as.character(meta$state),
-      as.character(meta$use_dde), as.character(meta$internal)))
+    c(dat$meta$time, dat$meta$state,
+      as.character(meta$use_dde), dat$meta$internal))
 
   as_function(args, expr_block(body), env)
 }
@@ -360,9 +353,9 @@ odin_ir_generate_run <- function(dat, env, meta, rewrite) {
     args <- c(args, alist(n_history = 1000L))
   }
 
-  names(args)[[1L]] <- as.character(meta$internal)
-  names(args)[[2L]] <- as.character(meta$time)
-  names(args)[[3L]] <- as.character(meta$state)
+  names(args)[[1L]] <- dat$meta$internal
+  names(args)[[2L]] <- dat$meta$time
+  names(args)[[3L]] <- dat$meta$state
   ## for now at least, quote these - we might have to fix this up
   ## later by having a second (non-ir driven) meta list.
   n_out <- quote(n_out)
@@ -376,10 +369,11 @@ odin_ir_generate_run <- function(dat, env, meta, rewrite) {
 
   ret <- quote(ret)
 
-  t0 <- call("[[", meta$time, 1L)
+  t0 <- call("[[", as.name(dat$meta$time), 1L)
 
   if (dat$features$has_delay) {
-    set_initial <- call("set_initial", t0, meta$state, use_dde, meta$internal)
+    set_initial <- call("set_initial", t0, as.name(dat$meta$state), use_dde,
+                        as.name(dat$meta$internal))
   } else {
     set_initial <- NULL
   }
@@ -387,7 +381,7 @@ odin_ir_generate_run <- function(dat, env, meta, rewrite) {
   if (dat$features$has_interpolate) {
     check_interpolate_t <-
       call(as.character(meta$check_interpolate_t),
-           meta$time, interpolate_t, tcrit)
+           as.name(dat$meta$time), interpolate_t, tcrit)
     if (!dat$features$discrete) {
       check_interpolate_t <- call("<-", tcrit, check_interpolate_t)
     }
@@ -396,15 +390,18 @@ odin_ir_generate_run <- function(dat, env, meta, rewrite) {
   }
 
   compute_initial <-
-    call("if", call("is.null", meta$state),
-         expr_block(call("<-", meta$state, call("ic", t0, meta$internal))))
+    call("if", call("is.null", as.name(dat$meta$state)),
+         expr_block(call("<-", as.name(dat$meta$state),
+                         call("ic", t0, as.name(dat$meta$internal)))))
 
   output <- if (dat$features$has_output) quote(output) else NULL
 
-  run_args_dde <- list(meta$state, meta$time, quote(rhs_dde),
-                       meta$internal, ynames = FALSE, quote(`...`))
-  run_args_desolve <- list(meta$state, meta$time, quote(rhs_desolve),
-                           meta$internal, quote(`...`))
+  run_args_dde <- list(as.name(dat$meta$state), as.name(dat$meta$time),
+                       quote(rhs_dde), as.name(dat$meta$internal),
+                       ynames = FALSE, quote(`...`))
+  run_args_desolve <- list(as.name(dat$meta$state), as.name(dat$meta$time),
+                           quote(rhs_desolve), as.name(dat$meta$internal),
+                           quote(`...`))
   if (!dat$features$discrete) {
     run_args_desolve <- c(run_args_desolve, tcrit = tcrit)
   }
@@ -492,7 +489,7 @@ sexp_to_rexp <- function(x, data, meta) {
       nm <- data$data[[args[[1L]]]]$dimnames$dim[[args[[2L]]]]
       sexp_to_rexp(nm, data, meta)
     } else if (fn == "interpolate") {
-      as.call(list(sexp_to_rexp(args[[1L]], data, meta), meta$time))
+      as.call(list(sexp_to_rexp(args[[1L]], data, meta), as.name(meta$time)))
     } else if (fn == "odin_sum") {
       sexp_to_rexp_sum(lapply(args, sexp_to_rexp, data, meta))
     } else if (fn == "norm_rand") {
@@ -503,7 +500,7 @@ sexp_to_rexp <- function(x, data, meta) {
   } else if (is.character(x)) {
     location <- data$data[[x]]$location
     if (!is.null(location) && location == "internal") {
-      call("[[", meta$internal, x)
+      call("[[", as.name(meta$internal), x)
     } else {
       as.name(x)
     }
@@ -533,8 +530,8 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, dat, meta,
     lhs <- rewrite(eq$lhs)
   } else {
     offset <- dat$data[[location]]$contents[[data_info$name]]$offset
-    storage <- if (location == "variable") meta$result else meta$output
-    lhs <- call("[[", storage, offset_to_position(offset))
+    storage <- if (location == "variable") dat$meta$result else dat$meta$output
+    lhs <- call("[[", as.name(storage), offset_to_position(offset))
   }
 
   rhs <- rewrite(eq$rhs$value)
@@ -544,8 +541,7 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, dat, meta,
 
 odin_ir_generate_expression_array <- function(eq, data_info, dat, meta,
                                               rewrite) {
-  lhs <- odin_ir_generate_expression_array_lhs(
-    eq, data_info, dat$data, meta, rewrite)
+  lhs <- odin_ir_generate_expression_array_lhs(eq, data_info, dat, rewrite)
   lapply(eq$rhs, function(x)
     odin_ir_generate_expression_array_rhs(x$value, x$index, lhs, rewrite))
 }
@@ -560,7 +556,7 @@ odin_ir_generate_expression_array <- function(eq, data_info, dat, meta,
 ##   STORAGE->NAME[f(i, j)]
 ## and
 ##   STORAGE[OFFSET + f(i, j)]
-odin_ir_generate_expression_array_lhs <- function(eq, data_info, data, meta,
+odin_ir_generate_expression_array_lhs <- function(eq, data_info, dat,
                                                   rewrite) {
   ## All the rhs have the same structure so we can use any of them
   ## here - we need only to get the index element out
@@ -579,9 +575,9 @@ odin_ir_generate_expression_array_lhs <- function(eq, data_info, data, meta,
       }
     }
     pos <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
-    offset <- rewrite(data[[location]]$contents[[data_info$name]]$offset)
-    storage <- if (location == "variable") meta$result else meta$output
-    lhs <- call("[[", storage, call("+", offset, pos))
+    offset <- rewrite(dat$data[[location]]$contents[[data_info$name]]$offset)
+    storage <- if (location == "variable") dat$meta$result else dat$meta$output
+    lhs <- call("[[", as.name(storage), call("+", offset, pos))
   }
 
   lhs
@@ -665,7 +661,7 @@ odin_ir_generate_expression_copy <- function(eq, data_info, dat, meta,
                                              rewrite) {
   ## NOTE: this applies only to copying a variable into the output
   offset <- rewrite(dat$data$output$contents[[eq$lhs]]$offset)
-  storage <- meta$output
+  storage <- as.name(dat$meta$output)
 
   if (data_info$rank == 0) {
     lhs <- call("[[", storage, offset_to_position(offset))
@@ -683,6 +679,9 @@ odin_ir_generate_expression_copy <- function(eq, data_info, dat, meta,
 ## be factored out again (and probably should be).
 odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
                                              rewrite) {
+  user <- as.name(dat$meta$user)
+  internal <- as.name(dat$meta$internal)
+
   if (eq$user$dim) {
     len <- data_info$dimnames$length
     if (data_info$rank == 1L) {
@@ -691,8 +690,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
       ## NOTE: passing *names* in, not rewritten expressions
       dims <- as.call(c(list(quote(c)), data_info$dimnames$dim))
     }
-    call(as.character(meta$get_user_dim), meta$user, meta$internal,
-         eq$lhs, len, dims)
+    call(as.character(meta$get_user_dim), user, internal, eq$lhs, len, dims)
   } else {
     lhs <- rewrite(eq$lhs)
     rank <- data_info$rank
@@ -703,7 +701,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, meta,
     }
     size <- odin_ir_generate_dim(data_info, rewrite)
     rhs <- call(as.character(meta$get_user_double),
-                meta$user, eq$lhs, meta$internal, size, default)
+                user, eq$lhs, internal, size, default)
     call("<-", lhs, rhs)
   }
 }
@@ -738,17 +736,18 @@ odin_ir_generate_expression_delay_index <- function(eq, data_info, dat, meta,
 odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
                                                          dat, meta, rewrite) {
   delay <- eq$delay
+  time <- as.name(dat$meta$time)
 
-  initial_time <- rewrite(as.character(meta$initial_time))
+  initial_time <- rewrite(dat$meta$initial_time)
   state <- rewrite(delay$state)
   index <- rewrite(delay$index)
 
-  time <- call("<-", meta$time, call("-", meta$time, rewrite(delay$time)))
+  time_set <- call("<-", time, call("-", time, rewrite(delay$time)))
 
   lookup_vars <- expr_if(
     rewrite(as.character(meta$use_dde)),
-    call("<-", state, as.call(c(quote(dde::ylag), meta$time, index))),
-    call("<-", state, as.call(c(quote(deSolve::lagvalue), meta$time, index))))
+    call("<-", state, as.call(c(quote(dde::ylag), time, index))),
+    call("<-", state, as.call(c(quote(deSolve::lagvalue), time, index))))
   unpack_vars <- lapply(delay$variables$contents,
                         unpack_variable, dat$data$data, state, rewrite)
 
@@ -760,7 +759,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   unpack_initial <-
     lapply(dat$data$variable$contents[names(delay$variables$contents)],
            function(x) call("<-", as.name(x$name), rewrite(x$initial)))
-  unpack <- expr_if(call("<=", meta$time, initial_time),
+  unpack <- expr_if(call("<=", time, initial_time),
                     unpack_initial, c(lookup_vars, unpack_vars))
 
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
@@ -768,14 +767,14 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     lhs <- rewrite(eq$lhs)
     rhs <- rewrite(rhs_expr)
     if (is.null(delay$default)) {
-      body <- expr_local(c(time, unpack, eqs, rhs))
+      body <- expr_local(c(time_set, unpack, eqs, rhs))
       ret <- call("<-", lhs, body)
     } else {
       default <- rewrite(delay$default)
       body <- expr_local(list(
-        time,
+        time_set,
         expr_if(
-          call("<=", meta$time, initial_time),
+          call("<=", time, initial_time),
           default,
           c(lookup_vars, unpack_vars, eqs, rhs))))
       ret <- call("<-", lhs, body)
@@ -789,14 +788,14 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     expr <- odin_ir_generate_expression_array_rhs(
       rhs_expr, eq$rhs$index, lhs, rewrite)
     if (is.null(delay$default)) {
-      ret <- expr_local(c(time, unpack, eqs, expr))
+      ret <- expr_local(c(time_set, unpack, eqs, expr))
     } else {
       default <- odin_ir_generate_expression_array_rhs(
         delay$default, eq$rhs$index, lhs, rewrite)
       ret <- expr_local(list(
-        time,
+        time_set,
         expr_if(
-          call("<=", meta$time, initial_time),
+          call("<=", time, initial_time),
           default,
           c(lookup_vars, unpack_vars, eqs, expr))))
     }
@@ -981,11 +980,12 @@ odin_ir_generate_class <- function(core, dat, env, meta) {
     nms <- names(i)
     args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i)))
     names(args) <- nms
-    args[[meta$user]] <-
+    args[[dat$meta$user]] <-
       as.call(c(list(quote(list)),
                 set_names(lapply(nms, as.name), nms)))
     args <- c(args, alist(use_dde = FALSE))
-    body <- call("{", as.call(list(cl_init, meta$user, quote(use_dde))))
+    body <- call("{", as.call(list(cl_init, as.name(dat$meta$user),
+                                   quote(use_dde))))
   } else {
     args <- alist(use_dde = FALSE)
     body <- call("{", as.call(list(cl_init, NULL, quote(use_dde))))
