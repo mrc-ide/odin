@@ -28,6 +28,7 @@ odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
   ## through the dependency tree.  This belongs in the ir and can be
   ## represented simply as a set of arrays
   ir_dat <- list(config = ir_config(dat),
+                 meta = ir_meta(dat),
                  features = ir_features(dat),
                  data = ir_data(dat),
                  equations = ir_equations(dat),
@@ -646,6 +647,21 @@ ir_config <- function(dat) {
   ## - path
   ## - include?
   list(base = jsonlite::unbox(dat$config$base))
+}
+
+
+ir_meta <- function(dat) {
+  discrete <- dat$info$discrete
+  time <- if (discrete) STEP else TIME
+  result <- if (discrete) STATE_NEXT else DSTATEDT
+  meta <- c(internal = INTERNAL,
+            user = USER,
+            state = STATE,
+            result = result,
+            output = OUTPUT,
+            time = time,
+            initial_time = initial_name(time))
+  lapply(meta, jsonlite::unbox)
 }
 
 

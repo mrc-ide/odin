@@ -134,6 +134,21 @@
             "additionalProperties": false
         },
 
+        "meta": {
+            "type": "object",
+            "properties": {
+                "internal": {"type": "string"},
+                "user": {"type": "string"},
+                "state": {"type": "string"},
+                "result": {"type": "string"},
+                "output": {"type": "string"},
+                "time": {"type": "string"},
+                "initial_time": {"type": "string"}
+            },
+            "required": [],
+            "additionalProperties": false
+        },
+
         "features": {
             "type": "object",
             "properties": {
@@ -672,6 +687,9 @@
     "properties": {
         "config": {
             "$ref": "#/definitions/config"
+        },
+        "meta": {
+            "$ref": "#/definitions/meta"
         },
         "features": {
             "$ref": "#/definitions/features"
