@@ -1023,48 +1023,6 @@ ir_dimnames <- function(name, rank) {
 }
 
 
-ir_serialise <- function(dat, pretty = TRUE) {
-  jsonlite::toJSON(dat, null = "null", pretty = pretty, digits = NA)
-}
-
-
-## TODO: we should be able to see in the schema all the cases that are
-## character vectors.
-ir_deserialise <- function(ir) {
-  dat <- jsonlite::fromJSON(ir, simplifyVector = FALSE)
-  dat$components <- lapply(dat$components, lapply, list_to_character)
-
-  if (dat$features$has_array) {
-    fix_dimnames <- function(x) {
-      if (x$rank > 0L) {
-        v <- c("dim", "mult")
-        x$dimnames[v] <- lapply(x$dimnames[v], list_to_character)
-      }
-      x
-    }
-    dat$data$data <- lapply(dat$data$data, fix_dimnames)
-  }
-
-  names(dat$data$data) <- vcapply(dat$data$data, "[[", "name")
-  names(dat$data$variable$contents) <-
-    vcapply(dat$data$variable$contents, "[[", "name")
-  names(dat$data$output$contents) <-
-    vcapply(dat$data$output$contents, "[[", "name")
-  names(dat$equations) <- vcapply(dat$equations, "[[", "name")
-
-  dat$interpolate <- lapply(dat$interpolate, list_to_character)
-
-  for (i in seq_along(dat$equations)) {
-    if (!is.null(dat$equations[[i]]$depends)) {
-      dat$equations[[i]]$depends <- lapply(dat$equations[[i]]$depends,
-                                           list_to_character)
-    }
-  }
-
-  dat
-}
-
-
 ## For delays, based on code in parse.R
 variable_offsets2 <- function(names, is_array, len) {
   n <- length(names)

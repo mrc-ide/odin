@@ -753,12 +753,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   unpack_vars <- lapply(delay$variables$contents,
                         unpack_variable, dat$data$data, state, rewrite)
 
-  ## these should move into the ir deserialisation
-  equations <- list_to_character(delay$equations)
-  names(delay$variables$contents) <-
-    vcapply(delay$variables$contents, "[[", "name")
-
-  eqs_src <- ir_substitute(dat$equations[equations], delay$subs)
+  eqs_src <- ir_substitute(dat$equations[delay$equations], delay$subs)
   eqs <- flatten_eqs(lapply(eqs_src, odin_ir_generate_expression,
                             dat, meta, rewrite))
 
@@ -1203,7 +1198,7 @@ ir_substitute <- function(eqs, subs) {
     return(eqs)
   }
 
-  lapply(eqs, ir_substitute1, list_to_character(subs))
+  lapply(eqs, ir_substitute1, subs)
 }
 
 
