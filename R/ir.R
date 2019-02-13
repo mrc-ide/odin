@@ -503,78 +503,130 @@ ir_prep_interpolate <- function(x, dat) {
 
 ir_prep_delay <- function(dat) {
   if (dat$info$has_delay) {
-    i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
-    tmp <- unname(lapply(dat$eqs[i], ir_prep_delay1, dat))
-
-    eqs <- unlist(unname(tmp), FALSE, FALSE)
-    names(eqs) <- vcapply(eqs, "[[", "name")
-
-    j <- ir_prep_interleave_index(i, lengths(tmp, FALSE))
-
-    ## This is mostly ignored for us now, so punt here:
-    traits <- dat$traits[rep(which(i), each = 4), , drop = FALSE]
-    rownames(traits) <- names(eqs)
-
-    eqs_new <- eqs[!(names(eqs) %in% names(dat$eqs))]
-
-    ## shared things:
-    initial_time <- initial_name(if (dat$info$discrete) STEP else TIME)
-
-    eqs_common <- list(
-      list(
-        name = initial_time,
-        lhs = list(type = "null", data_type = "int"),
-        rhs = list(type = "null"),
-        line = integer(0),
-        stage = STAGE_USER,
-        deps_rec = character(0)))
-    names(eqs_common) <- vcapply(eqs_common, "[[", "name")
-
-    traits_common <- traits[rep(1, length(eqs_common)), , drop = FALSE]
-    traits_common[] <- FALSE
-    traits_common[, "is_symbol"] <- TRUE
-    rownames(traits_common) <- names(eqs_common)
-
-    arr <- lapply(tmp, function(x) names_if(x$use$delay$expr$deps_is_array))
-    arr <- unlist(arr, FALSE, FALSE)
-    if (length(arr) > 0L) {
-      f <- function(x) {
-        nm <- sprintf("delay_arr_%s", x)
-        list(
-          name = nm,
-          lhs = list(type = "delay_array", length = x, name = nm,
-                     nd = dat$eqs[[x]]$lhs$nd,
-                     data_type = dat$eqs[[x]]$lhs$data_type),
-          depends = find_symbols(as.name(x)),
-          deps_rec = c(x, dat$deps_rec[[x]]),
-          line = dat$eqs[[x]]$line,
-          stage = dat$eqs[[x]]$stage)
-      }
-      eqs_arr <- lapply(arr, f)
-      names(eqs_arr) <- vcapply(eqs_arr, "[[", "name")
-
-      traits_arr <- traits[rep(1, length(eqs_arr)), , drop = FALSE]
-      traits_arr[] <- FALSE
-      traits_arr[, "is_array"] <- TRUE
-      rownames(traits_arr) <- names(eqs_arr)
+    if (dat$info$discrete) {
+      dat <- ir_prep_delay_discrete(dat)
     } else {
-      eqs_arr <- NULL
-      traits_arr <- NULL
+      dat <- ir_prep_delay_continuous(dat)
     }
-
-    dat$eqs <- c(c(dat$eqs, eqs)[j], eqs_common, eqs_arr)
-    dat$traits <- rbind(rbind(dat$traits, traits)[j, , drop = FALSE],
-                        traits_common, traits_arr)
-    dat$stage <- c(dat$stage,
-                   viapply(c(eqs_new, eqs_common, eqs_arr), "[[", "stage"))
-    dat$deps_rec <- c(dat$deps_rec,
-                      lapply(c(eqs_new, eqs_common, eqs_arr), "[[", "deps_rec"))
   }
   dat
 }
 
 
-ir_prep_delay1 <- function(eq, dat) {
+ir_prep_delay_continuous <- function(dat) {
+  i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
+  tmp <- unname(lapply(dat$eqs[i], ir_prep_delay_continuous1, dat))
+
+  eqs <- unlist(unname(tmp), FALSE, FALSE)
+  names(eqs) <- vcapply(eqs, "[[", "name")
+
+  j <- ir_prep_interleave_index(i, lengths(tmp, FALSE))
+
+  ## This is mostly ignored for us now, so punt here:
+  traits <- dat$traits[rep(which(i), each = 4), , drop = FALSE]
+  rownames(traits) <- names(eqs)
+
+  eqs_new <- eqs[!(names(eqs) %in% names(dat$eqs))]
+
+  ## shared things:
+  initial_time <- initial_name(TIME)
+
+  eqs_common <- list(
+    list(
+      name = initial_time,
+      lhs = list(type = "null", data_type = "int"),
+      rhs = list(type = "null"),
+      line = integer(0),
+      stage = STAGE_USER,
+      deps_rec = character(0)))
+  names(eqs_common) <- vcapply(eqs_common, "[[", "name")
+
+  traits_common <- traits[rep(1, length(eqs_common)), , drop = FALSE]
+  traits_common[] <- FALSE
+  traits_common[, "is_symbol"] <- TRUE
+  rownames(traits_common) <- names(eqs_common)
+
+  arr <- lapply(tmp, function(x) names_if(x$use$delay$expr$deps_is_array))
+  arr <- unlist(arr, FALSE, FALSE)
+  if (length(arr) > 0L) {
+    f <- function(x) {
+      nm <- sprintf("delay_arr_%s", x)
+      list(
+        name = nm,
+        lhs = list(type = "delay_array", length = x, name = nm,
+                   nd = dat$eqs[[x]]$lhs$nd,
+                   data_type = dat$eqs[[x]]$lhs$data_type),
+        depends = find_symbols(as.name(x)),
+        deps_rec = c(x, dat$deps_rec[[x]]),
+        line = dat$eqs[[x]]$line,
+        stage = dat$eqs[[x]]$stage)
+    }
+    eqs_arr <- lapply(arr, f)
+    names(eqs_arr) <- vcapply(eqs_arr, "[[", "name")
+
+    traits_arr <- traits[rep(1, length(eqs_arr)), , drop = FALSE]
+    traits_arr[] <- FALSE
+    traits_arr[, "is_array"] <- TRUE
+    rownames(traits_arr) <- names(eqs_arr)
+  } else {
+    eqs_arr <- NULL
+    traits_arr <- NULL
+  }
+
+  dat$eqs <- c(c(dat$eqs, eqs)[j], eqs_common, eqs_arr)
+  dat$traits <- rbind(rbind(dat$traits, traits)[j, , drop = FALSE],
+                      traits_common, traits_arr)
+  dat$stage <- c(dat$stage,
+                 viapply(c(eqs_new, eqs_common, eqs_arr), "[[", "stage"))
+  dat$deps_rec <- c(dat$deps_rec,
+                    lapply(c(eqs_new, eqs_common, eqs_arr), "[[", "deps_rec"))
+  dat
+}
+
+
+ir_prep_delay_discrete <- function(dat) {
+  i <- !vlapply(dat$eqs, function(x) is.null(x$delay))
+  tmp <- unname(lapply(dat$eqs[i], ir_prep_delay_discrete1, dat))
+
+  eqs <- unlist(unname(tmp), FALSE, FALSE)
+  names(eqs) <- vcapply(eqs, "[[", "name")
+  j <- ir_prep_interleave_index(i, lengths(tmp, FALSE))
+
+  ## This is mostly ignored for us now, so punt here:
+  traits <- dat$traits[rep(which(i), each = 3), , drop = FALSE]
+  rownames(traits) <- names(eqs)
+
+  eqs_new <- eqs[!(names(eqs) %in% names(dat$eqs))]
+
+  initial_time <- initial_name(STEP)
+
+  eqs_common <- list(
+    list(
+      name = initial_time,
+      lhs = list(type = "null", data_type = "int"),
+      rhs = list(type = "null"),
+      line = integer(0),
+      stage = STAGE_USER,
+      deps_rec = character(0)))
+  names(eqs_common) <- vcapply(eqs_common, "[[", "name")
+
+  traits_common <- traits[rep(1, length(eqs_common)), , drop = FALSE]
+  traits_common[] <- FALSE
+  traits_common[, "is_symbol"] <- TRUE
+  rownames(traits_common) <- names(eqs_common)
+
+  dat$eqs <- c(c(dat$eqs, eqs)[j], eqs_common)
+  dat$traits <- rbind(rbind(dat$traits, traits)[j, , drop = FALSE],
+                      traits_common)
+  dat$stage <- c(dat$stage,
+                 viapply(c(eqs_new, eqs_common), "[[", "stage"))
+  dat$deps_rec <- c(dat$deps_rec,
+                    lapply(c(eqs_new, eqs_common), "[[", "deps_rec"))
+  dat
+}
+
+
+ir_prep_delay_continuous1 <- function(eq, dat) {
   nm <- eq$name
   nm_state <- sprintf("delay_%s_%s", STATE, nm)
   nm_idx <- sprintf("delay_idx_%s", nm)
@@ -618,6 +670,7 @@ ir_prep_delay1 <- function(eq, dat) {
     line = eq$line,
     stage = stage)
 
+  eq$delay$continuous <- TRUE
   eq$delay$expr$length <- nm_dim
   eq$delay$expr$state <- nm_state
   eq$delay$expr$index <- nm_idx
@@ -626,6 +679,64 @@ ir_prep_delay1 <- function(eq, dat) {
     names_if(dat$stage[eq$delay$expr$deps] == STAGE_TIME)
 
   list(len = eq_len, idx = eq_idx, state = eq_state, use = eq)
+}
+
+
+ir_prep_delay_discrete1 <- function(eq, dat) {
+  if (!is.null(eq$lhs$nd)) {
+    browser()
+  }
+
+  nm <- eq$name
+  nm_ring <- sprintf("delay_ring_%s", nm)
+  nm_ring_alloc <- sprintf("delay_ring_%s_alloc", nm)
+
+  stage <- eq$delay$expr$total_stage
+  value_len <- eq$delay$expr$total
+  deps_ring <- find_symbols(value_len)
+
+  if (eq$lhs$data_type != "double") {
+    stop("delayed non-doubles needs work")
+  }
+
+  ## if not a double, then throw here - we'll need to patch that up
+  ## later, or just convert in and out.
+
+  eq_alloc <- list(
+    name = nm_ring_alloc,
+    lhs = list(type = "alloc_ring", name = nm_ring,
+               data_type = "ring_buffer", length = value_len,
+               name_target = nm_ring),
+    rhs = list(type = "alloc"),
+    for_delay = nm,
+    depends = find_symbols(value_len),
+    line = eq$line,
+    stage = stage)
+
+  eq_push <- list(
+    name = nm_ring,
+    lhs = list(type = "delay_discrete_push", name = nm_ring,
+               data_type = "ring_buffer"),
+    rhs = list(value = eq$rhs$value_expr),
+    depends = find_symbols(eq$rhs$value_expr),
+    line = eq$line,
+    stage = STAGE_TIME)
+
+  eq_use <- list(
+    name = nm,
+    lhs = list(type = "delay_discrete_read", name = nm,
+               data_type = eq$lhs$data_type,
+               nd = eq$lhs$nd),
+    delay = list(ring = nm_ring,
+                 default = eq$delay$default,
+                 time = eq$delay$time),
+    depends = join_deps(list(find_symbols(as.name(nm_ring)),
+                             find_symbols(eq$delay$default),
+                             find_symbols(eq$delay$time))),
+    line = eq$line,
+    stage = STAGE_TIME)
+
+  list(alloc = eq_alloc, push = eq_push, use = eq_use)
 }
 
 
@@ -729,12 +840,18 @@ ir_equation <- function(eq) {
     return(ir_equation_delay_index(eq))
   } else if (identical(eq$lhs$type, "delay_array")) {
     return(ir_equation_delay_array(eq))
-  } else if (isTRUE(eq$rhs$delay)) {
-    return(ir_equation_delay(eq))
+  } else if (isTRUE(eq$rhs$delay) && eq$delay$continuous) {
+    return(ir_equation_delay_continuous(eq))
   } else if (identical(eq$lhs$type, "symbol")) {
     return(ir_equation_expression_scalar(eq))
   } else if (identical(eq$lhs$type, "array")) {
     return(ir_equation_expression_array(eq))
+  } else if (identical(eq$lhs$type, "alloc_ring")) {
+    return(ir_equation_alloc_ring(eq))
+  } else if (identical(eq$lhs$type, "delay_discrete_push")) {
+    return(ir_equation_delay_discrete_push(eq))
+  } else if (identical(eq$lhs$type, "delay_discrete_read")) {
+    return(ir_equation_delay_discrete_read(eq))
   } else {
     stop("Unclassified type")
   }
@@ -801,7 +918,7 @@ ir_equation_delay_array <- function(eq) {
 }
 
 
-ir_equation_delay <- function(eq) {
+ir_equation_delay_continuous <- function(eq) {
   ## TODO: for now assuming continuous; this totally changes for
   ## discrete system.
   rhs <- list(value = ir_expression(eq$rhs$value_expr))
@@ -874,6 +991,25 @@ ir_equation_alloc_interpolate <- function(eq) {
 }
 
 
+ir_equation_alloc_ring <- function(eq) {
+  ir_equation_base("alloc_ring", eq, delay = jsonlite::unbox(eq$for_delay))
+}
+
+
+ir_equation_delay_discrete_push <- function(eq) {
+  rhs <- list(value = ir_expression(eq$rhs$value))
+  ir_equation_base("delay_discrete_push", eq, rhs = rhs)
+}
+
+
+ir_equation_delay_discrete_read <- function(eq) {
+  delay <- list(ring = jsonlite::unbox(eq$delay$ring),
+                time = ir_expression(eq$delay$time),
+                default = ir_expression(eq$delay$default))
+  ir_equation_base("delay_discrete_read", eq, delay = delay)
+}
+
+
 ir_equation_user <- function(eq) {
   if (!is.null(eq$rhs$integer) || !is.null(eq$rhs$min) ||
       !is.null(eq$rhs$max)) {
@@ -922,6 +1058,7 @@ ir_data <- function(dat) {
     is_transient <- eq$lhs$location == "internal" &&
       !identical(eq$rhs$type, "alloc") &&
       !identical(eq$lhs$type, "delay_array") &&
+      !identical(eq$lhs$type, "delay_discrete_push") &&
       (eq$stage == STAGE_TIME && is.null(eq$lhs$nd) &&
        !identical(eq$lhs$special, "initial"))
     if (is_transient) {
