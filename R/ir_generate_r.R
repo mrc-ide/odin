@@ -476,6 +476,7 @@ odin_ir_generate_expression <- function(eq, dat, rewrite) {
     eq$type,
     alloc = odin_ir_generate_expression_alloc,
     alloc_interpolate = odin_ir_generate_expression_alloc_interpolate,
+    alloc_ring = odin_ir_generate_expression_alloc_ring,
     copy = odin_ir_generate_expression_copy,
     user = odin_ir_generate_expression_user,
     expression_scalar = odin_ir_generate_expression_scalar,
@@ -631,25 +632,33 @@ odin_ir_generate_expression_array_rhs <- function(value, index, lhs, rewrite) {
 
 odin_ir_generate_expression_alloc <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
-  if (data_info$storage_type == "ring_buffer") {
-    ## TODO: need to get n_history into here - follow same approach as
-    ## use_dde I think
-    n_history <- 1000
-    len <- if (data_info$rank == 0) 1L else stop("fixme")
-    args <- list(quote(ring::ring_buffer_bytes_typed),
-                 n_history, "double", len, "overwrite")
-    rhs <- as.call(args)
-  } else {
-    alloc_fn <- switch(data_info$storage_type,
-                       double = "numeric",
-                       int = "integer",
-                       stop(sprintf("unsupported storage type")))
-    len <- rewrite(data_info$dimnames$length)
-    rhs <- call(alloc_fn, len)
-    if (data_info$rank > 1L) {
-      rhs <- call("array", rhs, odin_ir_generate_dim(data_info, rewrite))
-    }
+  alloc_fn <- switch(data_info$storage_type,
+                     double = "numeric",
+                     int = "integer",
+                     stop(sprintf("unsupported storage type")))
+  len <- rewrite(data_info$dimnames$length)
+  rhs <- call(alloc_fn, len)
+  if (data_info$rank > 1L) {
+    rhs <- call("array", rhs, odin_ir_generate_dim(data_info, rewrite))
   }
+  call("<-", lhs, rhs)
+}
+
+
+odin_ir_generate_expression_alloc_ring <- function(eq, data_info, dat,
+                                                   rewrite) {
+  data_info_contents <- dat$data$data[[eq$delay]]
+
+  lhs <- rewrite(eq$lhs)
+
+  ## TODO: need to get n_history into here - follow same approach as
+  ## use_dde I think
+  n_history <- 1000
+  len <- if (data_info_contents$rank == 0) 1L else stop("fixme")
+  args <- list(quote(ring::ring_buffer_bytes_typed),
+               n_history, "double", len, "overwrite")
+  rhs <- as.call(args)
+
   call("<-", lhs, rhs)
 }
 

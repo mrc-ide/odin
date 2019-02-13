@@ -689,29 +689,17 @@ ir_prep_delay_discrete1 <- function(eq, dat) {
 
   nm <- eq$name
   nm_ring <- sprintf("delay_ring_%s", nm)
-  nm_ring_alloc <- sprintf("delay_ring_%s_alloc", nm)
-
-  stage <- eq$delay$expr$total_stage
-  value_len <- eq$delay$expr$total
-  deps_ring <- find_symbols(value_len)
-
-  if (eq$lhs$data_type != "double") {
-    stop("delayed non-doubles needs work")
-  }
-
-  ## if not a double, then throw here - we'll need to patch that up
-  ## later, or just convert in and out.
 
   eq_alloc <- list(
-    name = nm_ring_alloc,
+    name = nm_ring,
     lhs = list(type = "alloc_ring", name = nm_ring,
-               data_type = "ring_buffer", length = value_len,
+               data_type = "ring_buffer",
                name_target = nm_ring),
-    rhs = list(type = "alloc"),
+    rhs = list(type = "alloc_ring"),
     for_delay = nm,
-    depends = find_symbols(value_len),
+    depends = find_symbols(eq$delay$expr$total),
     line = eq$line,
-    stage = stage)
+    stage = eq$delay$expr$total_stage)
 
   depends <- join_deps(list(find_symbols(as.name(nm_ring)),
                             find_symbols(eq$rhs$value_expr),
@@ -1044,7 +1032,6 @@ ir_data <- function(dat) {
     }
     if (identical(eq$lhs$type, "alloc_ring")) {
       dat$eqs[[i]]$name <- eq$lhs$name_target
-      dat$eqs[[i]]$rhs$type <- "lhs_ring" # don't skip over this later
     }
     is_transient <- eq$lhs$location == "internal" &&
       !identical(eq$rhs$type, "alloc") &&

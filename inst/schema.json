@@ -52,6 +52,7 @@
                 "enum": [
                     "alloc",
                     "alloc_interpolate",
+                    "alloc_ring",
                     "copy",
                     "delay_index",
                     "delay_continuous",
@@ -296,6 +297,7 @@
                         {"$ref": "#/definitions/equation_copy"},
                         {"$ref": "#/definitions/equation_alloc"},
                         {"$ref": "#/definitions/equation_alloc_interpolate"},
+                        {"$ref": "#/definitions/equation_alloc_ring"},
                         {"$ref": "#/definitions/equation_user"},
                         {"$ref": "#/definitions/equation_expression_array"},
                         {"$ref": "#/definitions/equation_expression_scalar"},
@@ -543,6 +545,22 @@
                 }
             },
             "required": ["type", "interpolate"],
+            "additionalProperties": false
+        },
+
+        "equation_alloc_ring": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "alloc_ring"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "delay": {
+                    "type": "string"
+                }
+            },
+            "required": ["type", "delay"],
             "additionalProperties": false
         },
 
