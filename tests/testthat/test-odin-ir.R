@@ -553,3 +553,20 @@ test_that("3d array time dependent and variable", {
     unname(yy[, -1]),
     matrix(rep(cmp, 24), 11))
 })
+
+
+test_that("rich user arrays", {
+  gen <- odin2({
+    initial(y[, ]) <- 1
+    deriv(y[, ]) <- y[i, j] * r[i, j]
+    dim(y) <- c(2, 3)
+    r[, ] <- user(min = 0)
+    dim(r) <- c(2, 3)
+  })
+
+  r <- matrix(runif(6), 2, 3)
+  expect_error(gen(r), NA)
+  expect_error(gen(-r), "Expected 'r' to be at least 0")
+  r[5] <- -1
+  expect_error(gen(r), "Expected 'r' to be at least 0")
+})

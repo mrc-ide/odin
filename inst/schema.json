@@ -98,6 +98,13 @@
             ]
         },
 
+        "sexpression_or_null": {
+            "oneOf": [
+                {"type": "null"},
+                {"$ref": "#/definitions/sexpression"}
+            ]
+        },
+
         "sexpression_vector": {
             "type": "array",
             "items": {
@@ -387,10 +394,7 @@
                     "$ref": "#/definitions/basic/character_vector"
                 },
                 "default": {
-                    "oneOf": [
-                        {"type": "null"},
-                        {"$ref": "#/definitions/sexpression"}
-                    ]
+                    "$ref": "#/definitions/sexpression_or_null"
                 },
                 "time": {
                     "$ref": "#/definitions/sexpression"
@@ -581,9 +585,17 @@
                                 {"type": "number"}
                             ]
                         },
-                        "dim": {"type": "boolean"}
+                        "dim": {
+                            "type": "boolean"
+                        },
+                        "min": {
+                            "$ref": "#/definitions/sexpression_or_null"
+                        },
+                        "max": {
+                            "$ref": "#/definitions/sexpression_or_null"
+                        }
                     },
-                    "required": ["default", "dim"],
+                    "required": ["default", "dim", "min", "max"],
                     "additionalProperties": false
                 }
             },

@@ -728,6 +728,10 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, rewrite) {
   user <- as.name(dat$meta$user)
   internal <- as.name(dat$meta$internal)
 
+  min <- rewrite(eq$user$min)
+  max <- rewrite(eq$user$max)
+  integer <- data_info$storage_type == "int"
+
   if (eq$user$dim) {
     len <- data_info$dimnames$length
     if (data_info$rank == 1L) {
@@ -736,18 +740,15 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, rewrite) {
       ## NOTE: passing *names* in, not rewritten expressions
       dims <- as.call(c(list(quote(c)), data_info$dimnames$dim))
     }
-    call(dat$meta$support$get_user_dim, user, internal, eq$lhs, len, dims)
+    call(dat$meta$support$get_user_dim, user, internal, eq$lhs, len, dims,
+         min, max, integer)
   } else {
     lhs <- rewrite(eq$lhs)
     rank <- data_info$rank
-    if (is.null(eq$user$default)) {
-      default <- NULL
-    } else {
-      default <- rewrite(eq$user$default)
-    }
+    default <- rewrite(eq$user$default)
     size <- odin_ir_generate_dim(data_info, rewrite)
     rhs <- call(dat$meta$support$get_user_double,
-                user, eq$lhs, internal, size, default)
+                user, eq$lhs, internal, size, default, min, max, integer)
     call("<-", lhs, rhs)
   }
 }
@@ -1079,7 +1080,8 @@ odin_ir_generate_class <- function(core, dat, env) {
 
 ## Some support functions - these are not subject to code generation
 ## at all and will be injected into the appropriate environment.
-support_get_user_double <- function(user, name, internal, size, default) {
+support_get_user_double <- function(user, name, internal, size, default,
+                                    min, max, integer) {
   value <- user[[name]]
   if (is.null(value)) {
     if (is.null(internal[[name]])) {
@@ -1112,13 +1114,26 @@ support_get_user_double <- function(user, name, internal, size, default) {
       }
     }
 
-    if (is.integer(value)) {
+    if (integer) {
+      if (!is_integer_like(value)) {
+        stop(sprintf("Expected '%s' to be integer-like", name), call. = FALSE)
+      }
+      storage.mode(value) <- "integer"
+    } else if (is.integer(value)) {
       storage.mode(value) <- "numeric"
     } else if (!is.numeric(value)) {
       stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
     }
     if (any(is.na(value))) {
       stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
+    }
+    if (!is.null(min) && any(value < min)) {
+      stop(sprintf("Expected '%s' to be at least %s", name, min),
+           call. = FALSE)
+    }
+    if (!is.null(max) && any(value > max)) {
+      stop(sprintf("Expected '%s' to be at most %s", name, max),
+           call. = FALSE)
     }
   }
   value
@@ -1145,7 +1160,8 @@ support_check_interpolate_t <- function(time, dat, tcrit) {
 
 ## This one works entirely through side effects to avoid the confusion
 ## and any ambiguity about what is set where.
-support_get_user_dim <- function(user, internal, name, len, dims) {
+support_get_user_dim <- function(user, internal, name, len, dims,
+                                 min, max, integer) {
   data <- user[[name]] %||% internal[[name]]
   if (is.null(data)) {
     stop(sprintf("Expected a value for '%s'", name), call. = FALSE)

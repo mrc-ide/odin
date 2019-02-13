@@ -998,13 +998,12 @@ ir_equation_delay_discrete <- function(eq) {
 
 
 ir_equation_user <- function(eq) {
-  if (!is.null(eq$rhs$integer) || !is.null(eq$rhs$min) ||
-      !is.null(eq$rhs$max)) {
-    stop("User details need supporting")
-  }
   user <- list(
     default = if (eq$rhs$default) ir_expression(eq$rhs$value) else NULL,
-    dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim)))
+    dim = jsonlite::unbox(isTRUE(eq$rhs$user_dim)),
+    min = ir_expression(eq$rhs$min),
+    max = ir_expression(eq$rhs$max))
+
   ir_equation_base("user", eq, user = user)
 }
 
@@ -1044,6 +1043,9 @@ ir_data <- function(dat) {
     }
     if (identical(eq$lhs$type, "alloc_ring")) {
       dat$eqs[[i]]$name <- eq$lhs$name_target
+    }
+    if (isTRUE(eq$rhs$user) && isTRUE(eq$rhs$integer)) {
+      dat$eqs[[i]]$lhs$data_type <- "int"
     }
     is_transient <- eq$lhs$location == "internal" &&
       !identical(eq$rhs$type, "alloc") &&
