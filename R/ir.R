@@ -593,7 +593,7 @@ ir_prep_delay_discrete <- function(dat) {
   j <- ir_prep_interleave_index(i, lengths(tmp, FALSE))
 
   ## This is mostly ignored for us now, so punt here:
-  traits <- dat$traits[rep(which(i), each = 3), , drop = FALSE]
+  traits <- dat$traits[rep(which(i), each = 2), , drop = FALSE]
   rownames(traits) <- names(eqs)
 
   eqs_new <- eqs[!(names(eqs) %in% names(dat$eqs))]
@@ -713,30 +713,24 @@ ir_prep_delay_discrete1 <- function(eq, dat) {
     line = eq$line,
     stage = stage)
 
-  eq_push <- list(
-    name = nm_ring,
-    lhs = list(type = "delay_discrete_push", name = nm_ring,
-               data_type = "ring_buffer"),
-    rhs = list(value = eq$rhs$value_expr),
-    depends = find_symbols(eq$rhs$value_expr),
-    line = eq$line,
-    stage = STAGE_TIME)
-
+  depends <- join_deps(list(find_symbols(as.name(nm_ring)),
+                            find_symbols(eq$rhs$value_expr),
+                            find_symbols(eq$delay$default),
+                            find_symbols(eq$delay$time)))
   eq_use <- list(
     name = nm,
-    lhs = list(type = "delay_discrete_read", name = nm,
+    lhs = list(type = "delay_discrete", name = nm,
                data_type = eq$lhs$data_type,
                nd = eq$lhs$nd),
+    rhs = list(value = eq$rhs$value_expr),
     delay = list(ring = nm_ring,
                  default = eq$delay$default,
                  time = eq$delay$time),
-    depends = join_deps(list(find_symbols(as.name(nm_ring)),
-                             find_symbols(eq$delay$default),
-                             find_symbols(eq$delay$time))),
+    depends = depends,
     line = eq$line,
     stage = STAGE_TIME)
 
-  list(alloc = eq_alloc, push = eq_push, use = eq_use)
+  list(alloc = eq_alloc, use = eq_use)
 }
 
 
@@ -848,10 +842,8 @@ ir_equation <- function(eq) {
     return(ir_equation_expression_array(eq))
   } else if (identical(eq$lhs$type, "alloc_ring")) {
     return(ir_equation_alloc_ring(eq))
-  } else if (identical(eq$lhs$type, "delay_discrete_push")) {
-    return(ir_equation_delay_discrete_push(eq))
-  } else if (identical(eq$lhs$type, "delay_discrete_read")) {
-    return(ir_equation_delay_discrete_read(eq))
+  } else if (identical(eq$lhs$type, "delay_discrete")) {
+    return(ir_equation_delay_discrete(eq))
   } else {
     stop("Unclassified type")
   }
@@ -996,17 +988,12 @@ ir_equation_alloc_ring <- function(eq) {
 }
 
 
-ir_equation_delay_discrete_push <- function(eq) {
-  rhs <- list(value = ir_expression(eq$rhs$value))
-  ir_equation_base("delay_discrete_push", eq, rhs = rhs)
-}
-
-
-ir_equation_delay_discrete_read <- function(eq) {
+ir_equation_delay_discrete <- function(eq) {
   delay <- list(ring = jsonlite::unbox(eq$delay$ring),
                 time = ir_expression(eq$delay$time),
                 default = ir_expression(eq$delay$default))
-  ir_equation_base("delay_discrete_read", eq, delay = delay)
+  rhs <- list(value = ir_expression(eq$rhs$value))
+  ir_equation_base("delay_discrete", eq, rhs = rhs, delay = delay)
 }
 
 
@@ -1055,10 +1042,13 @@ ir_data <- function(dat) {
       dat$eqs[[i]]$name <- eq$lhs$name_target
       dat$eqs[[i]]$lhs$name <- eq$lhs$name_target
     }
+    if (identical(eq$lhs$type, "alloc_ring")) {
+      dat$eqs[[i]]$name <- eq$lhs$name_target
+      dat$eqs[[i]]$rhs$type <- "lhs_ring" # don't skip over this later
+    }
     is_transient <- eq$lhs$location == "internal" &&
       !identical(eq$rhs$type, "alloc") &&
       !identical(eq$lhs$type, "delay_array") &&
-      !identical(eq$lhs$type, "delay_discrete_push") &&
       (eq$stage == STAGE_TIME && is.null(eq$lhs$nd) &&
        !identical(eq$lhs$special, "initial"))
     if (is_transient) {

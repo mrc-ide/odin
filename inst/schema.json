@@ -38,7 +38,8 @@
         "enum": {
             "storage_type": {
                 "type": "string",
-                "enum": ["double", "int", "bool", "interpolate_data"]
+                "enum": ["double", "int", "bool", "interpolate_data",
+                         "ring_buffer"]
             },
 
             "location": {
@@ -54,6 +55,7 @@
                     "copy",
                     "delay_index",
                     "delay_continuous",
+                    "delay_discrete",
                     "user",
                     "expression_array",
                     "expression_scalar"
@@ -298,7 +300,8 @@
                         {"$ref": "#/definitions/equation_expression_array"},
                         {"$ref": "#/definitions/equation_expression_scalar"},
                         {"$ref": "#/definitions/equation_delay_index"},
-                        {"$ref": "#/definitions/equation_delay_continuous"}
+                        {"$ref": "#/definitions/equation_delay_continuous"},
+                        {"$ref": "#/definitions/equation_delay_discrete"}
                     ]
                 }
             ]
@@ -587,7 +590,45 @@
                     "$ref": "#/definitions/equation_delay_data"
                 }
             },
-            "required": ["type", "rhs"],
+            "required": ["type", "rhs", "delay"],
+            "additionalProperties": false
+        },
+
+        "equation_delay_discrete": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "delay_discrete"
+                },
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {
+                    "TODO": "rename this if it holds true",
+                    "$ref": "#/definitions/equation_rhs_delay_continuous"
+                },
+                "delay": {
+                    "type": "object",
+                    "properties": {
+                        "ring": {
+                            "type": "string"
+                        },
+                        "default": {
+                            "oneOf": [
+                                {"type": "null"},
+                                {"$ref": "#/definitions/sexpression"}
+                            ]
+                        },
+                        "time": {
+                            "$ref": "#/definitions/sexpression"
+                        }
+                    },
+                    "required": ["ring", "default", "time"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["type", "rhs", "delay"],
             "additionalProperties": false
         },
 
