@@ -61,7 +61,6 @@ test_that("delays: scalar expression", {
 })
 
 test_that("delays: vector variable", {
-  skip("discrete delays")
   gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -87,7 +86,6 @@ test_that("delays: vector variable", {
 })
 
 test_that("delays: vector expression", {
-  skip("discrete delays")
   gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])

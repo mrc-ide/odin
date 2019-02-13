@@ -683,10 +683,6 @@ ir_prep_delay_continuous1 <- function(eq, dat) {
 
 
 ir_prep_delay_discrete1 <- function(eq, dat) {
-  if (!is.null(eq$lhs$nd)) {
-    browser()
-  }
-
   nm <- eq$name
   nm_ring <- sprintf("delay_ring_%s", nm)
 
@@ -981,6 +977,22 @@ ir_equation_delay_discrete <- function(eq) {
                 time = ir_expression(eq$delay$time),
                 default = ir_expression(eq$delay$default))
   rhs <- list(value = ir_expression(eq$rhs$value))
+
+  if (!is.null(eq$lhs$nd) && eq$lhs$nd > 0) {
+    index1 <- function(i) {
+      if (eq$lhs$nd == 1L) {
+        len <- list(jsonlite::unbox("length"), jsonlite::unbox(eq$name))
+      } else {
+        len <- list(jsonlite::unbox("dim"), jsonlite::unbox(eq$name),
+                    jsonlite::unbox(i))
+      }
+      list(value = list(jsonlite::unbox(":"), jsonlite::unbox(1), len),
+           is_range = jsonlite::unbox(TRUE),
+           index = jsonlite::unbox(INDEX[[i]]))
+    }
+    rhs$index <- lapply(seq_len(eq$lhs$nd), index1)
+  }
+
   ir_equation_base("delay_discrete", eq, rhs = rhs, delay = delay)
 }
 

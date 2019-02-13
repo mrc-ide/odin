@@ -654,7 +654,11 @@ odin_ir_generate_expression_alloc_ring <- function(eq, data_info, dat,
   ## TODO: need to get n_history into here - follow same approach as
   ## use_dde I think
   n_history <- 1000
-  len <- if (data_info_contents$rank == 0) 1L else stop("fixme")
+  if (data_info_contents$rank == 0L) {
+    len <- 1L
+  } else {
+    len <- rewrite(data_info_contents$dimnames$length)
+  }
   args <- list(quote(ring::ring_buffer_bytes_typed),
                n_history, "double", len, "overwrite")
   rhs <- as.call(args)
@@ -851,13 +855,26 @@ odin_ir_generate_expression_delay_discrete <- function(eq, data_info, dat,
                                                        rewrite) {
   ring <- rewrite(eq$delay$ring)
   lhs <- rewrite(eq$lhs)
-  push <- as.call(list(call("$", ring, quote(push)), rewrite(eq$rhs$value)))
+  if (data_info$rank == 0L) {
+    push <- as.call(list(call("$", ring, quote(push)), rewrite(eq$rhs$value)))
+  } else {
+    ## The "best" scratch space here will vary - in the C version
+    ## we'll use the head directly, then later on swap a const pointer
+    ## in for the data.
+    index <- lapply(eq$rhs$index, function(x) as.name(x$index))
+    lhs_i <- as.call(c(list(quote(`[`), rewrite(eq$lhs)), index))
+    push <- expr_local(list(
+      odin_ir_generate_expression_array_rhs(
+        eq$rhs$value, eq$rhs$index, lhs_i, rewrite),
+      as.call(list(call("$", ring, quote(push)), lhs))))
+  }
   read <- call("<-", lhs,
                as.call(list(call("$", ring, quote(head_offset)),
                             rewrite(eq$delay$time))))
   if (is.null(eq$delay$default)) {
     default <- call("<-", lhs, as.call(list(call("$", ring, quote(tail)))))
   } else {
+    ## Be careful here especially with array expressions.
     stop("writeme")
   }
 
