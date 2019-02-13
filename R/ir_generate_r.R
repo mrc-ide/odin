@@ -334,12 +334,17 @@ odin_ir_generate_set_initial <- function(dat, env, rewrite) {
            extract_variable(x, dat$data$data, as.name(dat$meta$state),
                             rewrite)))))
   set_t <- call("<-", rewrite(dat$meta$initial_time), as.name(dat$meta$time))
-  set_use_dde <- call("<-", rewrite(dat$meta$use_dde),
-                      as.name(dat$meta$use_dde))
-  body <- list(set_y, set_t, set_use_dde)
+
+  body <- list(set_y, set_t)
   args <- set_names(
-    alist(, , , ),
-    c(dat$meta$time, dat$meta$state, dat$meta$use_dde, dat$meta$internal))
+    alist(, , ),
+    c(dat$meta$time, dat$meta$state, dat$meta$internal))
+
+  if (!dat$features$discrete) {
+    args <- c(args, set_names(alist(x = ), dat$meta$use_dde))
+    body <- c(body, list(call("<-", rewrite(dat$meta$use_dde),
+                              as.name(dat$meta$use_dde))))
+  }
 
   as_function(args, expr_block(body), env)
 }
@@ -380,8 +385,12 @@ odin_ir_generate_run <- function(dat, env, rewrite) {
   t0 <- call("[[", as.name(dat$meta$time), 1L)
 
   if (dat$features$has_delay) {
-    set_initial <- call("set_initial", t0, as.name(dat$meta$state), use_dde,
+    set_initial <- list(quote(set_initial), t0, as.name(dat$meta$state),
                         as.name(dat$meta$internal))
+    if (!dat$features$discrete) {
+      set_initial <- c(set_initial, list(use_dde))
+    }
+    set_initial <- as.call(set_initial)
   } else {
     set_initial <- NULL
   }
@@ -473,6 +482,7 @@ odin_ir_generate_expression <- function(eq, dat, rewrite) {
     expression_array = odin_ir_generate_expression_array,
     delay_index = odin_ir_generate_expression_delay_index,
     delay_continuous = odin_ir_generate_expression_delay_continuous,
+    delay_discrete = odin_ir_generate_expression_delay_discrete,
     stop("Unknown type"))
 
   data_info <- dat$data$data[[eq$lhs]]
@@ -621,14 +631,24 @@ odin_ir_generate_expression_array_rhs <- function(value, index, lhs, rewrite) {
 
 odin_ir_generate_expression_alloc <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
-  alloc_fn <- switch(data_info$storage_type,
-                     double = "numeric",
-                     int = "integer",
-                     stop(sprintf("unsupported storage type")))
-  len <- rewrite(data_info$dimnames$length)
-  rhs <- call(alloc_fn, len)
-  if (data_info$rank > 1L) {
-    rhs <- call("array", rhs, odin_ir_generate_dim(data_info, rewrite))
+  if (data_info$storage_type == "ring_buffer") {
+    ## TODO: need to get n_history into here - follow same approach as
+    ## use_dde I think
+    n_history <- 1000
+    len <- if (data_info$rank == 0) 1L else stop("fixme")
+    args <- list(quote(ring::ring_buffer_bytes_typed),
+                 n_history, "double", len, "overwrite")
+    rhs <- as.call(args)
+  } else {
+    alloc_fn <- switch(data_info$storage_type,
+                       double = "numeric",
+                       int = "integer",
+                       stop(sprintf("unsupported storage type")))
+    len <- rewrite(data_info$dimnames$length)
+    rhs <- call(alloc_fn, len)
+    if (data_info$rank > 1L) {
+      rhs <- call("array", rhs, odin_ir_generate_dim(data_info, rewrite))
+    }
   }
   call("<-", lhs, rhs)
 }
@@ -815,6 +835,29 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
   }
 
   ret
+}
+
+
+odin_ir_generate_expression_delay_discrete <- function(eq, data_info, dat,
+                                                       rewrite) {
+  ring <- rewrite(eq$delay$ring)
+  lhs <- rewrite(eq$lhs)
+  push <- as.call(list(call("$", ring, quote(push)), rewrite(eq$rhs$value)))
+  read <- call("<-", lhs,
+               as.call(list(call("$", ring, quote(head_offset)),
+                            rewrite(eq$delay$time))))
+  if (is.null(eq$delay$default)) {
+    default <- call("<-", lhs, as.call(list(call("$", ring, quote(tail)))))
+  } else {
+    stop("writeme")
+  }
+
+  time_check <- call(
+    "<",
+    call("(", call("-", rewrite(dat$meta$time), rewrite(eq$delay$time))),
+    rewrite(dat$meta$initial_time))
+
+  list(push, expr_if(time_check, default, read))
 }
 
 

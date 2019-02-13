@@ -1,5 +1,4 @@
 test_that("delays", {
-  skip("discrete delays")
   gen <- odin2({
     initial(y) <- 1
     update(y) <- y + yprev
@@ -7,7 +6,6 @@ test_that("delays", {
   }, verbose = TEST_VERBOSE)
 
   mod <- gen()
-  expect_null(mod$update) # no update function in a delay model
 
   tt <- seq(0:10)
   yy <- mod$run(tt)
@@ -17,7 +15,6 @@ test_that("delays", {
 ## This also catches a corner case in the inclusion of sum() in the
 ## headers.
 test_that("delays: scalar variable", {
-  skip("discrete delays")
   gen <- odin2({
     r <- 3.6
     update(y) <- r * y * (1 - y)
@@ -40,7 +37,6 @@ test_that("delays: scalar variable", {
 })
 
 test_that("delays: scalar expression", {
-  skip("discrete delays")
   gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -118,7 +114,6 @@ test_that("delays: vector expression", {
 })
 
 test_that("delay vars that depend on time", {
-  skip("discrete delays")
   gen <- odin2({
     initial(x) <- 0
     update(x) <- x + v
