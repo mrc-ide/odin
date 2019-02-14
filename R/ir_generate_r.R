@@ -869,11 +869,21 @@ odin_ir_generate_expression_delay_discrete <- function(eq, data_info, dat,
         eq$rhs$value, eq$rhs$index, lhs_i, rewrite),
       as.call(list(call("$", ring, quote(push)), lhs))))
   }
-  read <- call("<-", lhs,
-               as.call(list(call("$", ring, quote(head_offset)),
-                            rewrite(eq$delay$time))))
+
+  dim <- odin_ir_generate_dim(data_info, rewrite)
+  read_rhs <- as.call(list(call("$", ring, quote(head_offset)),
+                             rewrite(eq$delay$time)))
+  if (data_info$rank > 1L) {
+    read_rhs <- call("array", read_rhs, dim)
+  }
+  read <- call("<-", lhs, read_rhs)
+
   if (is.null(eq$delay$default)) {
-    default <- call("<-", lhs, as.call(list(call("$", ring, quote(tail)))))
+    default_rhs <- call("<-", lhs, as.call(list(call("$", ring, quote(tail)))))
+    if (data_info$rank > 1L) {
+      default_rhs <- call("array", default_rhs, dim)
+    }
+    default <- call("<-", lhs, default_rhs)
   } else {
     ## Be careful here especially with array expressions.
     stop("writeme")

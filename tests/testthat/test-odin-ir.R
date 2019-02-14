@@ -588,3 +588,26 @@ test_that("rich user sized arrays", {
   r[5] <- -1
   expect_error(gen(r), "Expected 'r' to be at least 0")
 })
+
+
+test_that("discrete delays: matrix", {
+  gen <- odin2({
+    initial(y[, ]) <- 1
+    update(y[, ]) <- y[i, j] + 1
+
+    initial(z[, ]) <- 1
+    update(z[, ]) <- a[i, j]
+
+    a[, ] <- delay(y[i, j], 2)
+    dim(y) <- c(2, 3)
+    dim(z) <- c(2, 3)
+    dim(a) <- c(2, 3)
+  })
+
+  mod <- gen()
+  tt <- 0:10
+  yy <- mod$run(tt)
+  zz <- mod$transform_variables(yy)
+  expect_equal(zz$z[1:3, ,], array(1, c(3, 2, 3)))
+  expect_equal(zz$z[4:11, , ], zz$y[1:8, , ])
+})
