@@ -180,7 +180,7 @@
         "data": {
             "type": "object",
             "properties": {
-                "data": {
+                "elements": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/data_element"
@@ -193,7 +193,7 @@
                     "$ref": "#/definitions/data_output"
                 }
             },
-            "required": ["data", "variable", "output"],
+            "required": ["elements", "variable", "output"],
             "additionalProperties": false
         },
 

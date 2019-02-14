@@ -43,11 +43,11 @@ odin_ir_generate <- function(ir, validate = TRUE) {
     ## We're going to need an additional bit of internal data here,
     ## but this sits outside the core odin ir
     dat$meta$use_dde <- "odin_use_dde"
-    dat$data$data[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
-                                              location = "internal",
-                                              storage_type = "boolean",
-                                              rank = 0L,
-                                              dimnames = NULL)
+    dat$data$elements[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
+                                                  location = "internal",
+                                                  storage_type = "boolean",
+                                                  rank = 0L,
+                                                  dimnames = NULL)
   }
 
   dat$meta$support <-
@@ -127,7 +127,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, rewrite) {
 
   ## Assign into the state vector
   f <- function(x) {
-    d <- dat$data$data[[x$name]]
+    d <- dat$data$elements[[x$name]]
     if (d$rank == 0L) {
       target <- call("[[", state, offset_to_position(x$offset))
     } else {
@@ -184,7 +184,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
   ## NOTE: this is really similar to code in ic but that goes the
   ## other way, into the state vector.
   f <- function(x) {
-    d <- dat$data$data[[x$name]]
+    d <- dat$data$elements[[x$name]]
     state <- as.name(dat$meta$state)
     if (d$rank == 0L) {
       extract <- call("[[", state, offset_to_position(x$offset))
@@ -248,7 +248,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
 
 odin_ir_generate_metadata <- function(dat, rewrite) {
   ord <- function(location) {
-    contents <- dat$data$data[names(dat$data[[location]]$contents)]
+    contents <- dat$data$elements[names(dat$data[[location]]$contents)]
     len <- lapply(contents, odin_ir_generate_dim, rewrite)
     as.call(c(list(quote(list)), len))
   }
@@ -331,7 +331,7 @@ odin_ir_generate_set_initial <- function(dat, env, rewrite) {
     "if", call("!", call("is.null", as.name(dat$meta$state))),
     expr_block(lapply(dat$data$variable$contents, function(x)
       call("<-", rewrite(x$initial),
-           extract_variable(x, dat$data$data, as.name(dat$meta$state),
+           extract_variable(x, dat$data$elements, as.name(dat$meta$state),
                             rewrite)))))
   set_t <- call("<-", rewrite(dat$meta$initial_time), as.name(dat$meta$time))
 
@@ -486,7 +486,7 @@ odin_ir_generate_expression <- function(eq, dat, rewrite) {
     delay_discrete = odin_ir_generate_expression_delay_discrete,
     stop("Unknown type"))
 
-  data_info <- dat$data$data[[eq$lhs]]
+  data_info <- dat$data$elements[[eq$lhs]]
   stopifnot(!is.null(data_info))
 
   f(eq, data_info, dat, rewrite)
@@ -503,9 +503,9 @@ sexp_to_rexp <- function(x, data, meta) {
     fn <- x[[1L]]
     args <- x[-1L]
     if (fn == "length") {
-      sexp_to_rexp(data$data[[args[[1L]]]]$dimnames$length, data, meta)
+      sexp_to_rexp(data$elements[[args[[1L]]]]$dimnames$length, data, meta)
     } else if (fn == "dim") {
-      nm <- data$data[[args[[1L]]]]$dimnames$dim[[args[[2L]]]]
+      nm <- data$elements[[args[[1L]]]]$dimnames$dim[[args[[2L]]]]
       sexp_to_rexp(nm, data, meta)
     } else if (fn == "interpolate") {
       as.call(list(sexp_to_rexp(args[[1L]], data, meta), as.name(meta$time)))
@@ -528,7 +528,7 @@ sexp_to_rexp <- function(x, data, meta) {
       as.call(c(list(as.name(fn)), args))
     }
   } else if (is.character(x)) {
-    location <- data$data[[x]]$location
+    location <- data$elements[[x]]$location
     if (!is.null(location) && location == "internal") {
       call("[[", as.name(meta$internal), x)
     } else {
@@ -647,7 +647,7 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, dat, rewrite) {
 
 odin_ir_generate_expression_alloc_ring <- function(eq, data_info, dat,
                                                    rewrite) {
-  data_info_contents <- dat$data$data[[eq$delay]]
+  data_info_contents <- dat$data$elements[[eq$delay]]
 
   lhs <- rewrite(eq$lhs)
 
@@ -675,9 +675,9 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
   name_arg <- eq$interpolate$y
 
   data <- dat$data
-  data_info_target <- data$data[[name_target]]
-  data_info_t <- data$data[[eq$interpolate$t]]
-  data_info_arg <- data$data[[eq$interpolate$y]]
+  data_info_target <- data$elements[[name_target]]
+  data_info_t <- data$elements[[eq$interpolate$t]]
+  data_info_arg <- data$elements[[eq$interpolate$y]]
 
   dim_arg <- odin_ir_generate_dim(data_info_arg, rewrite)
 
@@ -763,7 +763,7 @@ odin_ir_generate_expression_delay_index <- function(eq, data_info, dat,
   alloc <- call("<-", lhs, call("integer", rewrite(delay$variables$length)))
 
   index1 <- function(v) {
-    d <- dat$data$data[[v$name]]
+    d <- dat$data$elements[[v$name]]
     offset <- dat$data$variable$contents[[v$name]]$offset
     if (d$rank == 0L) {
       call("<-",
@@ -798,7 +798,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     call("<-", state, as.call(c(quote(dde::ylag), time, index))),
     call("<-", state, as.call(c(quote(deSolve::lagvalue), time, index))))
   unpack_vars <- lapply(delay$variables$contents,
-                        unpack_variable, dat$data$data, state, rewrite)
+                        unpack_variable, dat$data$elements, state, rewrite)
 
   eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
   eqs <- flatten_eqs(lapply(eqs_src, odin_ir_generate_expression,

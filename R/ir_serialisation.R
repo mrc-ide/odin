@@ -10,10 +10,10 @@ ir_deserialise <- function(ir) {
   dat$components <- lapply(dat$components, lapply, list_to_character)
 
   if (dat$features$has_array) {
-    dat$data$data <- lapply(dat$data$data, ir_deserialise_data_dimnames)
+    dat$data$elements <- lapply(dat$data$elements, ir_deserialise_data_dimnames)
   }
 
-  names(dat$data$data) <- vcapply(dat$data$data, "[[", "name")
+  names(dat$data$elements) <- vcapply(dat$data$elements, "[[", "name")
   names(dat$data$variable$contents) <-
     vcapply(dat$data$variable$contents, "[[", "name")
   names(dat$data$output$contents) <-
