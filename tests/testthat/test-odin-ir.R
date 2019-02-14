@@ -570,3 +570,21 @@ test_that("rich user arrays", {
   r[5] <- -1
   expect_error(gen(r), "Expected 'r' to be at least 0")
 })
+
+
+test_that("rich user sized arrays", {
+  gen <- odin2({
+    initial(y[, ]) <- 1
+    deriv(y[, ]) <- y[i, j] * r[i, j]
+    dim(y) <- c(2, 3)
+    r[, ] <- user(min = 0)
+    dim(r) <- user()
+  })
+
+  r <- matrix(runif(6), 2, 3)
+
+  expect_error(gen(r), NA)
+  expect_error(gen(-r), "Expected 'r' to be at least 0")
+  r[5] <- -1
+  expect_error(gen(r), "Expected 'r' to be at least 0")
+})

@@ -293,6 +293,23 @@ ir_prep_dim_user <- function(nm, dat) {
     expr_str = eq$expr_str,
     line = eq$line,
     stage = eq$stage)
+
+  if (eq$rhs$user_dim) {
+    ## Looks like this never worked for main odin:
+    m <- match.call(function(integer, min, max, ...) NULL,
+                    eq$expr[[1]][[3]], FALSE)
+    extra <- m[["..."]]
+    if (!is.null(extra)) {
+      odin_error(sprintf("Unknown %s to user(): %s",
+                         ngettext(length(extra), "argument", "arguments"),
+                         paste(dquote(names(extra))), collapse = ", "),
+                 eq$line, eq$expr[[1]])
+    }
+    eq$rhs$integer <- m$integer
+    eq$rhs$min <- m$min
+    eq$rhs$max <- m$max
+  }
+
   dat$eqs[[nm]] <- eq
 
   nm_dim <- array_dim_name(nm)

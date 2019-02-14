@@ -1097,6 +1097,7 @@ support_get_user_double <- function(user, name, internal, size, default,
       value <- internal[[name]]
     }
   } else {
+    value <- support_coerce_mode(value, integer, min, max, name)
     d <- dim(value)
     if (is.null(size)) {
       if (length(value) != 1L || !is.null(d)) {
@@ -1112,28 +1113,6 @@ support_get_user_double <- function(user, name, internal, size, default,
         stop(sprintf("Expected a numeric array with dimensions %s for '%s'",
                      paste(size, collapse = " * "), name), call. = FALSE)
       }
-    }
-
-    if (integer) {
-      if (!is_integer_like(value)) {
-        stop(sprintf("Expected '%s' to be integer-like", name), call. = FALSE)
-      }
-      storage.mode(value) <- "integer"
-    } else if (is.integer(value)) {
-      storage.mode(value) <- "numeric"
-    } else if (!is.numeric(value)) {
-      stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
-    }
-    if (any(is.na(value))) {
-      stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
-    }
-    if (!is.null(min) && any(value < min)) {
-      stop(sprintf("Expected '%s' to be at least %s", name, min),
-           call. = FALSE)
-    }
-    if (!is.null(max) && any(value > max)) {
-      stop(sprintf("Expected '%s' to be at most %s", name, max),
-           call. = FALSE)
     }
   }
   value
@@ -1162,19 +1141,16 @@ support_check_interpolate_t <- function(time, dat, tcrit) {
 ## and any ambiguity about what is set where.
 support_get_user_dim <- function(user, internal, name, len, dims,
                                  min, max, integer) {
-  data <- user[[name]] %||% internal[[name]]
-  if (is.null(data)) {
+  value <- user[[name]]
+  if (is.null(value) && !is.null(internal[[name]])) {
+    ## Leave previous value alone:
+    return()
+  }
+  if (is.null(value)) {
     stop(sprintf("Expected a value for '%s'", name), call. = FALSE)
   }
-  if (is.integer(data)) {
-    storage.mode(data) <- "numeric"
-  } else if (!is.numeric(data)) {
-    stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
-  }
-  if (any(is.na(data))) {
-    stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
-  }
-  d <- dim(data)
+  value <- support_coerce_mode(value, integer, min, max, name)
+  d <- dim(value)
   if (is.null(dims)) {
     if (!is.null(d)) {
       stop(sprintf("Expected a numeric vector for '%s'", name),
@@ -1190,8 +1166,8 @@ support_get_user_dim <- function(user, internal, name, len, dims,
       internal[[dims[[i]]]] <- d[[i]]
     }
   }
-  internal[[len]] <- length(data)
-  internal[[name]] <- data
+  internal[[len]] <- length(value)
+  internal[[name]] <- value
 }
 
 
@@ -1327,4 +1303,31 @@ ir_substitute_sexpr <- function(expr, substitutions) {
   } else {
     expr
   }
+}
+
+
+support_coerce_mode <- function(value, integer, min, max, name) {
+  if (integer) {
+    if (!is_integer_like(value)) {
+      stop(sprintf("Expected '%s' to be integer-like", name), call. = FALSE)
+    }
+    storage.mode(value) <- "integer"
+  } else if (is.integer(value)) {
+    storage.mode(value) <- "numeric"
+  } else if (!is.numeric(value)) {
+    stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
+  }
+  if (any(is.na(value))) {
+    stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)
+  }
+  if (!is.null(min) && any(value < min)) {
+    stop(sprintf("Expected '%s' to be at least %s", name, min),
+         call. = FALSE)
+  }
+  if (!is.null(max) && any(value > max)) {
+    stop(sprintf("Expected '%s' to be at most %s", name, max),
+         call. = FALSE)
+  }
+
+  value
 }
