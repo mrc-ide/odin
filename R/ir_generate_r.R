@@ -1,9 +1,4 @@
-## TODO: this needs a bunch of naming work - currently the prefix here
-## is "odin_ir_generate" but this is "ir -> r" - we'll have "ir -> c"
-## and eventually "ir -> js" here so we'll probably move to something
-## like "gen_<target>_xxx" once this is working properly
-
-odin_ir_generate_r <- function(dat, validate = TRUE) {
+generate_r <- function(dat) {
   ## Pull this out into something generally useful
   features_supported <- c("has_user", "has_output", "discrete", "has_array",
                           "has_interpolate", "has_stochastic", "has_delay",
@@ -33,10 +28,10 @@ odin_ir_generate_r <- function(dat, validate = TRUE) {
 
   ## This is our little rewriter - we'll tidy this up later
   rewrite <- function(x) {
-    sexp_to_rexp(x, dat$data, dat$meta)
+    generate_r_sexp(x, dat$data, dat$meta)
   }
 
-  eqs <- odin_ir_generate_expressions(dat, rewrite)
+  eqs <- generate_r_expressions(dat, rewrite)
 
   ## Then start putting together the initial conditions
   env <- new.env(parent = odin_base_env())
@@ -51,29 +46,29 @@ odin_ir_generate_r <- function(dat, validate = TRUE) {
     env[[dat$meta$support$check_interpolate_t]] <- support_check_interpolate_t
   }
 
-  core <- odin_ir_generate_core(eqs, dat, env, rewrite)
-  odin_ir_generate_class(core, dat, env)
+  core <- generate_r_core(eqs, dat, env, rewrite)
+  generate_r_class(core, dat, env)
 }
 
 
-odin_ir_generate_core <- function(eqs, dat, env, rewrite) {
+generate_r_core <- function(eqs, dat, env, rewrite) {
   core <- list(
-    create = odin_ir_generate_create(eqs, dat, env),
-    ic = odin_ir_generate_ic(eqs, dat, env, rewrite),
-    set_user = odin_ir_generate_set_user(eqs, dat, env),
-    rhs_desolve = odin_ir_generate_rhs(eqs, dat, env, rewrite, "desolve"),
-    rhs_dde = odin_ir_generate_rhs(eqs, dat, env, rewrite, "dde"),
-    output = odin_ir_generate_rhs(eqs, dat, env, rewrite,"output"),
-    interpolate_t = odin_ir_generate_interpolate_t(dat, env, rewrite),
-    set_initial = odin_ir_generate_set_initial(dat, env, rewrite),
-    run = odin_ir_generate_run(dat, env, rewrite),
-    metadata = odin_ir_generate_metadata(dat, rewrite))
+    create = generate_r_create(eqs, dat, env),
+    ic = generate_r_ic(eqs, dat, env, rewrite),
+    set_user = generate_r_set_user(eqs, dat, env),
+    rhs_desolve = generate_r_rhs(eqs, dat, env, rewrite, "desolve"),
+    rhs_dde = generate_r_rhs(eqs, dat, env, rewrite, "dde"),
+    output = generate_r_rhs(eqs, dat, env, rewrite,"output"),
+    interpolate_t = generate_r_interpolate_t(dat, env, rewrite),
+    set_initial = generate_r_set_initial(dat, env, rewrite),
+    run = generate_r_run(dat, env, rewrite),
+    metadata = generate_r_metadata(dat, rewrite))
   list2env(core, env)
   core
 }
 
 
-odin_ir_generate_create <- function(eqs, dat, env) {
+generate_r_create <- function(eqs, dat, env) {
   alloc <- call("<-", as.name(dat$meta$internal),
                 quote(new.env(parent = emptyenv())))
   eqs_create <- flatten_eqs(eqs[dat$components$create$equations])
@@ -84,7 +79,7 @@ odin_ir_generate_create <- function(eqs, dat, env) {
 
 
 ## TODO: 'ic' ==> 'initial'
-odin_ir_generate_ic <- function(eqs, dat, env, rewrite) {
+generate_r_ic <- function(eqs, dat, env, rewrite) {
   ## Equations to run before initial conditions are computed:
   eqs_initial <- flatten_eqs(eqs[dat$components$initial$equations])
 
@@ -123,7 +118,7 @@ odin_ir_generate_ic <- function(eqs, dat, env, rewrite) {
 }
 
 
-odin_ir_generate_set_user <- function(eqs, dat, env) {
+generate_r_set_user <- function(eqs, dat, env) {
   eqs_user <- flatten_eqs(eqs[dat$components$user$equations])
   args <- alist(user =, internal =)
   names(args)[[1]] <- dat$meta$user
@@ -133,7 +128,7 @@ odin_ir_generate_set_user <- function(eqs, dat, env) {
 }
 
 
-odin_ir_generate_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
+generate_r_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
   discrete <- dat$features$discrete
   has_output <- dat$features$has_output
 
@@ -167,7 +162,7 @@ odin_ir_generate_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
       seq <- call("seq_len", rewrite(d$dimnames$length))
       extract <- call("[", state, call("+", rewrite(x$offset), seq))
       if (d$rank > 1L) {
-        extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
+        extract <- call("array", extract, generate_r_dim(d, rewrite))
       }
     }
     call("<-", as.name(x$name), extract)
@@ -221,10 +216,10 @@ odin_ir_generate_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
 }
 
 
-odin_ir_generate_metadata <- function(dat, rewrite) {
+generate_r_metadata <- function(dat, rewrite) {
   ord <- function(location) {
     contents <- dat$data$elements[names(dat$data[[location]]$contents)]
-    len <- lapply(contents, odin_ir_generate_dim, rewrite)
+    len <- lapply(contents, generate_r_dim, rewrite)
     as.call(c(list(quote(list)), len))
   }
 
@@ -256,7 +251,7 @@ odin_ir_generate_metadata <- function(dat, rewrite) {
 }
 
 
-odin_ir_generate_interpolate_t <- function(dat, env, rewrite) {
+generate_r_interpolate_t <- function(dat, env, rewrite) {
   if (!dat$features$has_interpolate) {
     return(function(...) NULL)
   }
@@ -297,7 +292,7 @@ odin_ir_generate_interpolate_t <- function(dat, env, rewrite) {
 }
 
 
-odin_ir_generate_set_initial <- function(dat, env, rewrite) {
+generate_r_set_initial <- function(dat, env, rewrite) {
   if (!dat$features$has_delay) {
     return(function(...) NULL)
   }
@@ -328,7 +323,7 @@ odin_ir_generate_set_initial <- function(dat, env, rewrite) {
 ## Thos feels pretty messy, but I think we can clean it up later.
 ## It's quite likely that we'd be better off with two separate
 ## generators - one for discrete and one for continuous models.
-odin_ir_generate_run <- function(dat, env, rewrite) {
+generate_r_run <- function(dat, env, rewrite) {
   args <- alist(data =, t =, y = , n_out =, ynames =, ...=,
                   ## These are only used in some cases!
                   interpolate_t =)
@@ -446,19 +441,19 @@ odin_ir_generate_run <- function(dat, env, rewrite) {
 
 
 ## TODO: this should be generate_equation I think
-odin_ir_generate_expression <- function(eq, dat, rewrite) {
+generate_r_expression <- function(eq, dat, rewrite) {
   f <- switch(
     eq$type,
-    alloc = odin_ir_generate_expression_alloc,
-    alloc_interpolate = odin_ir_generate_expression_alloc_interpolate,
-    alloc_ring = odin_ir_generate_expression_alloc_ring,
-    copy = odin_ir_generate_expression_copy,
-    user = odin_ir_generate_expression_user,
-    expression_scalar = odin_ir_generate_expression_scalar,
-    expression_array = odin_ir_generate_expression_array,
-    delay_index = odin_ir_generate_expression_delay_index,
-    delay_continuous = odin_ir_generate_expression_delay_continuous,
-    delay_discrete = odin_ir_generate_expression_delay_discrete,
+    alloc = generate_r_expression_alloc,
+    alloc_interpolate = generate_r_expression_alloc_interpolate,
+    alloc_ring = generate_r_expression_alloc_ring,
+    copy = generate_r_expression_copy,
+    user = generate_r_expression_user,
+    expression_scalar = generate_r_expression_scalar,
+    expression_array = generate_r_expression_array,
+    delay_index = generate_r_expression_delay_index,
+    delay_continuous = generate_r_expression_delay_continuous,
+    delay_discrete = generate_r_expression_delay_discrete,
     stop("Unknown type"))
 
   data_info <- dat$data$elements[[eq$lhs]]
@@ -468,24 +463,27 @@ odin_ir_generate_expression <- function(eq, dat, rewrite) {
 }
 
 
-odin_ir_generate_expressions <- function(dat, rewrite) {
-  lapply(dat$equations, odin_ir_generate_expression, dat, rewrite)
+generate_r_expressions <- function(dat, rewrite) {
+  lapply(dat$equations, generate_r_expression, dat, rewrite)
 }
 
 
-sexp_to_rexp <- function(x, data, meta) {
+generate_r_sexp <- function(x, data, meta) {
   if (is.recursive(x)) {
     fn <- x[[1L]]
     args <- x[-1L]
     if (fn == "length") {
-      sexp_to_rexp(data$elements[[args[[1L]]]]$dimnames$length, data, meta)
+      generate_r_sexp(data$elements[[args[[1L]]]]$dimnames$length,
+                      data, meta)
     } else if (fn == "dim") {
       nm <- data$elements[[args[[1L]]]]$dimnames$dim[[args[[2L]]]]
-      sexp_to_rexp(nm, data, meta)
+      generate_r_sexp(nm, data, meta)
     } else if (fn == "interpolate") {
-      as.call(list(sexp_to_rexp(args[[1L]], data, meta), as.name(meta$time)))
+      as.call(list(generate_r_sexp(args[[1L]], data, meta),
+                   as.name(meta$time)))
     } else if (fn == "odin_sum") {
-      sexp_to_rexp_sum(lapply(args, sexp_to_rexp, data, meta))
+      generate_r_sexp_sum(lapply(args, generate_r_sexp,
+                                 data, meta))
     } else if (fn == "norm_rand") {
       quote(rnorm(1L))
     } else if (fn == "unif_rand") {
@@ -493,7 +491,7 @@ sexp_to_rexp <- function(x, data, meta) {
     } else if (fn == "exp_rand") {
       quote(rexp(1L))
     } else {
-      args <- lapply(args, sexp_to_rexp, data, meta)
+      args <- lapply(args, generate_r_sexp, data, meta)
       if (fn %in% names(FUNCTIONS_STOCHASTIC)) {
         args <- c(list(1L), args)
       }
@@ -517,7 +515,7 @@ sexp_to_rexp <- function(x, data, meta) {
 }
 
 
-sexp_to_rexp_sum <- function(args) {
+generate_r_sexp_sum <- function(args) {
   f <- function(a, b) {
     if (identical(a, b)) a else call("seq.int", a, b, by = 1L)
   }
@@ -527,7 +525,7 @@ sexp_to_rexp_sum <- function(args) {
 }
 
 
-odin_ir_generate_expression_scalar <- function(eq, data_info, dat, rewrite) {
+generate_r_expression_scalar <- function(eq, data_info, dat, rewrite) {
   location <- data_info$location
 
   if (location == "internal" || location == "transient") {
@@ -543,10 +541,10 @@ odin_ir_generate_expression_scalar <- function(eq, data_info, dat, rewrite) {
 }
 
 
-odin_ir_generate_expression_array <- function(eq, data_info, dat, rewrite) {
-  lhs <- odin_ir_generate_expression_array_lhs(eq, data_info, dat, rewrite)
+generate_r_expression_array <- function(eq, data_info, dat, rewrite) {
+  lhs <- generate_r_expression_array_lhs(eq, data_info, dat, rewrite)
   lapply(eq$rhs, function(x)
-    odin_ir_generate_expression_array_rhs(x$value, x$index, lhs, rewrite))
+    generate_r_expression_array_rhs(x$value, x$index, lhs, rewrite))
 }
 
 
@@ -559,8 +557,8 @@ odin_ir_generate_expression_array <- function(eq, data_info, dat, rewrite) {
 ##   STORAGE->NAME[f(i, j)]
 ## and
 ##   STORAGE[OFFSET + f(i, j)]
-odin_ir_generate_expression_array_lhs <- function(eq, data_info, dat,
-                                                  rewrite) {
+generate_r_expression_array_lhs <- function(eq, data_info, dat,
+                                            rewrite) {
   ## All the rhs have the same structure so we can use any of them
   ## here - we need only to get the index element out
   index <- lapply(eq$rhs[[1]]$index, function(x) as.name(x$index))
@@ -587,7 +585,8 @@ odin_ir_generate_expression_array_lhs <- function(eq, data_info, dat,
 }
 
 
-odin_ir_generate_expression_array_rhs <- function(value, index, lhs, rewrite) {
+generate_r_expression_array_rhs <- function(value, index, lhs,
+                                            rewrite) {
   ret <- call("<-", lhs, rewrite(value))
   subs <- list()
   for (idx in rev(index)) {
@@ -605,7 +604,7 @@ odin_ir_generate_expression_array_rhs <- function(value, index, lhs, rewrite) {
 }
 
 
-odin_ir_generate_expression_alloc <- function(eq, data_info, dat, rewrite) {
+generate_r_expression_alloc <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
   alloc_fn <- switch(data_info$storage_type,
                      double = "numeric",
@@ -614,14 +613,14 @@ odin_ir_generate_expression_alloc <- function(eq, data_info, dat, rewrite) {
   len <- rewrite(data_info$dimnames$length)
   rhs <- call(alloc_fn, len)
   if (data_info$rank > 1L) {
-    rhs <- call("array", rhs, odin_ir_generate_dim(data_info, rewrite))
+    rhs <- call("array", rhs, generate_r_dim(data_info, rewrite))
   }
   call("<-", lhs, rhs)
 }
 
 
-odin_ir_generate_expression_alloc_ring <- function(eq, data_info, dat,
-                                                   rewrite) {
+generate_r_expression_alloc_ring <- function(eq, data_info, dat,
+                                             rewrite) {
   data_info_contents <- dat$data$elements[[eq$delay]]
 
   lhs <- rewrite(eq$lhs)
@@ -644,8 +643,8 @@ odin_ir_generate_expression_alloc_ring <- function(eq, data_info, dat,
 }
 
 
-odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
-                                                          dat, rewrite) {
+generate_r_expression_alloc_interpolate <- function(eq, data_info,
+                                                    dat, rewrite) {
   name_target <- eq$interpolate$equation
   name_arg <- eq$interpolate$y
 
@@ -654,7 +653,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
   data_info_t <- data$elements[[eq$interpolate$t]]
   data_info_arg <- data$elements[[eq$interpolate$y]]
 
-  dim_arg <- odin_ir_generate_dim(data_info_arg, rewrite)
+  dim_arg <- generate_r_dim(data_info_arg, rewrite)
 
   len_t <- rewrite(data_info_t$dimnames$length)
   if (data_info$rank == 0L) {
@@ -682,7 +681,7 @@ odin_ir_generate_expression_alloc_interpolate <- function(eq, data_info,
 }
 
 
-odin_ir_generate_expression_copy <- function(eq, data_info, dat, rewrite) {
+generate_r_expression_copy <- function(eq, data_info, dat, rewrite) {
   ## NOTE: this applies only to copying a variable into the output
   offset <- rewrite(dat$data$output$contents[[eq$lhs]]$offset)
   storage <- as.name(dat$meta$output)
@@ -701,7 +700,7 @@ odin_ir_generate_expression_copy <- function(eq, data_info, dat, rewrite) {
 
 ## NOTE: There are two entirely separate codepaths here so this could
 ## be factored out again (and probably should be).
-odin_ir_generate_expression_user <- function(eq, data_info, dat, rewrite) {
+generate_r_expression_user <- function(eq, data_info, dat, rewrite) {
   user <- as.name(dat$meta$user)
   internal <- as.name(dat$meta$internal)
 
@@ -723,7 +722,7 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, rewrite) {
     lhs <- rewrite(eq$lhs)
     rank <- data_info$rank
     default <- rewrite(eq$user$default)
-    size <- odin_ir_generate_dim(data_info, rewrite)
+    size <- generate_r_dim(data_info, rewrite)
     rhs <- call(dat$meta$support$get_user_double,
                 user, eq$lhs, internal, size, default, min, max, integer)
     call("<-", lhs, rhs)
@@ -731,8 +730,8 @@ odin_ir_generate_expression_user <- function(eq, data_info, dat, rewrite) {
 }
 
 
-odin_ir_generate_expression_delay_index <- function(eq, data_info, dat,
-                                                    rewrite) {
+generate_r_expression_delay_index <- function(eq, data_info, dat,
+                                              rewrite) {
   delay <- dat$equations[[eq$delay]]$delay
   lhs <- rewrite(eq$lhs)
   alloc <- call("<-", lhs, call("integer", rewrite(delay$variables$length)))
@@ -757,8 +756,8 @@ odin_ir_generate_expression_delay_index <- function(eq, data_info, dat,
 }
 
 
-odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
-                                                         dat, rewrite) {
+generate_r_expression_delay_continuous <- function(eq, data_info,
+                                                   dat, rewrite) {
   delay <- eq$delay
   time <- as.name(dat$meta$time)
 
@@ -776,7 +775,7 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
                         unpack_variable, dat$data$elements, state, rewrite)
 
   eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
-  eqs <- flatten_eqs(lapply(eqs_src, odin_ir_generate_expression,
+  eqs <- flatten_eqs(lapply(eqs_src, generate_r_expression,
                             dat, rewrite))
 
   ## Only used where there is no default:
@@ -805,16 +804,16 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
     }
   } else {
     ## TODO: generating the lhs by hand because
-    ## 'odin_ir_generate_expression_array_lhs' assumes things about
+    ## 'generate_r_expression_array_lhs' assumes things about
     ## expressions that are not correct here.
     index <- lapply(eq$rhs$index, function(x) as.name(x$index))
     lhs <- as.call(c(list(quote(`[`), rewrite(data_info$name)), index))
-    expr <- odin_ir_generate_expression_array_rhs(
+    expr <- generate_r_expression_array_rhs(
       rhs_expr, eq$rhs$index, lhs, rewrite)
     if (is.null(delay$default)) {
       ret <- expr_local(c(time_set, unpack, eqs, expr))
     } else {
-      default <- odin_ir_generate_expression_array_rhs(
+      default <- generate_r_expression_array_rhs(
         delay$default, eq$rhs$index, lhs, rewrite)
       ret <- expr_local(list(
         time_set,
@@ -829,8 +828,8 @@ odin_ir_generate_expression_delay_continuous <- function(eq, data_info,
 }
 
 
-odin_ir_generate_expression_delay_discrete <- function(eq, data_info, dat,
-                                                       rewrite) {
+generate_r_expression_delay_discrete <- function(eq, data_info, dat,
+                                                 rewrite) {
   ring <- rewrite(eq$delay$ring)
   lhs <- rewrite(eq$lhs)
   if (data_info$rank == 0L) {
@@ -842,14 +841,14 @@ odin_ir_generate_expression_delay_discrete <- function(eq, data_info, dat,
     index <- lapply(eq$rhs$index, function(x) as.name(x$index))
     lhs_i <- as.call(c(list(quote(`[`), rewrite(eq$lhs)), index))
     push <- expr_local(list(
-      odin_ir_generate_expression_array_rhs(
+      generate_r_expression_array_rhs(
         eq$rhs$value, eq$rhs$index, lhs_i, rewrite),
       as.call(list(call("$", ring, quote(push)), lhs))))
   }
 
-  dim <- odin_ir_generate_dim(data_info, rewrite)
+  dim <- generate_r_dim(data_info, rewrite)
   read_rhs <- as.call(list(call("$", ring, quote(head_offset)),
-                             rewrite(eq$delay$time)))
+                           rewrite(eq$delay$time)))
   if (data_info$rank > 1L) {
     read_rhs <- call("array", read_rhs, dim)
   }
@@ -875,22 +874,13 @@ odin_ir_generate_expression_delay_discrete <- function(eq, data_info, dat,
 }
 
 
-odin_ir_generate_dim <- function(data_info, rewrite) {
+generate_r_dim <- function(data_info, rewrite) {
   if (data_info$rank == 0L) {
     NULL
   } else if (data_info$rank == 1L) {
     rewrite(data_info$dimnames$length)
   } else {
     as.call(c(list(quote(c)), lapply(data_info$dimnames$dim, rewrite)))
-  }
-}
-
-
-offset_to_position <- function(x) {
-  if (is.language(x)) {
-    call("+", x, 1L)
-  } else {
-    x + 1L
   }
 }
 
@@ -904,7 +894,7 @@ offset_to_position <- function(x) {
 ## top-level class and then inject dependencies into it.  We should be
 ## able to do this with minimal overhead and just as much of the class
 ## locked down to creation time.
-odin_ir_generate_class <- function(core, dat, env) {
+generate_r_class <- function(core, dat, env) {
   self <- private <- NULL # quieten global check: R6 adds these later
   if (dat$features$has_interpolate) {
     loadNamespace("cinterpolate")
@@ -1160,7 +1150,7 @@ support_get_user_dim <- function(user, internal, name, len, dims,
 
 
 support_check_interpolate_y <- function(dim_arg, dim_target, name_arg,
-                                      name_target) {
+                                        name_target) {
   rank <- length(dim_target) - 1L
   stopifnot(length(dim_target) == length(dim_arg))
   if (rank == 0L) {
@@ -1178,6 +1168,15 @@ support_check_interpolate_y <- function(dim_arg, dim_target, name_arg,
                    j, name_arg, dim_target[[j]], name_target),
            call. = FALSE)
     }
+  }
+}
+
+
+offset_to_position <- function(x) {
+  if (is.language(x)) {
+    call("+", x, 1L)
+  } else {
+    x + 1L
   }
 }
 
@@ -1232,7 +1231,7 @@ extract_variable <- function(x, data, state, rewrite) {
     seq <- call("seq_len", rewrite(d$dimnames$length))
     extract <- call("[", state, call("+", rewrite(x$offset), seq))
     if (d$rank > 1L) {
-      extract <- call("array", extract, odin_ir_generate_dim(d, rewrite))
+      extract <- call("array", extract, generate_r_dim(d, rewrite))
     }
   }
   extract
@@ -1245,7 +1244,7 @@ expr_block <- function(exprs) {
 
 
 expr_if <- function(condition, a, b) {
-    call("if", condition, expr_block(a), expr_block(b))
+  call("if", condition, expr_block(a), expr_block(b))
 }
 
 

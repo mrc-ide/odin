@@ -15,5 +15,5 @@ odin2_ <- function(x, validate = TRUE, verbose = TRUE) {
   ir <- odin_build_ir(x, validate = validate)
   dat <- ir_deserialise(ir)
   dat$ir <- ir
-  odin_ir_generate_r(dat, validate)
+  generate_r(dat, validate)
 }
