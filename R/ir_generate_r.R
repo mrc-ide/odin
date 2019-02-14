@@ -362,7 +362,7 @@ odin_ir_generate_run <- function(dat, env, rewrite) {
   } else {
     args <- c(args, alist(use_dde =, tcrit =))
   }
-  if (dat$features$has_delay) {
+  if (!dat$features$discrete && dat$features$has_delay) {
     args <- c(args, alist(n_history = 1000L))
   }
 
@@ -428,7 +428,7 @@ odin_ir_generate_run <- function(dat, env, rewrite) {
       run_args_dde <- c(run_args_dde, list(output = quote(output)))
     }
   }
-  if (dat$features$has_delay) {
+  if (!dat$features$discrete && dat$features$has_delay) {
     run_args_dde <- c(run_args_dde, list(n_history = n_history))
     run_args_desolve <- c(run_args_desolve,
                           list(control = call("list", mxhist = n_history)))
@@ -652,7 +652,9 @@ odin_ir_generate_expression_alloc_ring <- function(eq, data_info, dat,
   lhs <- rewrite(eq$lhs)
 
   ## TODO: need to get n_history into here - follow same approach as
-  ## use_dde I think
+  ## use_dde I think.  However, it's a little more complex because it
+  ## needs to be done on *create* and set into the internal data quite
+  ## early.
   n_history <- 1000
   if (data_info_contents$rank == 0L) {
     len <- 1L
