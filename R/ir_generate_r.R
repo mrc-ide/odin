@@ -957,6 +957,25 @@ odin_ir_generate_class <- function(core, dat, env) {
     }
   }
 
+  if (dat$features$initial_time_dependent) {
+    set_user <- function(..., user = list(...)) {
+      private$core$set_user(user, private$data)
+      private$core$metadata(self, private)
+    }
+    initial <- function(t) {
+      private$core$ic(t, private$data)
+    }
+  } else {
+    set_user <- function(..., user = list(...)) {
+      private$core$set_user(user, private$data)
+      private$init <- private$core$ic(NA_real_, private$data)
+      private$core$metadata(self, private)
+    }
+    initial <- function(t) {
+      private$init
+    }
+  }
+
   env[[dat$config$base]] <- R6::R6Class(
     ## TODO: use of 'odin_model' here is somewhat incorrect because
     ## the objects are not really substituable within a class.  This
@@ -971,8 +990,6 @@ odin_ir_generate_class <- function(core, dat, env) {
       data = NULL,
       use_dde = NULL,
       init = NULL,
-      initial_time_dependent = dat$features$initial_time_dependent,
-      interpolate = dat$features$has_interpolate,
       interpolate_t = NULL,
       delay = dat$features$has_delay,
       ## TODO: this is a horrible name
@@ -1004,13 +1021,7 @@ odin_ir_generate_class <- function(core, dat, env) {
         self$set_user(user = user)
       },
 
-      set_user = function(..., user = list(...)) {
-        private$core$set_user(user, private$data)
-        if (!private$initial_time_dependent) {
-          private$init <- private$core$ic(NA_real_, private$data)
-        }
-        private$core$metadata(self, private)
-      },
+      set_user = set_user,
 
       update = if (dat$features$discrete) {
         function(step, y) {
@@ -1034,17 +1045,7 @@ odin_ir_generate_class <- function(core, dat, env) {
         }
       },
 
-      ## TODO: This condition is actually constant for this class, so
-      ## the logic at runtime makes very little sense.  It's here at
-      ## the moment to keep things simple, and with a code-generation
-      ## approach this could be replaced.
-      initial = function(t) {
-        if (private$initial_time_dependent) {
-          private$core$ic(t, private$data)
-        } else {
-          private$init
-        }
-      },
+      initial = initial,
 
       run = run,
 
