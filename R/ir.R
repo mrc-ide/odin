@@ -12,7 +12,7 @@
 ## * info$has_* are ok
 ## * config probably ok
 
-odin_build_ir <- function(x, type = NULL, validate = FALSE, pretty = TRUE) {
+odin_build_ir <- function(x, validate = FALSE, pretty = TRUE) {
   xp <- odin_preprocess(x)
   dat <- ir_prep(odin_parse(xp))
 

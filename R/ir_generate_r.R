@@ -1,34 +1,9 @@
-## These two are temporary!
-odin2 <- function(x, validate = TRUE, verbose = TRUE) {
-  xx <- substitute(x)
-  if (is.symbol(xx)) {
-    xx <- force(x)
-  } else if (is_call(xx, quote(c)) && all(vlapply(xx[-1], is.character))) {
-    ## See #88
-    xx <- force(x)
-  }
-  odin2_(xx, validate, verbose)
-}
-
-
-odin2_ <- function(x, validate = TRUE, verbose = TRUE) {
-  ir <- odin_build_ir(x)
-  odin_ir_generate(ir, validate)
-}
-
-
 ## TODO: this needs a bunch of naming work - currently the prefix here
 ## is "odin_ir_generate" but this is "ir -> r" - we'll have "ir -> c"
 ## and eventually "ir -> js" here so we'll probably move to something
 ## like "gen_<target>_xxx" once this is working properly
 
-odin_ir_generate <- function(ir, validate = TRUE) {
-  if (validate) {
-    ir_validate(ir, error = TRUE)
-  }
-  dat <- ir_deserialise(ir)
-  dat$ir <- ir
-
+odin_ir_generate_r <- function(dat, validate = TRUE) {
   ## Pull this out into something generally useful
   features_supported <- c("has_user", "has_output", "discrete", "has_array",
                           "has_interpolate", "has_stochastic", "has_delay",
