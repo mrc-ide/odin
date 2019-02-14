@@ -1,13 +1,8 @@
 generate_r <- function(dat) {
-  ## Pull this out into something generally useful
   features_supported <- c("has_user", "has_output", "discrete", "has_array",
                           "has_interpolate", "has_stochastic", "has_delay",
                           "initial_time_dependent")
-  features_used <- vlapply(dat$features, identity)
-  msg <- setdiff(names_if(features_used), features_supported)
-  if (length(msg) > 0L) {
-    stop("Features not suppored: ", paste(dquote(msg), collapse = ", "))
-  }
+  generate_check_features(features_supported, dat)
 
   if (dat$features$has_delay) {
     ## We're going to need an additional bit of internal data here,

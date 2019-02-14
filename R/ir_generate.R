@@ -1,5 +1,5 @@
 ## These two are temporary!
-odin2 <- function(x, validate = TRUE, verbose = TRUE) {
+odin2 <- function(x, validate = TRUE, verbose = TRUE, target = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -7,13 +7,18 @@ odin2 <- function(x, validate = TRUE, verbose = TRUE) {
     ## See #88
     xx <- force(x)
   }
-  odin2_(xx, validate, verbose)
+  odin2_(xx, validate, verbose, target)
 }
 
 
-odin2_ <- function(x, validate = TRUE, verbose = TRUE) {
+odin2_ <- function(x, validate = TRUE, verbose = TRUE, target = NULL) {
   ir <- odin_build_ir(x, validate = validate)
   dat <- ir_deserialise(ir)
   dat$ir <- ir
-  generate_r(dat, validate)
+
+  target <- target %||% getOption("odin.target", "r")
+  switch(target,
+         "r" = generate_r(dat),
+         "c" = generate_c(dat),
+         stop(sprintf("Unknown target '%s'", target)))
 }
