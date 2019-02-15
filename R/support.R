@@ -9,8 +9,8 @@ support_n_out <- function(output_order) {
 }
 
 
-support_transform_variables <- function(y, variable_order, output_order,
-                                        discrete) {
-  ord <- list(variable_order = variable_order, output_order = output_order)
+support_transform_variables <- function(y, private) {
+  ord <- list(variable_order = private$variable_order,
+              output_order = private$output_order)
   make_transform_variables(ord)(y)
 }

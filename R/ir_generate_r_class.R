@@ -140,11 +140,15 @@ generate_r_class <- function(core, dat, env) {
       },
 
       transform_variables = function(y) {
-        support_transform_variables(
-          y, private$variable_order, private$output_order, private$discrete)
+        support_transform_variables(y, private)
       }
     )))
 
+  generate_r_constructor(dat, env)
+}
+
+
+generate_r_constructor <- function(dat, env) {
   cl_init <- call("$", as.name(dat$config$base), quote(new))
   ## Need to build a nice argument list here.  This is pretty ugly and
   ## will be somewhat duplicated with different interfaces.
