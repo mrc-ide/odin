@@ -1,0 +1,351 @@
+## Not a great name, but this section will create the code that *will*
+## be compiled (i.e., the C sources).  The name can get picked up
+## later.
+generate_c_compiled <- function(eqs, dat, rewrite) {
+  ret <- list(get_internal = generate_c_compiled_get_internal(dat),
+              finalise = generate_c_compiled_finalise(dat),
+              create = generate_c_compiled_create(eqs, dat),
+              initmod_desolve = generate_c_compiled_initmod_desolve(dat),
+              rhs = generate_c_compiled_rhs(eqs, dat, rewrite),
+              rhs_desolve = generate_c_compiled_rhs_desolve(dat),
+              rhs_dde = generate_c_compiled_rhs_dde(dat),
+              rhs_r = generate_c_compiled_rhs_r(dat),
+              contents = generate_c_compiled_contents(dat),
+              set_user = generate_c_compiled_set_user(dat),
+              set_initial = generate_c_compiled_set_initial(dat),
+              metadata = generate_c_compiled_metadata(dat),
+              initial_conditions =
+                generate_c_compiled_initial_conditions(dat, rewrite))
+  ret[!vlapply(ret, is.null)]
+}
+
+
+generate_c_compiled_headers <- function(dat) {
+  c("#include <R.h>",
+    "#include <Rmath.h>",
+    "#include <Rinternals.h>",
+    "#include <R_ext/Rdynload.h>")
+}
+
+
+generate_c_compiled_struct <- function(dat) {
+  struct_element <- function(x) {
+    fmt <- if (x$rank == 0L) "%s %s;" else "%s *%s;"
+    sprintf(fmt, x$storage_type, x$name)
+  }
+  i <- vcapply(dat$data$elements, "[[", "location") == "internal"
+  els <- vcapply(unname(dat$data$elements[i]), struct_element)
+
+  body <- collector()
+  body$add("typedef struct %s {", dat$meta$c$internal_t)
+  body$add(paste0("  ", els), literal = TRUE)
+  body$add("} %s;", dat$meta$c$internal_t)
+
+  body$get()
+}
+
+
+generate_c_compiled_finalise <- function(dat) {
+  ptr <- dat$meta$c$ptr
+  internal <- dat$meta$internal
+  internal_t <- dat$meta$c$internal_t
+
+  if (dat$features$has_array) {
+    stop("Free arrays here")
+  }
+
+  body <- collector()
+  body$add("%s *%s = %s(%s, 0);",
+          internal_t, internal, dat$meta$c$get_internal, ptr)
+  body$add("if (%s) {", ptr)
+  body$add("  Free(%s);", internal)
+  body$add("  R_ClearExternalPtr(%s);", ptr)
+  body$add("}")
+
+  ret <- c_function("void", dat$meta$c$finalise,
+                    c(SEXP = dat$meta$c$ptr),
+                    body$get())
+  ret$declaration <- paste("static", ret$declaration)
+  ret
+}
+
+
+generate_c_compiled_get_internal <- function(dat) {
+  internal_t <- dat$meta$c$internal_t
+  internal <- dat$meta$internal
+  ptr <- dat$meta$c$ptr
+
+  body <- collector()
+  body$add("%s *%s = NULL;", internal_t, internal)
+  body$add("if (TYPEOF(%s) != EXTPTRSXP) {", ptr)
+  body$add('  Rf_error("Expected an external pointer");')
+  body$add("}")
+  body$add("%s = (%s*) R_ExternalPtrAddr(%s);", internal, internal_t, ptr)
+  body$add("if (!%s && closed_error) {", internal)
+  body$add('  Rf_error("Pointer has been invalidated");')
+  body$add("}")
+  body$add("return %s;", internal)
+
+  c_function(paste0(internal_t, "*"), dat$meta$c$get_internal,
+             c(SEXP = ptr, int = "closed_error"),
+             body$get())
+}
+
+
+generate_c_compiled_create <- function(eqs, dat) {
+  eqs_create <- list_to_character(unname(eqs[dat$components$create$equations]))
+
+  ptr <- "ptr"
+  internal <- dat$meta$internal
+  internal_t <- dat$meta$c$internal_t
+
+  body <- collector()
+  body$add("%s *%s = (%s*) Calloc(1, %s);",
+           internal_t, internal, internal_t, internal_t)
+  body$add(eqs_create, literal = TRUE)
+  body$add("SEXP %s = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
+           ptr, internal)
+  body$add("R_RegisterCFinalizer(%s, %s);", ptr, dat$meta$c$finalise)
+  body$add("UNPROTECT(1);")
+  body$add("return %s;", ptr)
+
+  c_function("SEXP", dat$meta$c$create, c(SEXP = dat$meta$user), body$get())
+}
+
+
+generate_c_compiled_rhs <- function(eqs, dat, rewrite) {
+  if (dat$features$has_output) {
+    stop("Add output")
+  }
+  variables <- dat$components$rhs$variables
+  equations <- dat$components$rhs$equations
+
+  if (length(variables) > 0L) {
+    stop("Unpack variables")
+  }
+
+  eqs_rhs <- c_flatten_eqs(eqs[equations])
+  body <- eqs_rhs
+  args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
+            double = dat$meta$time,
+            "double *" = dat$meta$state,
+            "double *" = dat$meta$result,
+            "double *" = dat$meta$output)
+  c_function("void", dat$meta$c$rhs, args, body)
+}
+
+
+## NOTE: This uses deSolve's really peculiar global variable approach
+## for getting the parameters into the function.  In the previous
+## version of odin, we had a wrapper function that passed the
+## parameters into a downstream function, but here we're going to
+## avoid that and just generate out
+generate_c_compiled_rhs_desolve <- function(dat) {
+  body <- sprintf_safe("%s(%s, *%s, %s, %s, %s);",
+                       dat$meta$c$rhs, dat$meta$internal, dat$meta$time,
+                       dat$meta$state, dat$meta$result, dat$meta$output)
+  args <- c("int *" = "neq",
+            "double *" = dat$meta$time,
+            "double *" = dat$meta$state,
+            "double *" = dat$meta$result,
+            "double *" = dat$meta$output,
+            "int *" = "np")
+  c_function("void", dat$meta$c$rhs_desolve, args, body)
+}
+
+
+generate_c_compiled_rhs_dde <- function(dat) {
+  args <- c("size_t" = "neq",
+            "double" = dat$meta$time,
+            "double *" = dat$meta$state,
+            "double *" = dat$meta$result,
+            "double *" = dat$meta$output)
+  body <- sprintf_safe("%s((%s*)%s, %s, %s, %s, %s);",
+                       dat$meta$c$rhs, dat$meta$c$internal_t,
+                       dat$meta$internal, dat$meta$time, dat$meta$state,
+                       dat$meta$result, dat$meta$output)
+  c_function("void", dat$meta$c$rhs_dde, args, body)
+}
+
+
+generate_c_compiled_rhs_r <- function(dat) {
+  if (dat$features$has_output) {
+    stop("Add output")
+  }
+
+  body <- collector()
+  body$add("SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
+          dat$meta$result, dat$meta$state)
+  body$add("%s *%s = %s(%s, 1);",
+          dat$meta$c$internal_t, dat$meta$internal,
+          dat$meta$c$get_internal, dat$meta$c$ptr)
+  body$add("%s(%s, REAL(%s)[0], REAL(%s), REAL(%s), NULL);",
+          dat$meta$c$rhs, dat$meta$internal, dat$meta$time, dat$meta$state,
+          dat$meta$result)
+  body$add("UNPROTECT(1);")
+  body$add("return %s;", dat$meta$result)
+
+  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time, SEXP = dat$meta$state)
+  c_function("SEXP", dat$meta$c$rhs_r, args, body$get())
+}
+
+
+generate_c_compiled_initmod_desolve <- function(dat) {
+  body <- collector()
+  body$add("static DL_FUNC get_desolve_gparms = NULL;")
+  body$add("if (get_desolve_gparms == NULL) {")
+  body$add("  get_desolve_gparms =")
+  body$add('    R_GetCCallable("deSolve", "get_deSolve_gparms");')
+  body$add("}")
+  body$add("%s = %s(get_desolve_gparms(), 1);",
+           dat$meta$internal, dat$meta$c$get_internal)
+
+  args <- c("void(* odeparms)" = "(int *, double *)")
+  global <- sprintf_safe("static %s *%s;",
+                         dat$meta$c$internal_t, dat$meta$internal)
+  ret <- c_function("void", dat$meta$c$initmod_desolve, args, body$get())
+  ret$definition <- c(global, ret$definition)
+  ret
+}
+
+
+generate_c_compiled_contents <- function(dat) {
+  extract_str <- function(x) {
+    if (x$rank != 0L) {
+      stop("Deal with array")
+    }
+    fn <- switch(x$storage_type,
+                 double = "ScalarReal",
+                 int = "ScalarInteger",
+                 stop("Unsupported storage type"))
+    sprintf("%s(%s->%s)", fn, dat$meta$internal, x$name)
+  }
+
+  i <- vcapply(dat$data$elements, "[[", "location") == "internal"
+  contents <- dat$data$elements[i]
+
+  body <- collector()
+  body$add("%s *%s = %s(%s, 1);",
+          dat$meta$c$internal_t, dat$meta$internal,
+          dat$meta$c$get_internal, dat$meta$c$ptr)
+  body$add("SEXP contents = PROTECT(allocVector(VECSXP, %d));",
+           length(contents))
+  for (i in seq_along(contents)) {
+    body$add("SET_VECTOR_ELT(contents, %d, %s);",
+            i - 1, extract_str(contents[[i]]))
+  }
+  body$add("SEXP nms = PROTECT(allocVector(STRSXP, %d));", length(contents))
+  body$add('SET_STRING_ELT(nms, %d, mkChar("%s"));',
+          seq_along(contents) - 1L, names(contents))
+  body$add("setAttrib(contents, R_NamesSymbol, nms);")
+  body$add("UNPROTECT(2);")
+  body$add("return contents;")
+
+  args <- c(SEXP = dat$meta$c$ptr)
+  c_function("SEXP", dat$meta$c$contents, args, body$get())
+}
+
+
+generate_c_compiled_set_user <- function(dat) {
+  if (dat$features$has_user) {
+    stop("Write me")
+  }
+
+  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$user)
+  body <- "return R_NilValue;"
+  c_function("SEXP", dat$meta$c$set_user, args, body)
+}
+
+
+generate_c_compiled_set_initial <- function(dat) {
+  if (!dat$features$has_delay) {
+    return(NULL)
+  }
+  stop("Implement me")
+}
+
+
+generate_c_compiled_initial_conditions <- function(dat, rewrite) {
+  set_initial <- function(el) {
+    data_info <- dat$data$elements[[el$name]]
+    lhs <- c_variable_reference(el, data_info, dat$meta$state, rewrite)
+    if (data_info$rank == 0L) {
+      sprintf("%s = %s->%s;", lhs, dat$meta$internal, el$initial)
+    } else {
+      sprintf("memcpy(%s, %s.%s, %s * sizeof(double));",
+              lhs, dat$meta$internal, el$initial, rewrite(el$dimnames$length))
+    }
+  }
+
+  if (length(dat$components$initial$equations)) {
+    stop("this needs writing")
+  }
+
+  state_r <- sprintf("r_%s", dat$meta$state)
+  initial <- c_flatten_eqs(lapply(dat$data$variable$contents, set_initial))
+
+  body <- collector()
+  body$add("%s *%s = %s(%s, 1);",
+          dat$meta$c$internal_t, dat$meta$internal,
+          dat$meta$c$get_internal, dat$meta$c$ptr)
+  body$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
+          state_r, rewrite(dat$data$variable$length))
+  body$add("double * %s = REAL(%s);", dat$meta$state, state_r)
+  body$add(initial, literal = TRUE)
+  body$add("UNPROTECT(1);")
+  body$add("return %s;", state_r)
+  body$get()
+
+  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time)
+  c_function("SEXP", dat$meta$c$initial_conditions, args, body$get())
+}
+
+
+generate_c_compiled_metadata <- function(dat) {
+  if (dat$features$has_output) {
+    stop("Fix output")
+  }
+
+  body <- collector()
+  vars <- names(dat$data$variable$contents)
+  body$add("SEXP vlen = PROTECT(allocVector(VECSXP, %d));", length(vars))
+  for (i in seq_along(vars)) {
+    v <- vars[[i]]
+    d <- dat$data$elements[[v]]
+    if (d$rank == 0L) {
+      body$add('SET_VECTOR_ELT(vlen, %d, R_NilValue);', i - 1L)
+    } else {
+      stop("write me")
+    }
+  }
+  body$add("SEXP vnms = PROTECT(allocVector(STRSXP, %d));", length(vars))
+  body$add('SET_STRING_ELT(vnms, %d, mkChar("%s"));',
+           seq_along(vars) - 1L, vars)
+  body$add("setAttrib(vlen, R_NamesSymbol, vnms);");
+
+  body$add("SEXP ret = PROTECT(allocVector(VECSXP, 3));")
+  body$add("SEXP nms = PROTECT(allocVector(STRSXP, 3));")
+  body$add('SET_STRING_ELT(nms, 0, mkChar("variable_order"));')
+  body$add('SET_STRING_ELT(nms, 1, mkChar("output_order"));')
+  body$add('SET_STRING_ELT(nms, 2, mkChar("n_out"));')
+  body$add("SET_VECTOR_ELT(ret, 0, vlen);")
+  body$add("SET_VECTOR_ELT(ret, 1, R_NilValue);")
+  body$add("SET_VECTOR_ELT(ret, 2, ScalarInteger(0));")
+  body$add("setAttrib(ret, R_NamesSymbol, nms);");
+
+  body$add("UNPROTECT(4);")
+  body$add("return ret;")
+
+  args <- c(SEXP = dat$meta$c$ptr)
+  c_function("SEXP", dat$meta$c$metadata, args, body$get())
+}
+
+
+c_function <- function(return_type, name, args, body) {
+  args_str <- paste(sprintf("%s %s", names(args), unname(args)),
+                    collapse = ", ")
+  str <- sprintf("%s %s(%s)", return_type, name, args_str)
+  list(name = name,
+       declaration = paste0(str, ";"),
+       definition = c(paste0(str, " {"), paste0("  ", body), "}"))
+}
