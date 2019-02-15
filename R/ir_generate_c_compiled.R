@@ -120,12 +120,18 @@ generate_c_compiled_rhs <- function(eqs, dat, rewrite) {
   variables <- dat$components$rhs$variables
   equations <- dat$components$rhs$equations
 
-  if (length(variables) > 0L) {
-    stop("Unpack variables")
+  unpack_variable <- function(el) {
+    data_info <- dat$data$elements[[el$name]]
+    rhs <- c_variable_reference(el, data_info, dat$meta$state, rewrite)
+    if (data_info$rank == 0L) {
+      sprintf("%s %s = %s;", data_info$storage_type, el$name, rhs)
+    } else {
+      stop("Unpack an array")
+    }
   }
 
-  eqs_rhs <- c_flatten_eqs(eqs[equations])
-  body <- eqs_rhs
+  unpack <- lapply(dat$data$variable$contents[variables], unpack_variable)
+  body <- c(c_flatten_eqs(unpack), c_flatten_eqs(eqs[equations]))
   args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
             double = dat$meta$time,
             "double *" = dat$meta$state,
