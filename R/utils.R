@@ -22,7 +22,7 @@ collector <- function(init = character(0)) {
   res <- init
   add <- function(x, ..., literal = FALSE) {
     res <<- c(res,
-              if (literal) x else sprintf(x, ...))
+              if (literal) x else sprintf_safe(x, ...))
   }
   list(add = add,
        length = function(x) length(res), # used only in debugging below
@@ -254,4 +254,12 @@ substitute_ <- function(expr, env) {
 
 as_function <- function(args, body, env) {
   as.function(c(args, body), env)
+}
+
+
+sprintf_safe <- function(...) {
+  if (any(vlapply(list(...), is.null))) {
+    stop("Passed empty format parameter to formatter")
+  }
+  sprintf(...)
 }
