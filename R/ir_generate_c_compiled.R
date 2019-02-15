@@ -278,16 +278,24 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
   }
 
   if (length(dat$components$initial$equations)) {
-    stop("this needs writing")
+    subs <- lapply(dat$data$variable$contents, function(x) rewrite(x$initial))
+    eqs_initial <- dat$equations[dat$components$initial$equations]
+    eqs_initial <- lapply(ir_substitute(eqs_initial, subs),
+                          generate_c_equation, dat, rewrite)
+  } else {
+    eqs_initial <- NULL
   }
 
+  time_ptr <- sprintf("%s_ptr", dat$meta$time)
   state_r <- sprintf("r_%s", dat$meta$state)
   initial <- c_flatten_eqs(lapply(dat$data$variable$contents, set_initial))
 
   body <- collector()
+  body$add("double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
   body$add("%s *%s = %s(%s, 1);",
           dat$meta$c$internal_t, dat$meta$internal,
           dat$meta$c$get_internal, dat$meta$c$ptr)
+  body$add(c_flatten_eqs(eqs_initial), literal = TRUE)
   body$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
           state_r, rewrite(dat$data$variable$length))
   body$add("double * %s = REAL(%s);", dat$meta$state, state_r)
@@ -296,7 +304,7 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
   body$add("return %s;", state_r)
   body$get()
 
-  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time)
+  args <- c(SEXP = dat$meta$c$ptr, SEXP = time_ptr)
   c_function("SEXP", dat$meta$c$initial_conditions, args, body$get())
 }
 

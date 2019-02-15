@@ -1,5 +1,5 @@
 generate_c <- function(dat, verbose = FALSE) {
-  features_supported <- c()
+  features_supported <- c("initial_time_dependent")
   generate_check_features(features_supported, dat)
 
   rewrite <- function(x) {

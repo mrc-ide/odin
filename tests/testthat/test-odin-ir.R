@@ -46,10 +46,6 @@ test_that("Time dependent rhs", {
   expect_equal(yy[, 1], tt)
   expect_equal(yy[, 2], 1 + tt^2)
 
-  ## NOTE: this is very implementation dependent but hopefully
-  ## confirms that transient variables are dealt with appropriately
-  expect_equal(body(r6_private(mod)$core$rhs_dde)[[3]],
-               quote(r <- 2 * t))
   expect_equal(mod$contents(), list(initial_y = 1))
 })
 
@@ -74,7 +70,7 @@ test_that("Time dependent initial conditions", {
   expect_equal(mod$deriv(0, 1), f(0))
   expect_equal(mod$deriv(1, 1), f(1))
 
-  expect_equal(mod$contents(),
+  expect_equal(sort_list(mod$contents()),
                sort_list(list(initial_y3 = f(1), r = 1)))
 })
 

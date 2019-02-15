@@ -6,11 +6,11 @@ generate_c_class <- function(core, dll, dat) {
 
   if (dat$features$initial_time_dependent) {
     set_user <- function(..., user = list(...)) {
-      ## private$core$set_user(user, private$data)
-      ## private$core$metadata(self, private)
+      .Call(private$core$set_user, private$ptr, user)
+      private$update_metadata()
     }
     initial <- function(t) {
-      ## private$core$ic(t, private$data)
+      .Call(private$core$initial_conditions, private$ptr, t)
     }
   } else {
     set_user <- function(..., user = list(...)) {
