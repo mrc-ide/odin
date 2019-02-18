@@ -10,6 +10,7 @@ generate_c <- function(dat, verbose = FALSE) {
   base <- dat$config$base
   dat$meta$c <- list(
     ptr = sprintf("%s_p", dat$meta$internal),
+    internal_ds = sprintf("%s_ds", dat$meta$internal),
     internal_t = sprintf("%s_internal", base),
     finalise = sprintf("%s_finalise", base),
     create = sprintf("%s_create", base),
@@ -33,7 +34,7 @@ generate_c <- function(dat, verbose = FALSE) {
 
   if (dat$features$has_user) {
     ## TODO: should filter these?
-    lib <- read_user_c(system.file("library.c", package = "odin"))
+    lib <- read_user_c(system.file("library2.c", package = "odin"))
     v <- c("get_user_double", "get_user_int", "get_list_element")
     decl <- c(decl, unname(lib$declarations[v]))
     defn <- c(defn, c_flatten_eqs(strsplit(lib$definitions[v], "\n")))

@@ -155,7 +155,7 @@ generate_c_compiled_rhs <- function(eqs, dat, rewrite) {
 ## avoid that and just generate out
 generate_c_compiled_rhs_desolve <- function(dat) {
   body <- sprintf_safe("%s(%s, *%s, %s, %s, %s);",
-                       dat$meta$c$rhs, dat$meta$internal, dat$meta$time,
+                       dat$meta$c$rhs, dat$meta$c$internal_ds, dat$meta$time,
                        dat$meta$state, dat$meta$result, dat$meta$output)
   args <- c("int *" = "neq",
             "double *" = dat$meta$time,
@@ -172,8 +172,8 @@ generate_c_compiled_rhs_dde <- function(dat) {
             "double" = dat$meta$time,
             "double *" = dat$meta$state,
             "double *" = dat$meta$result,
-            "double *" = dat$meta$output)
-  body <- sprintf_safe("%s((%s*)%s, %s, %s, %s, %s);",
+            "void *" = dat$meta$internal)
+  body <- sprintf_safe("%s((%s*)%s, %s, %s, %s, NULL);",
                        dat$meta$c$rhs, dat$meta$c$internal_t,
                        dat$meta$internal, dat$meta$time, dat$meta$state,
                        dat$meta$result, dat$meta$output)
@@ -211,11 +211,11 @@ generate_c_compiled_initmod_desolve <- function(dat) {
   body$add('    R_GetCCallable("deSolve", "get_deSolve_gparms");')
   body$add("}")
   body$add("%s = %s(get_desolve_gparms(), 1);",
-           dat$meta$internal, dat$meta$c$get_internal)
+           dat$meta$c$internal_ds, dat$meta$c$get_internal)
 
   args <- c("void(* odeparms)" = "(int *, double *)")
   global <- sprintf_safe("static %s *%s;",
-                         dat$meta$c$internal_t, dat$meta$internal)
+                         dat$meta$c$internal_t, dat$meta$c$internal_ds)
   ret <- c_function("void", dat$meta$c$initmod_desolve, args, body$get())
   ret$definition <- c(global, ret$definition)
   ret
@@ -260,10 +260,16 @@ generate_c_compiled_contents <- function(dat) {
 
 
 generate_c_compiled_set_user <- function(eqs, dat) {
-  eqs_user <- c_flatten_eqs(eqs[dat$components$user$equations])
+  body <- collector()
+  if (dat$features$has_user) {
+    body$add("%s *%s = %s(%s, 0);",
+             dat$meta$c$internal_t, dat$meta$internal,
+             dat$meta$c$get_internal, dat$meta$c$ptr)
+    body$add(c_flatten_eqs(eqs[dat$components$user$equations]), literal = TRUE)
+  }
+  body$add("return R_NilValue;")
   args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$user)
-  body <- c(eqs_user, "return R_NilValue;")
-  c_function("SEXP", dat$meta$c$set_user, args, body)
+  c_function("SEXP", dat$meta$c$set_user, args, body$get())
 }
 
 

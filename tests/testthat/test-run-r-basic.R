@@ -126,9 +126,9 @@ test_that("user variables", {
   expect_error(gen(NULL),
                "Expected a value for 'r'", fixed = TRUE)
 
-  expect_equal(gen(r = pi)$contents(),
+  expect_equal(sort_list(gen(r = pi)$contents()),
                sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
-  expect_equal(gen(r = pi, N0 = 10)$contents(),
+  expect_equal(sort_list(gen(r = pi, N0 = 10)$contents()),
                sort_list(list(K = 100, N0 = 10, initial_N = 10, r = pi)))
   expect_equal(gen(r = pi, N0 = 10)$initial(), 10)
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
