@@ -1,5 +1,5 @@
 generate_c <- function(dat, verbose = FALSE) {
-  features_supported <- c("initial_time_dependent")
+  features_supported <- c("initial_time_dependent", "has_user")
   generate_check_features(features_supported, dat)
 
   rewrite <- function(x) {
@@ -26,10 +26,20 @@ generate_c <- function(dat, verbose = FALSE) {
 
   core <- generate_c_compiled(eqs, dat, rewrite)
 
-  code <- c(generate_c_compiled_headers(dat),
+  decl <- c(generate_c_compiled_headers(dat),
             generate_c_compiled_struct(dat),
-            unname(vcapply(core, "[[", "declaration")),
-            c_flatten_eqs(lapply(core, "[[", "definition")))
+            unname(vcapply(core, "[[", "declaration")))
+  defn <- c_flatten_eqs(lapply(core, "[[", "definition"))
+
+  if (dat$features$has_user) {
+    ## TODO: should filter these?
+    lib <- read_user_c(system.file("library.c", package = "odin"))
+    v <- c("get_user_double", "get_user_int", "get_list_element")
+    decl <- c(decl, unname(lib$declarations[v]))
+    defn <- c(defn, c_flatten_eqs(strsplit(lib$definitions[v], "\n")))
+  }
+
+  code <- c(decl, defn)
 
   path <- tempfile(fileext = ".c")
   writeLines(code, path)

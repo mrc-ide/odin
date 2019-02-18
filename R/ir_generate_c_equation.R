@@ -67,7 +67,20 @@ generate_c_equation_copy <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  min <- rewrite(eq$user$min)
+  max <- rewrite(eq$user$max)
+  integer <- data_info$storage_type == "int"
+
+  if (eq$user$dim) {
+    stop("Implement me")
+  } else {
+    lhs <- rewrite(eq$lhs)
+    if (data_info$rank > 0L) {
+      stop("Implement me")
+    }
+    sprintf('%s = get_user_%s(%s, "%s", %s);',
+            lhs, data_info$storage_type, dat$meta$user, eq$lhs, lhs)
+  }
 }
 
 

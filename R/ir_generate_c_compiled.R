@@ -4,14 +4,14 @@
 generate_c_compiled <- function(eqs, dat, rewrite) {
   ret <- list(get_internal = generate_c_compiled_get_internal(dat),
               finalise = generate_c_compiled_finalise(dat),
-              create = generate_c_compiled_create(eqs, dat),
+              create = generate_c_compiled_create(eqs, dat, rewrite),
               initmod_desolve = generate_c_compiled_initmod_desolve(dat),
               rhs = generate_c_compiled_rhs(eqs, dat, rewrite),
               rhs_desolve = generate_c_compiled_rhs_desolve(dat),
               rhs_dde = generate_c_compiled_rhs_dde(dat),
               rhs_r = generate_c_compiled_rhs_r(dat),
               contents = generate_c_compiled_contents(dat),
-              set_user = generate_c_compiled_set_user(dat),
+              set_user = generate_c_compiled_set_user(eqs, dat),
               set_initial = generate_c_compiled_set_initial(dat),
               metadata = generate_c_compiled_metadata(dat),
               initial_conditions =
@@ -92,8 +92,15 @@ generate_c_compiled_get_internal <- function(dat) {
 }
 
 
-generate_c_compiled_create <- function(eqs, dat) {
+generate_c_compiled_create <- function(eqs, dat, rewrite) {
   eqs_create <- list_to_character(unname(eqs[dat$components$create$equations]))
+
+  if (dat$features$has_user) {
+    user_names <- vcapply(dat$user, "[[", "name")
+    user <- vcapply(user_names, generate_c_compiled_create_user, dat, rewrite,
+                    USE.NAMES = FALSE)
+    eqs_create <- c(eqs_create, user)
+  }
 
   ptr <- "ptr"
   internal <- dat$meta$internal
@@ -252,13 +259,10 @@ generate_c_compiled_contents <- function(dat) {
 }
 
 
-generate_c_compiled_set_user <- function(dat) {
-  if (dat$features$has_user) {
-    stop("Write me")
-  }
-
+generate_c_compiled_set_user <- function(eqs, dat) {
+  eqs_user <- c_flatten_eqs(eqs[dat$components$user$equations])
   args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$user)
-  body <- "return R_NilValue;"
+  body <- c(eqs_user, "return R_NilValue;")
   c_function("SEXP", dat$meta$c$set_user, args, body)
 }
 
@@ -362,4 +366,18 @@ c_function <- function(return_type, name, args, body) {
   list(name = name,
        declaration = paste0(str, ";"),
        definition = c(paste0(str, " {"), paste0("  ", body), "}"))
+}
+
+
+generate_c_compiled_create_user <- function(name, dat, rewrite) {
+  data_info <- dat$data$elements[[name]]
+  eq_info <- dat$equations[[name]]
+  if (!is.null(eq_info$user$default)) {
+    rhs <- rewrite(eq_info$user$default)
+  } else if (data_info$storage_type == "double") {
+    rhs <- "NA_REAL"
+  } else if (data_info$storage_type == "int") {
+    rhs <- "NA_INTEGER"
+  }
+  sprintf_safe("%s = %s;", rewrite(data_info$name), rhs)
 }
