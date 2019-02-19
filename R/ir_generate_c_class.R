@@ -31,12 +31,13 @@ generate_c_class <- function(core, dll, dat) {
     if (private$use_dde) {
       ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
                         dllname = private$dll, parms_are_real = FALSE,
+                        n_out = private$n_out, output = private$core$output,
                         ynames = FALSE, ...)
     } else {
       ## TODO: initmod => initfunc
       ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$ptr,
                           initfunc = private$core$initmod_desolve,
-                          dllname = private$dll, ...)
+                          nout = private$n_out, dllname = private$dll, ...)
     }
     if (use_names) {
       colnames(ret) <- private$ynames

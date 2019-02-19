@@ -9,11 +9,12 @@ generate_c_compiled <- function(eqs, dat, rewrite) {
               rhs = generate_c_compiled_rhs(eqs, dat, rewrite),
               rhs_desolve = generate_c_compiled_rhs_desolve(dat),
               rhs_dde = generate_c_compiled_rhs_dde(dat),
-              rhs_r = generate_c_compiled_rhs_r(dat),
+              rhs_r = generate_c_compiled_rhs_r(dat, rewrite),
+              output = generate_c_compiled_output(eqs, dat, rewrite),
               contents = generate_c_compiled_contents(dat),
               set_user = generate_c_compiled_set_user(eqs, dat),
               set_initial = generate_c_compiled_set_initial(dat),
-              metadata = generate_c_compiled_metadata(dat),
+              metadata = generate_c_compiled_metadata(dat, rewrite),
               initial_conditions =
                 generate_c_compiled_initial_conditions(dat, rewrite))
   ret[!vlapply(ret, is.null)]
@@ -121,30 +122,57 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
 
 
 generate_c_compiled_rhs <- function(eqs, dat, rewrite) {
-  if (dat$features$has_output) {
-    stop("Add output")
-  }
   variables <- dat$components$rhs$variables
   equations <- dat$components$rhs$equations
 
-  unpack_variable <- function(el) {
-    data_info <- dat$data$elements[[el$name]]
-    rhs <- c_variable_reference(el, data_info, dat$meta$state, rewrite)
-    if (data_info$rank == 0L) {
-      sprintf("%s %s = %s;", data_info$storage_type, el$name, rhs)
-    } else {
-      stop("Unpack an array")
-    }
+  unpack <- lapply(variables, c_unpack_variable, dat, rewrite)
+
+  body <- collector()
+  body$add(c_flatten_eqs(c(unpack, eqs[equations])), literal = TRUE)
+
+  if (dat$features$has_output) {
+    variables_output <- setdiff(dat$components$output$variables, variables)
+    unpack_output <- lapply(variables_output, c_unpack_variable, dat, rewrite)
+    equations_output <- setdiff(dat$components$output$equations, equations)
+    output <- c_flatten_eqs(c(unpack_output, eqs[equations_output]))
+
+    body$add("if (output) {")
+    body$add(paste0("  ", output), literal = TRUE)
+    body$add("}")
   }
 
-  unpack <- lapply(dat$data$variable$contents[variables], unpack_variable)
-  body <- c(c_flatten_eqs(unpack), c_flatten_eqs(eqs[equations]))
   args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
             double = dat$meta$time,
             "double *" = dat$meta$state,
             "double *" = dat$meta$result,
             "double *" = dat$meta$output)
-  c_function("void", dat$meta$c$rhs, args, body)
+  c_function("void", dat$meta$c$rhs, args, body$get())
+}
+
+
+generate_c_compiled_output <- function(eqs, dat, rewrite) {
+  if (!dat$features$has_output) {
+    return(NULL)
+  }
+
+  variables <- dat$components$output$variables
+  equations <- dat$components$output$equations
+
+  unpack <- lapply(variables, c_unpack_variable, dat, rewrite)
+
+  body <- collector()
+  body$add("%s *%s = (%s*) %s;",
+           dat$meta$c$internal_t, dat$meta$internal, dat$meta$c$internal_t,
+           dat$meta$c$ptr)
+  body$add(c_flatten_eqs(c(unpack, eqs[equations])), literal = TRUE)
+  args <- c("size_t" = "n_eq",
+            "double" = dat$meta$time,
+            "double *" = dat$meta$state,
+            "size_t" = "n_output",
+            "double *" = dat$meta$output,
+            "void *" = dat$meta$c$ptr)
+
+  c_function("void", dat$meta$c$output_dde, args, body$get())
 }
 
 
@@ -181,20 +209,28 @@ generate_c_compiled_rhs_dde <- function(dat) {
 }
 
 
-generate_c_compiled_rhs_r <- function(dat) {
-  if (dat$features$has_output) {
-    stop("Add output")
-  }
-
+generate_c_compiled_rhs_r <- function(dat, rewrite) {
   body <- collector()
   body$add("SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
           dat$meta$result, dat$meta$state)
   body$add("%s *%s = %s(%s, 1);",
           dat$meta$c$internal_t, dat$meta$internal,
           dat$meta$c$get_internal, dat$meta$c$ptr)
-  body$add("%s(%s, REAL(%s)[0], REAL(%s), REAL(%s), NULL);",
+  if (dat$features$has_output) {
+    output_ptr <- sprintf("%s_ptr", dat$meta$output)
+    body$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
+             output_ptr, rewrite(dat$data$output$length))
+    body$add('setAttrib(%s, install("%s"), %s);',
+             dat$meta$result, dat$meta$output, output_ptr)
+    body$add("UNPROTECT(1);")
+    body$add("double *%s = REAL(%s);", dat$meta$output, output_ptr)
+  } else {
+    body$add("double *%s = NULL;", dat$meta$output)
+  }
+
+  body$add("%s(%s, REAL(%s)[0], REAL(%s), REAL(%s), %s);",
           dat$meta$c$rhs, dat$meta$internal, dat$meta$time, dat$meta$state,
-          dat$meta$result)
+          dat$meta$result, dat$meta$output)
   body$add("UNPROTECT(1);")
   body$add("return %s;", dat$meta$result)
 
@@ -325,39 +361,57 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
 }
 
 
-generate_c_compiled_metadata <- function(dat) {
-  if (dat$features$has_output) {
-    stop("Fix output")
-  }
+generate_c_compiled_metadata <- function(dat, rewrite) {
+  variables <- names(dat$data$variable$contents)
+  output <- names(dat$data$output$contents)
 
-  body <- collector()
-  vars <- names(dat$data$variable$contents)
-  body$add("SEXP vlen = PROTECT(allocVector(VECSXP, %d));", length(vars))
-  for (i in seq_along(vars)) {
-    v <- vars[[i]]
+  ## Used for both variable and output:
+  len <- function(i, v, target) {
     d <- dat$data$elements[[v]]
     if (d$rank == 0L) {
-      body$add('SET_VECTOR_ELT(vlen, %d, R_NilValue);', i - 1L)
+      sprintf_safe('SET_VECTOR_ELT(%s, %d, R_NilValue);', target, i - 1L)
     } else {
       stop("write me")
     }
   }
-  body$add("SEXP vnms = PROTECT(allocVector(STRSXP, %d));", length(vars))
-  body$add('SET_STRING_ELT(vnms, %d, mkChar("%s"));',
-           seq_along(vars) - 1L, vars)
-  body$add("setAttrib(vlen, R_NamesSymbol, vnms);");
 
+  len_block <- function(data, target, idx) {
+    len <- Map(len, seq_along(data), data, sprintf("%s_length", target))
+    body <- collector()
+    body$add("SEXP %s_length = PROTECT(allocVector(VECSXP, %d));",
+             target, length(data))
+    body$add("SEXP %s_names = PROTECT(allocVector(STRSXP, %d));",
+             target, length(data))
+    body$add("setAttrib(%s_length, R_NamesSymbol, %s_names);",
+             target, target)
+    body$add(c_flatten_eqs(len))
+    body$add('SET_STRING_ELT(%s_names, %d, mkChar("%s"));',
+             target, seq_along(data) - 1L, data)
+    body$add("SET_VECTOR_ELT(ret, %d, %s_length);", idx, target)
+    body$add("UNPROTECT(2);")
+    body$get()
+  }
+
+  body <- collector()
   body$add("SEXP ret = PROTECT(allocVector(VECSXP, 3));")
   body$add("SEXP nms = PROTECT(allocVector(STRSXP, 3));")
   body$add('SET_STRING_ELT(nms, 0, mkChar("variable_order"));')
   body$add('SET_STRING_ELT(nms, 1, mkChar("output_order"));')
   body$add('SET_STRING_ELT(nms, 2, mkChar("n_out"));')
-  body$add("SET_VECTOR_ELT(ret, 0, vlen);")
-  body$add("SET_VECTOR_ELT(ret, 1, R_NilValue);")
-  body$add("SET_VECTOR_ELT(ret, 2, ScalarInteger(0));")
   body$add("setAttrib(ret, R_NamesSymbol, nms);");
 
-  body$add("UNPROTECT(4);")
+  body$add(len_block(variables, "variable", 0))
+
+  if (dat$features$has_output) {
+    body$add(len_block(output, "output", 1))
+    body$add("SET_VECTOR_ELT(ret, 2, ScalarInteger(%s));",
+             rewrite(dat$data$output$length))
+  } else {
+    body$add("SET_VECTOR_ELT(ret, 1, R_NilValue);")
+    body$add("SET_VECTOR_ELT(ret, 2, ScalarInteger(0));")
+  }
+
+  body$add("UNPROTECT(2);")
   body$add("return ret;")
 
   args <- c(SEXP = dat$meta$c$ptr)
@@ -366,9 +420,9 @@ generate_c_compiled_metadata <- function(dat) {
 
 
 c_function <- function(return_type, name, args, body) {
-  args_str <- paste(sprintf("%s %s", names(args), unname(args)),
+  args_str <- paste(sprintf_safe("%s %s", names(args), unname(args)),
                     collapse = ", ")
-  str <- sprintf("%s %s(%s)", return_type, name, args_str)
+  str <- sprintf_safe("%s %s(%s)", return_type, name, args_str)
   list(name = name,
        declaration = paste0(str, ";"),
        definition = c(paste0(str, " {"), paste0("  ", body), "}"))
@@ -386,4 +440,16 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
     rhs <- "NA_INTEGER"
   }
   sprintf_safe("%s = %s;", rewrite(data_info$name), rhs)
+}
+
+
+c_unpack_variable <- function(name, dat, rewrite) {
+  el <- dat$data$variable$contents[[name]]
+  data_info <- dat$data$elements[[el$name]]
+  rhs <- c_variable_reference(el, data_info, dat$meta$state, rewrite)
+  if (data_info$rank == 0L) {
+    sprintf("%s %s = %s;", data_info$storage_type, el$name, rhs)
+  } else {
+    stop("Unpack an array")
+  }
 }

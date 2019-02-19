@@ -1,5 +1,5 @@
 generate_c <- function(dat, verbose = FALSE) {
-  features_supported <- c("initial_time_dependent", "has_user")
+  features_supported <- c("initial_time_dependent", "has_user", "has_output")
   generate_check_features(features_supported, dat)
 
   rewrite <- function(x) {
@@ -23,6 +23,7 @@ generate_c <- function(dat, verbose = FALSE) {
     rhs_desolve = sprintf("%s_rhs_desolve", base),
     rhs_dde = sprintf("%s_rhs_dde", base),
     rhs_r = sprintf("%s_rhs_r", base),
+    output_dde = sprintf("%s_output_dde", base),
     initmod_desolve = sprintf("%s_initmod_desolve", base))
 
   core <- generate_c_compiled(eqs, dat, rewrite)
