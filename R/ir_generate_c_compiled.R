@@ -6,17 +6,24 @@ generate_c_compiled <- function(eqs, dat, rewrite) {
               finalise = generate_c_compiled_finalise(dat),
               create = generate_c_compiled_create(eqs, dat, rewrite),
               initmod_desolve = generate_c_compiled_initmod_desolve(dat),
-              rhs = generate_c_compiled_rhs(eqs, dat, rewrite),
-              rhs_desolve = generate_c_compiled_rhs_desolve(dat),
-              rhs_dde = generate_c_compiled_rhs_dde(dat),
-              rhs_r = generate_c_compiled_rhs_r(dat, rewrite),
-              output = generate_c_compiled_output(eqs, dat, rewrite),
               contents = generate_c_compiled_contents(dat),
               set_user = generate_c_compiled_set_user(eqs, dat),
               set_initial = generate_c_compiled_set_initial(dat),
               metadata = generate_c_compiled_metadata(dat, rewrite),
               initial_conditions =
                 generate_c_compiled_initial_conditions(dat, rewrite))
+
+  if (dat$features$discrete) {
+    ret$rhs <- generate_c_compiled_update(eqs, dat, rewrite)
+    ret$rhs_dde <- generate_c_compiled_update_dde(dat)
+  } else {
+    ret$rhs <- generate_c_compiled_deriv(eqs, dat, rewrite)
+    ret$rhs_dde <- generate_c_compiled_deriv_dde(dat)
+    ret$rhs_desolve <- generate_c_compiled_deriv_desolve(dat)
+    ret$output <- generate_c_compiled_output(eqs, dat, rewrite)
+  }
+  ret$rhs_r <- generate_c_compiled_rhs_r(dat, rewrite)
+
   ret[!vlapply(ret, is.null)]
 }
 
@@ -121,14 +128,14 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
 }
 
 
-generate_c_compiled_rhs <- function(eqs, dat, rewrite) {
+generate_c_compiled_deriv <- function(eqs, dat, rewrite) {
   variables <- dat$components$rhs$variables
   equations <- dat$components$rhs$equations
 
   unpack <- lapply(variables, c_unpack_variable, dat, rewrite)
 
   body <- collector()
-  body$add(c_flatten_eqs(c(unpack, eqs[equations])), literal = TRUE)
+  body$add(c_flatten_eqs(c(unpack, eqs[equations])))
 
   if (dat$features$has_output) {
     variables_output <- setdiff(dat$components$output$variables, variables)
@@ -181,7 +188,7 @@ generate_c_compiled_output <- function(eqs, dat, rewrite) {
 ## version of odin, we had a wrapper function that passed the
 ## parameters into a downstream function, but here we're going to
 ## avoid that and just generate out
-generate_c_compiled_rhs_desolve <- function(dat) {
+generate_c_compiled_deriv_desolve <- function(dat) {
   body <- sprintf_safe("%s(%s, *%s, %s, %s, %s);",
                        dat$meta$c$rhs, dat$meta$c$internal_ds, dat$meta$time,
                        dat$meta$state, dat$meta$result, dat$meta$output)
@@ -195,7 +202,7 @@ generate_c_compiled_rhs_desolve <- function(dat) {
 }
 
 
-generate_c_compiled_rhs_dde <- function(dat) {
+generate_c_compiled_deriv_dde <- function(dat) {
   args <- c("size_t" = "neq",
             "double" = dat$meta$time,
             "double *" = dat$meta$state,
@@ -229,13 +236,46 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
   }
 
   body$add("%s(%s, REAL(%s)[0], REAL(%s), REAL(%s), %s);",
-          dat$meta$c$rhs, dat$meta$internal, dat$meta$time, dat$meta$state,
-          dat$meta$result, dat$meta$output)
+           dat$meta$c$rhs, dat$meta$internal, dat$meta$time, dat$meta$state,
+           dat$meta$result, dat$meta$output)
   body$add("UNPROTECT(1);")
   body$add("return %s;", dat$meta$result)
 
   args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time, SEXP = dat$meta$state)
   c_function("SEXP", dat$meta$c$rhs_r, args, body$get())
+}
+
+
+generate_c_compiled_update <- function(eqs, dat, rewrite) {
+  variables <- union(dat$components$rhs$variables,
+                     dat$components$output$variables)
+  equations <- union(dat$components$rhs$equations,
+                     dat$components$output$equations)
+  unpack <- lapply(variables, c_unpack_variable, dat, rewrite)
+  body <- c_flatten_eqs(c(unpack, eqs[equations]))
+
+  args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
+            double = dat$meta$time,
+            "double *" = dat$meta$state,
+            "double *" = dat$meta$result,
+            "double *" = dat$meta$output)
+  c_function("void", dat$meta$c$rhs, args, body)
+}
+
+
+generate_c_compiled_update_dde <- function(dat, rewrite) {
+  args <- c("size_t" = "n_eq",
+            "size_t" = dat$meta$time,
+            "double *" = dat$meta$state,
+            "double *" = dat$meta$result,
+            "size_t" = "n_out",
+            "double *" = dat$meta$output,
+            "void *" = dat$meta$internal)
+  body <- sprintf_safe("%s((%s*)%s, %s, %s, %s, %s);",
+                       dat$meta$c$rhs, dat$meta$c$internal_t,
+                       dat$meta$internal, dat$meta$time, dat$meta$state,
+                       dat$meta$result, dat$meta$output)
+  c_function("void", dat$meta$c$rhs_dde, args, body)
 }
 
 

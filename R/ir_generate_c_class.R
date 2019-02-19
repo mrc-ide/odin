@@ -24,27 +24,67 @@ generate_c_class <- function(core, dll, dat) {
     }
   }
 
-  run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
-    if (is.null(y)) {
-      y <- self$initial(t)
+  if (dat$features$discrete) {
+    deriv <- NULL
+    update <- function(step, y) {
+      if (private$delay) {
+        stop("Can't call update() on delay models")
+      }
+      .Call(private$core$rhs_r, private$ptr, step, y, PACKAGE = private$dll)
     }
-    if (private$use_dde) {
-      ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
-                        dllname = private$dll, parms_are_real = FALSE,
-                        n_out = private$n_out, output = private$core$output,
-                        ynames = FALSE, ...)
-    } else {
-      ## TODO: initmod => initfunc
-      ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$ptr,
-                          initfunc = private$core$initmod_desolve,
-                          nout = private$n_out, dllname = private$dll, ...)
+    run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
+      if (is.null(y)) {
+        y <- self$initial(step)
+      }
+      if (is.null(replicate)) {
+        ret <- dde::difeq(y, step, private$core$rhs_dde, private$ptr,
+                          dllname = private$dll, parms_are_real = FALSE,
+                          ynames = FALSE, n_out = private$n_out, ...)
+      } else {
+        ret <- dde::difeq_replicate(replicate, y, step,
+                                    private$core$rhs_dde, private$ptr,
+                                    dllname = private$dll,
+                                    parms_are_real = FALSE,
+                                    ynames = FALSE, n_out = private$n_out,
+                                    ...)
+      }
+      if (use_names) {
+        colnames(ret) <- private$ynames
+      } else {
+        colnames(ret) <- NULL
+      }
+      ret
     }
-    if (use_names) {
-      colnames(ret) <- private$ynames
-    } else {
-      colnames(ret) <- NULL
+  } else {
+    update <- NULL
+    deriv <- function(t, y) {
+      if (private$delay) {
+        stop("Can't call deriv() on delay models")
+      }
+      .Call(private$core$rhs_r, private$ptr, t, y, PACKAGE = private$dll)
     }
-    ret
+    run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
+      if (is.null(y)) {
+        y <- self$initial(t)
+      }
+      if (private$use_dde) {
+        ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
+                          dllname = private$dll, parms_are_real = FALSE,
+                          n_out = private$n_out, output = private$core$output,
+                          ynames = FALSE, ...)
+      } else {
+        ## TODO: initmod => initfunc
+        ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$ptr,
+                            initfunc = private$core$initmod_desolve,
+                            nout = private$n_out, dllname = private$dll, ...)
+      }
+      if (use_names) {
+        colnames(ret) <- private$ynames
+      } else {
+        colnames(ret) <- NULL
+      }
+      ret
+    }
   }
 
   env <- new.env(parent = as.environment("package:base"))
@@ -84,7 +124,7 @@ generate_c_class <- function(core, dll, dat) {
       }
     ),
 
-    public = list(
+    public = drop_null(list(
       initialize = function(user = NULL, use_dde = FALSE) {
         private$use_dde <- use_dde || private$discrete
         if (private$use_dde) {
@@ -97,13 +137,8 @@ generate_c_class <- function(core, dll, dat) {
       initial = initial,
       set_user = set_user,
       run = run,
-
-      deriv = function(t, y) {
-        if (private$delay) {
-          stop("Can't call deriv() on delay models")
-        }
-        .Call(private$core$rhs_r, private$ptr, t, y, PACKAGE = private$dll)
-      },
+      deriv = deriv,
+      update = update,
 
       ir = function() {
         private$ir_
@@ -116,7 +151,7 @@ generate_c_class <- function(core, dll, dat) {
       transform_variables = function(y) {
         support_transform_variables(y, private)
       }
-    ))
+    )))
 
   generate_r_constructor(dat, env)
 }
