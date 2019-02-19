@@ -264,9 +264,14 @@ as_function <- function(args, body, env) {
 }
 
 
-sprintf_safe <- function(...) {
-  if (any(vlapply(list(...), is.null))) {
+sprintf_safe <- function(fmt, ...) {
+  dots <- list(...)
+  if (any(vlapply(dots, is.null))) {
     stop("Passed empty format parameter to formatter")
   }
-  sprintf(...)
+  if (length(dots) == 0) {
+    fmt
+  } else {
+    sprintf(fmt, ...)
+  }
 }
