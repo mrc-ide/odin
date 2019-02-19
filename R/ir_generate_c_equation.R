@@ -42,12 +42,22 @@ generate_c_equation_scalar <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_array <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  lhs <- generate_c_equation_array_lhs(eq, data_info, dat, rewrite)
+  lapply(eq$rhs, function(x)
+    generate_c_equation_array_rhs(x$value, x$index, lhs, rewrite))
 }
 
 
 generate_c_equation_alloc <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  lhs <- rewrite(eq$lhs)
+  ctype <- data_info$storage_type
+  len <- rewrite(data_info$dimnames$length)
+
+  ## TODO: this is fine for now, but if we know that some variables
+  ## have constant size, then we do not have to ever free them.  It's
+  ## fairly harmless though.
+  c(sprintf_safe("Free(%s);", lhs),
+    sprintf_safe("%s = (%s*) Calloc(%s, %s);", lhs, ctype, len, ctype))
 }
 
 
@@ -96,4 +106,53 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
 generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
   .NotYetImplemented()
+}
+
+
+generate_c_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
+  index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
+  location <- data_info$location
+
+  f <- function(i) {
+    if (i == 1) {
+      sprintf("%s + 1", index[[i]])
+    } else {
+      sprintf("%s * (%s - 1)",
+              rewrite(data_info$dimnames$mult[[i]]), index[[i]])
+    }
+  }
+
+  pos <- paste(vcapply(seq_along(index), f), collapse = " + ")
+  if (location == "internal") {
+    lhs <- sprintf("%s[%s]", rewrite(data_info$name), pos)
+  } else {
+    offset <- rewrite(dat$data[[location]]$contents[[data_info$name]]$offset)
+    storage <- if (location == "variable") dat$meta$result else dat$meta$output
+    lhs <- sprintf("%s[%s + %s]", storage, offset, pos)
+  }
+
+  lhs
+}
+
+
+generate_c_equation_array_rhs <- function(value, index, lhs, rewrite) {
+  ret <- sprintf("%s = %s;", lhs, rewrite(value))
+  seen_range <- FALSE
+  for (idx in rev(index)) {
+    if (idx$is_range) {
+      seen_range <- TRUE
+      loop <- sprintf_safe("for (size_t %s = %s; %s <= %s; ++%s) {",
+                           idx$index, rewrite(idx$value[[2]]),
+                           idx$index, rewrite(idx$value[[3]]),
+                           idx$index)
+      ret <- c(loop, paste0("  ", ret), "}")
+    } else {
+      ret <- c(sprintf("size_t %s = %s;", idx$index, rewrite(idx$value)),
+               ret)
+    }
+  }
+  if (!seen_range) {
+    ret <- c("{", paste("  ", ret), "}")
+  }
+  ret
 }

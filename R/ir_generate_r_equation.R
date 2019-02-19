@@ -327,8 +327,7 @@ generate_r_equation_delay_discrete <- function(eq, data_info, dat,
 ##   STORAGE->NAME[f(i, j)]
 ## and
 ##   STORAGE[OFFSET + f(i, j)]
-generate_r_equation_array_lhs <- function(eq, data_info, dat,
-                                            rewrite) {
+generate_r_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
   ## All the rhs have the same structure so we can use any of them
   ## here - we need only to get the index element out
   index <- lapply(eq$rhs[[1]]$index, function(x) as.name(x$index))
@@ -355,8 +354,7 @@ generate_r_equation_array_lhs <- function(eq, data_info, dat,
 }
 
 
-generate_r_equation_array_rhs <- function(value, index, lhs,
-                                            rewrite) {
+generate_r_equation_array_rhs <- function(value, index, lhs, rewrite) {
   ret <- call("<-", lhs, rewrite(value))
   subs <- list()
   for (idx in rev(index)) {

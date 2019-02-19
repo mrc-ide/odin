@@ -6,7 +6,7 @@ generate_c_compiled <- function(eqs, dat, rewrite) {
               finalise = generate_c_compiled_finalise(dat),
               create = generate_c_compiled_create(eqs, dat, rewrite),
               initmod_desolve = generate_c_compiled_initmod_desolve(dat),
-              contents = generate_c_compiled_contents(dat),
+              contents = generate_c_compiled_contents(dat, rewrite),
               set_user = generate_c_compiled_set_user(eqs, dat),
               set_initial = generate_c_compiled_set_initial(dat),
               metadata = generate_c_compiled_metadata(dat, rewrite),
@@ -58,14 +58,17 @@ generate_c_compiled_finalise <- function(dat) {
   internal <- dat$meta$internal
   internal_t <- dat$meta$c$internal_t
 
-  if (dat$features$has_array) {
-    stop("Free arrays here")
-  }
-
   body <- collector()
   body$add("%s *%s = %s(%s, 0);",
           internal_t, internal, dat$meta$c$get_internal, ptr)
   body$add("if (%s) {", ptr)
+  if (dat$features$has_array) {
+    for (el in dat$data$elements) {
+      if (el$rank > 0 && el$location == "internal") {
+        body$add("  Free(%s->%s);", internal, el$name)
+      }
+    }
+  }
   body$add("  Free(%s);", internal)
   body$add("  R_ClearExternalPtr(%s);", ptr)
   body$add("}")
@@ -101,15 +104,6 @@ generate_c_compiled_get_internal <- function(dat) {
 
 
 generate_c_compiled_create <- function(eqs, dat, rewrite) {
-  eqs_create <- list_to_character(unname(eqs[dat$components$create$equations]))
-
-  if (dat$features$has_user) {
-    user_names <- vcapply(dat$user, "[[", "name")
-    user <- vcapply(user_names, generate_c_compiled_create_user, dat, rewrite,
-                    USE.NAMES = FALSE)
-    eqs_create <- c(eqs_create, user)
-  }
-
   ptr <- "ptr"
   internal <- dat$meta$internal
   internal_t <- dat$meta$c$internal_t
@@ -117,7 +111,22 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
   body <- collector()
   body$add("%s *%s = (%s*) Calloc(1, %s);",
            internal_t, internal, internal_t, internal_t)
-  body$add(eqs_create, literal = TRUE)
+
+  if (dat$features$has_array) {
+    arrays <- names_if(vlapply(dat$data$elements, function(x)
+      x$rank > 0 && x$location == "internal"))
+    body$add("%s = NULL;", vcapply(arrays, rewrite, USE.NAMES = FALSE))
+  }
+
+  body$add(c_flatten_eqs(eqs[dat$components$create$equations]))
+
+  if (dat$features$has_user) {
+    user_names <- vcapply(dat$user, "[[", "name")
+    user <- vcapply(user_names, generate_c_compiled_create_user, dat, rewrite,
+                    USE.NAMES = FALSE)
+    body$add(user)
+  }
+
   body$add("SEXP %s = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
            ptr, internal)
   body$add("R_RegisterCFinalizer(%s, %s);", ptr, dat$meta$c$finalise)
@@ -298,20 +307,31 @@ generate_c_compiled_initmod_desolve <- function(dat) {
 }
 
 
-generate_c_compiled_contents <- function(dat) {
-  extract_str <- function(x) {
+generate_c_compiled_contents <- function(dat, rewrite) {
+  extract <- function(x, i, body) {
     if (x$rank != 0L) {
-      stop("Deal with array")
+      if (x$storage_type != "double") {
+        stop("writeme")
+      }
+      body$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
+               x$name, rewrite(x$dimnames$length))
+      body$add("memcpy(REAL(%s), %s, %s * sizeof(double));",
+               x$name, rewrite(x$name), rewrite(x$dimnames$length))
+      body$add("SET_VECTOR_ELT(contents, %d, %s);",
+               i, x$name)
+    } else {
+      fn <- switch(x$storage_type,
+                   double = "ScalarReal",
+                   int = "ScalarInteger",
+                   stop("Unsupported storage type"))
+      body$add("SET_VECTOR_ELT(contents, %d, %s(%s->%s));",
+               i, fn, dat$meta$internal, x$name)
     }
-    fn <- switch(x$storage_type,
-                 double = "ScalarReal",
-                 int = "ScalarInteger",
-                 stop("Unsupported storage type"))
-    sprintf("%s(%s->%s)", fn, dat$meta$internal, x$name)
   }
 
   i <- vcapply(dat$data$elements, "[[", "location") == "internal"
   contents <- dat$data$elements[i]
+  n_arrays <- sum(viapply(contents, "[[", "rank") > 0)
 
   body <- collector()
   body$add("%s *%s = %s(%s, 1);",
@@ -320,14 +340,13 @@ generate_c_compiled_contents <- function(dat) {
   body$add("SEXP contents = PROTECT(allocVector(VECSXP, %d));",
            length(contents))
   for (i in seq_along(contents)) {
-    body$add("SET_VECTOR_ELT(contents, %d, %s);",
-            i - 1, extract_str(contents[[i]]))
+    extract(contents[[i]], i - 1, body)
   }
   body$add("SEXP nms = PROTECT(allocVector(STRSXP, %d));", length(contents))
   body$add('SET_STRING_ELT(nms, %d, mkChar("%s"));',
           seq_along(contents) - 1L, names(contents))
   body$add("setAttrib(contents, R_NamesSymbol, nms);")
-  body$add("UNPROTECT(2);")
+  body$add("UNPROTECT(%d);", 2 + n_arrays)
   body$add("return contents;")
 
   args <- c(SEXP = dat$meta$c$ptr)
@@ -410,6 +429,9 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
     d <- dat$data$elements[[v]]
     if (d$rank == 0L) {
       sprintf_safe('SET_VECTOR_ELT(%s, %d, R_NilValue);', target, i - 1L)
+    } else if (d$rank == 1L) {
+      sprintf_safe('SET_VECTOR_ELT(%s, %d, ScalarInteger(%s));',
+                   target, i - 1L, rewrite(d$dimnames$length))
     } else {
       stop("write me")
     }
@@ -433,6 +455,9 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
   }
 
   body <- collector()
+  body$add("%s *%s = %s(%s, 1);",
+          dat$meta$c$internal_t, dat$meta$internal,
+          dat$meta$c$get_internal, dat$meta$c$ptr)
   body$add("SEXP ret = PROTECT(allocVector(VECSXP, 3));")
   body$add("SEXP nms = PROTECT(allocVector(STRSXP, 3));")
   body$add('SET_STRING_ELT(nms, 0, mkChar("variable_order"));')

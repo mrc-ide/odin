@@ -13,6 +13,9 @@ generate_c_sexp <- function(x, data, meta) {
                     "^" = "%s%s%s",
                     "%s %s %s")
       ret <- sprintf(fmt, values[[1]], fn, values[[2]])
+    } else if (fn == "length") {
+      ret <- generate_c_sexp(data$elements[[args[[1L]]]]$dimnames$length,
+                             data, meta)
     } else {
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     }

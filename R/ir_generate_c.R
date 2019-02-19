@@ -1,6 +1,6 @@
 generate_c <- function(dat, verbose = FALSE) {
   features_supported <- c("initial_time_dependent", "has_user", "has_output",
-                          "discrete")
+                          "discrete", "has_array")
   generate_check_features(features_supported, dat)
 
   rewrite <- function(x) {
