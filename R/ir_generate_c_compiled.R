@@ -383,8 +383,9 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
     if (data_info$rank == 0L) {
       sprintf("%s = %s->%s;", lhs, dat$meta$internal, el$initial)
     } else {
-      sprintf("memcpy(%s, %s.%s, %s * sizeof(double));",
-              lhs, dat$meta$internal, el$initial, rewrite(el$dimnames$length))
+      sprintf_safe(
+        "memcpy(%s, %s, %s * sizeof(double));",
+        lhs, rewrite(el$initial), rewrite(data_info$dimnames$length))
     }
   }
 
@@ -402,7 +403,9 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
   initial <- c_flatten_eqs(lapply(dat$data$variable$contents, set_initial))
 
   body <- collector()
-  body$add("double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
+  if (dat$features$initial_time_dependent) {
+    body$add("double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
+  }
   body$add("%s *%s = %s(%s, 1);",
           dat$meta$c$internal_t, dat$meta$internal,
           dat$meta$c$get_internal, dat$meta$c$ptr)

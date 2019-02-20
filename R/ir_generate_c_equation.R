@@ -135,19 +135,22 @@ generate_c_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
 }
 
 
+## TODO: we should really use size_t for the index variables here, but
+## because the sizes are not yet stored as size_t that causes a lot of
+## compiler warning noise.
 generate_c_equation_array_rhs <- function(value, index, lhs, rewrite) {
   ret <- sprintf("%s = %s;", lhs, rewrite(value))
   seen_range <- FALSE
   for (idx in rev(index)) {
     if (idx$is_range) {
       seen_range <- TRUE
-      loop <- sprintf_safe("for (size_t %s = %s; %s <= %s; ++%s) {",
+      loop <- sprintf_safe("for (int %s = %s; %s <= %s; ++%s) {",
                            idx$index, rewrite(idx$value[[2]]),
                            idx$index, rewrite(idx$value[[3]]),
                            idx$index)
       ret <- c(loop, paste0("  ", ret), "}")
     } else {
-      ret <- c(sprintf("size_t %s = %s;", idx$index, rewrite(idx$value)),
+      ret <- c(sprintf("int %s = %s;", idx$index, rewrite(idx$value)),
                ret)
     }
   }
