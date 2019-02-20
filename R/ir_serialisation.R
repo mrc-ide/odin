@@ -1,8 +1,3 @@
-ir_serialise <- function(dat, pretty = TRUE) {
-  jsonlite::toJSON(dat, null = "null", pretty = pretty, digits = NA)
-}
-
-
 ## TODO: we should be able to see in the schema all the cases that are
 ## character vectors.
 ir_deserialise <- function(ir) {
@@ -50,4 +45,135 @@ ir_deserialise_data_dimnames <- function(x) {
     x$dimnames[v] <- lapply(x$dimnames[v], list_to_character)
   }
   x
+}
+
+
+ir_serialise <- function(dat, pretty) {
+  res <- list(config = ir_serialise_config(dat$config),
+              meta = ir_serialise_meta(dat$meta),
+              features = ir_serialise_features(dat$features),
+              data = ir_serialise_data(dat$data),
+              equations = ir_serialise_equations(dat$equations),
+              components = ir_serialise_components(dat$components),
+              user = ir_serialise_user(dat$user),
+              interpolate = ir_serialise_interpolate(dat$interpolate),
+              source = ir_serialise_source(dat$source))
+  ir_to_json(res, pretty)
+}
+
+
+ir_serialise_config <- function(config) {
+  list(base = scalar(config$base))
+}
+
+
+ir_serialise_meta <- function(meta) {
+  lapply(meta, scalar)
+}
+
+
+ir_serialise_features <- function(features) {
+  lapply(features, scalar)
+}
+
+
+## The next four seem trivial
+ir_serialise_components <- function(components) {
+  components
+}
+
+
+ir_serialise_user <- function(user) {
+  if (length(user) > 0L) {
+    stop("check me")
+  }
+  list()
+}
+
+ir_serialise_interpolate <- function(interpolate) {
+  if (any(lengths(interpolate) > 0L)) {
+    stop("check me")
+  }
+  interpolate
+}
+
+
+ir_serialise_source <- function(source) {
+  source
+}
+
+
+## These two are by far the most work
+ir_serialise_data <- function(data) {
+  f_elements <- function(x) {
+    ret <- lapply(x[c("name", "location", "storage_type", "rank")], scalar)
+    if (x$rank > 0L) {
+      stop("writeme")
+    } else {
+      ret["dimnames"] <- list(NULL)
+    }
+    ret
+  }
+  ## TODO: this can be modified later on when we move initial out of
+  ## this place and put it in its own block.
+  f_variable_contents <- function(x) {
+    list(name = scalar(x$name),
+         offset = ir_expression(x$offset),
+         initial = scalar(x$initial))
+  }
+  f_output_contents <- function(x) {
+    list(name = scalar(x$name),
+         offset = ir_expression(x$offset))
+  }
+
+  elements <- lapply(unname(data$elements), f_elements)
+
+  variable <- list(
+    length = ir_expression(data$variable$length),
+    contents = lapply(unname(data$variable$contents), f_variable_contents))
+  output <- list(
+    length = ir_expression(data$output$length),
+    contents = lapply(unname(data$output$contents), f_output_contents))
+
+  list(elements = elements,
+       variable = variable,
+       output = output)
+}
+
+
+ir_serialise_equations <- function(equations) {
+  lapply(unname(equations), ir_serialise_equation)
+}
+
+
+ir_serialise_equation <- function(eq) {
+  base <- list(name = scalar(eq$name),
+               type = scalar(eq$type),
+               source = eq$source,
+               depends = eq$depends,
+               lhs = scalar(eq$lhs$lhs))
+  extra <- switch(
+    eq$type,
+    alloc = ir_serialise_equation_alloc(eq),
+    alloc_interpolate = ir_serialise_equation_alloc_interpolate(eq),
+    alloc_ring = ir_serialise_equation_alloc_ring(eq),
+    copy = ir_serialise_equation_copy(eq),
+    delay_continuous = ir_serialise_delay_continuous(eq),
+    delay_discrete = ir_serialise_delay_discrete(eq),
+    delay_index = ir_serialise_equation_delay_index(eq),
+    expression_array = ir_serialise_equation_expression_array(eq),
+    expression_scalar = ir_serialise_equation_expression_scalar(eq),
+    user = ir_serialise_user(eq),
+    stop("odin bug"))
+  c(base, extra)
+}
+
+
+ir_serialise_equation_expression_scalar <- function(eq) {
+  list(rhs = list(value = ir_expression(eq$rhs$value)))
+}
+
+
+ir_to_json <- function(dat, pretty = TRUE) {
+  jsonlite::toJSON(dat, null = "null", pretty = pretty, digits = NA)
 }

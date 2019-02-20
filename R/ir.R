@@ -34,7 +34,7 @@ odin_build_ir <- function(x, validate = FALSE, pretty = TRUE) {
                  user = ir_user(dat),
                  interpolate = ir_interpolate(dat),
                  source = vcapply(xp$exprs, deparse_str))
-  ir <- ir_serialise(ir_dat, pretty)
+  ir <- ir_to_json(ir_dat, pretty)
   if (validate) {
     ir_validate(ir, TRUE)
   }
