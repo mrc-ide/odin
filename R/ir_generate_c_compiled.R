@@ -399,6 +399,9 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
     eqs_initial <- dat$equations[dat$components$initial$equations]
     eqs_initial <- lapply(ir_substitute(eqs_initial, subs),
                           generate_c_equation, dat, rewrite)
+    if (dat$initial_time_dependent && dat$features$has_stochastic) {
+      eqs_initial <- c("GetRNGstate();", eqs_initial, "PutRNGstate();")
+    }
   } else {
     eqs_initial <- NULL
   }
@@ -421,7 +424,6 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
   body$add(initial, literal = TRUE)
   body$add("UNPROTECT(1);")
   body$add("return %s;", state_r)
-  body$get()
 
   args <- c(SEXP = dat$meta$c$ptr, SEXP = time_ptr)
   c_function("SEXP", dat$meta$c$initial_conditions, args, body$get())
