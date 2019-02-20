@@ -343,7 +343,7 @@ test_that("user array - indirect", {
   })
 
   mod <- gen(n = 3, r = 1:3)
-  expect_equal(mod$contents(),
+  expect_equal(sort_list(mod$contents()),
                sort_list(list(
                  dim_r = 3,
                  dim_x = 3,

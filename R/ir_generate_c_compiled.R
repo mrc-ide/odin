@@ -114,7 +114,8 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
 
   if (dat$features$has_array) {
     arrays <- names_if(vlapply(dat$data$elements, function(x)
-      x$rank > 0 && x$location == "internal"))
+      x$rank > 0 && x$location == "internal" &&
+      dat$equations[[x$name]]$type != "user"))
     body$add("%s = NULL;", vcapply(arrays, rewrite, USE.NAMES = FALSE))
   }
 
@@ -512,6 +513,8 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
   eq_info <- dat$equations[[name]]
   if (!is.null(eq_info$user$default)) {
     rhs <- rewrite(eq_info$user$default)
+  } else if (data_info$rank > 0L) {
+    rhs <- "NULL"
   } else if (data_info$storage_type == "double") {
     rhs <- "NA_REAL"
   } else if (data_info$storage_type == "int") {
@@ -533,6 +536,16 @@ generate_c_compiled_library <- function(dat) {
       v <- c(v, "odin_set_dim")
     }
   }
+  if (dat$features$has_user && dat$features$has_array) {
+    d <- dat$data$elements
+    user_arrays <- any(vlapply(dat$equations, function(x)
+      !is.null(x$user) && d[[x$name]]$rank > 0))
+    if (user_arrays) {
+      v <- c(v, "get_user_array_double", "get_user_array_copy_double",
+             "get_user_array_check_rank", "get_list_element")
+    }
+  }
+  v <- unique(v)
 
   list(declaration = unname(lib$declarations[v]),
        definition = c_flatten_eqs(strsplit(lib$definitions[v], "\n")))

@@ -85,11 +85,23 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
     stop("Implement me")
   } else {
     lhs <- rewrite(eq$lhs)
-    if (data_info$rank > 0L) {
-      stop("Implement me")
+    if (data_info$rank == 0L) {
+      sprintf_safe(
+        '%s = get_user_%s(%s, "%s", %s);',
+        lhs, data_info$storage_type, dat$meta$user, eq$lhs, lhs)
+    } else {
+      if (data_info$storage_type != "double") {
+        stop("not yet implemented")
+      }
+      if (data_info$rank == 1L) {
+        dim <- rewrite(data_info$dimnames$length)
+      } else {
+        dim <- paste(vcapply(data_info$dimnames$dim, rewrite), collapse = ", ")
+      }
+      c(sprintf_safe("Free(%s);", lhs),
+        sprintf_safe('%s = get_user_array_double(%s, "%s", %d, %s);',
+                     lhs, dat$meta$user, eq$lhs, data_info$rank, dim))
     }
-    sprintf('%s = get_user_%s(%s, "%s", %s);',
-            lhs, data_info$storage_type, dat$meta$user, eq$lhs, lhs)
   }
 }
 
