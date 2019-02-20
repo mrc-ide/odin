@@ -542,9 +542,11 @@ generate_c_compiled_library <- function(dat) {
       !is.null(x$user) && d[[x$name]]$rank > 0))
     if (user_arrays) {
       v <- c(v, "get_user_array_double", "get_user_array_copy_double",
-             "get_user_array_check_rank", "get_list_element")
+             "get_user_array_check_rank", "get_list_element",
+             "get_user_array_dim_double")
     }
   }
+  stopifnot(all(v %in% names(lib$declarations)))
   v <- unique(v)
 
   list(declaration = unname(lib$declarations[v]),

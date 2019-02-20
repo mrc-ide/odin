@@ -81,28 +81,53 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
   max <- rewrite(eq$user$max)
   integer <- data_info$storage_type == "int"
 
+  user <- dat$meta$user
+  rank <- data_info$rank
+
+  lhs <- rewrite(eq$lhs)
   if (eq$user$dim) {
-    stop("Implement me")
+    if (data_info$storage_type != "double") {
+      stop("not yet implemented")
+    }
+    free <- sprintf_safe("Free(%s);", lhs)
+    len <- data_info$dimnames$length
+
+    if (rank == 1L) {
+      ret <- c(
+        free,
+        sprintf_safe('%s = get_user_array_dim_double(%s, "%s", %d, &%s);',
+                     lhs, user, eq$lhs, rank, rewrite(len)))
+    } else {
+      ret <- c(
+        free,
+        sprintf_safe("int %s[%d];", len, rank + 1),
+        sprintf_safe('%s = get_user_array_dim_double(%s, "%s", %d, %s);',
+                     lhs, user, eq$lhs, rank, len),
+        sprintf_safe("%s = %s[%d];", rewrite(len), len, 0),
+        sprintf_safe("%s = %s[%d];",
+                     vcapply(data_info$dimnames$dim, rewrite), len,
+                     seq_len(rank)))
+    }
   } else {
-    lhs <- rewrite(eq$lhs)
-    if (data_info$rank == 0L) {
-      sprintf_safe(
+    if (rank == 0L) {
+      ret <- sprintf_safe(
         '%s = get_user_%s(%s, "%s", %s);',
-        lhs, data_info$storage_type, dat$meta$user, eq$lhs, lhs)
+        lhs, data_info$storage_type, user, eq$lhs, lhs)
     } else {
       if (data_info$storage_type != "double") {
         stop("not yet implemented")
       }
-      if (data_info$rank == 1L) {
+      if (rank == 1L) {
         dim <- rewrite(data_info$dimnames$length)
       } else {
         dim <- paste(vcapply(data_info$dimnames$dim, rewrite), collapse = ", ")
       }
-      c(sprintf_safe("Free(%s);", lhs),
-        sprintf_safe('%s = get_user_array_double(%s, "%s", %d, %s);',
-                     lhs, dat$meta$user, eq$lhs, data_info$rank, dim))
+      ret <- c(sprintf_safe("Free(%s);", lhs),
+               sprintf_safe('%s = get_user_array_double(%s, "%s", %d, %s);',
+                            lhs, user, eq$lhs, rank, dim))
     }
   }
+  ret
 }
 
 

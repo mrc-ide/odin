@@ -116,19 +116,38 @@ SEXP get_user_array_check_rank(SEXP user, const char *name, int rank) {
   } else {
     if (rank == 1) {
       if (isArray(el)) {
-        // this may be too strict as a length-1 dim here will fail
-        Rf_error("Expected a vector for %s", name);
+        Rf_error("Expected a numeric vector for '%s'", name);
       }
     } else {
       SEXP r_dim = getAttrib(el, R_DimSymbol);
       if (r_dim == R_NilValue || LENGTH(r_dim) != rank) {
         if (rank == 2) {
-          Rf_error("Expected a matrix for %s", name);
+          Rf_error("Expected a numeric matrix for '%s'", name);
         } else {
-          Rf_error("Expected a %dd array for %s", rank, name);
+          Rf_error("Expected a numeric array of rank %d for '%s'", rank, name);
         }
       }
     }
   }
   return el;
+}
+
+double* get_user_array_dim_double(SEXP user, const char *name, int rank, int *dest_dim) {
+  SEXP el = get_user_array_check_rank(user, name, rank);
+
+  dest_dim[0] = LENGTH(el);
+  if (rank > 1) {
+    SEXP r_dim = PROTECT(coerceVector(getAttrib(el, R_DimSymbol), INTSXP));
+    int *dim = INTEGER(r_dim);
+
+    for (size_t i = 0; i < (size_t) rank; ++i) {
+      dest_dim[i + 1] = dim[i];
+    }
+
+    UNPROTECT(1);
+  }
+
+  double *dest = (double*) Calloc(length(el), double);
+  get_user_array_copy_double(el, name, dest);
+  return dest;
 }
