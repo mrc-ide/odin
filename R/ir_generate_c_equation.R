@@ -115,7 +115,7 @@ generate_c_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
 
   f <- function(i) {
     if (i == 1) {
-      sprintf("%s + 1", index[[i]])
+      sprintf("%s - 1", index[[i]])
     } else {
       sprintf("%s * (%s - 1)",
               rewrite(data_info$dimnames$mult[[i]]), index[[i]])

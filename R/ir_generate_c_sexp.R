@@ -7,6 +7,13 @@ generate_c_sexp <- function(x, data, meta) {
 
     if (fn == "(") {
       ret <- sprintf("(%s)", values[[1]])
+    } else if (fn == "[") {
+      if (is.numeric(args[[2L]])) {
+        index <- generate_c_sexp(args[[2L]] - 1L, data, meta)
+      } else {
+        index <- sprintf("%s - 1", values[[2L]])
+      }
+      ret <- sprintf("%s[%s]", values[[1]], index)
     } else if (n == 2L && fn %in% FUNCTIONS_INFIX) {
       fmt <- switch(fn,
                     "/" = "%s %s (double) %s",
