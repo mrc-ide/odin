@@ -309,7 +309,14 @@ generate_c_compiled_initmod_desolve <- function(dat) {
 
 generate_c_compiled_contents <- function(dat, rewrite) {
   extract <- function(x, i, body) {
-    if (x$rank != 0L) {
+    if (x$rank == 0L) {
+      fn <- switch(x$storage_type,
+                   double = "ScalarReal",
+                   int = "ScalarInteger",
+                   stop("Unsupported storage type"))
+      body$add("SET_VECTOR_ELT(contents, %d, %s(%s->%s));",
+               i, fn, dat$meta$internal, x$name)
+    } else {
       if (x$storage_type != "double") {
         stop("writeme")
       }
@@ -317,15 +324,12 @@ generate_c_compiled_contents <- function(dat, rewrite) {
                x$name, rewrite(x$dimnames$length))
       body$add("memcpy(REAL(%s), %s, %s * sizeof(double));",
                x$name, rewrite(x$name), rewrite(x$dimnames$length))
+      if (x$rank > 1L) {
+        dim <- paste(vcapply(x$dimnames$dim, rewrite), collapse = ", ")
+        body$add("odin_set_dim(%s, %d, %s);", x$name, x$rank, dim)
+      }
       body$add("SET_VECTOR_ELT(contents, %d, %s);",
                i, x$name)
-    } else {
-      fn <- switch(x$storage_type,
-                   double = "ScalarReal",
-                   int = "ScalarInteger",
-                   stop("Unsupported storage type"))
-      body$add("SET_VECTOR_ELT(contents, %d, %s(%s->%s));",
-               i, fn, dat$meta$internal, x$name)
     }
   }
 
@@ -431,12 +435,18 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
   len <- function(i, v, target) {
     d <- dat$data$elements[[v]]
     if (d$rank == 0L) {
-      sprintf_safe('SET_VECTOR_ELT(%s, %d, R_NilValue);', target, i - 1L)
+      sprintf_safe("SET_VECTOR_ELT(%s, %d, R_NilValue);", target, i - 1L)
     } else if (d$rank == 1L) {
-      sprintf_safe('SET_VECTOR_ELT(%s, %d, ScalarInteger(%s));',
+      sprintf_safe("SET_VECTOR_ELT(%s, %d, ScalarInteger(%s));",
                    target, i - 1L, rewrite(d$dimnames$length))
     } else {
-      stop("write me")
+      c(sprintf_safe("SET_VECTOR_ELT(%s, %d, allocVector(INTSXP, %d));",
+                     target, i - 1L, d$rank),
+        sprintf_safe("int * %s = INTEGER(VECTOR_ELT(%s, %d));",
+                     d$dimnames$length, target, i - 1L),
+        sprintf_safe("%s[%d] = %s;",
+                     d$dimnames$length, seq_len(d$rank) - 1L,
+                     vcapply(d$dimnames$dim, rewrite, USE.NAMES = FALSE)))
     }
   }
 
@@ -511,13 +521,32 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
 }
 
 
+generate_c_compiled_library <- function(dat) {
+  lib <- read_user_c(system.file("library2.c", package = "odin"))
+  v <- character(0)
+  if (dat$features$has_user) {
+    ## TODO: should filter these?
+    v <- c(v, "get_user_double", "get_user_int", "get_list_element")
+  }
+  if (dat$features$has_array) {
+    if (any(viapply(dat$data$elements, "[[", "rank") > 1)) {
+      v <- c(v, "odin_set_dim")
+    }
+  }
+
+  list(declaration = unname(lib$declarations[v]),
+       definition = c_flatten_eqs(strsplit(lib$definitions[v], "\n")))
+}
+
+
 c_unpack_variable <- function(name, dat, rewrite) {
   el <- dat$data$variable$contents[[name]]
   data_info <- dat$data$elements[[el$name]]
   rhs <- c_variable_reference(el, data_info, dat$meta$state, rewrite)
   if (data_info$rank == 0L) {
-    sprintf("%s %s = %s;", data_info$storage_type, el$name, rhs)
+    fmt <- "%s %s = %s;"
   } else {
-    stop("Unpack an array")
+    fmt <- "%s * %s = %s;"
   }
+  sprintf(fmt, data_info$storage_type, el$name, rhs)
 }

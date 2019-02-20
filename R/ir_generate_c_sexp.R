@@ -23,7 +23,11 @@ generate_c_sexp <- function(x, data, meta) {
     } else if (fn == "length") {
       ret <- generate_c_sexp(data$elements[[args[[1L]]]]$dimnames$length,
                              data, meta)
+    } else if (fn == "dim") {
+      dim <- data$elements[[args[[1L]]]]$dimnames$dim[[args[[2]]]]
+      ret <- generate_c_sexp(dim, data, meta)
     } else {
+      stop(sprintf("unsupported function '%s'", fn))
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     }
     ret

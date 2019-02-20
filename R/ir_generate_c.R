@@ -29,18 +29,14 @@ generate_c <- function(dat, verbose = FALSE) {
 
   core <- generate_c_compiled(eqs, dat, rewrite)
 
+  lib <- generate_c_compiled_library(dat)
+
   decl <- c(generate_c_compiled_headers(dat),
             generate_c_compiled_struct(dat),
-            unname(vcapply(core, "[[", "declaration")))
-  defn <- c_flatten_eqs(lapply(core, "[[", "definition"))
-
-  if (dat$features$has_user) {
-    ## TODO: should filter these?
-    lib <- read_user_c(system.file("library2.c", package = "odin"))
-    v <- c("get_user_double", "get_user_int", "get_list_element")
-    decl <- c(decl, unname(lib$declarations[v]))
-    defn <- c(defn, c_flatten_eqs(strsplit(lib$definitions[v], "\n")))
-  }
+            unname(vcapply(core, "[[", "declaration")),
+            lib$declaration)
+  defn <- c(c_flatten_eqs(c(lapply(core, "[[", "definition"))),
+            lib$definition)
 
   code <- c(decl, defn)
 
