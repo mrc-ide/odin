@@ -318,7 +318,7 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
 
   output <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, "output")))
-  v <- unique(unlist(dependencies[output], use.names = FALSE))
+  v <- unique(c(character(), unlist(dependencies[output], use.names = FALSE)))
   eqs_output <- intersect(eqs_time, c(output, v))
   variables_output <- intersect(variables, v)
 
@@ -430,7 +430,8 @@ ir_parse_expr <- function(expr, line) {
                line, expr)
   }
 
-  if (identical(lhs$special, "deriv") || identical(lhs$special, "output")) {
+  if (identical(lhs$special, "deriv") || identical(lhs$special, "output") ||
+      identical(lhs$special, "update")) {
     lhs$lhs <- lhs$name_target
   } else {
     lhs$lhs <- lhs$name
