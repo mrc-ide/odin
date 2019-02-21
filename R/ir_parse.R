@@ -304,42 +304,35 @@ ir_parse_features <- function(eqs) {
 
 ir_parse_components <- function(eqs, dependencies, variables, stage,
                                 discrete) {
-  ## TODO: this can be greatly simplified once we know that it works.
-  ## All the names_if(set_names(...)) bits
+  eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
+  eqs_user <- intersect(names_if(stage == STAGE_USER), names(eqs))
+  eqs_time <- intersect(names_if(stage == STAGE_TIME), names(eqs))
+
+  ## NOTE: we need the equation name here, not the variable name
   rhs_special <- if (discrete) "update" else "deriv"
-  eqs_rhs <- names_if(vlapply(eqs, function(x)
+  rhs <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, rhs_special)))
-  v <- unique(unlist(dependencies[eqs_rhs], use.names = FALSE))
-  equations_rhs <- names_if(set_names(
-    names(eqs) %in% c(eqs_rhs, v[stage[v] == STAGE_TIME]),
-    names(eqs)))
-  variables_rhs <- names_if(set_names(variables %in% v, variables))
+  v <- unique(unlist(dependencies[rhs], use.names = FALSE))
+  eqs_rhs <- intersect(eqs_time, c(rhs, v))
+  variables_rhs <- intersect(variables, v)
 
-  eqs_output <- names_if(vlapply(eqs, function(x)
+  output <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, "output")))
-  v <- unique(unlist(dependencies[eqs_output], use.names = FALSE))
-  equations_output <- names_if(set_names(
-    names(eqs) %in% c(eqs_output, v[stage[v] == STAGE_TIME]),
-    names(eqs)))
-  variables_output <- names_if(set_names(variables %in% v, variables))
+  v <- unique(unlist(dependencies[output], use.names = FALSE))
+  eqs_output <- intersect(eqs_time, c(output, v))
+  variables_output <- intersect(variables, v)
 
-  v <- names_if(vlapply(eqs, function(x)
+  initial <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, "initial")))
-  v <- unique(c(v, unlist(dependencies[v], use.names = FALSE)))
-  equations_initial <- names_if(set_names(
-    names(eqs) %in% v[stage[v] == STAGE_TIME], names(eqs)))
+  v <- unique(c(initial, unlist(dependencies[initial], use.names = FALSE)))
+  eqs_initial <- intersect(eqs_time, v)
 
   list(
-    create = list(variables = character(0),
-                  equations = names_if(stage == STAGE_CONSTANT)),
-    user = list(variables = character(0),
-                equations = names_if(stage == STAGE_USER)),
-    initial = list(variables = character(0),
-                   equations = equations_initial),
-    rhs = list(variables = variables_rhs,
-               equations = equations_rhs),
-    output = list(variables = variables_output,
-                  equations = equations_output))
+    create = list(variables = character(0), equations = eqs_constant),
+    user = list(variables = character(0), equations = eqs_user),
+    initial = list(variables = character(0), equations = eqs_initial),
+    rhs = list(variables = variables_rhs, equations = eqs_rhs),
+    output = list(variables = variables_output, equations = eqs_output))
 }
 
 
