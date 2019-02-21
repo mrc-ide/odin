@@ -31,6 +31,11 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   dependencies <- ir_parse_dependencies(eqs, variables, meta$time)
   stage <- ir_parse_stage(eqs, dependencies, variables, meta$time)
 
+  eqs_initial <- names_if(vlapply(eqs, function(x)
+    identical(x$lhs$special, "initial")))
+  features$initial_time_dependent <-
+    features$has_delay || max(stage[eqs_initial]) == STAGE_TIME
+
   data <- ir_parse_data(eqs, variables, stage)
 
   user <- list()
@@ -250,8 +255,10 @@ ir_parse_packing <- function(names, data, variables = FALSE) {
 }
 
 
-## TODO: work on this; it's straightforward to get everything *except*
-## the initial_time_dependent without doing any deep analysis.
+## TODO: this part will change.  Things that are set NULL here will be
+## checked elsewhere and are set to NULL so that they can't be easily
+## used elsewhere, and the IR validation will check that we've added
+## them.
 ir_parse_features <- function(eqs) {
   list(discrete = FALSE,
        has_array = FALSE,
@@ -260,7 +267,7 @@ ir_parse_features <- function(eqs) {
        has_delay = FALSE,
        has_interpolate = FALSE,
        has_stochastic = FALSE,
-       initial_time_dependent = FALSE)
+       initial_time_dependent = NULL)
 }
 
 
