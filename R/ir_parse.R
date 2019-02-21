@@ -21,16 +21,17 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   meta <- ir_parse_meta(features$discrete)
   config <- ir_parse_config()
 
+  variables <- ir_parse_find_variables(eqs, features$discrete)
+
   ## If we have arrays, then around this point we will also be
   ## generating a number of additional offset and dimension length
   ## variables.  So watch for the "data" element to have extra return
   ## objects perhaps.
-  data <- ir_parse_data(eqs)
-
-  variables <- names(data$variable$contents)
 
   dependencies <- ir_parse_dependencies(eqs, variables, meta$time)
   stage <- ir_parse_stage(eqs, dependencies, variables, meta$time)
+
+  data <- ir_parse_data(eqs, variables, stage)
 
   user <- list()
   interpolate <- list(min = list(), max = list(), critical = list())
@@ -55,12 +56,10 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 }
 
 
-ir_parse_data <- function(eqs) {
-  info <- ir_parse_find_variables(eqs)
-  discrete <- info$discrete
-  variables <- info$variables
+ir_parse_data <- function(eqs, variables, stage) {
+  elements <- lapply(eqs, ir_parse_data_element, stage)
+  names(elements) <- vcapply(elements, "[[", "name")
 
-  elements <- ir_parse_data_elements(eqs)
   pack_variables <- ir_parse_packing(variables, elements, TRUE)
   output <- names_if(vlapply(eqs, function(x) identical(x$special, "output")))
   pack_output <- ir_parse_packing(output, elements, FALSE)
@@ -71,14 +70,7 @@ ir_parse_data <- function(eqs) {
 }
 
 
-ir_parse_data_elements <- function(eqs) {
-  data <- lapply(eqs, ir_parse_data_element)
-  names(data) <- vcapply(data, "[[", "name")
-  data
-}
-
-
-ir_parse_data_element <- function(x) {
+ir_parse_data_element <- function(x, stage) {
   name <- x$name
 
   ## TODO: these are all hard coded for now
@@ -87,7 +79,11 @@ ir_parse_data_element <- function(x) {
   dimnames <- NULL
 
   if (is.null(x$lhs$special)) {
-    location <- if (rank == 0L) "transient" else "internal"
+    if (rank == 0L && stage[[x$name]] == STAGE_TIME) {
+      location <- "transient"
+    } else {
+      location <- "internal"
+    }
   } else if (x$lhs$special == "initial") {
     location <- "internal"
   } else if (x$lhs$special == "deriv" || x$lhs$special == "update") {
@@ -124,29 +120,15 @@ ir_parse_config <- function() {
 }
 
 
-ir_parse_find_variables <- function(eqs) {
+ir_parse_find_variables <- function(eqs, discrete) {
   is_special <- vlapply(eqs, function(x) !is.null(x$lhs$special))
   special <- vcapply(eqs[is_special], function(x) x$lhs$special)
   target <- vcapply(eqs[is_special], function(x) x$lhs$name_target)
 
-  is_deriv <- special == "deriv"
-  is_update <- special == "update"
+  target_name <- if (discrete) "update" else "deriv"
+
   is_initial <- special == "initial"
-
-  discrete <- any(is_update)
-  if (discrete && any(is_deriv)) {
-    tmp <- eqs[is_deriv | is_update]
-    odin_error("Cannot mix deriv() and update()",
-               get_lines(tmp), get_exprs(tmp))
-  }
-
-  if (discrete) {
-    is_var <- is_update
-    target_name <- "update"
-  } else {
-    is_var <- is_deriv
-    target_name <- "deriv"
-  }
+  is_var <- special == target_name
 
   ## Extract the *real* name here:
   vars <- target[is_var]
@@ -180,8 +162,7 @@ ir_parse_find_variables <- function(eqs) {
       get_lines(eqs[err]), get_exprs(eqs[err]))
   }
 
-  list(discrete = discrete,
-       variables = unique(unname(vars)))
+  unique(unname(vars))
 }
 
 

@@ -17,6 +17,7 @@ ir_deserialise <- function(ir) {
 
   dat$interpolate <- lapply(dat$interpolate, list_to_character)
   dat$equations <- lapply(dat$equations, ir_deserialise_equation)
+  dat$ir <- ir
 
   dat
 }
@@ -147,10 +148,15 @@ ir_serialise_equations <- function(equations) {
 
 
 ir_serialise_equation <- function(eq) {
+  if (all(lengths(eq$depends) == 0L)) {
+    depends <- NULL
+  } else {
+    depends <- eq$depends
+  }
   base <- list(name = scalar(eq$name),
                type = scalar(eq$type),
                source = eq$source,
-               depends = eq$depends,
+               depends = depends,
                lhs = scalar(eq$lhs$lhs))
   extra <- switch(
     eq$type,
