@@ -74,7 +74,8 @@ ir_parse_data <- function(eqs, variables, stage) {
   names(elements) <- vcapply(elements, "[[", "name")
 
   pack_variables <- ir_parse_packing(variables, elements, TRUE)
-  output <- names_if(vlapply(eqs, function(x) identical(x$special, "output")))
+
+  output <- names_if(vcapply(elements, "[[", "location") == "output")
   pack_output <- ir_parse_packing(output, elements, FALSE)
 
   list(elements = elements,
@@ -269,9 +270,14 @@ ir_parse_packing <- function(names, data, variables = FALSE) {
 ## checked elsewhere and are set to NULL so that they can't be easily
 ## used elsewhere, and the IR validation will check that we've added
 ## them.
+##
+## A downside of the approach here is that we do make the checks in a
+## few different places.  It might be worth trying to shift more of
+## this classification into the initial equation parsing.
 ir_parse_features <- function(eqs) {
   is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
+  is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
 
   if (any(is_update) && any(is_deriv)) {
     tmp <- eqs[is_deriv | is_update]
@@ -287,7 +293,7 @@ ir_parse_features <- function(eqs) {
 
   list(discrete = any(is_update),
        has_array = FALSE,
-       has_output = FALSE,
+       has_output = any(is_output),
        has_user = any(is_user),
        has_delay = FALSE,
        has_interpolate = FALSE,
@@ -408,10 +414,11 @@ ir_parse_expr <- function(expr, line) {
   }
 
   if (identical(lhs$special, "output")) {
-    stop("check")
     rhs$output_self <-
       isTRUE(rhs$value) || identical(rhs$value, as.name(lhs$name_target))
     if (rhs$output_self) {
+      stop("check")
+      type <- "copy"
       depends$variables <- union(depends$variables, lhs$name_target)
     }
   }
