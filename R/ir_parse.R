@@ -38,7 +38,15 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   data <- ir_parse_data(eqs, variables, stage)
 
-  user <- list()
+  if (features$has_user) {
+    is_user <- vcapply(eqs, "[[", "type") == "user"
+    user <- unname(lapply(eqs[is_user], function(x)
+      list(name = x$name, has_default = !is.null(x$user$default))))
+    user <- user[order(vlapply(user, "[[", "has_default"))]
+  } else {
+    user <- list()
+  }
+
   interpolate <- list(min = list(), max = list(), critical = list())
 
   components <- ir_parse_components(eqs, dependencies, variables, stage,
@@ -203,15 +211,17 @@ ir_parse_dependencies <- function(eqs, variables, time_name) {
 ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
   stage <- set_names(rep(STAGE_CONSTANT, length(dependencies)),
                      names(dependencies))
-
-  stage[!vlapply(eqs, function(x) is.null(x$rhs$user))] <- STAGE_USER
-
+  is_user <- function(x) {
+    x$type == "user"
+  }
   is_time_dependent <- function(x) {
     (!is.null(x$lhs$special) &&
      x$lhs$special %in% c("deriv", "update", "output")) ||
       !is.null(x$rhs$delay) || !is.null(x$rhs$interpolate) ||
       isTRUE(x$rhs$stochastic)
   }
+
+  stage[names_if(vlapply(eqs, is_user))] <- STAGE_USER
   stage[names_if(vlapply(eqs, is_time_dependent))] <- STAGE_TIME
   stage[time_name] <- STAGE_TIME
   stage[variables] <- STAGE_TIME
@@ -260,10 +270,25 @@ ir_parse_packing <- function(names, data, variables = FALSE) {
 ## used elsewhere, and the IR validation will check that we've added
 ## them.
 ir_parse_features <- function(eqs) {
-  list(discrete = FALSE,
+  is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
+  is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
+
+  if (any(is_update) && any(is_deriv)) {
+    tmp <- eqs[is_deriv | is_update]
+    odin_error("Cannot mix deriv() and update()",
+               get_lines(tmp), get_exprs(tmp))
+  }
+  if (!any(is_update | is_deriv)) {
+    odin_error("Did not find a deriv() or an update() call",
+               NULL, NULL)
+  }
+
+  is_user <- vlapply(eqs, function(x) !is.null(x$user))
+
+  list(discrete = any(is_update),
        has_array = FALSE,
        has_output = FALSE,
-       has_user = FALSE,
+       has_user = any(is_user),
        has_delay = FALSE,
        has_interpolate = FALSE,
        has_stochastic = FALSE,
@@ -299,16 +324,16 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     names(eqs) %in% v[stage[v] == STAGE_TIME], names(eqs)))
 
   list(
-    create = list(equations = names_if(stage == STAGE_CONSTANT),
-                  variables = character(0)),
-    user = list(equations = names_if(stage == STAGE_USER),
-                variables = character(0)),
-    initial = list(equations = equations_initial,
-                   variables = character(0)),
-    rhs = list(equations = equations_rhs,
-               variables = variables_rhs),
-    output = list(equations = equations_output,
-                  variables = variables_output))
+    create = list(variables = character(0),
+                  equations = names_if(stage == STAGE_CONSTANT)),
+    user = list(variables = character(0),
+                equations = names_if(stage == STAGE_USER)),
+    initial = list(variables = character(0),
+                   equations = equations_initial),
+    rhs = list(variables = variables_rhs,
+               equations = equations_rhs),
+    output = list(variables = variables_output,
+                  equations = equations_output))
 }
 
 
@@ -347,8 +372,16 @@ ir_parse_expr <- function(expr, line) {
   rhs <- ir_parse_expr_rhs(expr[[3L]], line, expr)
   depends <- join_deps(list(lhs$depends, rhs$depends))
 
+  if (!is.null(rhs$user)) {
+    type <- "user"
+  } else if (lhs$type == "symbol") {
+    type <- "expression_scalar"
+  } else {
+    stop("writeme")
+  }
+
   ## Below here uses both the lhs and rhs:
-  if (isTRUE(rhs$user)) {
+  if (type == "user") {
     if (!is.null(lhs$special) && !identical(lhs$special, "dim")) {
       odin_error("user() only valid for non-special variables", line, expr)
     }
@@ -397,25 +430,18 @@ ir_parse_expr <- function(expr, line) {
                line, expr)
   }
 
-  ## TODO: There are also some tricks required here for the "alloc"
-  ## types, but these do not yet exist.
-  if (lhs$type == "symbol") {
-    type <- "expression_scalar"
-  } else {
-    stop("writeme")
-  }
   if (identical(lhs$special, "deriv") || identical(lhs$special, "output")) {
     lhs$lhs <- lhs$name_target
   } else {
     lhs$lhs <- lhs$name
   }
 
-  list(name = lhs$name,
-       type = type,
-       lhs = lhs,
-       rhs = rhs,
-       depends = depends,
-       source = line)
+  ret <- list(name = lhs$name,
+              type = type,
+              lhs = lhs,
+              depends = depends,
+              source = line)
+  c(ret, rhs)
 }
 
 
@@ -495,8 +521,7 @@ ir_parse_expr_rhs <- function(rhs, line, expr) {
     stop("writeme")
     return(odin_parse_expr_rhs_delay(rhs, line, expr))
   } else if (is_call(rhs, quote(user))) {
-    stop("writeme")
-    return(odin_parse_expr_rhs_user(rhs, line, expr))
+    ir_parse_expr_rhs_user(rhs, line, expr)
   } else if (is_call(rhs, quote(interpolate))) {
     stop("writeme")
     return(odin_parse_expr_rhs_interpolate(rhs, line, expr))
@@ -535,7 +560,44 @@ ir_parse_expr_rhs_expression <- function(rhs, line, expr) {
 
   stochastic <- any(depends$functions %in% names(FUNCTIONS_STOCHASTIC))
 
-  list(depends = depends,
-       value = rhs,
+  list(rhs = list(value = rhs),
+       depends = depends,
        stochastic = stochastic)
+}
+
+
+ir_parse_expr_rhs_user <- function(rhs, line, expr) {
+  if (any(!nzchar(names(rhs)[-(1:2)]))) {
+    odin_error("Only first argument to user() may be unnamed", line, expr)
+  }
+  ## I'm not sure about expand.dots
+  m <- match.call(function(default, integer, min, max, ...) NULL, rhs, FALSE)
+  extra <- m[["..."]]
+  if (!is.null(extra)) {
+    odin_error(sprintf("Unknown %s to user(): %s",
+                       ngettext(length(extra), "argument", "arguments"),
+                       paste(dquote(names(extra))), collapse = ", "),
+               line, expr)
+  }
+
+  ## This looks through default, integer, min, max
+  deps <- find_symbols(as.list(rhs[-1L]))
+  ## TODO: This could be relaxed I think, but dealing with
+  ## potential cycles is hard because they could be generated at
+  ## runtime.  So for now, these values must be constants.  I
+  ## don't want to relax that until it's clear enough how arrays
+  ## get treated here.
+  if (length(deps$functions) > 0L) {
+    odin_error("user() call must not use functions", line, expr)
+  }
+  if (length(deps$variables) > 0L) {
+    odin_error("user() call must not reference variables", line, expr)
+  }
+  ## TODO: the 'dim' part here is not actually known yet!
+  user <- list(default = m$default,
+               dim = FALSE,
+               integer = m$integer,
+               min = m$min,
+               max = m$max)
+  list(user = user)
 }

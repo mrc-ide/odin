@@ -85,10 +85,7 @@ ir_serialise_components <- function(components) {
 
 
 ir_serialise_user <- function(user) {
-  if (length(user) > 0L) {
-    stop("check me")
-  }
-  list()
+  lapply(user, lapply, scalar)
 }
 
 ir_serialise_interpolate <- function(interpolate) {
@@ -169,7 +166,7 @@ ir_serialise_equation <- function(eq) {
     delay_index = ir_serialise_equation_delay_index(eq),
     expression_array = ir_serialise_equation_expression_array(eq),
     expression_scalar = ir_serialise_equation_expression_scalar(eq),
-    user = ir_serialise_user(eq),
+    user = ir_serialise_equation_user(eq),
     stop("odin bug"))
   c(base, extra)
 }
@@ -177,6 +174,14 @@ ir_serialise_equation <- function(eq) {
 
 ir_serialise_equation_expression_scalar <- function(eq) {
   list(rhs = list(value = ir_expression(eq$rhs$value)))
+}
+
+
+ir_serialise_equation_user <- function(eq) {
+  list(user = list(default = ir_expression(eq$user$default),
+                   dim = scalar(eq$user$dim),
+                   min = ir_expression(eq$user$min),
+                   max = ir_expression(eq$user$max)))
 }
 
 
