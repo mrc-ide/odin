@@ -105,10 +105,15 @@ ir_serialise_source <- function(source) {
 ir_serialise_data <- function(data) {
   f_elements <- function(x) {
     ret <- lapply(x[c("name", "location", "storage_type", "rank")], scalar)
-    if (x$rank > 0L) {
-      stop("writeme")
-    } else {
+    if (x$rank == 0L) {
       ret["dimnames"] <- list(NULL)
+    } else {
+      dimnames <- x$dimnames
+      dimnames$length <- ir_expression(x$dimnames$length)
+      if (x$rank > 1L) {
+        stop("writeme")
+      }
+      ret$dimnames <- dimnames
     }
     ret
   }
@@ -154,7 +159,7 @@ ir_serialise_equation <- function(eq) {
                type = scalar(eq$type),
                source = eq$source,
                depends = depends,
-               lhs = scalar(eq$lhs$lhs))
+               lhs = scalar(eq$lhs$name_lhs))
   extra <- switch(
     eq$type,
     alloc = ir_serialise_equation_alloc(eq),
@@ -174,6 +179,18 @@ ir_serialise_equation <- function(eq) {
 
 ir_serialise_equation_expression_scalar <- function(eq) {
   list(rhs = list(value = ir_expression(eq$rhs$value)))
+}
+
+
+ir_serialise_equation_expression_array <- function(eq) {
+  rhs <- function(x) {
+    index <- lapply(x$index, function(i)
+      list(value = ir_expression(i$value),
+           is_range = scalar(i$is_range),
+           index = scalar(i$index)))
+    list(index = index, value = ir_expression(x$value))
+  }
+  list(rhs = lapply(eq$rhs, rhs))
 }
 
 

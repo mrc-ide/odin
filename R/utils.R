@@ -97,6 +97,9 @@ is_integer_like <- function(x, tol = sqrt(.Machine$double.eps)) {
 }
 
 is_call <- function(expr, symbol) {
+  if (is.character(symbol)) {
+    symbol <- as.name(symbol)
+  }
   is.recursive(expr) && identical(expr[[1L]], symbol)
 }
 

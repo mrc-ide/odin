@@ -18,10 +18,15 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   ## Data elements:
 
   features <- ir_parse_features(eqs)
-  meta <- ir_parse_meta(features$discrete)
-  config <- ir_parse_config()
 
   variables <- ir_parse_find_variables(eqs, features$discrete)
+
+  if (features$has_array) {
+    eqs <- ir_parse_arrays(eqs, variables)
+  }
+
+  meta <- ir_parse_meta(features$discrete)
+  config <- ir_parse_config()
 
   ## If we have arrays, then around this point we will also be
   ## generating a number of additional offset and dimension length
@@ -85,12 +90,16 @@ ir_parse_data <- function(eqs, variables, stage) {
 
 
 ir_parse_data_element <- function(x, stage) {
-  name <- x$name
+  name <- x$lhs$name_data
 
-  ## TODO: these are all hard coded for now
-  storage_type <- "double"
-  rank <- 0L
-  dimnames <- NULL
+  storage_type <- x$lhs$storage_mode %||% "double"
+  if (is.null(x$array)) {
+    rank <- 0L
+    dimnames <- NULL
+  } else {
+    rank <- x$array$rank
+    dimnames <- x$array$dimnames
+  }
 
   if (is.null(x$lhs$special)) {
     if (rank == 0L && stage[[x$name]] == STAGE_TIME) {
@@ -100,12 +109,13 @@ ir_parse_data_element <- function(x, stage) {
     }
   } else if (x$lhs$special == "initial") {
     location <- "internal"
+    name <- x$lhs$name_equation
   } else if (x$lhs$special == "deriv" || x$lhs$special == "update") {
     location <- "variable"
-    name <- x$lhs$name_target
   } else if (x$lhs$special == "output") {
     location <- "output"
-    name <- x$lhs$name_target
+  } else {
+    stop("odin bug?")
   }
 
   list(name = name,
@@ -137,33 +147,31 @@ ir_parse_config <- function() {
 ir_parse_find_variables <- function(eqs, discrete) {
   is_special <- vlapply(eqs, function(x) !is.null(x$lhs$special))
   special <- vcapply(eqs[is_special], function(x) x$lhs$special)
-  target <- vcapply(eqs[is_special], function(x) x$lhs$name_target)
-
-  target_name <- if (discrete) "update" else "deriv"
-
+  name_data <- vcapply(eqs[is_special], function(x) x$lhs$name_data)
+  rhs_fun <- if (discrete) "update" else "deriv"
   is_initial <- special == "initial"
-  is_var <- special == target_name
+  is_var <- special == rhs_fun
 
   ## Extract the *real* name here:
-  vars <- target[is_var]
-  vars_initial <- target[is_initial]
+  vars <- name_data[is_var]
+  vars_initial <- name_data[is_initial]
 
   if (!setequal(vars, vars_initial)) {
     msg <- collector()
     msg_initial <- setdiff(vars, vars_initial)
     if (length(msg_initial) > 0L) {
       msg$add("\tin %s() but not initial(): %s",
-              target_name, paste(msg_initial, collapse = ", "))
+              rhs_fun, paste(msg_initial, collapse = ", "))
     }
     msg_vars <- setdiff(vars_initial, vars)
     if (length(msg_vars) > 0L) {
       msg$add("\tin initial() but not %s(): %s",
-              target_name, paste(msg_vars, collapse = ", "))
+              rhs_fun, paste(msg_vars, collapse = ", "))
     }
     tmp <- eqs[is_var | is_initial]
     odin_error(sprintf(
       "%s() and initial() must contain same set of equations:\n%s\n",
-      target_name, paste(msg$get(), collapse = "\n")),
+      rhs_fun, paste(msg$get(), collapse = "\n")),
       get_lines(tmp), get_exprs(tmp))
   }
 
@@ -171,7 +179,7 @@ ir_parse_find_variables <- function(eqs, discrete) {
   if (any(err)) {
     odin_error(
       sprintf("variables on lhs must be within %s() or initial() (%s)",
-              target_name,
+              rhs_fun,
               paste(intersect(vars, names(eqs)), collapse = ", ")),
       get_lines(eqs[err]), get_exprs(eqs[err]))
   }
@@ -246,23 +254,43 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
 ## need to be done before the stage and ordering is done ideally.
 ir_parse_packing <- function(names, data, variables = FALSE) {
   rank <- viapply(data[names], "[[", "rank")
-  if (any(rank) > 0L) {
-    stop("writeme")
-  }
 
-  offset <- as.list(seq_along(names) - 1L)
+  ## We'll pack from least to most complex:
+  i <- order(rank)
+  names <- names[i]
+  rank <- rank[i]
 
-  contents <- set_names(vector("list", length(names)), names)
+  len <- lapply(data[names], function(x) x$dimnames$length %||% 1L)
+  is_array <- rank > 0L
+  ## Accumulate offset and also total:
+  offset <- vector("list", length(names) + 1L)
+  offset[[1L]] <- 0L
   for (i in seq_along(names)) {
-    x <- list(name = names[[i]], offset = offset[[i]])
-    if (variables) {
-      x$initial <- initial_name(names[[i]])
+    if (!is_array[[i]]) {
+      offset[[i + 1L]] <- i
+    } else {
+      offset[[i + 1L]] <- call("+", offset[[i]], as.name(len[[i]]))
     }
-    contents[[i]] <- x
   }
 
-  list(length = length(names),
-       contents = contents)
+  ## Split those back apart
+  length <- offset[[length(names) + 1L]]
+  offset <- offset[seq_along(names)]
+
+  ## Create auxillary offset variables
+  if (any(vlapply(offset[seq_along(names)], is.call))) {
+    stop("Add offsets")
+  }
+
+  ## And pack it all up:
+  if (variables) {
+    contents <- unname(Map(
+      list, name = names, offset = offset, initial = initial_name(names)))
+  } else {
+    contents <- unname(Map(list, name = names, offset = offset))
+  }
+
+  list(length = length, contents = contents)
 }
 
 
@@ -278,6 +306,11 @@ ir_parse_features <- function(eqs) {
   is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
+  is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
+  is_user <- vlapply(eqs, function(x) !is.null(x$user))
+  is_delay <- vlapply(eqs, function(x) !is.null(x$delay))
+  is_interpolate <- vlapply(eqs, function(x) !is.null(x$interpolate))
+  is_stochastic <- vlapply(eqs, function(x) isTRUE(x$stochastic))
 
   if (any(is_update) && any(is_deriv)) {
     tmp <- eqs[is_deriv | is_update]
@@ -289,15 +322,13 @@ ir_parse_features <- function(eqs) {
                NULL, NULL)
   }
 
-  is_user <- vlapply(eqs, function(x) !is.null(x$user))
-
   list(discrete = any(is_update),
-       has_array = FALSE,
+       has_array = any(is_dim),
        has_output = any(is_output),
        has_user = any(is_user),
-       has_delay = FALSE,
-       has_interpolate = FALSE,
-       has_stochastic = FALSE,
+       has_delay = any(is_delay),
+       has_interpolate = any(is_interpolate),
+       has_stochastic = any(is_stochastic),
        initial_time_dependent = NULL)
 }
 
@@ -373,11 +404,16 @@ ir_parse_expr <- function(expr, line) {
 
   if (!is.null(rhs$user)) {
     type <- "user"
-  } else if (lhs$type == "symbol") {
+  } else if (identical(lhs$special, "dim")) {
+    type <- "dim"
+  } else if (lhs$type == "expression_scalar") {
     type <- "expression_scalar"
+  } else if (lhs$type == "expression_array") {
+    type <- "expression_array"
   } else {
     stop("writeme")
   }
+  lhs$type <- NULL
 
   ## Below here uses both the lhs and rhs:
   if (type == "user") {
@@ -391,19 +427,6 @@ ir_parse_expr <- function(expr, line) {
   ## be most of the others.
   if (isTRUE(rhs$delay) && !is.null(lhs$special)) {
     odin_error("delay() only valid for non-special variables", line, expr)
-  }
-
-  if (identical(lhs$special, "dim")) {
-    stop("check")
-    lhs$nd <- odin_parse_expr_check_dim(rhs, line, expr)
-    if (lhs$nd == 1L && is_call(rhs$value, quote(c))) {
-      rhs$value <- rhs$value[[2L]]
-      rhs$type <- if (is.name(rhs$value)) "symbol" else "atomic"
-    }
-    ## This is neeeded because at this point we've dealt with 'c()'
-    ## and it's not supported as an actual function.
-    rhs$depends$functions <- setdiff(rhs$depends$functions, "c")
-    depends$functions <- setdiff(depends$functions, "c")
   }
 
   if (identical(lhs$special, "output")) {
@@ -425,19 +448,12 @@ ir_parse_expr <- function(expr, line) {
   ## are allowed.  For arrays, there's no checking here and things like
   ##   x[i] = x[i] * 2
   ## will cause a crash or nonsense behaviour.
-  if (lhs$type != "array" && lhs$name %in% depends$variables) {
+  if (lhs$type != "array" && lhs$name_data %in% depends$variables) {
     odin_error("Self referencing expressions not allowed (except for arrays)",
                line, expr)
   }
 
-  if (identical(lhs$special, "deriv") || identical(lhs$special, "output") ||
-      identical(lhs$special, "update")) {
-    lhs$lhs <- lhs$name_target
-  } else {
-    lhs$lhs <- lhs$name
-  }
-
-  ret <- list(name = lhs$name,
+  ret <- list(name = lhs$name_equation,
               type = type,
               lhs = lhs,
               depends = depends,
@@ -447,16 +463,130 @@ ir_parse_expr <- function(expr, line) {
 
 
 ir_parse_expr_lhs <- function(lhs, line, expr) {
+  is_special <- is_array <- FALSE
+  special <- index <- depends <- NULL
+
   if (is.call(lhs)) {
     fun <- deparse_str(lhs[[1L]])
-    if (fun %in% "[") { # NOTE: single indexing *only*
-      stop("writeme")
-      ## ret <- odin_parse_expr_lhs_index(lhs, line, expr)
-    } else if (fun %in% SPECIAL_LHS) {
-      return(ir_parse_expr_lhs_special(lhs, line, expr))
-    } else {
-      odin_error(sprintf("Unhandled expression %s on lhs", fun), line, expr)
+    if (fun %in% SPECIAL_LHS) {
+      if (length(lhs) != 2L) {
+        odin_error("Invalid length special function on lhs", line, expr)
+      }
+      is_special <- TRUE
+      special <- fun
+      lhs <- lhs[[2L]]
     }
+  }
+
+  if (is_call(lhs, "[")) {
+    if (is_special && special == "dim") {
+      odin_error("dim() must be applied to a name only (not an array)",
+                 line, expr)
+    }
+    is_array <- TRUE
+    tmp <- ir_parse_expr_lhs_index(lhs, line, expr)
+    index <- tmp$index
+    depends <- tmp$depends
+    lhs <- lhs[[2L]]
+  }
+
+  name <- ir_parse_expr_check_lhs_name(lhs, line, expr)
+  type <- if (is_array) "expression_array" else "expression_scalar"
+
+  ## name_equation: the name we'll use for the equation
+  ## name_data: the name of the data element
+  ## name_lhs: the name of the lhs of the assignment (needed?)
+  name_data <- name
+  name_equation <- if (is_special) sprintf("%s_%s", special, name) else name
+  if (is_special && !(special %in% c("deriv", "output", "update", "dim"))) {
+    name_lhs <- name_data
+  } else {
+    name_lhs <- name_equation
+  }
+
+  list(type = type,
+       name_data = name_data,
+       name_equation = name_equation,
+       name_lhs = name_lhs,
+       special = special,
+       index = index,
+       depends = depends)
+}
+
+
+ir_parse_expr_lhs_index <- function(lhs, line, expr) {
+  if (!is.name(lhs[[2L]])) {
+    odin_error("array lhs must be a name", line, expr)
+  }
+
+  index <- as.list(lhs[-(1:2)])
+
+  is_empty <- vlapply(index, identical, quote(expr = ))
+  ## TODO: it might be useful to treat these specially rather than
+  ## filling them in like this.
+  if (any(is_empty)) {
+    if (length(index) == 1L) {
+      index[] <- list(bquote(1:length(.(lhs[[2L]]))))
+    } else {
+      index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
+        bquote(1:dim(.(lhs[[2L]]), .(i))))
+    }
+    lhs[-(1:2)] <- index
+  }
+
+  ## Valid expressions are:
+  ##
+  ##   binary inline +, - (unlimited number)
+  ##   A single ':' which is the only thing that generates a range
+  ##   A unary -(x) is not allowed as it's too hard to control
+  ##
+  ## With these options, the extent of the array index can be
+  ## expressed as a relatively simple expression; the min and max
+  ## will be the expression with x:y substituted for x and y
+  ## respectively.
+  ##
+  ## TODO: Consider looking for, and warning about (1:x - 1)
+  ## rather than (1:x) - 1 as that will imply a negative length
+  ## array.  Or we can look for the minimum value being negative.
+  tmp <- lapply(index, odin_parse_expr_lhs_check_index)
+  ok <- vlapply(tmp, as.logical)
+  if (all(ok)) {
+    extent_max <- lapply(tmp, attr, "value_max", exact = TRUE)
+    extent_min <- lapply(tmp, attr, "value_min", exact = TRUE)
+    is_range <- !vlapply(extent_min, is.null)
+  } else {
+    msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse = "\n")
+    odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
+               line, expr)
+  }
+
+  name <- deparse(lhs[[2L]])
+  deps <- find_symbols(index)
+  err <- intersect(INDEX, deps$variables)
+  if (length(err) > 0L) {
+    odin_error(
+      sprintf("Special index variable %s may not be used on array lhs",
+              pastec(err)), line, as.expression(expr))
+  }
+
+  ## The dimension for this array:
+  name_dim <- array_dim_name(name)
+  ## ...which must be a dependency:
+  deps$variables <- union(deps$variables, name_dim)
+  deps$functions <- setdiff(deps$functions, ":")
+
+  list(
+    index = Map(list, value = index, is_range = is_range,
+                index = INDEX[seq_along(index)]),
+    depends = deps)
+}
+
+
+ir_parse_expr_check_lhs_name <- function(lhs, line, expr) {
+  ## at this point there are lots of other corner cases; things like
+  ## nested special functions.
+  if (is.call(lhs)) {
+    odin_error(sprintf("Unhandled expression %s on lhs", fun), line, expr)
   }
 
   ## things like atomic will raise here: 1 <- 2
@@ -465,46 +595,7 @@ ir_parse_expr_lhs <- function(lhs, line, expr) {
   }
 
   name <- deparse(lhs)
-  ir_parse_expr_check_lhs_name(name, line, expr)
 
-  list(type = "symbol", name = name)
-}
-
-
-ir_parse_expr_lhs_special <- function(lhs, line, expr) {
-  if (length(lhs) != 2L) {
-    odin_error("Invalid length special function on lhs", line, expr)
-  }
-  fun <- deparse_str(lhs[[1L]])
-  target <- lhs[[2L]]
-
-  if (is.character(target)) {
-    odin_error(sprintf("Argument to %s must be a symbol or expression", fun),
-               line, expr)
-  }
-
-  ## Here, we will actually allow '[' calls, but not until supporting
-  ## arrays.
-  if (is.call(target)) {
-    odin_error("Invalid nested lhs function usage", line, expr)
-  }
-  if (fun == "dim" && !is.symbol(target)) {
-    odin_error("dim() must be applied to a name only (not an array)",
-               line, expr)
-  }
-
-  name_target <- deparse_str(target)
-  ir_parse_expr_check_lhs_name(name_target, line, expr)
-
-  list(type = "symbol",
-       name = sprintf("%s_%s", fun, name_target),
-       name_target = name_target,
-       special = fun,
-       lhs = lhs)
-}
-
-
-ir_parse_expr_check_lhs_name <- function(name, line, expr) {
   if (name %in% RESERVED) {
     odin_error("Reserved name for lhs", line, expr)
   }
@@ -514,6 +605,8 @@ ir_parse_expr_check_lhs_name <- function(name, line, expr) {
                        sub(re, "\\1", name)),
                line, expr)
   }
+
+  name
 }
 
 
