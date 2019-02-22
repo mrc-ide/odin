@@ -24,6 +24,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   if (features$has_array) {
     eqs <- ir_parse_arrays(eqs, variables)
   }
+  eqs <- eqs[order(names(eqs))]
 
   meta <- ir_parse_meta(features$discrete)
   config <- ir_parse_config()
@@ -75,8 +76,12 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
 
 ir_parse_data <- function(eqs, variables, stage) {
-  elements <- lapply(eqs, ir_parse_data_element, stage)
+  type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
+  i <- !(type %in% c("alloc", "alloc_interpolate", "alloc_ring"))
+  elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
+  ## For ease of comparison:
+  elements <- elements[order(names(elements))]
 
   pack_variables <- ir_parse_packing(variables, elements, TRUE)
 
@@ -401,6 +406,7 @@ ir_parse_expr <- function(expr, line) {
   lhs <- ir_parse_expr_lhs(expr[[2L]], line, expr)
   rhs <- ir_parse_expr_rhs(expr[[3L]], line, expr)
   depends <- join_deps(list(lhs$depends, rhs$depends))
+  rhs$depends <- NULL
 
   if (!is.null(rhs$user)) {
     type <- "user"

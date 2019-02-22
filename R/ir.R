@@ -779,7 +779,8 @@ ir_equations <- function(dat) {
   ## library function.
   exclude <- vlapply(dat$eqs, function(x) isTRUE(x$exclude)) |
     vcapply(dat$eqs, function(x) x$lhs$type) == "null"
-  unname(lapply(dat$eqs[!exclude], ir_equation))
+  eqs <- unname(lapply(dat$eqs[!exclude], ir_equation))
+  eqs[order(vcapply(eqs, "[[", "name"))]
 }
 
 
@@ -1080,6 +1081,7 @@ ir_data <- function(dat) {
          storage_type = jsonlite::unbox(eq$lhs$data_type),
          rank = jsonlite::unbox(eq$lhs$nd %||% 0L),
          dimnames = ir_dimnames(eq$lhs$length %||% eq$lhs$name, eq$lhs$nd)))
+  elements <- elements[order(vcapply(elements, "[[", "name"))]
   list(elements = elements,
        variable = ir_data_variable(dat, FALSE),
        output = ir_data_variable(dat, TRUE))
