@@ -437,7 +437,7 @@ ir_parse_expr <- function(expr, line) {
 
   if (identical(lhs$special, "output")) {
     rhs$output_self <-
-      isTRUE(rhs$value) || identical(rhs$value, as.name(lhs$name_target))
+      isTRUE(rhs$rhs$value) || identical(rhs$rhs$value, as.name(lhs$name_data))
     if (rhs$output_self) {
       stop("check")
       type <- "copy"
@@ -454,7 +454,14 @@ ir_parse_expr <- function(expr, line) {
   ## are allowed.  For arrays, there's no checking here and things like
   ##   x[i] = x[i] * 2
   ## will cause a crash or nonsense behaviour.
-  if (lhs$type != "array" && lhs$name_data %in% depends$variables) {
+  ##
+  ## TODO: look at this carefully; the rule for derivatives has been
+  ## bodged in here.
+  self_ref <- lhs$name_data %in% depends$variables &&
+    type != "expression_array" &&
+    !identical(lhs$special, "deriv") &&
+    !identical(lhs$special, "update")
+  if (self_ref) {
     odin_error("Self referencing expressions not allowed (except for arrays)",
                line, expr)
   }
