@@ -52,7 +52,7 @@ ir_parse_arrays_check_usage <- function(eqs) {
 
   ## First, check that every variable that is an array is always
   ## assigned as an array:
-  err <- !(is_array | is_dim) & name_data %in% name_data[is_dim]
+  err <- !(is_array | is_dim | is_user) & name_data %in% name_data[is_dim]
   if (any(err)) {
     odin_error(sprintf("Array variables must always assign as arrays (%s)",
                        paste(unique(names_target[err]), collapse = ", ")),
@@ -149,14 +149,22 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
   join <- function(i, eqs, depend_alloc = TRUE) {
     use <- unname(eqs[i])
     eq_use <- use[[1]]
-    eq_use$rhs <- lapply(use, function(x)
-      list(index = x$lhs$index, value = x$rhs$value))
-    eq_use$lhs$index <- NULL
-    eq_use$depends <- join_deps(lapply(use, "[[", "depends"))
+
+    eq_use$array <- list(rank = rank, dimnames = dims$dimnames)
     extra <- c(eq$name, if (depend_alloc) dims$alloc)
     eq_use$depends$variables <- union(eq_use$depends$variables, extra)
-    eq_use$stochastic <- any(vlapply(use, "[[", "stochastic"))
-    eq_use$array <- list(rank = rank, dimnames = dims$dimnames)
+
+    if (eq_use$type != "user") {
+      eq_use$rhs <- lapply(use, function(x)
+        list(index = x$lhs$index, value = x$rhs$value))
+      if (length(use) > 1L) {
+        eq_use$depends <- join_deps(lapply(use, "[[", "depends"))
+        eq_use$stochastic <- any(vlapply(use, "[[", "stochastic"))
+        eq_use$source <- unlist(lapply(use, "[[", "source"), FALSE, FALSE)
+      }
+    }
+    eq_use$lhs$index <- NULL
+
     eqs[[i[[1L]]]] <- eq_use
     if (length(i) > 1L) {
       eqs <- eqs[-i[-1L]]

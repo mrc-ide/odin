@@ -273,6 +273,8 @@ ir_parse_packing <- function(names, data, variables = FALSE) {
   for (i in seq_along(names)) {
     if (!is_array[[i]]) {
       offset[[i + 1L]] <- i
+    } else if (identical(offset[[i]], 0L)) {
+      offset[[i + 1L]] <- as.name(len[[i]])
     } else {
       offset[[i + 1L]] <- call("+", offset[[i]], as.name(len[[i]]))
     }
