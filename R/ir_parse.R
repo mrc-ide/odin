@@ -501,13 +501,19 @@ ir_parse_expr_lhs <- function(lhs, line, expr) {
 
   ## name_equation: the name we'll use for the equation
   ## name_data: the name of the data element
-  ## name_lhs: the name of the lhs of the assignment (needed?)
+  ## name_lhs: the name of the lhs of the assignment (possibly always the
+  ##   same as name_equation?)
   name_data <- name
   name_equation <- if (is_special) sprintf("%s_%s", special, name) else name
-  if (is_special && !(special %in% c("deriv", "output", "update", "dim"))) {
+
+  if (!is_special) {
+    name_lhs <- name_equation
+  } else if (special %in% c("initial", "dim")) {
+    name_lhs <- name_equation
+  } else if (special %in% c("deriv", "output", "update")) {
     name_lhs <- name_data
   } else {
-    name_lhs <- name_equation
+    stop("checkme")
   }
 
   list(type = type,
