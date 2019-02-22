@@ -108,12 +108,8 @@ ir_serialise_data <- function(data) {
     if (x$rank == 0L) {
       ret["dimnames"] <- list(NULL)
     } else {
-      dimnames <- x$dimnames
-      dimnames$length <- ir_expression(x$dimnames$length)
-      if (x$rank > 1L) {
-        stop("writeme")
-      }
-      ret$dimnames <- dimnames
+      ret$dimnames <- x$dimnames
+      ret$dimnames$length <- ir_expression(x$dimnames$length)
     }
     ret
   }

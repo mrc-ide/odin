@@ -226,8 +226,8 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
                     depends = eq$depends,
                     source = eq$source)
   dimnames <- list(length = eq_length$name, dim = NULL, mult = NULL)
-  eqs <- list(eq_length)
 
+  eq_dim <- eq_mult <- NULL
   if (rank > 1L) {
     f_eq_dim <- function(i) {
       d <- array_dim_name(nm, i)
@@ -242,7 +242,6 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
     }
     eq_dim <- lapply(seq_len(rank), f_eq_dim)
     dimnames$dim <- vcapply(eq_dim, "[[", "name")
-    eqs <- c(eqs, eq_dim)
 
     ## At this point, modify how we compute total length:
     dims <- lapply(dimnames$dim, as.name)
@@ -267,7 +266,6 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
                          variables = dimnames$dim[j]))
       }
       eq_mult <- lapply(3:rank, f_eq_mult)
-      eqs <- c(eqs, eq_mult)
       dimnames$mult <- c("", dimnames$dim[[1]], vcapply(eq_mult, "[[", "name"))
     }
   }
@@ -279,8 +277,8 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
     source = eq$source,
     depends = list(functions = character(0), variables = eq_length$name),
     lhs = list(name_lhs = nm_alloc, name_data = nm_alloc))
-  eqs <- c(eqs, list(eq_alloc))
 
+  eqs <- c(list(eq_length, eq_alloc), eq_dim, eq_mult)
   names(eqs) <- vcapply(eqs, "[[", "name")
 
   list(eqs = eqs, dimnames = dimnames, alloc = eq_alloc$name)
