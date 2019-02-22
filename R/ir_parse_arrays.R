@@ -149,11 +149,6 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
   join <- function(i, eqs, depend_alloc = TRUE) {
     use <- unname(eqs[i])
     eq_use <- use[[1]]
-
-    eq_use$array <- list(rank = rank, dimnames = dims$dimnames)
-    extra <- c(eq$name, if (depend_alloc) dims$alloc)
-    eq_use$depends$variables <- union(eq_use$depends$variables, extra)
-
     if (eq_use$type != "user") {
       eq_use$rhs <- lapply(use, function(x)
         list(index = x$lhs$index, value = x$rhs$value))
@@ -164,7 +159,9 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
       }
     }
     eq_use$lhs$index <- NULL
-
+    eq_use$array <- list(rank = rank, dimnames = dims$dimnames)
+    extra <- c(eq$name, if (depend_alloc) dims$alloc)
+    eq_use$depends$variables <- union(eq_use$depends$variables, extra)
     eqs[[i[[1L]]]] <- eq_use
     if (length(i) > 1L) {
       eqs <- eqs[-i[-1L]]
@@ -274,8 +271,8 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
                          variables = dimnames$dim[j]))
       }
       eq_mult <- lapply(3:rank, f_eq_mult)
-      dimnames$mult <- c("", dimnames$dim[[1]], vcapply(eq_mult, "[[", "name"))
     }
+    dimnames$mult <- c("", dimnames$dim[[1]], vcapply(eq_mult, "[[", "name"))
   }
 
   nm_alloc <- if (nm %in% variables) initial_name(nm) else nm
