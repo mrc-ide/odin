@@ -57,7 +57,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   features$initial_time_dependent <-
     features$has_delay || max(stage[eqs_initial]) == STAGE_TIME
 
-  data <- ir_parse_data(eqs, variables, stage)
+  data <- ir_parse_data(eqs, variables, stage, source)
 
   if (features$has_user) {
     is_user <- vcapply(eqs, "[[", "type") == "user"
@@ -89,7 +89,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 }
 
 
-ir_parse_data <- function(eqs, variables, stage) {
+ir_parse_data <- function(eqs, variables, stage, source) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
   i <- !(type %in% c("alloc", "alloc_ring", "copy", "config"))
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
@@ -104,6 +104,13 @@ ir_parse_data <- function(eqs, variables, stage) {
       x$lhs$name_data, USE.NAMES = FALSE),
       names_if(vcapply(elements, "[[", "location") == "output"))
   pack_output <- ir_parse_packing(output, elements, FALSE)
+
+  err <- vlapply(eqs, function(x)
+    identical(x$lhs$special, "output") && x$lhs$name_data %in% variables)
+  if (any(err)) {
+    ir_odin_error("output() name cannot be the same as variable name",
+                  ir_get_lines(eqs[err]), source)
+  }
 
   list(elements = elements,
        variable = pack_variables,
