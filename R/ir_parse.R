@@ -12,13 +12,14 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   source <- dat$source
 
   ## TODO: config not yet done
-  ## TODO: initial rewrite should be done with substitutions instead
 
   ## Data elements:
 
   features <- ir_parse_features(eqs)
 
   variables <- ir_parse_find_variables(eqs, features$discrete)
+
+  eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
 
   if (features$has_array) {
     eqs <- ir_parse_arrays(eqs, variables, source)
@@ -916,4 +917,25 @@ ir_odin_info_data <- function(msg, line, source, type) {
 
 ir_get_lines <- function(eqs) {
   unlist(unname(lapply(eqs, "[[", "source")))
+}
+
+
+## TODO: this would be nice to do via substitutions, but that does
+## require getting the order of equations correct, because we need to
+## include the variables in the graph (which we don't normally do).
+ir_parse_rewrite_initial <- function(eq, variables) {
+  needs_rewrite <- identical(eq$lhs$special, "initial") &&
+    any(eq$depends$variables %in% variables)
+  if (needs_rewrite) {
+    subs <- set_names(initial_name(variables), variables)
+
+    env <- as.environment(lapply(subs, as.name))
+    eq$rhs$value <- substitute_(eq$rhs$value, env)
+
+    i <- match(eq$depends$variables, names(subs))
+    j <- !is.na(i)
+    eq$depends$variables[j] <- subs[i][j]
+  }
+
+  eq
 }
