@@ -78,7 +78,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
 ir_parse_data <- function(eqs, variables, stage) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
-  i <- !(type %in% c("alloc", "alloc_interpolate", "alloc_ring"))
+  i <- !(type %in% c("alloc", "alloc_interpolate", "alloc_ring", "copy"))
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
   ## For ease of comparison:
@@ -86,7 +86,10 @@ ir_parse_data <- function(eqs, variables, stage) {
 
   pack_variables <- ir_parse_packing(variables, elements, TRUE)
 
-  output <- names_if(vcapply(elements, "[[", "location") == "output")
+  output <-
+    c(vcapply(eqs[type == "copy"], function(x)
+      x$lhs$name_data, USE.NAMES = FALSE),
+      names_if(vcapply(elements, "[[", "location") == "output"))
   pack_output <- ir_parse_packing(output, elements, FALSE)
 
   list(elements = elements,
@@ -446,12 +449,12 @@ ir_parse_expr <- function(expr, line) {
   }
 
   if (identical(lhs$special, "output")) {
-    rhs$output_self <-
+    is_copy <-
       isTRUE(rhs$rhs$value) || identical(rhs$rhs$value, as.name(lhs$name_data))
-    if (rhs$output_self) {
-      stop("check")
+    if (is_copy) {
       type <- "copy"
-      depends$variables <- union(depends$variables, lhs$name_target)
+      depends <- list(functions = character(0), variables = lhs$name_data)
+      rhs <- NULL
     }
   }
 
@@ -467,11 +470,12 @@ ir_parse_expr <- function(expr, line) {
   ##
   ## TODO: look at this carefully; the rule for derivatives has been
   ## bodged in here.
-  self_ref <- lhs$name_data %in% depends$variables &&
+  is_self_ref <- lhs$name_data %in% depends$variables &&
     type != "expression_array" &&
     !identical(lhs$special, "deriv") &&
-    !identical(lhs$special, "update")
-  if (self_ref) {
+    !identical(lhs$special, "update") &&
+    type != "copy"
+  if (is_self_ref) {
     odin_error("Self referencing expressions not allowed (except for arrays)",
                line, expr)
   }

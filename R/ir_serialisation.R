@@ -177,6 +177,12 @@ ir_serialise_equation_alloc <- function(eq) {
   NULL
 }
 
+
+ir_serialise_equation_copy <- function(eq) {
+  NULL
+}
+
+
 ir_serialise_equation_expression_scalar <- function(eq) {
   list(rhs = list(value = ir_expression(eq$rhs$value)))
 }

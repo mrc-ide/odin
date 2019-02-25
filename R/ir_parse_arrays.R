@@ -88,11 +88,13 @@ ir_parse_arrays_check_usage <- function(eqs) {
   is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
   is_array <- vlapply(eqs, function(x) x$type == "expression_array")
   is_user <- vlapply(eqs, function(x) x$type == "user")
+  is_copy <- vlapply(eqs, function(x) x$type == "copy")
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
 
   ## First, check that every variable that is an array is always
   ## assigned as an array:
-  err <- !(is_array | is_dim | is_user) & name_data %in% name_data[is_dim]
+  err <- !(is_array | is_dim | is_user | is_copy) &
+    name_data %in% name_data[is_dim]
   if (any(err)) {
     odin_error(sprintf("Array variables must always assign as arrays (%s)",
                        paste(unique(names_target[err]), collapse = ", ")),
@@ -193,7 +195,9 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
   eqs <- c(eqs[names(eqs) != eq$name], dims$eqs)
 
   i <- which(vlapply(eqs, function(x)
-    x$lhs$name_data == eq$lhs$name_data && x$type != "alloc"))
+    x$lhs$name_data == eq$lhs$name_data &&
+    x$type != "alloc" &&
+    x$type != "copy"))
 
   rank_used <- viapply(eqs[i], function(el) length(el$lhs$index))
   if (any(rank_used != rank)) {

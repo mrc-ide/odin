@@ -462,7 +462,7 @@ test_that("multiple arrays: constant", {
   })
 
   mod <- gen()
-  expect_equal(mod$contents()$offset_y, 3)
+  ## expect_equal(mod$contents()$offset_y, 3)
   expect_equal(mod$initial(0), rep(1:2, each = 3))
   expect_equal(mod$deriv(0, mod$initial(0)), rep(1:3, 2))
 })
@@ -482,7 +482,7 @@ test_that("multiple arrays: dynamic", {
   })
 
   mod <- gen(4)
-  expect_equal(mod$contents()$offset_y, 4)
+  ## expect_equal(mod$contents()$offset_y, 4)
   expect_equal(mod$initial(0), rep(1:2, each = 4))
   expect_equal(mod$deriv(0, mod$initial(0)), rep(1:4, 2))
 })
