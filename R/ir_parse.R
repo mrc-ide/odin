@@ -40,7 +40,8 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   eqs <- eqs[order(names(eqs))]
 
   meta <- ir_parse_meta(features$discrete)
-  config <- ir_parse_config()
+  ## TODO: determine the base here based on filenames
+  config <- ir_parse_config(eqs, "odin")
 
   ## If we have arrays, then around this point we will also be
   ## generating a number of additional offset and dimension length
@@ -89,7 +90,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
 ir_parse_data <- function(eqs, variables, stage) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
-  i <- !(type %in% c("alloc", "alloc_ring", "copy"))
+  i <- !(type %in% c("alloc", "alloc_ring", "copy", "config"))
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
   ## For ease of comparison:
@@ -159,8 +160,28 @@ ir_parse_meta <- function(discrete) {
 }
 
 
-ir_parse_config <- function() {
-  list(base = "odin")
+ir_parse_config <- function(eqs, base_default) {
+  i <- vcapply(eqs, "[[", "type") == "config"
+  config <- unname(eqs[i])
+  config_target <- vcapply(config, function(x) x$lhs$name_data)
+  supported <- "base"
+
+  i <- which(config_target == "base")
+  if (length(i) == 0L) {
+    ## TODO: pass in the default as arg
+    base <- base_default
+  } else if (length(i) == 1L) {
+    base <- config[[i]]$rhs$value
+  } else {
+    stop("can't use base more than once")
+  }
+
+  err <- setdiff(config_target, supported)
+  if (length(err) > 0L) {
+    stop("unsupported configuration") # TODO: fix this up
+  }
+
+  list(base = base)
 }
 
 
@@ -438,6 +459,8 @@ ir_parse_expr <- function(expr, line) {
     type <- "interpolate"
   } else if (identical(lhs$special, "dim")) {
     type <- "dim"
+  } else if (identical(lhs$special, "config")) {
+    type <- "config"
   } else if (lhs$type == "expression_scalar") {
     type <- "expression_scalar"
   } else if (lhs$type == "expression_array") {
@@ -544,7 +567,7 @@ ir_parse_expr_lhs <- function(lhs, line, expr) {
     name_lhs <- name_equation
   } else if (special %in% c("initial", "dim")) {
     name_lhs <- name_equation
-  } else if (special %in% c("deriv", "output", "update")) {
+  } else if (special %in% c("deriv", "output", "update", "config")) {
     name_lhs <- name_data
   } else {
     stop("checkme")
@@ -773,7 +796,8 @@ ir_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
 
 
 ir_parse_equations <- function(eqs) {
-  eqs <- eqs[vcapply(eqs, "[[", "type") != "null"]
+  type <- vcapply(eqs, "[[", "type")
+  eqs <- eqs[!(type %in% c("null", "config"))]
   ## At some point we'll move this around
   f <- function(x) {
     x$lhs <- x$lhs$name_lhs
