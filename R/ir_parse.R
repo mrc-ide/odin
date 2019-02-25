@@ -711,8 +711,7 @@ ir_parse_expr_rhs_expression <- function(rhs, line, expr) {
   odin_parse_expr_rhs_check_usage(rhs, line, expr)
 
   if ("sum" %in% depends$functions) {
-    stop("rewriteme") # we've changed tack here
-    rhs <- odin_parse_expr_rhs_rewrite_sum(rhs, line, expr)
+    rhs <- ir_parse_expr_rhs_expression_sum(rhs, line, expr)
     depends <- find_symbols(rhs)
   }
 

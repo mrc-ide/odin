@@ -175,7 +175,11 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
     rank <- length(eq_data$lhs$index)
     ## - see odin_parse_arrays_nd
   } else if (is_dim_or_length(eq$rhs$value)) {
-    rank <- eqs[[deparse_str(eq$rhs$value[[2]])]]$array$rank
+    parent <- deparse_str(eq$rhs$value[[2]])
+    i <- vcapply(eqs, function(x) x$lhs$name_data) == parent
+    rank <- viapply(eqs[i], function(x) x$array$rank)
+    stopifnot(length(unique(rank)) == 1)
+    rank <- rank[[1L]]
   } else {
     if (is.symbol(eq$rhs$value) || is.numeric(eq$rhs$value)) {
       rank <- 1L
@@ -245,7 +249,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
   }
 
   if (eq$lhs$name_data %in% variables) {
-    j <- vcapply(eqs[i], function(x) x$lhs$special) == "deriv"
+    j <- vcapply(eqs[i], function(x) x$lhs$special) %in% c("deriv", "update")
     eqs <- join(i[j], eqs, FALSE)
     eqs <- join(i[!j], eqs, TRUE)
   } else {
@@ -435,4 +439,29 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
   names(eqs) <- vcapply(eqs, "[[", "name")
 
   list(eqs = eqs, dimnames = dimnames, alloc = eq_alloc$name)
+}
+
+
+ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
+  rewrite_sum <- function(x) {
+    if (!is.recursive(x)) {
+      x
+    } else if (is_call(x, "sum")) {
+      if (length(x) != 2L) {
+        stop("sum requires two args")
+      }
+      target <- x[[2L]]
+      if (is.name(target)) {
+        return(x)
+      }
+      if (is_call(target, "[")) {
+        stop("writeme")
+      }
+    } else {
+      x[-1L] <- lapply(x[-1L], rewrite_sum)
+      x
+    }
+  }
+
+  rewrite_sum(rhs)
 }
