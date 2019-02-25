@@ -49,7 +49,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   ## variables.  So watch for the "data" element to have extra return
   ## objects perhaps.
 
-  dependencies <- ir_parse_dependencies(eqs, variables, meta$time)
+  dependencies <- ir_parse_dependencies(eqs, variables, meta$time, source)
   stage <- ir_parse_stage(eqs, dependencies, variables, meta$time)
 
   eqs_initial <- names_if(vlapply(eqs, function(x)
@@ -237,7 +237,7 @@ ir_parse_find_variables <- function(eqs, discrete) {
 }
 
 
-ir_parse_dependencies <- function(eqs, variables, time_name) {
+ir_parse_dependencies <- function(eqs, variables, time_name, source) {
   ## For the derivative calculations the variables come in with no
   ## dependencies because they are provided by the integrator (but
   ## we'll add an implicit time dependency).
@@ -253,8 +253,8 @@ ir_parse_dependencies <- function(eqs, variables, time_name) {
     msg <- sort(unique(unlist(msg)))
     ## TODO: this is not *variable* as such.
     fmt <- ngettext(length(msg), "Unknown variable %s",  "Unknown variables %s")
-    odin_error(sprintf(fmt, paste(msg, collapse = ", ")),
-               get_lines(eqs[i]), get_exprs(eqs[i]))
+    ir_odin_error(sprintf(fmt, paste(msg, collapse = ", ")),
+                  ir_get_lines(eqs[i]), source)
   }
 
   order <- topological_order(deps)
