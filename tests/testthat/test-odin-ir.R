@@ -396,7 +396,6 @@ test_that("user array - direct 3d", {
 
 ## NOTE: this is the test from test-interpolation.R
 test_that("interpolation", {
-
   gen <- odin2({
     deriv(y) <- pulse
     initial(y) <- 0

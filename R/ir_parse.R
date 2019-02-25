@@ -13,7 +13,6 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   ## TODO: config not yet done
   ## TODO: initial rewrite should be done with substitutions instead
-  ## TODO: array combination
 
   ## Data elements:
 
@@ -24,6 +23,20 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   if (features$has_array) {
     eqs <- ir_parse_arrays(eqs, variables)
   }
+
+  if (features$has_interpolate) {
+    eqs <- ir_parse_interpolate(eqs, features$discrete)
+    i <- vcapply(eqs, "[[", "type") == "alloc_interpolate"
+    f <- function(v) {
+      sort(unique(unlist(unname(lapply(eqs[i], function(eq)
+        eq$control[[v]]))))) %||% character(0)
+    }
+    interpolate <-
+      list(min = f("min"), max = f("max"), critical = f("critical"))
+  } else {
+    interpolate <- list(min = list(), max = list(), critical = list())
+  }
+
   eqs <- eqs[order(names(eqs))]
 
   meta <- ir_parse_meta(features$discrete)
@@ -53,8 +66,6 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
     user <- list()
   }
 
-  interpolate <- list(min = list(), max = list(), critical = list())
-
   components <- ir_parse_components(eqs, dependencies, variables, stage,
                                     features$discrete)
   equations <- ir_parse_equations(eqs)
@@ -78,7 +89,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
 ir_parse_data <- function(eqs, variables, stage) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
-  i <- !(type %in% c("alloc", "alloc_interpolate", "alloc_ring", "copy"))
+  i <- !(type %in% c("alloc", "alloc_ring", "copy"))
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
   ## For ease of comparison:
@@ -423,6 +434,8 @@ ir_parse_expr <- function(expr, line) {
 
   if (!is.null(rhs$user)) {
     type <- "user"
+  } else if (!is.null(rhs$interpolate)) {
+    type <- "interpolate"
   } else if (identical(lhs$special, "dim")) {
     type <- "dim"
   } else if (lhs$type == "expression_scalar") {
@@ -650,8 +663,7 @@ ir_parse_expr_rhs <- function(rhs, line, expr) {
   } else if (is_call(rhs, quote(user))) {
     ir_parse_expr_rhs_user(rhs, line, expr)
   } else if (is_call(rhs, quote(interpolate))) {
-    stop("writeme")
-    return(odin_parse_expr_rhs_interpolate(rhs, line, expr))
+    ir_parse_expr_rhs_interpolate(rhs, line, expr)
   } else {
     ir_parse_expr_rhs_expression(rhs, line, expr)
   }
@@ -730,6 +742,36 @@ ir_parse_expr_rhs_user <- function(rhs, line, expr) {
 }
 
 
+ir_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
+  nargs <- length(rhs) - 1L
+
+  m <- match.call(function(t, y, type = "spine") NULL, rhs, FALSE)
+
+  type <- m$type
+  if (!is.character(type)) {
+    odin_error("Expected a string constant for interpolation type",
+               line, expr)
+  }
+  if (!(type %in% INTERPOLATION_TYPES)) {
+    odin_error(sprintf(
+      "Invalid interpolation type; must be one: of %s",
+      paste(INTERPOLATION_TYPES, collapse = ", ")),
+      line, expr)
+  }
+  if (!is.symbol(m$t)) {
+    odin_error("interpolation time argument must be a symbol", line, expr)
+  }
+  if (!is.symbol(m$y)) {
+    odin_error("interpolation target argument must be a symbol", line, expr)
+  }
+  t <- as.character(m$t)
+  y <- as.character(m$y)
+
+  list(interpolate = list(t = t, y = y, type = type),
+       depends = ir_parse_depends(variables = c(t, y)))
+}
+
+
 ir_parse_equations <- function(eqs) {
   eqs <- eqs[vcapply(eqs, "[[", "type") != "null"]
   ## At some point we'll move this around
@@ -738,4 +780,84 @@ ir_parse_equations <- function(eqs) {
     x
   }
   eqs
+}
+
+
+ir_parse_depends <- function(functions = character(0),
+                             variables = character(0)) {
+  if (length(functions) == 0L && length(variables) == 0L) {
+    NULL
+  } else {
+    list(functions = functions, variables = variables)
+  }
+}
+
+
+ir_parse_interpolate <- function(eqs, discrete) {
+  type <- vcapply(eqs, "[[", "type")
+  for (eq in eqs[type == "interpolate"]) {
+    eqs <- ir_parse_interpolate1(eq, eqs, discrete)
+  }
+  eqs
+}
+
+
+ir_parse_interpolate1 <- function(eq, eqs, discrete) {
+  nm <- eq$lhs$name_lhs
+
+  nm_alloc <- sprintf("interpolate_%s", nm)
+  eq_alloc <- eq
+  eq_alloc$name <- nm_alloc
+  eq_alloc$type <- "alloc_interpolate"
+  eq_alloc$lhs$name_lhs <- nm_alloc
+  eq_alloc$lhs$name_data <- nm_alloc
+  eq_alloc$lhs$name_equation <- nm_alloc
+  eq_alloc$lhs$storage_mode <- "interpolate_data"
+
+  eq_t <- eqs[[eq_alloc$interpolate$t]]
+  eq_y <- eqs[[eq_alloc$interpolate$y]]
+
+  rank_t <- eq_t$array$rank
+  rank_y <- eq_y$array$rank
+  rank_z <- eq$array$rank %||% 0L
+
+  if (rank_y > 1L) {
+    stop("checkme")
+  }
+  if (eq_t$array$rank != 1L) {
+    ## TODO: These error messages should reflect both equations
+    odin_error(sprintf("Expected %s to be a vector for interpolation",
+                       eq_t$name, type),
+               eq_t$line, as.expression(eq_t$expr))
+  }
+  if (eq_y$array$rank != rank_z + 1L) {
+    type <-
+      if (rank_z == 0L) "vector" else paste(rank_z - 1, "dimensional array")
+    odin_error(sprintf("Expected %s to be a %s", nm, type),
+               eq_y$line, as.expression(eq_y$expr))
+  }
+
+  eq_alloc$interpolate$equation <- nm
+  time <- if (discrete) STEP else TIME
+
+  ## TODO: this is going to become "interpolate", because that is
+  ## needed to support C code generation.
+  eq_use <- eq
+  eq_use$type <- if (rank_z == 0) "expression_scalar" else "expression_array"
+  eq_use$depends <- ir_parse_depends(variables = c(time, nm_alloc))
+  eq_use$interpolate <- NULL # becomes `nm_alloc`
+  eq_use$rhs <- list(value = call("interpolate", as.name(nm_alloc)))
+
+  ## TODO: this will switch over to be on eq_use once it changes type
+  type <- eq_alloc$interpolate$type
+  eq_alloc$control <- list(
+    min = eq_t$name,
+    max = if (type != "constant") eq_t$name,
+    critical = if (type == "constant") eq_t$name)
+
+  extra <- list(eq_alloc, eq_use)
+  names(extra) <- vcapply(extra, "[[", "name")
+
+  stopifnot(sum(names(eqs) == eq$name) == 1)
+  c(eqs[names(eqs) != eq$name], extra)
 }

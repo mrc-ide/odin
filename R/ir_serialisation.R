@@ -88,10 +88,8 @@ ir_serialise_user <- function(user) {
   lapply(user, lapply, scalar)
 }
 
+
 ir_serialise_interpolate <- function(interpolate) {
-  if (any(lengths(interpolate) > 0L)) {
-    stop("check me")
-  }
   interpolate
 }
 
@@ -175,6 +173,12 @@ ir_serialise_equation <- function(eq) {
 
 ir_serialise_equation_alloc <- function(eq) {
   NULL
+}
+
+
+ir_serialise_equation_alloc_interpolate <- function(eq) {
+  v <- c("t", "y", "type", "equation")
+  list(interpolate = lapply(eq$interpolate[v], scalar))
 }
 
 

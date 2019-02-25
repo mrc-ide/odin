@@ -868,7 +868,7 @@ ir_equation_base <- function(type, eq, ...) {
   list(name = jsonlite::unbox(eq$name),
        type = jsonlite::unbox(type),
        source = unname(eq$line),
-       depends = ir_depends(eq$depends),
+       depends = ir_equation_base_depends(eq$depends),
        lhs = ir_equation_lhs(eq),
        ...)
 }
@@ -1026,7 +1026,7 @@ ir_equation_user <- function(eq) {
 }
 
 
-ir_depends <- function(x) {
+ir_equation_base_depends <- function(x) {
   if (length(x$functions) == 0L && length(x$variables) == 0L) {
     NULL
   } else {
