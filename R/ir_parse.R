@@ -72,6 +72,9 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
                                     features$discrete)
   equations <- ir_parse_equations(eqs)
 
+  ## TODO: it's a bit unclear where this best belongs
+  ir_parse_check_functions(eqs, features$discrete, source)
+
   ret <- list(config = config,
               meta = meta,
               features = features,
@@ -279,7 +282,7 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
     (!is.null(x$lhs$special) &&
      x$lhs$special %in% c("deriv", "update", "output")) ||
       !is.null(x$rhs$delay) || !is.null(x$rhs$interpolate) ||
-      isTRUE(x$rhs$stochastic)
+      isTRUE(x$stochastic)
   }
 
   stage[names_if(vlapply(eqs, is_user))] <- STAGE_USER
@@ -945,4 +948,39 @@ ir_parse_rewrite_initial <- function(eq, variables) {
   }
 
   eq
+}
+
+
+ir_parse_check_functions <- function(eqs, discrete, source) {
+  used_functions <- lapply(eqs, function(x) x$depends$functions)
+  all_used_functions <- unique(unlist(used_functions))
+
+  if (!discrete) {
+    err <- intersect(all_used_functions, names(FUNCTIONS_STOCHASTIC))
+    if (length(err) > 0L) {
+      tmp <- eqs[vlapply(used_functions, function(x) any(x %in% err))]
+      ir_odin_error(sprintf(
+        "Stochastic functions not allowed in ODE models (used: %s)",
+        pastec(err)),
+        ir_get_lines(tmp), source)
+    }
+  }
+
+  allowed <- c(names(FUNCTIONS),
+               names(FUNCTIONS_INFIX),
+               names(FUNCTIONS_UNARY),
+               names(FUNCTIONS_RENAME),
+               if (discrete) names(FUNCTIONS_STOCHASTIC))
+  ## TODO:
+  ## FUNCTIONS_SUM,
+  ## names(obj$config$include$declarations))
+
+  err <- setdiff(all_used_functions, allowed)
+  if (length(err) > 0L) {
+    tmp <- obj$eqs[vlapply(used_functions, function(x) any(x %in% err))]
+    ir_odin_error(sprintf("Unsupported %s: %s",
+                       ngettext(length(err), "function", "functions"),
+                       pastec(err)),
+                  ir_get_lines(tmp), source)
+  }
 }
