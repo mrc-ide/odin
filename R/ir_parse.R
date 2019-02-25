@@ -821,9 +821,6 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete) {
   rank_y <- eq_y$array$rank
   rank_z <- eq$array$rank %||% 0L
 
-  if (rank_y > 1L) {
-    stop("checkme")
-  }
   if (eq_t$array$rank != 1L) {
     ## TODO: These error messages should reflect both equations
     odin_error(sprintf("Expected %s to be a vector for interpolation",
@@ -843,7 +840,7 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete) {
   ## TODO: this is going to become "interpolate", because that is
   ## needed to support C code generation.
   eq_use <- eq
-  eq_use$type <- if (rank_z == 0) "expression_scalar" else "expression_array"
+  eq_use$type <- "expression_scalar"
   eq_use$depends <- ir_parse_depends(variables = c(time, nm_alloc))
   eq_use$interpolate <- NULL # becomes `nm_alloc`
   eq_use$rhs <- list(value = call("interpolate", as.name(nm_alloc)))

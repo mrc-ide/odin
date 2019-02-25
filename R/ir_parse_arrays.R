@@ -87,13 +87,16 @@ ir_parse_arrays <- function(eqs, variables) {
 ir_parse_arrays_check_usage <- function(eqs) {
   is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
   is_array <- vlapply(eqs, function(x) x$type == "expression_array")
+  is_interpolate <- vlapply(eqs, function(x) x$type == "interpolate")
   is_user <- vlapply(eqs, function(x) x$type == "user")
   is_copy <- vlapply(eqs, function(x) x$type == "copy")
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
 
   ## First, check that every variable that is an array is always
   ## assigned as an array:
-  err <- !(is_array | is_dim | is_user | is_copy) &
+  ##
+  ## TODO: is_interpolate might be too lax here
+  err <- !(is_array | is_dim | is_user | is_copy | is_interpolate) &
     name_data %in% name_data[is_dim]
   if (any(err)) {
     odin_error(sprintf("Array variables must always assign as arrays (%s)",
