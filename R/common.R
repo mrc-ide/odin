@@ -3,6 +3,7 @@
 ## are another).  Most of the others don't really need to change
 ## unless it becomes really limiting to hit name collisions (so
 ## rewriting names to get them out the way).
+STAGE_NULL <- 0L
 STAGE_CONSTANT <- 1L
 STAGE_USER <- 2L
 STAGE_TIME <- 3L

@@ -35,7 +35,47 @@ ir_parse_arrays <- function(eqs, variables) {
   ## TODO: this needs properly testing elsewhere, but we rely on it here.
   stopifnot(!any(duplicated(names_if(is_dim))))
 
-  for (eq in eqs[is_dim]) {
+  ## At this point, we should resolve the DAG of dimensions properly.
+  ## Dimensions can be resolved to the possible types:
+  ##
+  ## * user()
+  ## * expression or c that involves "Easy" things
+  ## * length(x)
+  ## * dim(x)
+  ## * c(...) // length or c
+  ##
+  ## It's not clear that this will produce the best error messages and
+  ## we should try to see what happens with something like:
+  ##
+  ## dim(a) <- dim(b)
+  ## dim(b) <- dim(a)
+  ##
+  ## because I think that is probably not well dealt with.
+  ##
+  ## The approach here should cope with
+  ##
+  ## dim(x) <- c(dim(a), dim(b))
+  f <- function(x) {
+    if (x$type == "user" || !(c("length", "dim") %in% x$depends$functions)) {
+      character(0)
+    } else if (is_dim_or_length(x$rhs$value)) {
+      if (length(x$rhs$value) != 2L || !is.name(x$rhs$value[[2]])) {
+        stop("FIXME")
+      }
+      array_dim_name(deparse_str(x$rhs$value[[2]]))
+    } else {
+      stop("FIXME")
+    }
+  }
+
+  deps <- lapply(eqs[is_dim], f)
+  dims <- topological_order(deps)
+
+  ## If dim() or length() is used on a non-array element this will
+  ## fail.
+  stopifnot(all(dims %in% names(eqs)))
+
+  for (eq in eqs[dims]) {
     eqs <- ir_parse_arrays_collect(eq, eqs, variables)
   }
 
@@ -101,13 +141,31 @@ ir_parse_arrays_check_usage <- function(eqs) {
 ## dependent arrays (dim(x) <- dim(y); and these chains could run
 ## arbitrarily deep).
 ir_parse_arrays_collect <- function(eq, eqs, variables) {
-  if (isTRUE(eq$rhs$user)) {
-    ## dependency order here is different
-    stop("writeme")
+  user_dim <- eq$type == "user"
+  if (user_dim) {
+    if (eq$lhs$name_data %in% variables) {
+      odin_error(sprintf("Can't specify user-sized variables (for %s)",
+                         paste(nm[err], collapse = ", ")),
+                 get_lines(tmp), get_exprs(tmp))
+    }
+
+    ## It's an error to use
+    ##   dim(foo) <- user()
+    ## without specifying
+    ##   foo[] <- user()
+    ##   foo[,] <- user()
+    ## etc.
+    eq_data <- eqs[[eq$lhs$name_data]]
+    if (eq_data$type != "user") {
+      odin_error(sprintf("No array assignment found for %s, but dim() found",
+                         pastec(nm[err])),
+                 get_lines(tmp), get_exprs(tmp))
+    }
+
+    rank <- length(eq_data$lhs$index)
     ## - see odin_parse_arrays_nd
   } else if (is_dim_or_length(eq$rhs$value)) {
-    ## dependent dimensions
-    stop("writeme")
+    rank <- eqs[[deparse_str(eq$rhs$value[[2]])]]$array$rank
   } else {
     if (is.symbol(eq$rhs$value) || is.numeric(eq$rhs$value)) {
       rank <- 1L
@@ -160,8 +218,13 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
     }
     eq_use$lhs$index <- NULL
     eq_use$array <- list(rank = rank, dimnames = dims$dimnames)
-    extra <- c(eq$name, if (depend_alloc) dims$alloc)
-    eq_use$depends$variables <- union(eq_use$depends$variables, extra)
+    if (user_dim) {
+      eq_use$depends <- NULL
+      eq_use$user$dim <- TRUE
+    } else {
+      extra <- c(eq$name, if (depend_alloc) dims$alloc)
+      eq_use$depends$variables <- union(eq_use$depends$variables, extra)
+    }
     eqs[[i[[1L]]]] <- eq_use
     if (length(i) > 1L) {
       eqs <- eqs[-i[-1L]]
@@ -218,17 +281,86 @@ ir_parse_expr_check_dim <- function(rhs, line, expr) {
 }
 
 
+## There is a general issue here that is not yet resolved, in that
+## there might be a DAG of dependencies of ranks.
+
+
+ir_parse_arrays_rank <- function(eq, eqs, variables) {
+  user_dim <- eq$type == "user"
+  if (user_dim) {
+    if (eq$lhs$name_data %in% variables) {
+      odin_error(sprintf("Can't specify user-sized variables (for %s)",
+                         paste(nm[err], collapse = ", ")),
+                 get_lines(tmp), get_exprs(tmp))
+    }
+
+    ## It's an error to use
+    ##   dim(foo) <- user()
+    ## without specifying
+    ##   foo[] <- user()
+    ##   foo[,] <- user()
+    ## etc.
+    eq_data <- eqs[[eq$lhs$name_data]]
+    if (eq_data$type != "user") {
+      odin_error(sprintf("No array assignment found for %s, but dim() found",
+                         pastec(nm[err])),
+                 get_lines(tmp), get_exprs(tmp))
+    }
+
+    rank <- length(eq_data$lhs$index)
+    ## - see odin_parse_arrays_nd
+  } else if (is_dim_or_length(eq$rhs$value)) {
+    ## I think this branch can come out now?
+    ## eq$rhs$value[[2]]
+    ## browser()
+    ## dependent dimensions
+    stop("writeme")
+  } else {
+    if (is.symbol(eq$rhs$value) || is.numeric(eq$rhs$value)) {
+      rank <- 1L
+    } else if (is_call(eq$rhs$value, "c")) {
+      value <- as.list(eq$rhs$value[-1L])
+      ok <- vlapply(value, function(x)
+        is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
+      if (!all(ok)) {
+        odin_error(
+          "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
+          line, expr)
+      }
+      rank <- length(ok)
+      eq$depends$functions <- setdiff(eq$depends$functions, "c")
+      eq$rhs$value <- value
+    } else {
+      odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
+                 line, expr)
+    }
+  }
+  list(user_dim = user_dim,
+       rank = rank,
+       eq = eq)
+}
+
+
 ir_parse_arrays_dims <- function(eq, rank, variables) {
   nm <- eq$lhs$name_data
+  user_dim <- eq$type == "user"
+
+  if (user_dim) {
+    type <- "null"
+    depends_dim <- list(functions = character(0), variables = nm)
+  } else {
+    type <- "expression_scalar"
+    depends_dim <- eq$depends
+  }
 
   eq_length <- list(name = eq$name,
-                    type = "expression_scalar",
+                    type = type,
                     lhs = list(name_lhs = eq$name,
                                name_data = eq$name,
                                name_equation = eq$name,
                                storage_mode = "int"),
                     rhs = eq$rhs,
-                    depends = eq$depends,
+                    depends = depends_dim,
                     source = eq$source)
   dimnames <- list(length = eq_length$name, dim = NULL, mult = NULL)
 
@@ -238,12 +370,12 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
       d <- array_dim_name(nm, i)
       list(
         name = d,
-        type = "expression_scalar",
+        type = type,
         lhs = list(name_lhs = d, name_data = d, name_equation = d,
                    storage_mode = "int"),
         rhs = list(value = eq$rhs$value[[i]]),
         source = eq$source,
-        depends = eq$depends)
+        depends = depends_dim)
     }
     eq_dim <- lapply(seq_len(rank), f_eq_dim)
     dimnames$dim <- vcapply(eq_dim, "[[", "name")
@@ -275,15 +407,19 @@ ir_parse_arrays_dims <- function(eq, rank, variables) {
     dimnames$mult <- c("", dimnames$dim[[1]], vcapply(eq_mult, "[[", "name"))
   }
 
-  nm_alloc <- if (nm %in% variables) initial_name(nm) else nm
-  eq_alloc <- list(
-    name = sprintf("alloc_%s", nm_alloc),
-    type = "alloc",
-    source = eq$source,
-    depends = list(functions = character(0), variables = eq_length$name),
-    lhs = list(name_lhs = nm_alloc, name_data = nm_alloc))
+  if (user_dim) {
+    eq_alloc <- NULL
+  } else {
+    nm_alloc <- if (nm %in% variables) initial_name(nm) else nm
+    eq_alloc <- list(
+      name = sprintf("alloc_%s", nm_alloc),
+      type = "alloc",
+      source = eq$source,
+      depends = list(functions = character(0), variables = eq_length$name),
+      lhs = list(name_lhs = nm_alloc, name_data = nm_alloc))
+  }
 
-  eqs <- c(list(eq_length, eq_alloc), eq_dim, eq_mult)
+  eqs <- drop_null(c(list(eq_length, eq_alloc), eq_dim, eq_mult))
   names(eqs) <- vcapply(eqs, "[[", "name")
 
   list(eqs = eqs, dimnames = dimnames, alloc = eq_alloc$name)

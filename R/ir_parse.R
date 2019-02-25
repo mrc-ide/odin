@@ -57,12 +57,13 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   components <- ir_parse_components(eqs, dependencies, variables, stage,
                                     features$discrete)
+  equations <- ir_parse_equations(eqs)
 
   ret <- list(config = config,
               meta = meta,
               features = features,
               data = data,
-              equations = eqs,
+              equations = equations,
               components = components,
               user = user,
               interpolate = interpolate,
@@ -228,6 +229,9 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
   is_user <- function(x) {
     x$type == "user"
   }
+  is_null <- function(x) {
+    x$type == "null"
+  }
   is_time_dependent <- function(x) {
     (!is.null(x$lhs$special) &&
      x$lhs$special %in% c("deriv", "update", "output")) ||
@@ -249,6 +253,10 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
   ## NOTE: I am ignoring an old promotion of interpolation functions
   ## for the case where we use interpolation in a delay - see
   ## parse_dependencies.R for the details here.
+
+  ## Any equation that has been removed because it is implied (this
+  ## might be an issue only for the array cases).
+  stage[names_if(vlapply(eqs, is_null))] <- STAGE_NULL
 
   stage
 }
@@ -715,4 +723,15 @@ ir_parse_expr_rhs_user <- function(rhs, line, expr) {
                min = m$min,
                max = m$max)
   list(user = user)
+}
+
+
+ir_parse_equations <- function(eqs) {
+  eqs <- eqs[vcapply(eqs, "[[", "type") != "null"]
+  ## At some point we'll move this around
+  f <- function(x) {
+    x$lhs <- x$lhs$name_lhs
+    x
+  }
+  eqs
 }
