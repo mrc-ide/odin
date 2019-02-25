@@ -76,7 +76,7 @@ ir_parse_arrays <- function(eqs, variables, source) {
   stopifnot(all(dims %in% names(eqs)))
 
   for (eq in eqs[dims]) {
-    eqs <- ir_parse_arrays_collect(eq, eqs, variables)
+    eqs <- ir_parse_arrays_collect(eq, eqs, variables, source)
   }
 
   eqs
@@ -150,13 +150,14 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
 ## We don't currently deal with user-sized arrays at all yet, nor
 ## dependent arrays (dim(x) <- dim(y); and these chains could run
 ## arbitrarily deep).
-ir_parse_arrays_collect <- function(eq, eqs, variables) {
+ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
   user_dim <- eq$type == "user"
   if (user_dim) {
     if (eq$lhs$name_data %in% variables) {
-      odin_error(sprintf("Can't specify user-sized variables (for %s)",
-                         paste(nm[err], collapse = ", ")),
-                 get_lines(tmp), get_exprs(tmp))
+      ir_odin_error(
+        sprintf("Can't specify user-sized variables (for %s)",
+                eq$lhs$name_data),
+        eq$source, source)
     }
 
     ## It's an error to use
@@ -167,9 +168,10 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
     ## etc.
     eq_data <- eqs[[eq$lhs$name_data]]
     if (eq_data$type != "user") {
-      odin_error(sprintf("No array assignment found for %s, but dim() found",
-                         pastec(nm[err])),
-                 get_lines(tmp), get_exprs(tmp))
+      ir_odin_error(
+        sprintf("No array assignment found for %s, but dim() found",
+                eq$lhs$name_data),
+        eq$source, source)
     }
 
     rank <- length(eq_data$lhs$index)
@@ -188,16 +190,16 @@ ir_parse_arrays_collect <- function(eq, eqs, variables) {
       ok <- vlapply(value, function(x)
         is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
       if (!all(ok)) {
-        odin_error(
+        ir_odin_error(
           "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
-          line, expr)
+          eq$source, source)
       }
       rank <- length(ok)
       eq$depends$functions <- setdiff(eq$depends$functions, "c")
       eq$rhs$value <- value
     } else {
-      odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
-                 line, expr)
+      ir_odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
+                    eq$source, source)
     }
   }
 
