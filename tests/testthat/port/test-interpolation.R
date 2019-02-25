@@ -235,7 +235,6 @@ test_that("interpolation parse errors: incorrect array dimension", {
 })
 
 test_that("unknown interpolation variable", {
-  ## Processed during the usual dependency checking
   expect_error(odin2({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0

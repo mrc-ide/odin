@@ -21,11 +21,11 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   variables <- ir_parse_find_variables(eqs, features$discrete)
 
   if (features$has_array) {
-    eqs <- ir_parse_arrays(eqs, variables)
+    eqs <- ir_parse_arrays(eqs, variables, source)
   }
 
   if (features$has_interpolate) {
-    eqs <- ir_parse_interpolate(eqs, features$discrete)
+    eqs <- ir_parse_interpolate(eqs, features$discrete, source)
     i <- vcapply(eqs, "[[", "type") == "alloc_interpolate"
     f <- function(v) {
       sort(unique(unlist(unname(lapply(eqs[i], function(eq)
@@ -817,16 +817,16 @@ ir_parse_depends <- function(functions = character(0),
 }
 
 
-ir_parse_interpolate <- function(eqs, discrete) {
+ir_parse_interpolate <- function(eqs, discrete, source) {
   type <- vcapply(eqs, "[[", "type")
   for (eq in eqs[type == "interpolate"]) {
-    eqs <- ir_parse_interpolate1(eq, eqs, discrete)
+    eqs <- ir_parse_interpolate1(eq, eqs, discrete, source)
   }
   eqs
 }
 
 
-ir_parse_interpolate1 <- function(eq, eqs, discrete) {
+ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
   nm <- eq$lhs$name_lhs
 
   nm_alloc <- sprintf("interpolate_%s", nm)
@@ -838,6 +838,15 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete) {
   eq_alloc$lhs$name_equation <- nm_alloc
   eq_alloc$lhs$storage_mode <- "interpolate_data"
 
+  msg <- setdiff(c(eq_alloc$interpolate$t, eq_alloc$interpolate$y), names(eqs))
+  if (length(msg) > 0L) {
+    ## TODO: duplicates main dependency checking errors
+    fmt <-
+      ngettext(length(msg), "Unknown variable %s", "Unknown variables %s")
+    ir_odin_error(sprintf(fmt, paste(msg, collapse = ", ")),
+                  eq$source, source)
+  }
+
   eq_t <- eqs[[eq_alloc$interpolate$t]]
   eq_y <- eqs[[eq_alloc$interpolate$y]]
 
@@ -847,15 +856,16 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete) {
 
   if (eq_t$array$rank != 1L) {
     ## TODO: These error messages should reflect both equations
-    odin_error(sprintf("Expected %s to be a vector for interpolation",
-                       eq_t$name, type),
-               eq_t$line, as.expression(eq_t$expr))
+    ir_odin_error(sprintf("Expected %s to be a vector for interpolation",
+                          eq_t$name),
+                  eq_t$source, source)
   }
+
   if (eq_y$array$rank != rank_z + 1L) {
     type <-
-      if (rank_z == 0L) "vector" else paste(rank_z - 1, "dimensional array")
-    odin_error(sprintf("Expected %s to be a %s", nm, type),
-               eq_y$line, as.expression(eq_y$expr))
+      if (rank_z == 0L) "vector" else paste(rank_z + 1, "dimensional array")
+    ir_odin_error(sprintf("Expected %s to be a %s", eq_y$name, type),
+                  eq_y$source, source)
   }
 
   eq_alloc$interpolate$equation <- nm
@@ -881,4 +891,30 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete) {
 
   stopifnot(sum(names(eqs) == eq$name) == 1)
   c(eqs[names(eqs) != eq$name], extra)
+}
+
+
+## We're going to need to wrap this up like testthat I think, so that
+## we can catch these and group them together.  But leaving that for
+## now.
+ir_odin_error <- function(msg, line, source) {
+  ret <- ir_odin_info_data(msg, line, source, "error")
+  class(ret) <- c("odin_error", "error", "condition")
+  stop(ret)
+}
+
+
+ir_odin_info_data <- function(msg, line, source, type) {
+  expr <- source[line]
+  str <- odin_info_expr(line, expr)
+  list(message = paste0(msg, paste0("\n\t", str, collapse = "")),
+       msg = msg,
+       line = line,
+       expr = expr,
+       type = type)
+}
+
+
+ir_get_lines <- function(eqs) {
+  unlist(unname(lapply(eqs, "[[", "source")))
 }

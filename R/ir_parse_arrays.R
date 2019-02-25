@@ -28,8 +28,8 @@
 ##
 ## The dim() calls get written out as a new group of data elements;
 ## we'll sort that out here too.
-ir_parse_arrays <- function(eqs, variables) {
-  ir_parse_arrays_check_usage(eqs)
+ir_parse_arrays <- function(eqs, variables, source) {
+  ir_parse_arrays_check_usage(eqs, source)
 
   is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
   ## TODO: this needs properly testing elsewhere, but we rely on it here.
@@ -84,7 +84,7 @@ ir_parse_arrays <- function(eqs, variables) {
 
 
 ## Just for throws
-ir_parse_arrays_check_usage <- function(eqs) {
+ir_parse_arrays_check_usage <- function(eqs, source) {
   is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
   is_array <- vlapply(eqs, function(x) x$type == "expression_array")
   is_interpolate <- vlapply(eqs, function(x) x$type == "interpolate")
@@ -99,17 +99,20 @@ ir_parse_arrays_check_usage <- function(eqs) {
   err <- !(is_array | is_dim | is_user | is_copy | is_interpolate) &
     name_data %in% name_data[is_dim]
   if (any(err)) {
-    odin_error(sprintf("Array variables must always assign as arrays (%s)",
-                       paste(unique(names_target[err]), collapse = ", ")),
-               get_lines(eqs[err]), get_exprs(eqs[err]))
+    browser()
+    ir_odin_error(
+      sprintf("Array variables must always assign as arrays (%s)",
+              paste(unique(name_data[err]), collapse = ", ")),
+      ir_get_lines(eqs[err]), source)
   }
 
   ## Then, start checking for duplicates:
   err <- is_duplicated(names(eqs)) & !is_array
   if (any(err)) {
-    odin_error(sprintf("Duplicate entries must all be array assignments (%s)",
-                       paste(unique(names_target[err]), collapse = ", ")),
-               get_lines(eqs[err]), get_exprs(eqs[err]))
+    ir_odin_error(
+      sprintf("Duplicate entries must all be array assignments (%s)",
+              paste(name_data[err], collapse = ", ")),
+      ir_get_lines(eqs[err]), source)
   }
 
   ## Prevent:
@@ -117,16 +120,18 @@ ir_parse_arrays_check_usage <- function(eqs) {
   ##   x[1] <- 1
   err <- is_duplicated(names(eqs)) & is_user
   if (any(err)) {
-    odin_error(sprintf("Duplicate entries may not use user() (%s)",
-                       paste(unique(names_target[err]), collapse = ", ")),
-               get_lines(eqs[err]), get_exprs(eqs[err]))
+    ir_odin_error(
+      sprintf("Duplicate entries may not use user() (%s)",
+              paste(unique(names_if(err))), collapse = ", "),
+      ir_get_lines(eqs[err]), source)
   }
 
   err <- setdiff(name_data[is_array], name_data[is_dim])
   if (length(err) > 0L) {
-    odin_error(sprintf("Missing dim() call for %s, assigned as an array",
-                       paste(unique(names_target[err]), collapse = ", ")),
-               get_lines(eqs[err]), get_exprs(eqs[err]))
+    ir_odin_error(
+      sprintf("Missing dim() call for %s, assigned as an array",
+              paste(unique(names_data[err]), collapse = ", ")),
+      ir_get_lines(eqs[err]), source)
   }
 }
 
