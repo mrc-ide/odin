@@ -63,8 +63,19 @@ ir_parse_arrays <- function(eqs, variables, source) {
         stop("FIXME")
       }
       array_dim_name(deparse_str(x$rhs$value[[2]]))
+    } else if (is_call(x$rhs$value, "c")) {
+      ok <- vlapply(as.list(x$rhs$value[-1L]), function(x)
+        is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
+      if (!all(ok)) {
+        ir_odin_error(
+          "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
+          x$source, source)
+      }
+      length(ok)
     } else {
-      stop("FIXME")
+      ir_odin_error(
+        "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
+        x$source, source)
     }
   }
 
