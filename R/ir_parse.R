@@ -828,7 +828,6 @@ ir_parse_expr_rhs_delay <- function(rhs, line, expr, source) {
   delay_expr <- rhs[[2L]]
   delay_time <- rhs[[3L]]
   if (na == 3L) {
-    stop("checkme")
     delay_default <- ir_parse_expr_rhs(rhs[[4L]], line, expr, source)
   } else {
     delay_default <- NULL
@@ -870,7 +869,7 @@ ir_parse_expr_rhs_delay <- function(rhs, line, expr, source) {
   depends <- join_deps(list(deps_delay_time, delay_default$depends))
 
   list(delay = list(time = delay_time,
-                    default = delay_default,
+                    default = delay_default$rhs$value,
                     depends = deps_delay_expr),
        rhs = list(value = delay_expr),
        depends = depends)
