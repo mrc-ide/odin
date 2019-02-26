@@ -15,3 +15,4 @@ tests/testthat/eugene
 .valgrind_ignore
 docs
 *~
+tests/testthat/ir/*.json

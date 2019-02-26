@@ -1,0 +1,10 @@
+#!/usr/bin/env Rscript
+devtools::load_all()
+path <- "ir"
+re_ext <- "\\.R$"
+files <- dir(path, full.names = TRUE, pattern = re_ext)
+for (f in files) {
+  message(f)
+  ir <- suppressMessages(odin_build_ir(f, validate = TRUE))
+  writeLines(ir, sub(re_ext, ".json", f))
+}
