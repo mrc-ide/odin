@@ -218,9 +218,6 @@ ir_serialise_equation_user <- function(eq) {
 
 
 ir_serialise_delay_continuous <- function(eq) {
-  if (length(eq$delay$substitutions) > 0L) {
-    stop("check subs")
-  }
   f_contents <- function(x) {
     list(name = scalar(x$name),
          offset = ir_expression(x$offset))
@@ -228,13 +225,13 @@ ir_serialise_delay_continuous <- function(eq) {
   variables <- list(
     length = ir_expression(eq$delay$variables$length),
     contents = lapply(unname(eq$delay$variables$contents), f_contents))
-
-
+  substitutions <- lapply(eq$delay$substitutions, function(x)
+    list(from = scalar(x$from), to = scalar(x$to)))
   list(rhs = list(value = ir_expression(eq$rhs$value)),
        delay = list(
          state = scalar(eq$delay$state),
          index = scalar(eq$delay$index),
-         substitutions = eq$delay$substitutions,
+         substitutions = substitutions,
          variables = variables,
          equations = eq$delay$equations,
          default = ir_expression(eq$delay$default),

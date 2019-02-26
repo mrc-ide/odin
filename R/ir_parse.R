@@ -98,7 +98,10 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
 ir_parse_data <- function(eqs, variables, stage, source) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
-  i <- !(type %in% c("alloc", "copy", "config"))
+  is_alloc <- vlapply(eqs, function(x)
+    x$type == "alloc" && x$name != x$lhs$name_lhs)
+  i <- !(is_alloc | type %in% c("copy", "config"))
+
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
   ## For ease of comparison:
@@ -1067,6 +1070,25 @@ ir_parse_delay <- function(eqs, discrete, variables, source) {
       eqs <- ir_parse_delay_continuous(eq, eqs, variables, source)
       initial_time <- initial_name(TIME)
       initial_time_type <- "double"
+
+      subs <- unique(unlist(lapply(eqs[names_if(type == "delay")], function(x)
+        x$delay$substitutions), FALSE, FALSE))
+
+      ## TODO: ideally we'd get the correct lines here for source, but
+      ## that's low down the list of needs.
+      f <- function(x) {
+        list(name = x$to,
+             type = "alloc",
+             source = integer(0),
+             depends = ir_parse_depends(variables = x$dim),
+             lhs = list(name_data = x$to,
+                        name_lhs = x$to,
+                        name_equation = x$to),
+             array = eqs[[x$from]]$array)
+      }
+      arrays <- lapply(subs, f)
+      names(arrays) <- vcapply(arrays, "[[", "name")
+      eqs <- c(eqs, arrays)
     }
   }
 
@@ -1124,10 +1146,6 @@ ir_parse_delay_discrete <- function(eq, eqs, source) {
 
 
 ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
-  ## So we need to build:
-  ## * delay index
-  ## * delay state
-
   nm <- eq$name
   nm_state <- sprintf("delay_state_%s", nm)
   nm_index <- sprintf("delay_index_%s", nm)
@@ -1135,11 +1153,13 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
 
   graph <- ir_parse_delay_continuous_graph(eq, eqs, variables, source)
 
-  ## TODO: determine if any of the dependent *equations* are arrays
   arrays <- names_if(
     vcapply(eqs[graph$equations], "[[", "type") == "expression_array")
   if (length(arrays) > 0L) {
-    stop("write substitiutions")
+    substitutions <- lapply(arrays, function(x)
+      list(from = x,
+           to = sprintf("delay_array_%s", x),
+           dim = eqs[[x]]$array$dimnames$length))
   } else {
     substitutions <- list()
   }
@@ -1154,8 +1174,10 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
     rhs = list(value = graph$packing$length))
 
   lhs_use <- eq$lhs[c("name_data", "name_equation", "name_lhs", "special")]
-  depends_use <- join_deps(list(eq$depends,
-                                ir_parse_depends(variables = nm_dim)))
+  subs_from <- vcapply(substitutions, "[[", "to")
+  depends_use <- join_deps(list(
+    eq$depends, ir_parse_depends(variables = c(nm_dim, subs_from))))
+
   eq_use <- list(
     name = nm,
     type = "delay_continuous",
@@ -1214,7 +1236,7 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
 
   v <- setdiff(used, variables)
   deps <- list()
-  exclude <- c(variables, TIME)
+  exclude <- c(variables, TIME, INDEX)
   while (length(v) > 0L) {
     if (!all(v %in% names(eqs))) {
       stop("FIXME")
