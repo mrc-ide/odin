@@ -25,6 +25,10 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
     eqs <- ir_parse_arrays(eqs, variables, source)
   }
 
+  packing <- ir_parse_packing(eqs, variables, source)
+  eqs <- c(eqs, packing$offsets)
+  packing$offsets <- NULL
+
   if (features$has_interpolate) {
     eqs <- ir_parse_interpolate(eqs, features$discrete, source)
     i <- vcapply(eqs, "[[", "type") == "alloc_interpolate"
@@ -61,7 +65,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   features$initial_time_dependent <-
     features$has_delay || max(stage[eqs_initial]) == STAGE_TIME
 
-  data <- ir_parse_data(eqs, variables, stage, source)
+  data <- ir_parse_data(eqs, packing, stage, source)
 
   if (features$has_user) {
     is_user <- vcapply(eqs, "[[", "type") == "user"
@@ -96,7 +100,32 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 }
 
 
-ir_parse_data <- function(eqs, variables, stage, source) {
+ir_parse_packing <- function(eqs, variables, source) {
+  ## TODO: this does not actually use 'variables' to determine the
+  ## initial conditions.
+  i <- vlapply(eqs, function(x) identical(x$lhs$special, "initial"))
+  pack_variables <- ir_parse_packing_new(eqs[i], TRUE)
+
+  j <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
+  pack_output <- ir_parse_packing_new(eqs[j], FALSE)
+
+  output <- vcapply(pack_output$contents, "[[", "name")
+  err <- intersect(output, variables)
+
+  if (length(err) > 0L) {
+    k <- which(i | j)
+    k <- k[vlapply(eqs[k], function(x) x$lhs$name_data %in% err)]
+    ir_odin_error("output() name cannot be the same as variable name",
+                  ir_get_lines(eqs[k]), source)
+  }
+
+  list(variables = pack_variables,
+       output = pack_output,
+       offsets = c(pack_variables$offsets, pack_output$offsets))
+}
+
+
+ir_parse_data <- function(eqs, packing, stage, source) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
   is_alloc <- vlapply(eqs, function(x)
     x$type == "alloc" && x$name != x$lhs$name_lhs)
@@ -107,24 +136,9 @@ ir_parse_data <- function(eqs, variables, stage, source) {
   ## For ease of comparison:
   elements <- elements[order(names(elements))]
 
-  pack_variables <- ir_parse_packing(variables, elements, TRUE)
-
-  output <-
-    c(vcapply(eqs[type == "copy"], function(x)
-      x$lhs$name_data, USE.NAMES = FALSE),
-      names_if(vcapply(elements, "[[", "location") == "output"))
-  pack_output <- ir_parse_packing(output, elements, FALSE)
-
-  err <- vlapply(eqs, function(x)
-    identical(x$lhs$special, "output") && x$lhs$name_data %in% variables)
-  if (any(err)) {
-    ir_odin_error("output() name cannot be the same as variable name",
-                  ir_get_lines(eqs[err]), source)
-  }
-
   list(elements = elements,
-       variable = pack_variables,
-       output = pack_output)
+       variable = packing$variables,
+       output = packing$output)
 }
 
 
@@ -318,10 +332,19 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
 ## TODO: once we support arrays, this will produce a set of offsets,
 ## and the stage will become quite important.  This calculation will
 ## need to be done before the stage and ordering is done ideally.
-ir_parse_packing <- function(names, data, variables = FALSE) {
+ir_parse_packing_old <- function(names, data, variables = FALSE) {
   rank <- viapply(data[names], "[[", "rank")
   len <- lapply(data[names], function(x) x$dimnames$length %||% 1L)
   ir_parse_packing_internal(names, rank, len, variables)
+}
+
+
+ir_parse_packing_new <- function(eqs, variables = FALSE) {
+  eqs <- unname(eqs)
+  len <- lapply(eqs, function(x) x$array$dimnames$length %||% 1L)
+  rank <- viapply(eqs, function(x) x$array$rank %||% 0L)
+  names <- vcapply(eqs, function(x) x$lhs$name_data)
+  pack_variables <- ir_parse_packing_internal(names, rank, len, variables)
 }
 
 
@@ -351,8 +374,22 @@ ir_parse_packing_internal <- function(names, rank, len, variables = FALSE) {
   offset <- offset[seq_along(names)]
 
   ## Create auxillary offset variables
-  if (any(vlapply(offset[seq_along(names)], is.call))) {
-    stop("Add offsets")
+  i <- vlapply(offset[seq_along(names)], is.call)
+  if (any(i)) {
+    eq_offset <- function(name, value) {
+      list(name = name,
+           type = "expression_scalar",
+           source = integer(0),
+           depends = find_symbols(value),
+           lhs = list(name_data = name, name_equation = name, name_lhs = name,
+                      storage_mode = "int"),
+           rhs = list(value = value))
+    }
+    eqs_offsets <- Map(eq_offset, offset_name(names[i]), offset[i])
+    names(eqs_offsets) <- vcapply(eqs_offsets, "[[", "name")
+    offset[i] <- lapply(names(eqs_offsets), as.name)
+  } else {
+    eqs_offsets <- NULL
   }
 
   ## And pack it all up:
@@ -363,7 +400,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables = FALSE) {
     contents <- unname(Map(list, name = names, offset = offset))
   }
 
-  list(length = length, contents = contents)
+  list(length = length, contents = contents, offsets = eqs_offsets)
 }
 
 
@@ -1267,6 +1304,10 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
   rank <- viapply(tmp, function(x) x$array$rank %||% 0L)
   names <- vcapply(tmp, function(x) x$lhs$name_data)
   packing <- ir_parse_packing_internal(names, rank, len)
+
+  if (!is.null(packing$offsets)) {
+    stop("add offsets")
+  }
 
   list(equations = used_eqs, variables = used_vars, packing = packing)
 }

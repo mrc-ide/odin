@@ -90,6 +90,10 @@ ir_parse_arrays <- function(eqs, variables, source) {
     eqs <- ir_parse_arrays_collect(eq, eqs, variables, source)
   }
 
+  for (eq in eqs[vcapply(eqs, "[[", "type") == "copy"]) {
+    eqs[[eq$name]]$array <- eqs[[eq$lhs$name_data]]$array
+  }
+
   eqs
 }
 
