@@ -227,7 +227,15 @@ ir_serialise_delay_continuous <- function(eq) {
     contents = lapply(unname(eq$delay$variables$contents), f_contents))
   substitutions <- lapply(eq$delay$substitutions, function(x)
     list(from = scalar(x$from), to = scalar(x$to)))
-  list(rhs = list(value = ir_expression(eq$rhs$value)),
+  rhs <- list(value = ir_expression(eq$rhs$value))
+  if (!is.null(eq$rhs$index)) {
+    rhs$index <- lapply(eq$rhs$index, function(i)
+      list(value = ir_expression(i$value),
+           is_range = scalar(i$is_range),
+           index = scalar(i$index)))
+  }
+
+  list(rhs = rhs,
        delay = list(
          state = scalar(eq$delay$state),
          index = scalar(eq$delay$index),

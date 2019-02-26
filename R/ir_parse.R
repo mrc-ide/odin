@@ -1183,7 +1183,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
     source = eq$source,
     depends = depends_use,
     lhs = lhs_use,
-    rhs = list(value = eq$rhs$value),
+    rhs = list(value = eq$rhs$value, index = eq$rhs$index),
     delay = list(
       state = nm_state,
       index = nm_index,
@@ -1192,7 +1192,8 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
                        contents = graph$packing$contents),
       equations = graph$equations,
       default = eq$delay$default,
-      time = eq$delay$time))
+      time = eq$delay$time),
+    array = eq$array)
 
   array <- list(dimnames = list(length = nm_dim, dim = NULL, mult = NULL),
                 rank = 1L)
@@ -1233,9 +1234,9 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
   ## needs to be resolved separately I think.
   used <- eq$delay$depends$variables
 
-  v <- setdiff(used, variables)
-  deps <- list()
   exclude <- c(variables, TIME, INDEX)
+  v <- setdiff(used, exclude)
+  deps <- list()
   while (length(v) > 0L) {
     if (!all(v %in% names(eqs))) {
       stop("FIXME")
