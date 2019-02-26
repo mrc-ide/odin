@@ -433,27 +433,24 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
 
 
 ir_parse_exprs <- function(exprs) {
-  lines <- utils::getSrcLocation(exprs, "line")
-  src <- utils::getSrcref(exprs)
+  src <- attr(exprs, "wholeSrcref", exact = TRUE)
 
-  ## If running odin::odin({...}) then R's parser does not add line
-  ## numbers and source references.  However, these are going to be
-  ## assumed later on, so we need to come up with something sensible
-  ## now.  It might be better to offer to deparse these expressions
-  ## through a formatter if available because R's deparser leads to
-  ## some weird strings.
-  if (is.null(lines)) {
-    lines <- seq_along(exprs)
-  }
   if (is.null(src)) {
+    ## If running odin::odin({...}) then R's parser does not add line
+    ## numbers and source references.  However, these are going to be
+    ## assumed later on, so we need to come up with something sensible
+    ## now.  It might be better to offer to deparse these expressions
+    ## through a formatter if available because R's deparser leads to
+    ## some weird strings.  There are clearly some ways of capturing
+    ## the whole thing including comments and that would be really
+    ## useful to look at.
     src <- vcapply(exprs, deparse_str)
+    lines <- seq_along(exprs)
   } else {
-    src <- lapply(src, as.character)
-    if (any(lengths(src) > 1)) {
-      ## here we should update line numbers appropriately
-      stop("Fix multiline expression")
-    }
-    src <- list_to_character(src)
+    src <- as.character(src)
+    lines0 <- utils::getSrcLocation(exprs, "line", first = TRUE)
+    lines1 <- utils::getSrcLocation(exprs, "line", first = FALSE)
+    lines <- Map(seq.int, lines0, lines1)
   }
 
   eqs <- Map(ir_parse_expr, exprs, lines, MoreArgs = list(source = src))
