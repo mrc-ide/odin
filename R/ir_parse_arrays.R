@@ -264,9 +264,6 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     eq_use$lhs$index <- NULL
     eq_use$array <- list(rank = rank, dimnames = dims$dimnames)
     if (user_dim) {
-      if (delay) {
-        stop("I don't think this is possible?")
-      }
       eq_use$depends <- NULL
       eq_use$user$dim <- TRUE
     } else {

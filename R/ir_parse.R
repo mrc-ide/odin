@@ -98,7 +98,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
 ir_parse_data <- function(eqs, variables, stage, source) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
-  i <- !(type %in% c("alloc", "alloc_ring", "copy", "config"))
+  i <- !(type %in% c("alloc", "copy", "config"))
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
   ## For ease of comparison:
@@ -1059,11 +1059,25 @@ ir_parse_delay <- function(eqs, discrete, source) {
   for (eq in eqs[type == "delay"]) {
     if (discrete) {
       eqs <- ir_parse_delay_discrete(eq, eqs, source)
+      initial_time <- initial_name(STEP)
+      initial_time_type <- "int"
     } else {
       eqs <- ir_parse_delay_continuous(eq, eqs, source)
+      initial_time <- initial_name(TIME)
+      initial_time_type <- "double"
     }
   }
-  eqs
+
+  eq_initial_time <- list(list(
+    name = initial_time,
+    type = "null",
+    lhs = list(name_data = initial_time, name_equation = initial_time,
+               special = "initial", storage_mode = initial_time_type),
+    line = integer(0),
+    depends = NULL))
+  names(eq_initial_time) <- initial_time
+
+  c(eqs, eq_initial_time)
 }
 
 
@@ -1074,7 +1088,7 @@ ir_parse_delay_discrete <- function(eq, eqs, source) {
   depends_ring <- list(functions = character(0),
                        variables = eq$array$dimnames$length %||% character(0))
   lhs_ring <- list(name_data = nm_ring, name_equation = nm_ring,
-                   name_lhs = nm_ring, storage_type = "ring_buffer")
+                   name_lhs = nm_ring, storage_mode = "ring_buffer")
   eq_ring <- list(
     name = nm_ring,
     type = "alloc_ring",
