@@ -217,6 +217,36 @@ ir_serialise_equation_user <- function(eq) {
 }
 
 
+ir_serialise_delay_continuous <- function(eq) {
+  if (length(eq$delay$substitutions) > 0L) {
+    stop("check subs")
+  }
+  f_contents <- function(x) {
+    list(name = scalar(x$name),
+         offset = ir_expression(x$offset))
+  }
+  variables <- list(
+    length = ir_expression(eq$delay$variables$length),
+    contents = lapply(unname(eq$delay$variables$contents), f_contents))
+
+
+  list(rhs = list(value = ir_expression(eq$rhs$value)),
+       delay = list(
+         state = scalar(eq$delay$state),
+         index = scalar(eq$delay$index),
+         substitutions = eq$delay$substitutions,
+         variables = variables,
+         equations = eq$delay$equations,
+         default = ir_expression(eq$delay$default),
+         time = ir_expression(eq$delay$time)))
+}
+
+
+ir_serialise_equation_delay_index <- function(eq) {
+  list(delay = scalar(eq$delay))
+}
+
+
 ir_serialise_delay_discrete <- function(eq) {
   ret <- list(rhs = list(value = ir_expression(eq$rhs$value)),
               delay = list(ring = scalar(eq$delay$ring),

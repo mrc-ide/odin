@@ -39,7 +39,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   }
 
   if (features$has_delay) {
-    eqs <- ir_parse_delay(eqs, features$discrete, source)
+    eqs <- ir_parse_delay(eqs, features$discrete, variables, source)
   }
 
   eqs <- eqs[order(names(eqs))]
@@ -286,7 +286,7 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
     (!is.null(x$lhs$special) &&
      x$lhs$special %in% c("deriv", "update", "output")) ||
       !is.null(x$rhs$delay) || !is.null(x$rhs$interpolate) ||
-      isTRUE(x$stochastic)
+      isTRUE(x$stochastic) || x$type == "delay_continuous"
   }
 
   stage[names_if(vlapply(eqs, is_user))] <- STAGE_USER
@@ -317,13 +317,18 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
 ## need to be done before the stage and ordering is done ideally.
 ir_parse_packing <- function(names, data, variables = FALSE) {
   rank <- viapply(data[names], "[[", "rank")
+  len <- lapply(data[names], function(x) x$dimnames$length %||% 1L)
+  ir_parse_packing_internal(names, rank, len, variables)
+}
 
+
+ir_parse_packing_internal <- function(names, rank, len, variables = FALSE) {
   ## We'll pack from least to most complex:
   i <- order(rank)
   names <- names[i]
   rank <- rank[i]
+  len <- len[i]
 
-  len <- lapply(data[names], function(x) x$dimnames$length %||% 1L)
   is_array <- rank > 0L
   ## Accumulate offset and also total:
   offset <- vector("list", length(names) + 1L)
@@ -1051,7 +1056,7 @@ ir_parse_check_functions <- function(eqs, discrete, source) {
 
 
 ## See ir_parse_interpolate for the same pattern
-ir_parse_delay <- function(eqs, discrete, source) {
+ir_parse_delay <- function(eqs, discrete, variables, source) {
   type <- vcapply(eqs, "[[", "type")
   for (eq in eqs[type == "delay"]) {
     if (discrete) {
@@ -1059,7 +1064,7 @@ ir_parse_delay <- function(eqs, discrete, source) {
       initial_time <- initial_name(STEP)
       initial_time_type <- "int"
     } else {
-      eqs <- ir_parse_delay_continuous(eq, eqs, source)
+      eqs <- ir_parse_delay_continuous(eq, eqs, variables, source)
       initial_time <- initial_name(TIME)
       initial_time_type <- "double"
     }
@@ -1115,4 +1120,128 @@ ir_parse_delay_discrete <- function(eq, eqs, source) {
 
   stopifnot(sum(names(eqs) == eq$name) == 1)
   c(eqs[names(eqs) != eq$name], extra)
+}
+
+
+ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
+  ## So we need to build:
+  ## * delay index
+  ## * delay state
+
+  nm <- eq$name
+  nm_state <- sprintf("delay_state_%s", nm)
+  nm_index <- sprintf("delay_index_%s", nm)
+  nm_dim <- sprintf("dim_delay_%s", nm)
+
+  graph <- ir_parse_delay_continuous_graph(eq, eqs, variables, source)
+
+  ## TODO: determine if any of the dependent *equations* are arrays
+  arrays <- names_if(
+    vcapply(eqs[graph$equations], "[[", "type") == "expression_array")
+  if (length(arrays) > 0L) {
+    stop("write substitiutions")
+  } else {
+    substitutions <- list()
+  }
+
+  eq_len <- list(
+    name = nm_dim,
+    type = "expression_scalar",
+    source = eq$source,
+    depends = find_symbols(graph$packing$length),
+    lhs = list(name_data = nm_dim, name_equation = nm_dim, name_lhs = nm_dim,
+               storage_mode = "int"),
+    rhs = list(value = graph$packing$length))
+
+  lhs_use <- eq$lhs[c("name_data", "name_equation", "name_lhs", "special")]
+  depends_use <- join_deps(list(eq$depends,
+                                ir_parse_depends(variables = nm_dim)))
+  eq_use <- list(
+    name = nm,
+    type = "delay_continuous",
+    source = eq$source,
+    depends = depends_use,
+    lhs = lhs_use,
+    rhs = list(value = eq$rhs$value),
+    delay = list(
+      state = nm_state,
+      index = nm_index,
+      substitutions = substitutions,
+      variables = list(length = eq_len$name,
+                       contents = graph$packing$contents),
+      equations = graph$equations,
+      default = eq$delay$default,
+      time = eq$delay$time))
+
+  array <- list(dimnames = list(length = nm_dim, dim = NULL, mult = NULL),
+                rank = 1L)
+  lhs_index <-
+    list(name_data = nm_index, name_equation = nm_index, name_lhs = nm_index,
+         storage_mode = "int")
+  eq_index <- list(
+    name = nm_index,
+    type = "delay_index",
+    source = eq$source,
+    depends = ir_parse_depends(variables = nm_dim),
+    lhs = lhs_index,
+    delay = nm,
+    array = array)
+
+  lhs_state <-
+    list(name_data = nm_state, name_equation = nm_state, name_lhs = nm_state,
+         storage_mode = "double")
+  eq_state <- list(
+    name = nm_state,
+    type = "null",
+    source = eq$source,
+    depends = ir_parse_depends(variables = nm_dim),
+    lhs = lhs_state,
+    array = array)
+
+  extra <- list(eq_len, eq_index, eq_state, eq_use)
+  names(extra) <- vcapply(extra, "[[", "name")
+
+  stopifnot(sum(names(eqs) == eq$name) == 1)
+  c(eqs[names(eqs) != eq$name], extra)
+}
+
+
+ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
+  ## We have to look through all dependencies here.  This duplicates
+  ## most of the dependency/stage resolution code elsewhere.  But this
+  ## needs to be resolved separately I think.
+  v <- eq$delay$depends$variables
+  deps <- list()
+  exclude <- c(variables, TIME)
+  while (length(v) > 0L) {
+    if (!all(v %in% names(eqs))) {
+      stop("FIXME")
+    }
+    tmp <- lapply(eqs[v], function(x) x$depends$variables)
+    deps <- c(deps, tmp)
+    v <- setdiff(unlist(tmp, use.names = FALSE), c(exclude, names(deps)))
+  }
+
+  used_vars <- intersect(variables, unlist(deps, use.names = FALSE))
+  used_eqs <- topological_order(deps)
+
+  include <- set_names(logical(length(used_eqs)), used_eqs)
+  for (v in used_eqs) {
+    d <- deps[[v]]
+    include[[v]] <-
+      any(d %in% used_vars) || any(include[intersect(d, names(deps))])
+  }
+  used_eqs <- used_eqs[include]
+
+  ## Then we need to compute a packing for each variable, which
+  ## duplicates some code that determines the storage types.
+  i <- vlapply(eqs, function(x)
+    identical(x$lhs$special, "deriv") && x$lhs$name_data %in% used_vars)
+  tmp <- unname(eqs[i])
+  len <- lapply(tmp, function(x) x$array$dimnames$length %||% 1L)
+  rank <- viapply(tmp, function(x) x$array$rank %||% 0L)
+  names <- vcapply(tmp, function(x) x$lhs$name_data)
+  packing <- ir_parse_packing_internal(names, rank, len)
+
+  list(equations = used_eqs, variables = used_vars, packing = packing)
 }
