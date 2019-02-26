@@ -1210,7 +1210,9 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
   ## We have to look through all dependencies here.  This duplicates
   ## most of the dependency/stage resolution code elsewhere.  But this
   ## needs to be resolved separately I think.
-  v <- eq$delay$depends$variables
+  used <- eq$delay$depends$variables
+
+  v <- setdiff(used, variables)
   deps <- list()
   exclude <- c(variables, TIME)
   while (length(v) > 0L) {
@@ -1222,8 +1224,9 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
     v <- setdiff(unlist(tmp, use.names = FALSE), c(exclude, names(deps)))
   }
 
-  used_vars <- intersect(variables, unlist(deps, use.names = FALSE))
-  used_eqs <- topological_order(deps)
+  used_vars <- intersect(variables,
+                         union(used, unlist(deps, use.names = FALSE)))
+  used_eqs <- topological_order(deps) %||% character(0)
 
   include <- set_names(logical(length(used_eqs)), used_eqs)
   for (v in used_eqs) {
