@@ -38,6 +38,10 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
     interpolate <- list(min = list(), max = list(), critical = list())
   }
 
+  if (features$has_delay) {
+    eqs <- ir_parse_delay(eqs, features$discrete, source)
+  }
+
   eqs <- eqs[order(names(eqs))]
 
   meta <- ir_parse_meta(features$discrete)
@@ -452,15 +456,15 @@ ir_parse_exprs <- function(exprs) {
     src <- list_to_character(src)
   }
 
-  eqs <- Map(ir_parse_expr, exprs, lines)
+  eqs <- Map(ir_parse_expr, exprs, lines, MoreArgs = list(source = src))
   names(eqs) <- vcapply(eqs, "[[", "name")
   list(eqs = eqs, source = src)
 }
 
 
-ir_parse_expr <- function(expr, line) {
+ir_parse_expr <- function(expr, line, source) {
   lhs <- ir_parse_expr_lhs(expr[[2L]], line, expr)
-  rhs <- ir_parse_expr_rhs(expr[[3L]], line, expr)
+  rhs <- ir_parse_expr_rhs(expr[[3L]], line, expr, source)
   depends <- join_deps(list(lhs$depends, rhs$depends))
   rhs$depends <- NULL
 
@@ -468,6 +472,8 @@ ir_parse_expr <- function(expr, line) {
     type <- "user"
   } else if (!is.null(rhs$interpolate)) {
     type <- "interpolate"
+  } else if (!is.null(rhs$delay)) {
+    type <- "delay"
   } else if (identical(lhs$special, "dim")) {
     type <- "dim"
   } else if (identical(lhs$special, "config")) {
@@ -484,15 +490,17 @@ ir_parse_expr <- function(expr, line) {
   ## Below here uses both the lhs and rhs:
   if (type == "user") {
     if (!is.null(lhs$special) && !identical(lhs$special, "dim")) {
-      odin_error("user() only valid for non-special variables", line, expr)
+      ir_odin_error("user() only valid for non-special variables",
+                    line, source)
     }
   }
 
   ## This might actually be too strict because it's possible that dydt
   ## could be delayed dzdt but that seems unlikely.  Definitely cannot
   ## be most of the others.
-  if (isTRUE(rhs$delay) && !is.null(lhs$special)) {
-    odin_error("delay() only valid for non-special variables", line, expr)
+  if (type == "delay" && !is.null(lhs$special)) {
+    ir_odin_error("delay() only valid for non-special variables",
+                  line, source)
   }
 
   if (identical(lhs$special, "output")) {
@@ -523,8 +531,9 @@ ir_parse_expr <- function(expr, line) {
     !identical(lhs$special, "update") &&
     type != "copy"
   if (is_self_ref) {
-    odin_error("Self referencing expressions not allowed (except for arrays)",
-               line, expr)
+    ir_odin_error(
+      "Self referencing expressions not allowed (except for arrays)",
+      line, source)
   }
 
   ret <- list(name = lhs$name_equation,
@@ -690,10 +699,9 @@ ir_parse_expr_check_lhs_name <- function(lhs, line, expr) {
 }
 
 
-ir_parse_expr_rhs <- function(rhs, line, expr) {
+ir_parse_expr_rhs <- function(rhs, line, expr, source) {
   if (is_call(rhs, quote(delay))) {
-    stop("writeme")
-    return(odin_parse_expr_rhs_delay(rhs, line, expr))
+    ir_parse_expr_rhs_delay(rhs, line, expr, source)
   } else if (is_call(rhs, quote(user))) {
     ir_parse_expr_rhs_user(rhs, line, expr)
   } else if (is_call(rhs, quote(interpolate))) {
@@ -776,8 +784,6 @@ ir_parse_expr_rhs_user <- function(rhs, line, expr) {
 
 
 ir_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
-  nargs <- length(rhs) - 1L
-
   m <- match.call(function(t, y, type = "spine") NULL, rhs, FALSE)
 
   type <- m$type
@@ -802,6 +808,67 @@ ir_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
 
   list(interpolate = list(t = t, y = y, type = type),
        depends = ir_parse_depends(variables = c(t, y)))
+}
+
+
+ir_parse_expr_rhs_delay <- function(rhs, line, expr, source) {
+  ## TODO: do we get sensible errors here with missing args, extra args, etc?
+  ## m <- match.call(function(expr, by, default = NULL) NULL, rhs, FALSE)
+  na <- length(rhs) - 1L
+  if (na < 2L || na > 3L) {
+    ir_odin_error("delay() requires two or three arguments",
+                  line, source)
+  }
+
+  delay_expr <- rhs[[2L]]
+  delay_time <- rhs[[3L]]
+  if (na == 3L) {
+    stop("checkme")
+    delay_default <- ir_parse_expr_rhs(rhs[[4L]], line, expr, source)
+  } else {
+    delay_default <- NULL
+  }
+
+  deps_delay_expr <- find_symbols(delay_expr)
+  deps_delay_time <- find_symbols(delay_time)
+  fns <- c(deps_delay_expr$functions,
+           deps_delay_time$functions,
+           delay_default$depends$functions)
+
+  if ("delay" %in% fns) {
+    ir_odin_error("delay() may not be nested", line, source)
+  }
+
+  if (TIME %in% deps_delay_expr$variables) {
+    ## TODO: This could be relaxed by substituting a different
+    ## value of time within the block (say t - delay).
+    ##
+    ## Doing that requires rewriting the expression here
+    ## (substitute would be fine) because we need to replace time
+    ## with something more sensible.
+    ##
+    ## TODO: Worse than that is if any expression *explicitly*
+    ## depends on time, then it's really confusing to deal with
+    ## because "time" there should probably be the original time
+    ## not the delayed time (so t - delay).  Can probably just
+    ## mask the variables.
+    ir_odin_error("delay() may not refer to time as that's confusing",
+                  line, source)
+  }
+
+  if (is.recursive(delay_time) && !is_call(delay_time, quote(`(`))) {
+    ## TODO: I don't think this is needed
+    stop("checkme")
+    delay_time <- call("(", delay_time)
+  }
+
+  depends <- join_deps(list(deps_delay_time, delay_default$depends))
+
+  list(delay = list(time = delay_time,
+                    default = delay_default,
+                    depends = deps_delay_expr),
+       rhs = list(value = delay_expr),
+       depends = depends)
 }
 
 
@@ -983,4 +1050,58 @@ ir_parse_check_functions <- function(eqs, discrete, source) {
                        pastec(err)),
                   ir_get_lines(tmp), source)
   }
+}
+
+
+## See ir_parse_interpolate for the same pattern
+ir_parse_delay <- function(eqs, discrete, source) {
+  type <- vcapply(eqs, "[[", "type")
+  for (eq in eqs[type == "delay"]) {
+    if (discrete) {
+      eqs <- ir_parse_delay_discrete(eq, eqs, source)
+    } else {
+      eqs <- ir_parse_delay_continuous(eq, eqs, source)
+    }
+  }
+  eqs
+}
+
+
+ir_parse_delay_discrete <- function(eq, eqs, source) {
+  nm <- eq$name
+  nm_ring <- sprintf("delay_ring_%s", nm)
+
+  depends_ring <- list(functions = character(0),
+                       variables = eq$array$dimnames$length %||% character(0))
+  lhs_ring <- list(name_data = nm_ring, name_equation = nm_ring,
+                   name_lhs = nm_ring, storage_type = "ring_buffer")
+  eq_ring <- list(
+    name = nm_ring,
+    type = "alloc_ring",
+    source = eq$source,
+    depends = depends_ring,
+    lhs = lhs_ring,
+    delay = nm)
+
+  lhs_use <- eq$lhs[c("name_data", "name_equation", "name_lhs", "special")]
+  depends_use <- join_deps(list(eq$depends, eq$delay$depends))
+  depends_use$variables <- c(nm_ring, depends_use$variables)
+  eq_use <- list(
+    name = nm,
+    type = "delay_discrete",
+    source = eq$source,
+    depends = depends_use,
+    lhs = lhs_use,
+    rhs = list(value = eq$rhs$value,
+               index = eq$rhs$index),
+    array = eq$array,
+    delay = list(ring = nm_ring,
+                 time = eq$delay$time,
+                 default = eq$delay$default))
+
+  extra <- list(eq_ring, eq_use)
+  names(extra) <- vcapply(extra, "[[", "name")
+
+  stopifnot(sum(names(eqs) == eq$name) == 1)
+  c(eqs[names(eqs) != eq$name], extra)
 }

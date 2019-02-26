@@ -101,16 +101,18 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   is_interpolate <- vlapply(eqs, function(x) x$type == "interpolate")
   is_user <- vlapply(eqs, function(x) x$type == "user")
   is_copy <- vlapply(eqs, function(x) x$type == "copy")
+  is_delay_array <- vlapply(eqs, function(x)
+    x$type == "delay" && !is.null(x$lhs$index))
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
 
   ## First, check that every variable that is an array is always
   ## assigned as an array:
   ##
-  ## TODO: is_interpolate might be too lax here
-  err <- !(is_array | is_dim | is_user | is_copy | is_interpolate) &
-    name_data %in% name_data[is_dim]
+  ## TODO: is_interpolate might be too lax here - in general this
+  ## check is probably not ideal in the new approach.
+  err <- !(is_array | is_dim | is_user | is_copy | is_delay_array |
+           is_interpolate) & name_data %in% name_data[is_dim]
   if (any(err)) {
-    browser()
     ir_odin_error(
       sprintf("Array variables must always assign as arrays (%s)",
               paste(unique(name_data[err]), collapse = ", ")),
@@ -233,10 +235,24 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
       x$line, x$expr)
   }
 
+  ## TODO: in ir_parse_arrays_check_usage we do this for user() too,
+  ## but I think that this is the correct place.
+  ##
+  ## TODO: Rethink the early exit when refactoring.
+  eq_type <- vcapply(eqs[i], "[[", "type")
+    if (any(eq_type == "delay")) {
+    if (length(i) != 1L) {
+      ir_odin_error("Multi-line delay() equations are not possible",
+                    ir_get_lines(eqs[i]), source)
+    }
+  }
+
   join <- function(i, eqs, depend_alloc = TRUE) {
     use <- unname(eqs[i])
     eq_use <- use[[1]]
-    if (eq_use$type != "user") {
+    if (eq_use$type == "delay") {
+      eq_use$rhs$index <- eq_use$lhs$index
+    } else if (eq_use$type != "user") {
       eq_use$rhs <- lapply(use, function(x)
         list(index = x$lhs$index, value = x$rhs$value))
       if (length(use) > 1L) {
@@ -248,6 +264,9 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     eq_use$lhs$index <- NULL
     eq_use$array <- list(rank = rank, dimnames = dims$dimnames)
     if (user_dim) {
+      if (delay) {
+        stop("I don't think this is possible?")
+      }
       eq_use$depends <- NULL
       eq_use$user$dim <- TRUE
     } else {

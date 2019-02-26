@@ -182,6 +182,11 @@ ir_serialise_equation_alloc_interpolate <- function(eq) {
 }
 
 
+ir_serialise_equation_alloc_ring <- function(eq) {
+  list(delay = scalar(eq$delay))
+}
+
+
 ir_serialise_equation_copy <- function(eq) {
   NULL
 }
@@ -209,6 +214,21 @@ ir_serialise_equation_user <- function(eq) {
                    dim = scalar(eq$user$dim),
                    min = ir_expression(eq$user$min),
                    max = ir_expression(eq$user$max)))
+}
+
+
+ir_serialise_delay_discrete <- function(eq) {
+  ret <- list(rhs = list(value = ir_expression(eq$rhs$value)),
+              delay = list(ring = scalar(eq$delay$ring),
+                           time = ir_expression(eq$delay$time),
+                           default = ir_expression(eq$delay$default)))
+  if (!is.null(eq$rhs$index)) {
+    ret$rhs$index <- lapply(eq$rhs$index, function(i)
+      list(value = ir_expression(i$value),
+           is_range = scalar(i$is_range),
+           index = scalar(i$index)))
+  }
+  ret
 }
 
 
