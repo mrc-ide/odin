@@ -39,7 +39,6 @@ test_that("expression parsing", {
 
 
 test_that("parse array indices", {
-  skip("broken")
   expect_error(odin_parse2(
     "initial(y) <- 1; deriv(y) <- 1; x[1:t] <- 1\ndim(x) <- 10"),
     "Array indices may not be time")
@@ -50,7 +49,7 @@ test_that("parse array indices", {
   ##             "Array indices may not be time")
 
   expect_error(
-    odin_parse2("a[1] <- 1\nb[a] <- 1\ndim(a) <- 1\ndim(b) <- 1"),
+    odin_parse2(ex("x[1] <- 1\ny[x] <- 1\ndim(x) <- 1\ndim(y) <- 1")),
     "Array indices may not be arrays")
 })
 

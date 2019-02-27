@@ -1062,6 +1062,7 @@ test_that("logical operations", {
 ## with this for now, and then go through and see if we can detect if
 ## a number is an integer thing because it's only used within indexes.
 test_that("integer vector", {
+  ## We expect 'idx' to come through as an integer
   gen <- odin2({
     x[] <- user()
     dim(x) <- user()
@@ -1079,6 +1080,9 @@ test_that("integer vector", {
   dat <- mod$contents()
   expect_equal(dat$idx, idx)
   expect_equal(dat$initial_v, x[idx])
+
+  expect_equal(ir_deserialise(mod$ir())$data$elements$idx$storage_type,
+               "int")
 })
 
 ## This is much closer to the test case needed for Neil's model
@@ -1102,7 +1106,10 @@ test_that("integer matrix", {
   ## This is what the code should expand to:
   v <- x[idx[, 1]] + x[idx[, 2]] + x[idx[, 3]]
 
-  expect_equal(gen(x = x, idx = idx)$contents()$v, v)
+  mod <- gen(x = x, idx = idx)
+  expect_equal(mod$contents()$v, v)
+  expect_equal(ir_deserialise(mod$ir())$data$elements$idx$storage_type,
+               "int")
 })
 
 test_that("c in dim for vector", {

@@ -1,7 +1,6 @@
 ## TODO: there is *heaps* of error checking still do do in here.  We
 ## need to at least:
 ##
-## * determine which arrays are arrays of integers (odin_parse_arrays_set_type)
 ## * do most of the checks in odin_parse_arrays_nd
 ## * avoid joining multiline delays etc (odin_parse_arrays_1)
 ## * check usage of length and dim (odin_parse_arrays_check_dim)
@@ -29,6 +28,9 @@
 ## The dim() calls get written out as a new group of data elements;
 ## we'll sort that out here too.
 ir_parse_arrays <- function(eqs, variables, source) {
+  ir_parse_arrays_check_indices(eqs, source)
+  eqs <- ir_parse_arrays_find_integers(eqs, source)
+
   ir_parse_arrays_check_usage(eqs, source)
 
   is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
@@ -693,4 +695,127 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
   }
 
   rewrite_sum(rhs)
+}
+
+
+ir_parse_arrays_check_indices <- function(eqs, source) {
+  ## Need to identify calls to length and dim return integers.  This
+  ## could probably be extended a little bit to pick up on cases where
+  ## the calls are dim() and length() calls joined by arithmetic
+  ## operators (except '/')
+
+  type <- vcapply(eqs, "[[", "type")
+  is_dim <- type == "dim"
+  is_array <- type == "expression_array"
+
+  index_vars <- unique(unlist(c(
+    lapply(eqs[is_dim], function(x) x$rhs$depends$variables),
+    lapply(eqs[is_array], function(x) x$lhs$depends$variables),
+    names_if(vlapply(eqs, function(x) is_dim_or_length(x$rhs$value))))))
+
+  ## TODO: There are actually times where this might make sense,
+  ## especially when applied in a conditional.  Now that array size is
+  ## static(ish) this should be OK...
+  ##
+  ## TODO: this is all pretty awful and could be factored out to
+  ## something much more reasonable.  It should be done perhaps after
+  ## we compute stage, and then we can just test for any inappropriate
+  ## time.
+  if (TIME %in% index_vars) {
+    i <- which(is_array)[vlapply(eqs[is_array], function(x)
+      any(TIME %in% x$lhs$depends$variables) ||
+      any(TIME %in% x$rhs$depends$variables))]
+    if (any(i)) {
+      ir_odin_error("Array indices may not be time",
+                    ir_get_lines(eqs[i]), source)
+    }
+
+    i <- which(is_dim)[vlapply(eqs[is_dim], function(x)
+      any(TIME %in% x$lhs$depends$variables) ||
+      any(TIME %in% x$rhs$depends$variables))]
+    if (any(i)) {
+      ir_odin_error("Array extent may not be time",
+                    ir_get_lines(eqs[i]), source)
+    }
+  }
+
+  ## Determine which variables are array extents and indices; we'll
+  ## flag these as integers.  At the same time we need to try and work
+  ## out which of these are confusing (perhaps used as an argument to
+  ## division).
+  err <- intersect(index_vars, names_if(is_array))
+  if (length(err) > 0L) {
+    i <- which(is_array)[vlapply(eqs[is_array], function(x)
+      any(err %in% x$lhs$depends$variables))]
+    ir_odin_error(sprintf("Array indices may not be arrays (%s used)",
+                          pastec(err)),
+                  ir_get_lines(eqs[i]), source)
+  }
+}
+
+ir_parse_arrays_find_integers <- function(eqs, source) {
+  ## Set a data_type element (on the lhs) to int for all variables
+  ## that are used as indices.  Here we'll throw in the index arrays
+  ## too (treated separtately for now...)
+  integer_arrays <- ir_parse_arrays_used_as_index(eqs)
+  ## TODO: deal with inplace varaibles here too:
+  ## integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x)
+  ##   identical(x$rhs$inplace_type, "int")))
+  ## integer_vars <- c(index_vars, integer_arrays, integer_inplace)
+  integer_vars <- integer_arrays
+
+  ## TODO: this is not ideal because it has the potential to set too
+  ## many things to integers; in particular we don't want to set
+  ## things like dimension calls
+  ##
+  # TODO: Using these things is likely to end quite badly in the C
+  # code I think
+  name_data <- vcapply(eqs, function(x) x$lhs$name_data)
+  for (i in which(name_data %in% integer_vars)) {
+    if (!identical(eqs[[i]]$lhs$special, "dim")) {
+      eqs[[i]]$lhs$storage_mode <- "int"
+    }
+  }
+
+  eqs
+}
+
+
+## Any time that we have, within a rhs index, a vector that is
+## indexed, that vector should be considered implicitly an integer
+## vector.  This will hopefully be fairly rare.  This is probably
+## part of the API that should be considered fairly open to change.
+##
+## Another option will be to flag types on arrays.  I could imagine
+## doing:
+##
+##   type(x) <- "integer"
+##
+## But this should do for now.  Used in set_type above
+ir_parse_arrays_used_as_index <- function(eqs) {
+  check <- function(e, collector, in_index = FALSE) {
+    if (is.recursive(e)) {
+      if (is_call(e, quote(`[`))) {
+        if (in_index) {
+          tmp <- e[[2L]]
+          if (is.symbol(tmp)) {
+            collector$add(as.character(tmp))
+          }
+        }
+        in_index <- TRUE
+      }
+      lapply(as.list(e[-1]), check, collector, in_index)
+    }
+    NULL
+  }
+  check1 <- function(x, collector) {
+    if ("[" %in% x$depends$functions) {
+      check(x$rhs$value, collector)
+    }
+    NULL
+  }
+
+  ret <- collector()
+  lapply(eqs, check1, ret)
+  unique(ret$get())
 }
