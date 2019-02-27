@@ -1073,14 +1073,14 @@ ir_parse_check_functions <- function(eqs, discrete, source) {
                names(FUNCTIONS_INFIX),
                names(FUNCTIONS_UNARY),
                names(FUNCTIONS_RENAME),
+               "odin_sum",
                if (discrete) names(FUNCTIONS_STOCHASTIC))
   ## TODO:
-  ## FUNCTIONS_SUM,
   ## names(obj$config$include$declarations))
 
   err <- setdiff(all_used_functions, allowed)
   if (length(err) > 0L) {
-    tmp <- obj$eqs[vlapply(used_functions, function(x) any(x %in% err))]
+    tmp <- eqs[vlapply(used_functions, function(x) any(x %in% err))]
     ir_odin_error(sprintf("Unsupported %s: %s",
                        ngettext(length(err), "function", "functions"),
                        pastec(err)),

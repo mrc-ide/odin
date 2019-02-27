@@ -193,12 +193,22 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 
     rank <- length(eq_data$lhs$index)
     ## - see odin_parse_arrays_nd
-  } else if (is_dim_or_length(eq$rhs$value)) {
+  } else if (is_call(eq$rhs$value, "length")) {
     parent <- deparse_str(eq$rhs$value[[2]])
-    i <- vcapply(eqs, function(x) x$lhs$name_data) == parent
-    rank <- viapply(eqs[i], function(x) x$array$rank)
-    stopifnot(length(unique(rank)) == 1)
-    rank <- rank[[1L]]
+    rank <- 1L
+  } else if (is_call(eq$rhs$value, "dim")) {
+    if (length(eq$rhs$value) == 2L) {
+      parent <- deparse_str(eq$rhs$value[[2]])
+      i <- vcapply(eqs, function(x) x$lhs$name_data) == parent
+      rank <- viapply(eqs[i], function(x) x$array$rank)
+      stopifnot(length(unique(rank)) == 1)
+      rank <- rank[[1L]]
+    } else if (length(eq$rhs$value) == 3L) {
+      if (!is_integer_like(eq$rhs$value[[3L]])) {
+        stop("invalid dim call")
+      }
+      rank <- 1L
+    }
   } else {
     if (is.symbol(eq$rhs$value) || is.numeric(eq$rhs$value)) {
       rank <- 1L
@@ -232,11 +242,10 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 
   rank_used <- viapply(eqs[i], function(el) length(el$lhs$index))
   if (any(rank_used != rank)) {
-    ## TODO: here, show the dim() command?
-    odin_error(
+    ir_odin_error(
       sprintf("Array dimensionality is not consistent (expected %d %s)",
-              nd_x, ngettext(abs(nd_x), "index", "indices")),
-      x$line, x$expr)
+              rank, ngettext(rank, "index", "indices")),
+      eq$source, source)
   }
 
   ## TODO: in ir_parse_arrays_check_usage we do this for user() too,
@@ -244,7 +253,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
   ##
   ## TODO: Rethink the early exit when refactoring.
   eq_type <- vcapply(eqs[i], "[[", "type")
-    if (any(eq_type == "delay")) {
+  if (any(eq_type == "delay")) {
     if (length(i) != 1L) {
       ir_odin_error("Multi-line delay() equations are not possible",
                     ir_get_lines(eqs[i]), source)
@@ -488,7 +497,37 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
         return(x)
       }
       if (is_call(target, "[")) {
-        stop("writeme")
+        ## TODO: this whole block is pulled out of the old parse code
+        ## and I think can be done more reasonably given we know where
+        ## we're going.  For example, the check index could work
+        ## directly with empty objects
+        index <- as.list(target[-(1:2)])
+        target <- target[[2L]]
+        is_empty <- vlapply(index, identical, quote(expr = ))
+        if (any(is_empty)) {
+          if (length(index) == 1L) {
+            index[] <- list(bquote(1:length(.(target))))
+          } else {
+            index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
+              bquote(1:dim(.(target), .(i))))
+          }
+        }
+        tmp <- lapply(index, odin_parse_expr_lhs_check_index)
+        ok <- vlapply(tmp, as.logical)
+        if (!all(ok)) {
+          msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"),
+                        collapse = "\n")
+          ir_odin_error(sprintf("Invalid array use in sum():\n%s", msg),
+                        line, source)
+        }
+        f <- function(x) {
+          min <- attr(x, "value_min")
+          max <- attr(x, "value_max")
+          list(if (is.null(min)) max else min, max)
+        }
+        as.call(c(list(quote(odin_sum), target), unlist(lapply(tmp, f))))
+      } else {
+        stop("Invalid argument to sum")
       }
     } else {
       x[-1L] <- lapply(x[-1L], rewrite_sum)
