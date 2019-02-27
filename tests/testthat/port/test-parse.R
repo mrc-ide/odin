@@ -142,7 +142,6 @@ test_that("user usage", {
 
 
 test_that("array usage", {
-  skip("broken")
   expect_error(odin_parse2(ex("y <- x\nx[1] <- 1\ndim(x) <- 10")),
                "Array 'x' used without array index")
 })
@@ -523,17 +522,16 @@ test_that("correct dim() use", {
 })
 
 test_that("check array rhs", {
-  skip("broken")
   expect_error(
     odin_parse2(ex("dim(x) <- 10; x[] <- 1; b <- x[]")),
     "Empty array index not allowed on rhs")
 
   expect_error(
-    odin_parse2("dim(x) <- 10; x[] <- 1; a <- x[x]"),
+    odin_parse2(ex("dim(x) <- 10; x[] <- 1; a <- x[x]")),
     "Disallowed variables used for x")
 
   expect_error(
-    odin_parse2("dim(x) <- 10; y <- 1; a <- x[1] + y[1];"),
+    odin_parse2(ex("dim(x) <- 10; x[] <- 1; y <- 1; a <- x[1] + y[1];")),
     "Unknown array variable y in")
 })
 
