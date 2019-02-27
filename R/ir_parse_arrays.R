@@ -128,17 +128,18 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   ##   x[] <- user()
   ##   x[1] <- 1
   ##
-  ## And similar for delays and interpolated variables
-  prevent <- list(user = is_user,
-                  interpolate = is_interpolate,
-                  delay = is_delay)
+  ## And similar for delays and interpolated variables.  The message
+  ## for output is not as nice.
+  prevent <- list("user()" = is_user,
+                  "interpolate()" = is_interpolate,
+                  "delay()" = is_delay,
+                  "direct output" = is_copy)
   check <- is_duplicated(names(eqs))
   for (i in names(prevent)) {
     err <- check & prevent[[i]]
     if (any(err)) {
       ir_odin_error(
-        sprintf("%s() may only be used on a single-line array (%s)",
-                i, paste(unique(names_if(err))), collapse = ", "),
+        sprintf("%s may only be used on a single-line array", i),
         ir_get_lines(eqs[names(eqs) %in% names_if(err)]), source)
     }
   }

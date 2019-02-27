@@ -480,7 +480,6 @@ test_that("output array", {
 })
 
 test_that("invalid self output", {
-  skip("validation")
   expect_error(odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
@@ -491,7 +490,7 @@ test_that("invalid self output", {
     output(r[]) <- r
     output(r[]) <- 1
   }, verbose = TEST_VERBOSE),
-  "Direct output of r only allowed on single-line")
+  "direct output may only be used on a single-line array", fixed = TRUE)
 })
 
 test_that("use length on rhs", {
