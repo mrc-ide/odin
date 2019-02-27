@@ -56,7 +56,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   ## objects perhaps.
 
   dependencies <- ir_parse_dependencies(eqs, variables, meta$time, source)
-  stage <- ir_parse_stage(eqs, dependencies, variables, meta$time)
+  stage <- ir_parse_stage(eqs, dependencies, variables, meta$time, source)
 
   eqs_initial <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, "initial")))
@@ -318,7 +318,7 @@ ir_parse_dependencies <- function(eqs, variables, time_name, source) {
 }
 
 
-ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
+ir_parse_stage <- function(eqs, dependencies, variables, time_name, source) {
   stage <- set_names(rep(STAGE_CONSTANT, length(dependencies)),
                      names(dependencies))
   is_user <- function(x) {
@@ -352,6 +352,16 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name) {
   ## Any equation that has been removed because it is implied (this
   ## might be an issue only for the array cases).
   stage[names_if(vlapply(eqs, is_null))] <- STAGE_NULL
+
+  i <- vlapply(eqs, function(x) !is.null(x$array))
+  len <- unique(vcapply(eqs[i], function(x) x$array$dimnames$length))
+  err <- stage[len] == STAGE_TIME
+
+  if (any(err)) {
+    ir_odin_error(
+      "Array extent is determined by time",
+      ir_get_lines(eqs[len[err]]), source)
+  }
 
   stage
 }

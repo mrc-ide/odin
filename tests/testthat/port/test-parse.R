@@ -326,12 +326,11 @@ test_that("recursive variables", {
 })
 
 test_that("array extent and time", {
-  skip("broken")
   expect_error(odin_parse2(quote({
     deriv(y[]) <- 1
     initial(y[]) <- 0
     dim(y) <- t
-  })), "Array extent may not be time")
+  })), "Array extent is determined by time")
 
   expect_error(odin_parse2(quote({
     deriv(y[]) <- 1

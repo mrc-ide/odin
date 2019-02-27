@@ -684,7 +684,7 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
   is_array <- type == "expression_array"
 
   index_vars <- unique(unlist(c(
-    lapply(eqs[is_dim], function(x) x$rhs$depends$variables),
+    lapply(eqs[is_dim], function(x) x$depends$variables),
     lapply(eqs[is_array], function(x) x$lhs$depends$variables),
     names_if(vlapply(eqs, function(x) is_dim_or_length(x$rhs$value))))))
 
@@ -696,20 +696,20 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
   ## something much more reasonable.  It should be done perhaps after
   ## we compute stage, and then we can just test for any inappropriate
   ## time.
+  ##
+  ## TODO: step needs doing here too but in general this is just
+  ## incorrect.  The correct thing to do is to check that all index
+  ## accesses are not time dependent.
+  ##
+  ## The latter is going to be a bit of work but required for the
+  ## eventual static checking of array access etc, so that can wait
+  ## until we do it then.
   if (TIME %in% index_vars) {
     i <- which(is_array)[vlapply(eqs[is_array], function(x)
       any(TIME %in% x$lhs$depends$variables) ||
       any(TIME %in% x$rhs$depends$variables))]
     if (any(i)) {
       ir_odin_error("Array indices may not be time",
-                    ir_get_lines(eqs[i]), source)
-    }
-
-    i <- which(is_dim)[vlapply(eqs[is_dim], function(x)
-      any(TIME %in% x$lhs$depends$variables) ||
-      any(TIME %in% x$rhs$depends$variables))]
-    if (any(i)) {
-      ir_odin_error("Array extent may not be time",
                     ir_get_lines(eqs[i]), source)
     }
   }
