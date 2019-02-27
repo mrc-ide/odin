@@ -2,6 +2,7 @@
 ## character vectors.
 ir_deserialise <- function(ir) {
   dat <- jsonlite::fromJSON(ir, simplifyVector = FALSE)
+  dat$version <- numeric_version(dat$version)
   dat$components <- lapply(dat$components, lapply, list_to_character)
 
   if (dat$features$has_array) {
@@ -50,7 +51,8 @@ ir_deserialise_data_dimnames <- function(x) {
 
 
 ir_serialise <- function(dat, pretty) {
-  res <- list(config = ir_serialise_config(dat$config),
+  res <- list(version = ir_serialise_version(dat$version),
+              config = ir_serialise_config(dat$config),
               meta = ir_serialise_meta(dat$meta),
               features = ir_serialise_features(dat$features),
               data = ir_serialise_data(dat$data),
@@ -60,6 +62,11 @@ ir_serialise <- function(dat, pretty) {
               interpolate = ir_serialise_interpolate(dat$interpolate),
               source = ir_serialise_source(dat$source))
   ir_to_json(res, pretty)
+}
+
+
+ir_serialise_version <- function(version) {
+  scalar(as.character(version))
 }
 
 

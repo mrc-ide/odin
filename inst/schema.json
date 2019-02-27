@@ -98,6 +98,11 @@
             ]
         },
 
+        "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+
         "sexpression_or_null": {
             "oneOf": [
                 {"type": "null"},
@@ -756,6 +761,9 @@
 
     "type": "object",
     "properties": {
+        "version": {
+            "$ref": "#/definitions/version"
+        },
         "config": {
             "$ref": "#/definitions/config"
         },
@@ -784,7 +792,7 @@
             "$ref": "#/definitions/basic/character_vector"
         }
     },
-    "required": ["config", "features", "data", "equations", "components",
-                 "user", "interpolate", "source"],
+    "required": ["version", "config", "features", "data", "equations",
+                 "components", "user", "interpolate", "source"],
     "additionalProperties": false
 }

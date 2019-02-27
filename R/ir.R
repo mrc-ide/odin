@@ -25,7 +25,8 @@ odin_build_ir <- function(x, validate = FALSE, pretty = TRUE) {
   ## for each of these we should declare what we need by recursing
   ## through the dependency tree.  This belongs in the ir and can be
   ## represented simply as a set of arrays
-  ir_dat <- list(config = ir_config(dat),
+  ir_dat <- list(version = scalar(as.character(.odin$version)),
+                 config = ir_config(dat),
                  meta = ir_meta(dat),
                  features = ir_features(dat),
                  data = ir_data(dat),

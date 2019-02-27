@@ -83,7 +83,8 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   ## TODO: it's a bit unclear where this best belongs
   ir_parse_check_functions(eqs, features$discrete, source)
 
-  ret <- list(config = config,
+  ret <- list(version = .odin$version,
+              config = config,
               meta = meta,
               features = features,
               data = data,
