@@ -163,6 +163,143 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
 }
 
 
+ir_parse_array_check_usage2 <- function(eqs, source) {
+  ## TODO: this feels really icky, but at least gets there.  What
+  ## would be nicer in the longer term perhaps is something that flags
+  ## the "canonical" version of a piece of data amongst equations.
+  rank <- viapply(eqs, function(x) x$array$rank %||% 0L)
+  names(rank) <- vcapply(eqs, function(x) x$lhs$name_data)
+  rank <- rank[rank > 0 & !duplicated(names(rank))]
+
+  for (eq in eqs) {
+    ir_odin_parse_arrays_check_dim(eq, rank, source)
+  }
+
+  ## nms_arrays <- unique(obj$names_target[is_array])
+  ## for (eq in obj$eqs) {
+  ##   uses_array <-
+  ##     any(eq$depends$variables %in% nms_arrays) ||
+  ##     any(eq$depends$functions %in% "[") ||
+  ##     any(eq$rhs$depends_delay$variables %in% nms_arrays) ||
+  ##     any(eq$rhs$depends_delay$functions %in% "[")
+  ##   ## Special case for assignments of the form:
+  ##   ##
+  ##   ##   output(foo) <- foo
+  ##   ##   output(foo) <- TRUE
+  ##   ##
+  ##   ## which will be checked elsewhere (and ignored)
+  ##   uses_array <- uses_array & !isTRUE(eq$rhs$output_self)
+  ##   if (uses_array) {
+  ##     eq_expr <- as.expression(eq$expr)
+  ##     if (isTRUE(eq$rhs$delay)) {
+  ##       odin_parse_arrays_check_rhs(eq$rhs$value_expr, nd, int_arrays,
+  ##                                   eq$line, eq_expr)
+  ##       odin_parse_arrays_check_rhs(eq$rhs$value_time, nd, int_arrays,
+  ##                                   eq$line, eq_expr)
+  ##       if (!is.null(eq$rhs$value_default)) {
+  ##         odin_parse_arrays_check_rhs(eq$rhs$value_default$value, nd,
+  ##                                     int_arrays, eq$line, eq_expr)
+  ##       }
+  ##     } else {
+  ##       odin_parse_arrays_check_rhs(eq$rhs$value, nd, int_arrays,
+  ##                                   eq$line, eq_expr)
+  ##     }
+  ##   }
+  ## }
+
+
+  ## Here, check for non-assigned arrays.  Those are bad news.
+  ## However, it's tricky because of initial/deriv variables that
+  ## require some rewriting and because we can't actually check that
+  ## the variables are written to in their entirity.
+
+  ## We don't need to check this for derivs/initial because they
+  ## should be checked already elsewhere.
+  ## err <- setdiff(names(nd), c(obj$names_target[is_array], obj$vars))
+  ## if (length(err) > 0L) {
+  ##   tmp <- obj$eqs[which(is_dim)[match(err, names(nd))]]
+  ##   what <- ngettext(length(err), "variable is", "variables are")
+  ##   odin_error(sprintf("array %s never assigned: %s", what, pastec(err)),
+  ##              get_lines(tmp), get_exprs(tmp))
+  ## }
+}
+
+
+ir_odin_parse_arrays_check_dim <- function(eq, rank, source) {
+  ## Now, we need to collect and check all usages of length and check.
+  ## If we extract all usages we can check them.
+  throw <- function(fmt, ...) {
+    ir_odin_error(sprintf(fmt, ...), eq$source, source)
+  }
+  check <- function(x) {
+    if (is.recursive(x)) {
+      call <- x[[1L]]
+      if (identical(call, quote(length))) {
+        if (!is.symbol(x[[2L]])) {
+          throw("argument to length must be a symbol")
+        } else {
+          nm <- as.character(x[[2L]])
+          if (!(nm %in% names(rank))) {
+            throw("argument to length must be an array (%s is not)", nm)
+          } else if (rank[[nm]] != 1L) {
+            throw("argument to length must be a 1-D array (%s is %d-D)",
+                    nm, rank[[nm]])
+          }
+        }
+      } else if (identical(call, quote(dim))) {
+        if (!is.symbol(x[[2L]])) {
+          throw("first argument to dim must be a symbol")
+        } else {
+          nm <- as.character(x[[2L]])
+          if (!(nm %in% names(rank))) {
+            throw("first argument to dim must be an array (%s is not)", nm)
+          } else if (rank[[nm]] == 1L) {
+            throw("dim() must not be used for 1D arrays (use length)")
+          } else if (!is_integer_like(x[[3L]])) {
+            throw("second argument to dim() must be an integer")
+          } else if (x[[3L]] < 1 || x[[3L]] > rank[[nm]]) {
+            throw("array index out of bounds, must be one of 1:%d", rank[[nm]])
+          }
+        }
+      } else {
+        lapply(x[-1L], check)
+      }
+    }
+    TRUE
+  }
+
+  ## TODO: We may need to check things like delays carefully because
+  ## they have dependencies in a funny place. What would be better
+  ## perhaps is if we separated out the variables from the functions
+  ## that are used?  Or we can just check everything...
+  uses_dim <-
+    any(c("dim", "length") %in% eq$lhs$depends$functions) ||
+    any(c("dim", "length") %in% eq$depends$functions)
+  if (uses_dim) {
+    if (eq$type == "expression_scalar") {
+      check(eq$rhs$value)
+    } else if (eq$type == "expression_array") {
+      for (el in eq$rhs) {
+        check(el$value)
+        for (i in el$index) {
+          check(i$value)
+        }
+      }
+    } else if (eq$type == "delay") {
+      check(eq$rhs$value)
+      for (i in eq$rhs$index) {
+        check(i$value)
+      }
+      check(eq$delay$time)
+      check(eq$delay$default)
+    } else if (eq$type %in% c("user", "copy", "interpolate")) {
+    } else {
+      stop("writeme")
+    }
+  }
+}
+
+
 ## There are a couple of related things that I'm going to lump
 ## together here for a bit
 ##
@@ -262,6 +399,8 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
   ## but I think that this is the correct place.
   ##
   ## TODO: Rethink the early exit when refactoring.
+  ##
+  ## TODO: I think this is now not possible to trigger
   eq_type <- vcapply(eqs[i], "[[", "type")
   if (any(eq_type == "delay")) {
     if (length(i) != 1L) {

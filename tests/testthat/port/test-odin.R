@@ -507,7 +507,6 @@ test_that("use length on rhs", {
 })
 
 test_that("use dim on rhs", {
-  skip("failing")
   gen <- odin2({
     deriv(y[,]) <- r[i] * y[i,j]
     initial(y[,]) <- 1
@@ -546,7 +545,6 @@ test_that("user sized dependent variables are allowed", {
 })
 
 test_that("taking size of non-array variable is an error", {
-  skip("validation")
   expect_error(odin2({
     deriv(y) <- 1
     initial(y) <- 1
