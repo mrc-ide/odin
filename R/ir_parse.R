@@ -1178,7 +1178,6 @@ ir_parse_delay_discrete <- function(eq, eqs, source) {
 
 
 ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
-  ## browser()
   variable_names <- vcapply(variables$contents, "[[", "name")
 
   nm <- eq$name
@@ -1303,11 +1302,15 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
                          union(used, unlist(deps, use.names = FALSE)))
   used_eqs <- topological_order(deps) %||% character(0)
 
+  ## Duplicate some of the stage logic here to determine things that
+  ## are time dependent.
   include <- set_names(logical(length(used_eqs)), used_eqs)
   for (v in used_eqs) {
     d <- deps[[v]]
     include[[v]] <-
-      any(d %in% used_vars) || any(include[intersect(d, names(deps))])
+      any(d %in% used_vars) ||
+      any(d == TIME) ||
+      any(include[intersect(d, names(deps))])
   }
   used_eqs <- used_eqs[include]
 
