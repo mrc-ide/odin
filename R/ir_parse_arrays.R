@@ -96,6 +96,8 @@ ir_parse_arrays <- function(eqs, variables, source) {
     eqs[[eq$name]]$array <- eqs[[eq$lhs$name_data]]$array
   }
 
+  ir_parse_array_check_usage2(eqs, source)
+
   eqs
 }
 
@@ -151,7 +153,7 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   if (any(err)) {
     ir_odin_error(
       sprintf("Duplicate entries must all be array assignments (%s)",
-              paste(name_data[err], collapse = ", ")),
+              paste(unique(name_data[err]), collapse = ", ")),
       ir_get_lines(eqs[err]), source)
   }
 

@@ -101,13 +101,11 @@ test_that("variables cannot be assigned to", {
 
 
 test_that("duplicate non-array entries", {
-  skip("broken")
-
-  expect_error(odin_parse2(
-    "x = 1\nx = 2\nderiv(a) = 1; initial(a) = 1;"),
+  expect_error(
+    odin_parse2(ex("x = 1\nx = 2")),
     "Duplicate entries must all be array assignments")
   expect_error(
-    odin_parse2("x[1] = 1\nx = 2\nderiv(a) = 1; initial(a) = 1"),
+    odin_parse2(ex("x[1] = 1\nx = 2")),
     "Duplicate entries must all be array assignments")
 })
 

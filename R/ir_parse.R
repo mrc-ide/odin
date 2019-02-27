@@ -22,11 +22,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
 
-  if (features$has_array) {
-    eqs <- ir_parse_arrays(eqs, variables, source)
-  }
-  ## Do this part unconditionally...
-  ir_parse_array_check_usage2(eqs, source)
+  eqs <- ir_parse_arrays(eqs, variables, source)
 
   packing <- ir_parse_packing(eqs, variables, source)
   eqs <- c(eqs, packing$offsets)
