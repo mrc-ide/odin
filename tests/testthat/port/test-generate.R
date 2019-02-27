@@ -1,7 +1,7 @@
 context("generate")
 
 test_that("array_dim_name", {
-  skip("not for us")
+  skip("obsolete")
   expect_equal(array_dim_name("delay_foo", use = TRUE), "dim_foo")
   expect_equal(array_dim_name("delay_foo", use = FALSE), "")
   expect_equal(array_dim_name("delay_foo_bar", use = TRUE), "dim_foo_bar")
@@ -128,7 +128,7 @@ test_that("rewrite functions", {
 })
 
 test_that("array index rewriting", {
-  skip("not for us")
+  skip("obsolete")
   expr <- quote(idx[i])
   rw <- function(x) rewrite_c(x, "p", "idx")
   expect_equal(rw(quote(i)), structure("i", is_index = TRUE))

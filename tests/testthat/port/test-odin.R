@@ -57,7 +57,6 @@ test_that("user variables", {
 })
 
 test_that("user variables on models with none", {
-  skip("interface behaviour change")
   gen <- odin2({
     a <- 1
     deriv(y) <- 0.5 * a
@@ -66,8 +65,8 @@ test_that("user variables on models with none", {
   expect_error(gen(a = 1), "unused argument")
   mod <- gen()
   ## NOTE: This is a change of behaviour, but that's probably OK
-  expect_error(mod$set_user(), "attempt to apply non-function")
-  expect_error(mod$set_user(a = 1), "attempt to apply non-function")
+  expect_silent(mod$set_user())
+  expect_error(mod$set_user(a = 1), "Unknown user parameters: a")
 })
 
 test_that("non-numeric time", {

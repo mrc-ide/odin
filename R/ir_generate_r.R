@@ -118,7 +118,19 @@ generate_r_set_user <- function(eqs, dat, env) {
   args <- alist(user =, internal =)
   names(args)[[1]] <- dat$meta$user
   names(args)[[2]] <- dat$meta$internal
-  body <- as.call(c(list(quote(`{`)), eqs_user))
+
+  user <- vcapply(dat$user, "[[", "name")
+  unknown <- call("<-", quote(unknown),
+                  call("setdiff",
+                       call("names", as.name(dat$meta$user)),
+                       as.call(c(quote(c), user))))
+  check <- call(
+    "if",
+    quote(length(unknown) > 0L),
+    expr_block(quote(stop("Unknown user parameters: ",
+                          paste(unknown, collapse = ", ")))))
+
+  body <- expr_block(c(list(unknown, check, eqs_user)))
   as_function(args, body, env)
 }
 

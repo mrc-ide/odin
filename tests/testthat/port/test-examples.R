@@ -1,7 +1,6 @@
 context("examples")
 
 test_that("deSolve implementations work", {
-  skip("not relevant")
   re <- "([[:alnum:]]+)_bm\\.txt$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
