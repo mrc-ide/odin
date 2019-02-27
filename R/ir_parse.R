@@ -1284,8 +1284,14 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
   v <- setdiff(used, exclude)
   deps <- list()
   while (length(v) > 0L) {
-    if (!all(v %in% names(eqs))) {
-      stop("FIXME")
+    err <- setdiff(v, names(eqs))
+    if (length(err) > 0L) {
+      pos <-
+        intersect(union(names(deps), unlist(deps, FALSE, FALSE)), names(eqs))
+      msg <- sprintf("Missing %s in delay expression: %s (for delay %s)",
+                     ngettext(length(err), "variable", "variables"),
+                     paste(err, collapse = ", "), eq$name)
+      ir_odin_error(msg, ir_get_lines(eqs[union(pos, eq$name)]), source)
     }
     tmp <- lapply(eqs[v], function(x) x$depends$variables)
     deps <- c(deps, tmp)
