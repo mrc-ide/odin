@@ -280,7 +280,7 @@ ir_parse_find_variables <- function(eqs, discrete, source) {
       ir_get_lines(tmp), source)
   }
 
-  err <- names(is_var) %in% vars
+  err <- names(eqs) %in% vars
   if (any(err)) {
     ir_odin_error(
       sprintf("variables on lhs must be within %s() or initial() (%s)",

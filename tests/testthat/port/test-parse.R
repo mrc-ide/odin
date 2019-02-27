@@ -95,7 +95,6 @@ test_that("unknown variables", {
 
 
 test_that("variables cannot be assigned to", {
-  skip("broken")
   expect_error(odin_parse2("deriv(y) = 1\ninitial(y) = 1\ny <- 1"),
                "variables on lhs must be within deriv")
 })
@@ -555,13 +554,13 @@ test_that("range operator on RHS", {
 })
 
 test_that("rewrite errors", {
-  expect_error(odin_parse2(ex("x <- foo(a)")),
+  expect_error(odin_parse2(ex("a <- 1; x <- foo(a)")),
                "Unsupported function: foo")
-  expect_error(odin_parse2(ex("x <- foo(a); y <- bar(a)")),
+  expect_error(odin_parse2(ex("a <- 1; x <- foo(a); y <- bar(a)")),
                "Unsupported functions: foo, bar")
-  expect_error(odin_parse2(ex("x <- abs(a, 1)")),
+  expect_error(odin_parse2(ex("a <- 1; x <- abs(a, 1)")),
                "Expected 1 argument in abs call")
-  expect_error(odin_parse2(ex("x <- min(a)")),
+  expect_error(odin_parse2(ex("a <- 1; x <- min(a)")),
                "Expected 2 or more arguments in min call")
 })
 
