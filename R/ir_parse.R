@@ -527,6 +527,9 @@ ir_parse_expr <- function(expr, line, source) {
       ir_odin_error("user() only valid for non-special variables",
                     line, source)
     }
+    if (rhs$user$integer) {
+      lhs$storage_mode <- "int"
+    }
   }
 
   ## This might actually be too strict because it's possible that dydt
@@ -810,7 +813,7 @@ ir_parse_expr_rhs_user <- function(rhs, line, expr) {
   ## TODO: the 'dim' part here is not actually known yet!
   user <- list(default = m$default,
                dim = FALSE,
-               integer = m$integer,
+               integer = m$integer %||% FALSE,
                min = m$min,
                max = m$max)
   list(user = user)
