@@ -331,7 +331,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     ##   foo[,] <- user()
     ## etc.
     eq_data <- eqs[[eq$lhs$name_data]]
-    if (eq_data$type != "user") {
+    if (is.null(eq_data) || eq_data$type != "user") {
       ir_odin_error(
         sprintf("No array assignment found for %s, but dim() found",
                 eq$lhs$name_data),
@@ -683,7 +683,8 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
         }
         as.call(c(list(quote(odin_sum), target), unlist(lapply(tmp, f))))
       } else {
-        stop("Invalid argument to sum")
+        ir_odin_error("Argument to sum must be a symbol or indexed array",
+                      line, source)
       }
     } else {
       x[-1L] <- lapply(x[-1L], rewrite_sum)

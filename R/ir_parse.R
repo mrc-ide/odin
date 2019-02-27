@@ -15,9 +15,9 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   ## Data elements:
 
-  features <- ir_parse_features(eqs)
+  features <- ir_parse_features(eqs, source)
 
-  variables <- ir_parse_find_variables(eqs, features$discrete)
+  variables <- ir_parse_find_variables(eqs, features$discrete, source)
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
 
@@ -220,7 +220,7 @@ ir_parse_config <- function(eqs, base_default) {
 }
 
 
-ir_parse_find_variables <- function(eqs, discrete) {
+ir_parse_find_variables <- function(eqs, discrete, source) {
   is_special <- vlapply(eqs, function(x) !is.null(x$lhs$special))
   special <- vcapply(eqs[is_special], function(x) x$lhs$special)
   name_data <- vcapply(eqs[is_special], function(x) x$lhs$name_data)
@@ -245,19 +245,19 @@ ir_parse_find_variables <- function(eqs, discrete) {
               rhs_fun, paste(msg_vars, collapse = ", "))
     }
     tmp <- eqs[is_var | is_initial]
-    odin_error(sprintf(
+    ir_odin_error(sprintf(
       "%s() and initial() must contain same set of equations:\n%s\n",
       rhs_fun, paste(msg$get(), collapse = "\n")),
-      get_lines(tmp), get_exprs(tmp))
+      ir_get_lines(tmp), source)
   }
 
   err <- names(is_var) %in% vars
   if (any(err)) {
-    odin_error(
+    ir_odin_error(
       sprintf("variables on lhs must be within %s() or initial() (%s)",
               rhs_fun,
               paste(intersect(vars, names(eqs)), collapse = ", ")),
-      get_lines(eqs[err]), get_exprs(eqs[err]))
+      ir_get_lines(eqs[err]), source)
   }
 
   unique(unname(vars))
@@ -407,7 +407,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
 ## A downside of the approach here is that we do make the checks in a
 ## few different places.  It might be worth trying to shift more of
 ## this classification into the initial equation parsing.
-ir_parse_features <- function(eqs) {
+ir_parse_features <- function(eqs, source) {
   is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
@@ -419,12 +419,12 @@ ir_parse_features <- function(eqs) {
 
   if (any(is_update) && any(is_deriv)) {
     tmp <- eqs[is_deriv | is_update]
-    odin_error("Cannot mix deriv() and update()",
-               get_lines(tmp), get_exprs(tmp))
+    ir_odin_error("Cannot mix deriv() and update()",
+                  ir_get_lines(tmp), source)
   }
   if (!any(is_update | is_deriv)) {
-    odin_error("Did not find a deriv() or an update() call",
-               NULL, NULL)
+    ir_odin_error("Did not find a deriv() or an update() call",
+                  NULL, NULL)
   }
 
   list(discrete = any(is_update),
@@ -715,6 +715,7 @@ ir_parse_expr_check_lhs_name <- function(lhs, line, expr) {
   ## at this point there are lots of other corner cases; things like
   ## nested special functions.
   if (is.call(lhs)) {
+    fun <- deparse_str(lhs[[1L]])
     odin_error(sprintf("Unhandled expression %s on lhs", fun), line, expr)
   }
 
@@ -739,30 +740,31 @@ ir_parse_expr_check_lhs_name <- function(lhs, line, expr) {
 }
 
 
+## TODO: the 'expr' part here needs to come out entirely
 ir_parse_expr_rhs <- function(rhs, line, expr, source) {
   if (is_call(rhs, quote(delay))) {
     ir_parse_expr_rhs_delay(rhs, line, expr, source)
   } else if (is_call(rhs, quote(user))) {
     ir_parse_expr_rhs_user(rhs, line, expr)
   } else if (is_call(rhs, quote(interpolate))) {
-    ir_parse_expr_rhs_interpolate(rhs, line, expr)
+    ir_parse_expr_rhs_interpolate(rhs, line, source)
   } else {
-    ir_parse_expr_rhs_expression(rhs, line, expr)
+    ir_parse_expr_rhs_expression(rhs, line, expr, source)
   }
 }
 
 
-ir_parse_expr_rhs_expression <- function(rhs, line, expr) {
+ir_parse_expr_rhs_expression <- function(rhs, line, expr, source) {
   depends <- find_symbols(rhs)
   err <- intersect(setdiff(SPECIAL_LHS, "dim"), depends$functions)
   if (length(err) > 0L) {
-    odin_error(sprintf("Function %s is disallowed on rhs",
-                       paste(unique(err), collapse = ", ")), line, expr)
+    ir_odin_error(sprintf("Function %s is disallowed on rhs",
+                          paste(unique(err), collapse = ", ")), line, source)
   }
   err <- intersect(SPECIAL_RHS, depends$functions)
   if (length(err) > 0L) {
-    odin_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
-               line, expr)
+    ir_odin_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
+                  line, source)
   }
 
   ## TODO: look at this later, but it's called only for throwing as
@@ -770,12 +772,12 @@ ir_parse_expr_rhs_expression <- function(rhs, line, expr) {
   odin_parse_expr_rhs_check_usage(rhs, line, expr)
 
   if ("sum" %in% depends$functions) {
-    rhs <- ir_parse_expr_rhs_expression_sum(rhs, line, expr)
+    rhs <- ir_parse_expr_rhs_expression_sum(rhs, line, source)
     depends <- find_symbols(rhs)
   }
 
   if (":" %in% depends$functions) {
-    odin_error("Range operator ':' may not be used on rhs", line, expr)
+    ir_odin_error("Range operator ':' may not be used on rhs", line, source)
   }
 
   stochastic <- any(depends$functions %in% names(FUNCTIONS_STOCHASTIC))
@@ -823,25 +825,33 @@ ir_parse_expr_rhs_user <- function(rhs, line, expr) {
 }
 
 
-ir_parse_expr_rhs_interpolate <- function(rhs, line, expr) {
-  m <- match.call(function(t, y, type = "spine") NULL, rhs, FALSE)
+ir_parse_expr_rhs_interpolate <- function(rhs, line, source) {
+  na <- length(rhs) - 1L
+  if (na < 2L || na > 3L) {
+    ir_odin_error("interpolate() requires two or three arguments",
+                  line, source)
+  }
 
-  type <- m$type
+  m <- match.call(function(t, y, type) NULL, rhs, FALSE)
+
+  type <- m$type %||% "spline"
   if (!is.character(type)) {
-    odin_error("Expected a string constant for interpolation type",
-               line, expr)
+    ir_odin_error("Expected a string constant for interpolation type",
+                  line, source)
   }
   if (!(type %in% INTERPOLATION_TYPES)) {
-    odin_error(sprintf(
+    ir_odin_error(sprintf(
       "Invalid interpolation type; must be one: of %s",
       paste(INTERPOLATION_TYPES, collapse = ", ")),
-      line, expr)
+      line, source)
   }
   if (!is.symbol(m$t)) {
-    odin_error("interpolation time argument must be a symbol", line, expr)
+    ir_odin_error("interpolation time argument must be a symbol",
+                  line, source)
   }
   if (!is.symbol(m$y)) {
-    odin_error("interpolation target argument must be a symbol", line, expr)
+    ir_odin_error("interpolation target argument must be a symbol",
+                  line, source)
   }
   t <- as.character(m$t)
   y <- as.character(m$y)
@@ -1014,16 +1024,22 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
 ## we can catch these and group them together.  But leaving that for
 ## now.
 ir_odin_error <- function(msg, line, source) {
-  ret <- ir_odin_info_data(msg, line, source, "error")
+  ret <- ir_odin_info_data(msg, unique(line), source, "error")
   class(ret) <- c("odin_error", "error", "condition")
   stop(ret)
 }
 
 
 ir_odin_info_data <- function(msg, line, source, type) {
-  expr <- source[line]
-  str <- odin_info_expr(line, expr)
-  list(message = paste0(msg, paste0("\n\t", str, collapse = "")),
+  if (length(line) > 0L) {
+    expr <- source[line]
+    str <- odin_info_expr(line, expr)
+    message <- paste0(msg, paste0("\n\t", str, collapse = ""))
+  } else {
+    expr <- NULL
+    message <- msg
+  }
+  list(message = message,
        msg = msg,
        line = line,
        expr = expr,
