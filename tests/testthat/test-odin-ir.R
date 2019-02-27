@@ -505,7 +505,7 @@ test_that("multiple output arrays", {
   expect_equal(mod$initial(0), 1:3)
   expect_equal(
     mod$deriv(0, mod$initial(0)),
-    structure(1:3 * r, output = c(r, 1:3 / 1:3)))
+    structure(1:3 * r, output = c(1:3 / 1:3, r)))
 
   tt <- seq(0, 10, length.out = 101)
   yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
