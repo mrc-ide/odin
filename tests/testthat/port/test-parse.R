@@ -195,48 +195,53 @@ test_that("unclassifiable statement", {
 
 
 test_that("RHS array checking", {
-  skip("this is still to do")
   ## Dummy args:
-  line <- 1
+  eq <- list(source = 1)
   expr <- quote(x)
   ia <- character(0)
+  source <- "x"
 
   ## This needs expanding as I find more corner cases
-  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b = 1), ia,
-                                          line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1]), c(b = 2), ia,
-                                           line, expr),
+  ##
+  ## TODO: I would prefer this to go all the way from odin_parse2
+  expect_null(ir_parse_arrays_check_rhs(quote(a + b[1]), c(b = 1), ia,
+                                        eq, source))
+  expect_error(ir_parse_arrays_check_rhs(quote(a + b[1]), c(b = 2), ia,
+                                         eq, source),
                "Incorrect dimensionality for 'b'")
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 2), ia,
-                                           line, expr),
+  expect_error(ir_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 2), ia,
+                                         eq, source),
                "Incorrect dimensionality for 'b'")
-  expect_null(odin_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 3), ia,
-                                          line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b = 1), ia,
-                                           line, expr),
+  expect_null(ir_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 3), ia,
+                                        eq, source))
+  expect_error(ir_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b = 1), ia,
+                                         eq, source),
                "Disallowed functions used for b")
-  expect_error(odin_parse_arrays_check_rhs(quote(b), c(b = 1), ia, line, expr),
+  expect_error(ir_parse_arrays_check_rhs(quote(b), c(b = 1), ia,
+                                         eq, source),
                "Array 'b' used without array index")
-  expect_null(odin_parse_arrays_check_rhs(quote(a), c(b = 1), ia, line, expr))
-  expect_error(odin_parse_arrays_check_rhs(quote(a[]), c(a = 1), ia, line, expr),
+  expect_null(ir_parse_arrays_check_rhs(quote(a), c(b = 1), ia,
+                                        eq, source))
+  expect_error(ir_parse_arrays_check_rhs(quote(a[]), c(a = 1), ia,
+                                         eq, source),
                "Empty array index not allowed on rhs")
 
-  rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a)))
-  expect_null(odin_parse_arrays_check_rhs(rhs, c(a = 1), ia, line, expr))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(b = 1), ia, line, expr),
+  rhs <- ir_parse_expr_rhs_expression_sum(quote(sum(a)))
+  expect_null(ir_parse_arrays_check_rhs(rhs, c(a = 1), ia, eq, source))
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(b = 1), ia, eq, source),
                "Function 'sum' requires array as argument 1")
 
-  rhs <- odin_parse_expr_rhs_rewrite_sum(quote(sum(a[])))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(b = 1), ia, line, expr),
+  rhs <- ir_parse_expr_rhs_expression_sum(quote(sum(a[])))
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(b = 1), ia, eq, source),
                "Function 'sum' requires array as argument 1")
 
   expr <- quote(sum(a[,]))
-  rhs <- odin_parse_expr_rhs_rewrite_sum(expr)
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 1), ia, line, expr),
+  rhs <- ir_parse_expr_rhs_expression_sum(expr)
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(a = 1), ia, eq, source),
                "Incorrect dimensionality for 'a' in 'sum' (expected 1)",
                fixed = TRUE)
-  expect_silent(odin_parse_arrays_check_rhs(rhs, c(a = 2), ia, line, expr))
-  expect_error(odin_parse_arrays_check_rhs(rhs, c(a = 3), ia, line, expr),
+  expect_silent(ir_parse_arrays_check_rhs(rhs, c(a = 2), ia, eq, source))
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(a = 3), ia, eq, source),
                "Incorrect dimensionality for 'a' in 'sum' (expected 3)",
                fixed = TRUE)
 })

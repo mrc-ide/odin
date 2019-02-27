@@ -849,7 +849,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
           arr_idx <- 1L
         }
         if (f_nm %in% array_special_function) {
-          is_sum <- f_nm %in% FUNCTIONS_SUM
+          is_sum <- f_nm == "odin_sum"
           arr <- deparse(e[[arr_idx + 1L]])
           if (!(arr %in% nms)) {
             if (is_sum) {
