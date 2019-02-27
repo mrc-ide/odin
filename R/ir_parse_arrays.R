@@ -803,7 +803,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
 
   ## TODO: check that the right number of indices are used when using sum?
   array_special_function <-
-    c(FUNCTIONS_SUM, "sum", "length", "dim", "interpolate", "rmultinom")
+    c("sum", "odin_sum", "length", "dim", "interpolate", "rmultinom")
   nms <- names(rank)
 
   check <- function(e, array_special) {
