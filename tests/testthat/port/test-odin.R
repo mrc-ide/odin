@@ -1106,7 +1106,6 @@ test_that("integer matrix", {
 })
 
 test_that("c in dim for vector", {
-  skip("validation")
   ## This is a regression test for issue #61
   gen <- odin2({
     initial(x[]) <- 1

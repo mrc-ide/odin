@@ -370,7 +370,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
       }
       rank <- length(ok)
       eq$depends$functions <- setdiff(eq$depends$functions, "c")
-      eq$rhs$value <- value
+      eq$rhs$value <- if (rank == 1L) value[[1L]] else value
     } else {
       ir_odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
                     eq$source, source)
