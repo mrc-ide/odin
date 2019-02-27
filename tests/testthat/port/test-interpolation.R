@@ -250,7 +250,6 @@ test_that("unknown interpolation variable", {
 })
 
 test_that("interpolation array assignment error", {
-  skip("validation")
   expect_error(odin2({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0

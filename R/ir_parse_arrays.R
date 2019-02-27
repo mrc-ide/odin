@@ -105,6 +105,7 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   is_interpolate <- vlapply(eqs, function(x) x$type == "interpolate")
   is_user <- vlapply(eqs, function(x) x$type == "user")
   is_copy <- vlapply(eqs, function(x) x$type == "copy")
+  is_delay <- vlapply(eqs, function(x) x$type == "delay")
   is_delay_array <- vlapply(eqs, function(x)
     x$type == "delay" && !is.null(x$lhs$index))
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
@@ -123,23 +124,31 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
       ir_get_lines(eqs[err]), source)
   }
 
+  ## Prevent:
+  ##   x[] <- user()
+  ##   x[1] <- 1
+  ##
+  ## And similar for delays and interpolated variables
+  prevent <- list(user = is_user,
+                  interpolate = is_interpolate,
+                  delay = is_delay)
+  check <- is_duplicated(names(eqs))
+  for (i in names(prevent)) {
+    err <- check & prevent[[i]]
+    if (any(err)) {
+      ir_odin_error(
+        sprintf("%s() may only be used on a single-line array (%s)",
+                i, paste(unique(names_if(err))), collapse = ", "),
+        ir_get_lines(eqs[names(eqs) %in% names_if(err)]), source)
+    }
+  }
+
   ## Then, start checking for duplicates:
   err <- is_duplicated(names(eqs)) & !is_array
   if (any(err)) {
     ir_odin_error(
       sprintf("Duplicate entries must all be array assignments (%s)",
               paste(name_data[err], collapse = ", ")),
-      ir_get_lines(eqs[err]), source)
-  }
-
-  ## Prevent:
-  ##   x[] <- user()
-  ##   x[1] <- 1
-  err <- is_duplicated(names(eqs)) & is_user
-  if (any(err)) {
-    ir_odin_error(
-      sprintf("Duplicate entries may not use user() (%s)",
-              paste(unique(names_if(err))), collapse = ", "),
       ir_get_lines(eqs[err]), source)
   }
 
