@@ -798,6 +798,17 @@ ir_parse_expr_rhs_expression <- function(rhs, line, expr, source) {
     ir_odin_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
                   line, source)
   }
+  err <- intersect(c(SPECIAL_LHS, SPECIAL_RHS), depends$variables)
+  if (length(err) > 0L) {
+    ## NOTE: in the case where more than one bad name is used on the
+    ## rhs, we could warn about more of them, but this is already
+    ## pretty niche.
+    ##
+    ## NOTE: could expand this to all allowed functions?
+    ir_odin_error(sprintf(
+      "Function '%s' is disallowed as symbol on rhs", err[[1L]]),
+      line, source)
+  }
 
   ## TODO: look at this later, but it's called only for throwing as
   ## side effect for now, so we can clean it up later easily

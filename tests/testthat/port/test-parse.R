@@ -183,7 +183,6 @@ test_that("interpolate call", {
 
 
 test_that("deriv can't be used as rhs symbol", {
-  skip("broken")
   expect_error(odin_parse2(ex("a <- deriv")),
                "Function 'deriv' is disallowed as symbol on rhs")
 })
