@@ -111,7 +111,6 @@ test_that("duplicate non-array entries", {
 
 
 test_that("missing dim", {
-  skip("broken")
   expect_error(
     odin_parse2("deriv(x[1]) = 1\ninitial(x) = 2"),
     "Missing dim() call", fixed = TRUE)
@@ -122,7 +121,6 @@ test_that("array dimensionality must be consistent", {
   expect_error(
     odin_parse2(ex("x[1] <- 1\nx[2,1] <- 2\ndim(x) <- 10")),
     "Array dimensionality is not consistent")
-  skip("broken")
   expect_error(
     odin_parse2(ex("x[1] <- 1\ny <- x[2,1]\ndim(x) <- 10")),
     "Incorrect dimensionality for 'x'")

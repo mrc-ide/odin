@@ -161,8 +161,8 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   if (length(err) > 0L) {
     ir_odin_error(
       sprintf("Missing dim() call for %s, assigned as an array",
-              paste(unique(names_data[err]), collapse = ", ")),
-      ir_get_lines(eqs[err]), source)
+              paste(unique(err), collapse = ", ")),
+      ir_get_lines(eqs[name_data %in% err]), source)
   }
 }
 
@@ -179,53 +179,26 @@ ir_parse_array_check_usage2 <- function(eqs, source) {
     ir_odin_parse_arrays_check_dim(eq, rank, source)
   }
 
-  ## nms_arrays <- unique(obj$names_target[is_array])
-  ## for (eq in obj$eqs) {
-  ##   uses_array <-
-  ##     any(eq$depends$variables %in% nms_arrays) ||
-  ##     any(eq$depends$functions %in% "[") ||
-  ##     any(eq$rhs$depends_delay$variables %in% nms_arrays) ||
-  ##     any(eq$rhs$depends_delay$functions %in% "[")
-  ##   ## Special case for assignments of the form:
-  ##   ##
-  ##   ##   output(foo) <- foo
-  ##   ##   output(foo) <- TRUE
-  ##   ##
-  ##   ## which will be checked elsewhere (and ignored)
-  ##   uses_array <- uses_array & !isTRUE(eq$rhs$output_self)
-  ##   if (uses_array) {
-  ##     eq_expr <- as.expression(eq$expr)
-  ##     if (isTRUE(eq$rhs$delay)) {
-  ##       odin_parse_arrays_check_rhs(eq$rhs$value_expr, nd, int_arrays,
-  ##                                   eq$line, eq_expr)
-  ##       odin_parse_arrays_check_rhs(eq$rhs$value_time, nd, int_arrays,
-  ##                                   eq$line, eq_expr)
-  ##       if (!is.null(eq$rhs$value_default)) {
-  ##         odin_parse_arrays_check_rhs(eq$rhs$value_default$value, nd,
-  ##                                     int_arrays, eq$line, eq_expr)
-  ##       }
-  ##     } else {
-  ##       odin_parse_arrays_check_rhs(eq$rhs$value, nd, int_arrays,
-  ##                                   eq$line, eq_expr)
-  ##     }
-  ##   }
-  ## }
+  nms_arrays <- names(rank)
 
+  is_int <- vlapply(eqs, function(x) identical(x$lhs$storage_mode, "int"))
+  int_arrays <- intersect(nms_arrays, vcapply(eqs[is_int], function(x)
+    x$lhs$name_data))
 
-  ## Here, check for non-assigned arrays.  Those are bad news.
-  ## However, it's tricky because of initial/deriv variables that
-  ## require some rewriting and because we can't actually check that
-  ## the variables are written to in their entirity.
-
-  ## We don't need to check this for derivs/initial because they
-  ## should be checked already elsewhere.
-  ## err <- setdiff(names(nd), c(obj$names_target[is_array], obj$vars))
-  ## if (length(err) > 0L) {
-  ##   tmp <- obj$eqs[which(is_dim)[match(err, names(nd))]]
-  ##   what <- ngettext(length(err), "variable is", "variables are")
-  ##   odin_error(sprintf("array %s never assigned: %s", what, pastec(err)),
-  ##              get_lines(tmp), get_exprs(tmp))
-  ## }
+  for (eq in eqs) {
+    if (eq$type == "expression_scalar") {
+      ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
+    } else if (eq$type == "expression_array") {
+      for (el in eq$rhs) {
+        ir_parse_arrays_check_rhs(el$value, rank, int_arrays, eq, source)
+      }
+    } else if (eq$type == "delay") {
+      ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
+      ir_parse_arrays_check_rhs(eq$delay$default, rank, int_arrays, eq, source)
+    } else {
+      ir_parse_arrays_check_rhs(eq, rank, int_arrays, source)
+    }
+  }
 }
 
 
@@ -820,4 +793,90 @@ ir_parse_arrays_used_as_index <- function(eqs) {
   ret <- collector()
   lapply(eqs, check1, ret)
   unique(ret$get())
+}
+
+
+ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
+  throw <- function(...) {
+    ir_odin_error(sprintf(...), eq$source, source)
+  }
+
+  ## TODO: check that the right number of indices are used when using sum?
+  array_special_function <-
+    c(FUNCTIONS_SUM, "sum", "length", "dim", "interpolate", "rmultinom")
+  nms <- names(rank)
+
+  check <- function(e, array_special) {
+    if (!is.recursive(e)) { # leaf
+      if (!is.symbol(e)) { # A literal of some type
+        return()
+      } else if (is.null(array_special) && deparse(e) %in% nms) {
+        throw("Array '%s' used without array index", deparse(e))
+      }
+    } else if (is.symbol(e[[1L]])) {
+      f_nm <- as.character(e[[1L]])
+      if (identical(f_nm, "[")) {
+        x <- deparse(e[[2L]])
+        ijk <- as.list(e[-(1:2)])
+        if (x %in% nms) {
+          if (length(ijk) != rank[[x]]) {
+            throw(
+              "Incorrect dimensionality for '%s' in '%s' (expected %d)",
+              x, deparse_str(e), rank[[x]])
+          }
+          sym <- find_symbols(ijk)
+          nok <- setdiff(sym$functions, VALID_ARRAY)
+          if (length(nok) > 0L) {
+            throw(
+              "Disallowed functions used for %s in '%s': %s",
+              x, deparse_str(e), pastec(nok))
+          }
+          nok <- intersect(sym$variables, setdiff(nms, int_arrays))
+          if (length(nok) > 0L) {
+            throw("Disallowed variables used for %s in '%s': %s",
+                  x, deparse_str(e), pastec(nok))
+          }
+          if ("" %in% sym$variables) {
+            throw("Empty array index not allowed on rhs")
+          }
+        } else {
+          throw("Unknown array variable %s in '%s'", x, deparse_str(e))
+        }
+      } else {
+        if (f_nm == "rmultinom") {
+          arr_idx <- 2L
+        } else {
+          arr_idx <- 1L
+        }
+        if (f_nm %in% array_special_function) {
+          is_sum <- f_nm %in% FUNCTIONS_SUM
+          arr <- deparse(e[[arr_idx + 1L]])
+          if (!(arr %in% nms)) {
+            if (is_sum) {
+              f_nm <- "sum" # For better error messages, rewrite back
+            }
+            throw("Function '%s' requires array as argument %d", f_nm, arr_idx)
+          }
+          if (is_sum) {
+            rank_sum <- (length(e) - 2L) / 2L
+            if (length(e) != 1 && rank_sum != rank[[arr]]) {
+              throw("Incorrect dimensionality for '%s' in 'sum' (expected %d)",
+                    arr, rank[[arr]])
+            }
+          }
+          array_special <- f_nm
+        } else {
+          array_special <- NULL
+        }
+        for (a in as.list(e[-1])) {
+          if (!missing(a)) {
+            check(a, array_special)
+          }
+        }
+      }
+    }
+  }
+
+  check(rhs, NULL)
+  invisible(NULL) # never return anything at all.
 }
