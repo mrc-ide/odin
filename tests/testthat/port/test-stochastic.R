@@ -178,7 +178,6 @@ test_that("mutlinomial", {
 })
 
 test_that("replicate: scalar", {
-  skip("replicate interface not built yet")
   ## TODO: this will be a nice version to try and benchmark the dde
   ## overheads I think...
   gen <- odin2({
@@ -197,7 +196,6 @@ test_that("replicate: scalar", {
 })
 
 test_that("replicate: array", {
-  skip("replicate interface not built yet")
   gen <- odin2({
     initial(x) <- 0
     initial(y[]) <- 0
