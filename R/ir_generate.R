@@ -15,7 +15,7 @@ odin2 <- function(x, validate = TRUE, verbose = TRUE,
 odin2_ <- function(x, validate = TRUE, verbose = TRUE,
                    target = NULL, new_parser = NULL) {
   target <- target %||% getOption("odin.target", "r")
-  new_parser <- new_parser %||% getOption("odin.new_parser", FALSE)
+  new_parser <- new_parser %||% getOption("odin.new_parser", TRUE)
 
   if (new_parser) {
     ir <- odin_build_ir2(x, validate = validate)
