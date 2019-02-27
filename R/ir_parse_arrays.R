@@ -387,6 +387,13 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     x$type != "alloc" &&
     x$type != "copy"))
 
+  if (length(i) == 0L) {
+    ir_odin_error(sprintf(
+      "Array variable %s is never assigned; can't work out rank",
+      eq$lhs$name_data),
+      eq$source, source)
+  }
+
   rank_used <- viapply(eqs[i], function(el) length(el$lhs$index))
   if (any(rank_used != rank)) {
     ir_odin_error(

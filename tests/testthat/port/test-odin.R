@@ -664,7 +664,6 @@ test_that("pathalogical array index", {
 })
 
 test_that("dependent dim never assigned", {
-  skip("validation")
   ## I have no idea how common this is, but this is to prevent a
   ## regression.
   ##
