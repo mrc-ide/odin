@@ -15,6 +15,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   ## Data elements:
 
+  config <- ir_parse_config(eqs, "odin", source)
   features <- ir_parse_features(eqs, source)
 
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
@@ -52,7 +53,6 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   meta <- ir_parse_meta(features$discrete)
   ## TODO: determine the base here based on filenames
-  config <- ir_parse_config(eqs, "odin")
 
   ## If we have arrays, then around this point we will also be
   ## generating a number of additional offset and dimension length
@@ -195,28 +195,57 @@ ir_parse_meta <- function(discrete) {
 }
 
 
-ir_parse_config <- function(eqs, base_default) {
+ir_parse_config <- function(eqs, base_default, source) {
   i <- vcapply(eqs, "[[", "type") == "config"
-  config <- unname(eqs[i])
+
+  config <- lapply(unname(eqs[i]), ir_parse_config1, source)
   config_target <- vcapply(config, function(x) x$lhs$name_data)
-  supported <- "base"
+  config_value <- lapply(config, function(x) x$rhs$value)
 
   i <- which(config_target == "base")
   if (length(i) == 0L) {
-    ## TODO: pass in the default as arg
     base <- base_default
+    base_line <- NULL
   } else if (length(i) == 1L) {
-    base <- config[[i]]$rhs$value
+    base <- config_value[[i]]
+    base_line <- config[[i]]$source
   } else {
-    stop("can't use base more than once")
+    ir_odin_error("Expected a single config(base) option",
+                  ir_get_lines(config[i]), source)
   }
-
-  err <- setdiff(config_target, supported)
-  if (length(err) > 0L) {
-    stop("unsupported configuration") # TODO: fix this up
+  if (!is_c_identifier(base)) {
+    ir_odin_error(
+      sprintf("Invalid base value: '%s', must be a valid C identifier", base),
+      base_line, source)
   }
 
   list(base = base)
+}
+
+
+ir_parse_config1 <- function(eq, source) {
+  target <- eq$lhs$name_data
+  value <- eq$rhs$value
+
+  expected_type <- switch(
+    target,
+    base = "character",
+    ir_odin_error(sprintf("Unknown configuration option: %s", target),
+                  eq$source, source))
+
+  if (!is.atomic(value)) {
+    ir_odin_error("config() rhs must be atomic (not an expression or symbol)",
+                  eq$source, source)
+  }
+
+  if (storage.mode(value) != expected_type) {
+    ir_odin_error(sprintf(
+      "Expected a %s for config(%s) but recieved a %s",
+      expected_type, target, storage.mode(value)),
+      eq$source, source)
+  }
+
+  eq
 }
 
 
@@ -500,7 +529,7 @@ ir_parse_exprs <- function(exprs) {
 
 
 ir_parse_expr <- function(expr, line, source) {
-  lhs <- ir_parse_expr_lhs(expr[[2L]], line, expr)
+  lhs <- ir_parse_expr_lhs(expr[[2L]], line, expr, source)
   rhs <- ir_parse_expr_rhs(expr[[3L]], line, expr, source)
   depends <- join_deps(list(lhs$depends, rhs$depends))
   rhs$depends <- NULL
@@ -585,7 +614,7 @@ ir_parse_expr <- function(expr, line, source) {
 }
 
 
-ir_parse_expr_lhs <- function(lhs, line, expr) {
+ir_parse_expr_lhs <- function(lhs, line, expr, source) {
   is_special <- is_array <- FALSE
   special <- index <- depends <- NULL
 
@@ -593,7 +622,7 @@ ir_parse_expr_lhs <- function(lhs, line, expr) {
     fun <- deparse_str(lhs[[1L]])
     if (fun %in% SPECIAL_LHS) {
       if (length(lhs) != 2L) {
-        odin_error("Invalid length special function on lhs", line, expr)
+        ir_odin_error("Invalid length special function on lhs", line, source)
       }
       is_special <- TRUE
       special <- fun
@@ -602,18 +631,19 @@ ir_parse_expr_lhs <- function(lhs, line, expr) {
   }
 
   if (is_call(lhs, "[")) {
-    if (is_special && special == "dim") {
-      odin_error("dim() must be applied to a name only (not an array)",
-                 line, expr)
+    if (is_special && special %in% c("dim", "config")) {
+      ir_odin_error("dim() must be applied to a name only (not an array)",
+                    line, source)
     }
     is_array <- TRUE
-    tmp <- ir_parse_expr_lhs_index(lhs, line, expr)
+    tmp <- ir_parse_expr_lhs_index(lhs, line, source)
     index <- tmp$index
     depends <- tmp$depends
     lhs <- lhs[[2L]]
   }
 
-  name <- ir_parse_expr_check_lhs_name(lhs, line, expr)
+
+  name <- ir_parse_expr_check_lhs_name(lhs, special, line, source)
   type <- if (is_array) "expression_array" else "expression_scalar"
 
   ## name_equation: the name we'll use for the equation
@@ -643,9 +673,9 @@ ir_parse_expr_lhs <- function(lhs, line, expr) {
 }
 
 
-ir_parse_expr_lhs_index <- function(lhs, line, expr) {
+ir_parse_expr_lhs_index <- function(lhs, line, source) {
   if (!is.name(lhs[[2L]])) {
-    odin_error("array lhs must be a name", line, expr)
+    ir_odin_error("array lhs must be a name", line, source)
   }
 
   index <- as.list(lhs[-(1:2)])
@@ -685,17 +715,17 @@ ir_parse_expr_lhs_index <- function(lhs, line, expr) {
     is_range <- !vlapply(extent_min, is.null)
   } else {
     msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse = "\n")
-    odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
-               line, expr)
+    ir_odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
+                  line, source)
   }
 
   name <- deparse(lhs[[2L]])
   deps <- find_symbols(index)
   err <- intersect(INDEX, deps$variables)
   if (length(err) > 0L) {
-    odin_error(
+    ir_odin_error(
       sprintf("Special index variable %s may not be used on array lhs",
-              pastec(err)), line, as.expression(expr))
+              pastec(err)), line, source)
   }
 
   ## The dimension for this array:
@@ -711,29 +741,35 @@ ir_parse_expr_lhs_index <- function(lhs, line, expr) {
 }
 
 
-ir_parse_expr_check_lhs_name <- function(lhs, line, expr) {
+ir_parse_expr_check_lhs_name <- function(lhs, special, line, source) {
   ## at this point there are lots of other corner cases; things like
   ## nested special functions.
   if (is.call(lhs)) {
     fun <- deparse_str(lhs[[1L]])
-    odin_error(sprintf("Unhandled expression %s on lhs", fun), line, expr)
+    ir_odin_error(sprintf("Unhandled expression %s on lhs", fun),
+                  line, source)
   }
 
   ## things like atomic will raise here: 1 <- 2
   if (!is.name(lhs)) {
-    odin_error("Invalid left hand side", line, expr)
+    if (is.null(special)) {
+      ir_odin_error("Invalid left hand side", line, source)
+    } else {
+      ir_odin_error(sprintf("Argument to %s must be a symbol", special),
+                    line, source)
+    }
   }
 
   name <- deparse(lhs)
 
   if (name %in% RESERVED) {
-    odin_error("Reserved name for lhs", line, expr)
+    ir_odin_error("Reserved name for lhs", line, source)
   }
   re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse = "|"))
   if (grepl(re, name)) {
-    odin_error(sprintf("Variable name cannot start with '%s_'",
-                       sub(re, "\\1", name)),
-               line, expr)
+    ir_odin_error(sprintf("Variable name cannot start with '%s_'",
+                          sub(re, "\\1", name)),
+                  line, source)
   }
 
   name

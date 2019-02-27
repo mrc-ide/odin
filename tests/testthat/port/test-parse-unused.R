@@ -1,6 +1,7 @@
 context("parse (unused variables)")
 
 test_that("no unused variables", {
+  skip("unused")
   expect_silent(odin::odin({
     deriv(y) <- 1
     initial(y) <- 0
@@ -8,6 +9,7 @@ test_that("no unused variables", {
 })
 
 test_that("one unused variable", {
+  skip("unused")
   expect_message(odin::odin({
     deriv(y) <- 1
     initial(y) <- 0
@@ -17,6 +19,7 @@ test_that("one unused variable", {
 })
 
 test_that("more than one unused variable", {
+  skip("unused")
   expect_message(odin::odin({
     deriv(y) <- 1
     initial(y) <- 0
@@ -27,6 +30,7 @@ test_that("more than one unused variable", {
 })
 
 test_that("dependent unused variables", {
+  skip("unused")
   expect_message(odin::odin({
     deriv(y) <- 1
     initial(y) <- 0
@@ -37,6 +41,7 @@ test_that("dependent unused variables", {
 })
 
 test_that("dependent non-unused variables", {
+  skip("unused")
   expect_silent(odin::odin({
     deriv(y) <- b
     initial(y) <- 0
@@ -46,6 +51,7 @@ test_that("dependent non-unused variables", {
 })
 
 test_that("delayed non-unused variables", {
+  skip("unused")
   expect_silent(gen <- odin::odin({
     ylag <- delay(y + a, 10)
     initial(y) <- 0.5
@@ -55,6 +61,7 @@ test_that("delayed non-unused variables", {
 })
 
 test_that("dimension names get cleaned", {
+  skip("unused")
   expect_message(
     gen <- odin::odin({
       deriv(y[]) <- y[i] * r[i]
