@@ -576,3 +576,103 @@ test_that("Incomplete user array", {
     odin_parse2_(ex("dim(x) <- user()")),
     "No array assignment found for x")
 })
+
+
+test_that("output name collision", {
+  expect_error(
+    gen <- odin_parse2({
+      deriv(y) <- 1
+      initial(y) <- 1
+      output(y) <- 1
+    }),
+    "same as variable name")
+})
+
+
+test_that("invalid self output", {
+  expect_error(odin_parse2({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- 0.1
+    dim(r) <- 3
+    dim(y) <- 3
+    ## This should fail:
+    output(r[]) <- r
+    output(r[]) <- 1
+  }),
+  "direct output may only be used on a single-line array", fixed = TRUE)
+})
+
+
+test_that("user sized variables not allowed", {
+  expect_error(odin_parse2({
+    deriv(y[]) <- r * y[i]
+    initial(y[]) <- 1
+    r <- 0.1
+    dim(y) <- user()
+  }),
+  "Can't specify user-sized variables")
+})
+
+
+test_that("taking size of non-array variable is an error", {
+  expect_error(odin_parse2({
+    deriv(y) <- 1
+    initial(y) <- 1
+    x <- length(y)
+  }),
+  "argument to length must be an array")
+
+  expect_error(odin_parse2({
+    deriv(y) <- 1
+    initial(y) <- 1
+    x <- dim(y, 2)
+  }),
+  "argument to dim must be an array")
+})
+
+
+test_that("dependent dim never assigned", {
+  ## I have no idea how common this is, but this is to prevent a
+  ## regression.
+  ##
+  ## The issue here is that we say that dim(r) is dependent on dim(y0)
+  ## but we never actually assign it, so we don't *know* that it's a
+  ## 1d array or not.
+  expect_error(
+    gen <- odin_parse2({
+      deriv(y[]) <- y[i] * r[i]
+      initial(y[]) <- y0[i]
+      dim(y) <- length(y0)
+      dim(r) <- length(y0)
+      y0[] <- user()
+      dim(y0) <- user()
+    })
+  , "Array variable r is never assigned; can't work out rank")
+})
+
+
+test_that("more parse errors", {
+  expect_error(odin_parse2({
+    x <- y + b
+    ylag <- delay(x, 10)
+    initial(y) <- 0.5
+    deriv(y) <- y + ylag
+  }), "Missing variable in delay expression: b (for delay ylag)",
+  fixed = TRUE)
+})
+
+
+test_that("user sized dependent variables are allowed", {
+  gen <- odin2({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- user()
+    dim(r) <- user()
+    dim(y) <- length(r)
+  })
+  r <- runif(3)
+  mod <- gen(r = r)
+  expect_identical(mod$contents()$r, r)
+  expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
+})

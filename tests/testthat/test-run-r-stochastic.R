@@ -1,4 +1,4 @@
-context("stochastic")
+context("run: stochastic")
 
 test_that("stochastic", {
   ## Here's a stochastic random walk:
@@ -22,6 +22,7 @@ test_that("stochastic", {
   expect_equal(yy1, yy2)
 })
 
+
 ## I'm not totally sure what the right call is here.  If I make a
 ## variable that is used only in the initial condition I do not want
 ## that repeatedly called during the run.
@@ -42,6 +43,7 @@ test_that("stochastic variables are time dependent", {
   expect_equal(cumsum(c(0, cmp)), yy1[, "x"])
 })
 
+
 test_that("array stochastic variables are time dependent", {
   ## This checks that even in the absence of array indexing on the RHS
   ## array variables are set correctly when stochastic.
@@ -60,6 +62,7 @@ test_that("array stochastic variables are time dependent", {
   cmp <- rbind(0, matrix(rnorm(3 * 20), 20, 3, TRUE))
   expect_equal(zz$x, cmp)
 })
+
 
 test_that("stochastic initial conditions don't get called every step", {
   ## There is quite a few nasty little conditions that are tested
@@ -102,25 +105,6 @@ test_that("stochastic initial conditions don't get called every step", {
   expect_equal(.Random.seed, cmp)
 })
 
-test_that("disallow stochastic functions in ODEs", {
-  ## Here's a stochastic random walk:
-  expect_error(odin2({
-    initial(x) <- 0
-    deriv(x) <- x + norm_rand()
-  }), "Stochastic functions not allowed in ODE models")
-})
-
-## This is not allowed directly, though we may allow some via a two
-## step process perhaps.
-test_that("disallow stochastic functions on array rhs", {
-  expect_error(
-    odin2({
-      initial(x[]) <- 1
-      dim(x) <- 10
-      update(x[runif(1, 10)]) <- 2
-    }, verbose = TEST_VERBOSE),
-    "Invalid array use on lhs")
-})
 
 test_that("exotic stochastic functions", {
   gen <- odin2({
@@ -138,6 +122,7 @@ test_that("exotic stochastic functions", {
   expect_equal(y[-1, "x"], rnorm(10, 1, 2))
 })
 
+
 test_that("round & rbinom", {
   gen <- odin2({
     size <- user()
@@ -151,6 +136,7 @@ test_that("round & rbinom", {
   mod$set_user(p = 1, size = 1.7)
   expect_equal(mod$initial(0), 2)
 })
+
 
 test_that("mutlinomial", {
   skip("library support")
@@ -177,6 +163,7 @@ test_that("mutlinomial", {
   expect_true(TRUE)
 })
 
+
 test_that("replicate: scalar", {
   ## TODO: this will be a nice version to try and benchmark the dde
   ## overheads I think...
@@ -194,6 +181,7 @@ test_that("replicate: scalar", {
   expect_equal(yy[[1]], res[, 1, 1])
   expect_equal(yy[[2]], res[, 2, ])
 })
+
 
 test_that("replicate: array", {
   gen <- odin2({
@@ -216,5 +204,3 @@ test_that("replicate: array", {
   expect_equal(yy[[2]], res[, 2, ])
   expect_equal(yy[[3]], unname(res[, 3:5, ]))
 })
-
-unload_dlls()

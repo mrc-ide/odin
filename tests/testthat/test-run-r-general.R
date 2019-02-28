@@ -1,4 +1,6 @@
-context("odin")
+context("run: general")
+
+## TODO: these should be split up eventually
 
 ## Tests of the approach against some known models.
 test_that("constant model", {
@@ -401,15 +403,6 @@ test_that("mixed", {
                lapply(yy, function(x) if (is.matrix(x)) x[1, ] else x[[1]]))
 })
 
-test_that("output name collision", {
-  expect_error(
-    gen <- odin2({
-      deriv(y) <- 1
-      initial(y) <- 1
-      output(y) <- 1
-    }),
-    "same as variable name")
-})
 
 ## TODO: We're ambiguous with output dim.
 ##
@@ -478,19 +471,6 @@ test_that("output array", {
   expect_equal(zz$r, matrix(0.1, length(tt), 3))
 })
 
-test_that("invalid self output", {
-  expect_error(odin2({
-    deriv(y[]) <- r[i] * y[i]
-    initial(y[]) <- 1
-    r[] <- 0.1
-    dim(r) <- 3
-    dim(y) <- 3
-    ## This should fail:
-    output(r[]) <- r
-    output(r[]) <- 1
-  }, verbose = TEST_VERBOSE),
-  "direct output may only be used on a single-line array", fixed = TRUE)
-})
 
 test_that("use length on rhs", {
   gen <- odin2({
@@ -519,45 +499,6 @@ test_that("use dim on rhs", {
   expect_equal(mod$contents()$initial_y, matrix(1, 3, 4))
 })
 
-test_that("user sized variables not allowed", {
-  expect_error(odin2({
-    deriv(y[]) <- r * y[i]
-    initial(y[]) <- 1
-    r <- 0.1
-    dim(y) <- user()
-  }, verbose = TEST_VERBOSE),
-  "Can't specify user-sized variables")
-})
-
-test_that("user sized dependent variables are allowed", {
-  gen <- odin2({
-    deriv(y[]) <- r[i] * y[i]
-    initial(y[]) <- 1
-    r[] <- user()
-    dim(r) <- user()
-    dim(y) <- length(r)
-  }, verbose = TEST_VERBOSE)
-  r <- runif(3)
-  mod <- gen(r = r)
-  expect_identical(mod$contents()$r, r)
-  expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
-})
-
-test_that("taking size of non-array variable is an error", {
-  expect_error(odin2({
-    deriv(y) <- 1
-    initial(y) <- 1
-    x <- length(y)
-  }, verbose = TEST_VERBOSE),
-  "argument to length must be an array")
-
-  expect_error(odin2({
-    deriv(y) <- 1
-    initial(y) <- 1
-    x <- dim(y, 2)
-  }, verbose = TEST_VERBOSE),
-  "argument to dim must be an array")
-})
 
 ## Ideally we'll end up with all combinations of has array/has scalar
 ## (there are 15 possible combinations though!)
@@ -594,6 +535,7 @@ test_that("transform variables with output", {
   expect_equal(z1$y, real_y[length(tt), ])
   expect_equal(z1$a, real_a[length(tt)])
 })
+
 
 test_that("transform variables without time", {
   gen <- odin2({
@@ -632,6 +574,7 @@ test_that("transform variables without time", {
                "Unexpected size input")
 })
 
+
 test_that("pathalogical array index", {
   gen <- odin2({
     deriv(z) <- y1 + y2 + y3 + y4 + y5
@@ -662,24 +605,6 @@ test_that("pathalogical array index", {
   expect_equal(dat$y5, 5.0)
 })
 
-test_that("dependent dim never assigned", {
-  ## I have no idea how common this is, but this is to prevent a
-  ## regression.
-  ##
-  ## The issue here is that we say that dim(r) is dependent on dim(y0)
-  ## but we never actually assign it, so we don't *know* that it's a
-  ## 1d array or not.
-  expect_error(
-    gen <- odin2({
-      deriv(y[]) <- y[i] * r[i]
-      initial(y[]) <- y0[i]
-      dim(y) <- length(y0)
-      dim(r) <- length(y0)
-      y0[] <- user()
-      dim(y0) <- user()
-    })
-  , "Array variable r is never assigned; can't work out rank")
-})
 
 test_that("two output arrays", {
   gen <- odin2({
@@ -1343,6 +1268,3 @@ test_that("set_user honours constraints", {
   expect_error(mod$set_user(y0 = -1L), "Expected 'y0' to be at least 0")
   expect_error(mod$set_user(r = 100), "Expected 'r' to be at most 10")
 })
-
-
-unload_dlls()

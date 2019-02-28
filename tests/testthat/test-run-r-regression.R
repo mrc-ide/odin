@@ -1,4 +1,4 @@
-context("regression tests")
+context("run: regression")
 
 test_that("bug #78", {
   gen <- odin2({

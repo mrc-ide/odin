@@ -1,4 +1,4 @@
-context("discrete")
+context("run: discrete")
 
 test_that("basic", {
   gen <- odin2({
@@ -173,5 +173,3 @@ test_that("complex initialisation: vector", {
   expect_equal(vv$x2, cmp * 2 + 1)
   expect_equal(mod$contents()$r, cmp * 2)
 })
-
-unload_dlls()

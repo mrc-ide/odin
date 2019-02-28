@@ -1,4 +1,4 @@
-context("odin: ir based generator")
+context("odin: basic")
 
 test_that("trivial model", {
   gen <- odin2({
@@ -605,16 +605,4 @@ test_that("discrete delays: matrix", {
   zz <- mod$transform_variables(yy)
   expect_equal(zz$z[1:3, ,], array(1, c(3, 2, 3)))
   expect_equal(zz$z[4:11, , ], zz$y[1:8, , ])
-})
-
-
-## These all go into the new parsing tests.
-test_that("more parse errors", {
-  expect_error(odin2({
-    x <- y + b
-    ylag <- delay(x, 10)
-    initial(y) <- 0.5
-    deriv(y) <- y + ylag
-  }), "Missing variable in delay expression: b (for delay ylag)",
-  fixed = TRUE)
 })

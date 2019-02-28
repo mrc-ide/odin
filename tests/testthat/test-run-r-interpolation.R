@@ -1,4 +1,4 @@
-context("interpolation")
+context("run: interpolation")
 
 test_that("constant", {
   gen <- odin2({
@@ -43,6 +43,7 @@ test_that("constant", {
   expect_equal(yy[, 2], zz, tolerance = 1e-5)
 })
 
+
 test_that("constant array", {
   gen <- odin2({
     deriv(y[]) <- pulse[i]
@@ -79,6 +80,7 @@ test_that("constant array", {
   expect_equal(yy[, 2], zz1, tolerance = 1e-5)
   expect_equal(yy[, 3], zz2, tolerance = 1e-5)
 })
+
 
 test_that("constant 3d array", {
   gen <- odin2({
@@ -128,6 +130,7 @@ test_that("constant 3d array", {
   expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
 })
 
+
 test_that("linear", {
   gen <- odin2({
     deriv(y) <- pulse
@@ -161,6 +164,7 @@ test_that("linear", {
                "Integration times do not span interpolation range")
 })
 
+
 test_that("spline", {
   gen <- odin2({
     deriv(y) <- pulse
@@ -187,83 +191,6 @@ test_that("spline", {
   expect_equal(yy[, 2], cmp[, 2])
 })
 
-test_that("interpolation parse errors: incorrect array dimension", {
-  expect_error(odin2({
-    deriv(y[]) <- pulse[i]
-    initial(y[]) <- 0
-    ##
-    pulse[] <- interpolate(tp, zp, "constant")
-    ##
-    tp[] <- user()
-    zp[] <- user()
-    dim(tp) <- user()
-    dim(zp) <- user()
-    dim(pulse) <- 2
-    dim(y) <- 2
-  }, verbose = TEST_VERBOSE),
-  "Expected zp to be a 2 dimensional array")
-
-  expect_error(odin2({
-    deriv(y[]) <- pulse[i]
-    initial(y[]) <- 0
-    ##
-    pulse[] <- interpolate(tp, zp, "constant")
-    ##
-    tp[] <- user()
-    zp[,,] <- user()
-    dim(tp) <- user()
-    dim(zp) <- user()
-    dim(pulse) <- 2
-    dim(y) <- 2
-  }, verbose = TEST_VERBOSE),
-  "Expected zp to be a 2 dimensional array")
-
-  expect_error(odin2({
-    deriv(y[]) <- pulse[i]
-    initial(y[]) <- 0
-    ##
-    pulse[] <- interpolate(tp, zp, "constant")
-    ##
-    tp[,] <- user()
-    zp[,] <- user()
-    dim(tp) <- user()
-    dim(zp) <- user()
-    dim(pulse) <- 2
-    dim(y) <- 2
-  }, verbose = TEST_VERBOSE),
-  "Expected tp to be a vector")
-})
-
-test_that("unknown interpolation variable", {
-  expect_error(odin2({
-    deriv(y[]) <- pulse[i]
-    initial(y[]) <- 0
-    ##
-    pulse[] <- interpolate(tp, zp, "constant")
-    ##
-    tp[] <- user()
-    dim(tp) <- user()
-    dim(pulse) <- 2
-    dim(y) <- 2
-  }, verbose = TEST_VERBOSE),
-  "Unknown variable zp")
-})
-
-test_that("interpolation array assignment error", {
-  expect_error(odin2({
-    deriv(y[]) <- pulse[i]
-    initial(y[]) <- 0
-    ##
-    pulse[] <- interpolate(tp, zp, "constant")
-    pulse[2] <- 3
-    ##
-    tp[] <- user()
-    dim(tp) <- user()
-    dim(pulse) <- 2
-    dim(y) <- 2
-  }, verbose = TEST_VERBOSE),
-  "interpolate() may only be used on a single-line array", fixed = TRUE)
-})
 
 test_that("interpolation with two variables", {
   for (type in INTERPOLATION_TYPES) {
@@ -349,5 +276,3 @@ test_that("interpolation in a delay", {
   expect_equal(yy[, "ud"], seq(-2, 8))
   expect_equal(yy[, "u"], seq(0, 10))
 })
-
-unload_dlls()

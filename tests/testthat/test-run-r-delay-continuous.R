@@ -1,4 +1,4 @@
-context("delays")
+context("run: continuous delays")
 
 test_that("mixed delay model", {
   ## I want a model where the components of a delay are an array and a
@@ -68,25 +68,6 @@ test_that("mixed delay model", {
   }
 })
 
-test_that("missing variables in delay", {
-  expect_error(odin2({
-    ylag <- delay(x, 10)
-    initial(y) <- 0.5
-    deriv(y) <- y + ylag
-  }), "Missing variable in delay expression")
-
-  expect_error(odin2({
-    ylag <- delay(x + y, 10)
-    initial(y) <- 0.5
-    deriv(y) <- y + ylag
-  }), "Missing variable in delay expression")
-
-  expect_error(odin2({
-    ylag <- delay(x + z, 10)
-    initial(y) <- 0.5
-    deriv(y) <- y + ylag
-  }), "Missing variables in delay expression")
-})
 
 test_that("use subset of variables", {
   gen <- odin2({
@@ -257,5 +238,3 @@ test_that("delay index packing", {
   expect_equal(yy$foo[8, ],
                yy$b[6, i] + yy$c[6, i + 1] + yy$e[6, i + 2])
 })
-
-unload_dlls()

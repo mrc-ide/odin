@@ -1,3 +1,5 @@
+context("run: discrete delays")
+
 test_that("delays", {
   gen <- odin2({
     initial(y) <- 1
