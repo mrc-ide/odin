@@ -136,3 +136,9 @@ test_that("delay vars that depend on time", {
   expect_equal(yy[, "x"], ifelse(tt < 6, 0, tt - 5))
   expect_equal(yy[, "y"], ifelse(tt < 7, 0, 1))
 })
+
+
+## Looks like we need a dummy test here?
+test_that("dummy", {
+  expect_true(TRUE)
+})
