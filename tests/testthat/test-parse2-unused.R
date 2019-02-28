@@ -1,4 +1,4 @@
-context("parse (unused variables)")
+context("parse: unused variables")
 
 test_that("no unused variables", {
   expect_silent(odin_parse2(quote({

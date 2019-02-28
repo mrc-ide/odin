@@ -1,4 +1,4 @@
-context("parse (config)")
+context("parse: config")
 
 test_that("invalid options", {
   expect_error(odin_parse2("config(a) <- 1;"),
