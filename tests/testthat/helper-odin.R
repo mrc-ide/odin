@@ -27,9 +27,13 @@ r6_private <- function(cl) {
 }
 
 
+odin_target_name <- function(using = NULL) {
+  odin_options(target = using)$target
+}
+
+
 skip_for_target <- function(target, using = NULL) {
-  using <- odin_options(target = using)$target
-  if (target == using) {
+  if (target == odin_target_name(using)) {
     testthat::skip(sprintf("Engine is %s", target))
   }
 }

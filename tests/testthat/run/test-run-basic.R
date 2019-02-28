@@ -310,7 +310,6 @@ test_that("user array", {
 
 
 test_that("user matrix", {
-  skip_for_target("c")
   gen <- odin2({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -323,13 +322,21 @@ test_that("user matrix", {
   mod <- gen(r)
   expect_identical(mod$contents()$r, r)
 
-  msg <- "Expected a numeric array with dimensions 2 * 3 for 'r'"
+  ## TODO: this would be nice to tidy up but it's really tricky to
+  ## throw these errors the same way in C
+  if (odin_target_name() == "r") {
+    msg1 <- msg2 <- "Expected a numeric array with dimensions 2 * 3 for 'r'"
+  } else {
+    msg1 <- "Expected a numeric matrix for 'r'"
+    msg2 <- "Incorrect size of dimension 1 of r (expected 2)"
+  }
 
-  expect_error(gen(c(r)), msg, fixed = TRUE)
-  expect_error(gen(t(r)), msg, fixed = TRUE)
-  expect_error(gen(r[2, 2]), msg, fixed = TRUE)
-  expect_error(gen(array(1, 2:4)), msg, fixed = TRUE)
-  expect_error(gen(1), msg, fixed = TRUE)
+  expect_error(gen(c(r)), msg1, fixed = TRUE)
+  expect_error(gen(r[2, 2]), msg1, fixed = TRUE)
+  expect_error(gen(array(1, 2:4)), msg1, fixed = TRUE)
+  expect_error(gen(1), msg1, fixed = TRUE)
+
+  expect_error(gen(t(r)), msg2, fixed = TRUE)
 })
 
 
