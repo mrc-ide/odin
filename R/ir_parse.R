@@ -815,7 +815,7 @@ ir_parse_expr_rhs <- function(rhs, line, expr, source) {
   if (is_call(rhs, quote(delay))) {
     ir_parse_expr_rhs_delay(rhs, line, expr, source)
   } else if (is_call(rhs, quote(user))) {
-    ir_parse_expr_rhs_user(rhs, line, expr)
+    ir_parse_expr_rhs_user(rhs, line, source)
   } else if (is_call(rhs, quote(interpolate))) {
     ir_parse_expr_rhs_interpolate(rhs, line, source)
   } else {
@@ -869,18 +869,21 @@ ir_parse_expr_rhs_expression <- function(rhs, line, expr, source) {
 }
 
 
-ir_parse_expr_rhs_user <- function(rhs, line, expr) {
-  if (any(!nzchar(names(rhs)[-(1:2)]))) {
-    odin_error("Only first argument to user() may be unnamed", line, expr)
+ir_parse_expr_rhs_user <- function(rhs, line, source) {
+  args <- as.list(rhs[-1L])
+
+  nms <- names(args) %||% rep("", length(args))
+  if (any(!nzchar(nms[-1]))) {
+    ir_odin_error("Only first argument to user() may be unnamed", line, source)
   }
-  ## I'm not sure about expand.dots
+
   m <- match.call(function(default, integer, min, max, ...) NULL, rhs, FALSE)
   extra <- m[["..."]]
   if (!is.null(extra)) {
-    odin_error(sprintf("Unknown %s to user(): %s",
-                       ngettext(length(extra), "argument", "arguments"),
-                       paste(dquote(names(extra))), collapse = ", "),
-               line, expr)
+    ir_odin_error(sprintf("Unknown %s to user(): %s",
+                          ngettext(length(extra), "argument", "arguments"),
+                          paste(squote(names(extra))), collapse = ", "),
+                  line, source)
   }
 
   ## This looks through default, integer, min, max
@@ -891,10 +894,10 @@ ir_parse_expr_rhs_user <- function(rhs, line, expr) {
   ## don't want to relax that until it's clear enough how arrays
   ## get treated here.
   if (length(deps$functions) > 0L) {
-    odin_error("user() call must not use functions", line, expr)
+    ir_odin_error("user() call must not use functions", line, source)
   }
   if (length(deps$variables) > 0L) {
-    odin_error("user() call must not reference variables", line, expr)
+    ir_odin_error("user() call must not reference variables", line, source)
   }
   ## TODO: the 'dim' part here is not actually known yet!
   user <- list(default = m$default,

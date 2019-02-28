@@ -23,8 +23,6 @@ test_that("expression parsing", {
 
   expect_error(odin_parse2(quote(x <- 1 + user(2))),
                "user() must be the only call on the rhs", fixed = TRUE)
-  expect_error(odin_parse2(quote(x <- user(user(2)))),
-               "user() call must not use functions", fixed = TRUE)
 
   expect_error(odin_parse2(quote(y <- deriv(x))),
                "Function deriv is disallowed on rhs")
@@ -136,6 +134,12 @@ test_that("dim lhs must be simple", {
 
 
 test_that("user usage", {
+  expect_error(odin_parse2("x <- user(a, b)"),
+               "Only first argument to user() may be unnamed", fixed = TRUE)
+  expect_error(odin_parse2("x <- user(a, c = 1)"),
+               "Unknown argument to user(): 'c'", fixed = TRUE)
+  expect_error(odin_parse2(quote(x <- user(user(2)))),
+               "user() call must not use functions", fixed = TRUE)
   expect_error(odin_parse2(quote(x <- user(a))),
                "user() call must not reference variables", fixed = TRUE)
 })
