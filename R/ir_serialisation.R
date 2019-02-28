@@ -114,7 +114,7 @@ ir_serialise_data <- function(data) {
       ret["dimnames"] <- list(NULL)
     } else {
       ret$dimnames <- x$dimnames
-      ret$dimnames$length <- ir_expression(x$dimnames$length)
+      ret$dimnames$length <- ir_serialise_expression(x$dimnames$length)
     }
     ret
   }
@@ -122,21 +122,21 @@ ir_serialise_data <- function(data) {
   ## this place and put it in its own block.
   f_variable_contents <- function(x) {
     list(name = scalar(x$name),
-         offset = ir_expression(x$offset),
+         offset = ir_serialise_expression(x$offset),
          initial = scalar(x$initial))
   }
   f_output_contents <- function(x) {
     list(name = scalar(x$name),
-         offset = ir_expression(x$offset))
+         offset = ir_serialise_expression(x$offset))
   }
 
   elements <- lapply(unname(data$elements), f_elements)
 
   variable <- list(
-    length = ir_expression(data$variable$length),
+    length = ir_serialise_expression(data$variable$length),
     contents = lapply(unname(data$variable$contents), f_variable_contents))
   output <- list(
-    length = ir_expression(data$output$length),
+    length = ir_serialise_expression(data$output$length),
     contents = lapply(unname(data$output$contents), f_output_contents))
 
   list(elements = elements,
@@ -200,44 +200,44 @@ ir_serialise_equation_copy <- function(eq) {
 
 
 ir_serialise_equation_expression_scalar <- function(eq) {
-  list(rhs = list(value = ir_expression(eq$rhs$value)))
+  list(rhs = list(value = ir_serialise_expression(eq$rhs$value)))
 }
 
 
 ir_serialise_equation_expression_array <- function(eq) {
   rhs <- function(x) {
     index <- lapply(x$index, function(i)
-      list(value = ir_expression(i$value),
+      list(value = ir_serialise_expression(i$value),
            is_range = scalar(i$is_range),
            index = scalar(i$index)))
-    list(index = index, value = ir_expression(x$value))
+    list(index = index, value = ir_serialise_expression(x$value))
   }
   list(rhs = lapply(eq$rhs, rhs))
 }
 
 
 ir_serialise_equation_user <- function(eq) {
-  list(user = list(default = ir_expression(eq$user$default),
+  list(user = list(default = ir_serialise_expression(eq$user$default),
                    dim = scalar(eq$user$dim),
-                   min = ir_expression(eq$user$min),
-                   max = ir_expression(eq$user$max)))
+                   min = ir_serialise_expression(eq$user$min),
+                   max = ir_serialise_expression(eq$user$max)))
 }
 
 
 ir_serialise_delay_continuous <- function(eq) {
   f_contents <- function(x) {
     list(name = scalar(x$name),
-         offset = ir_expression(x$offset))
+         offset = ir_serialise_expression(x$offset))
   }
   variables <- list(
-    length = ir_expression(eq$delay$variables$length),
+    length = ir_serialise_expression(eq$delay$variables$length),
     contents = lapply(unname(eq$delay$variables$contents), f_contents))
   substitutions <- lapply(eq$delay$substitutions, function(x)
     list(from = scalar(x$from), to = scalar(x$to)))
-  rhs <- list(value = ir_expression(eq$rhs$value))
+  rhs <- list(value = ir_serialise_expression(eq$rhs$value))
   if (!is.null(eq$rhs$index)) {
     rhs$index <- lapply(eq$rhs$index, function(i)
-      list(value = ir_expression(i$value),
+      list(value = ir_serialise_expression(i$value),
            is_range = scalar(i$is_range),
            index = scalar(i$index)))
   }
@@ -249,8 +249,8 @@ ir_serialise_delay_continuous <- function(eq) {
          substitutions = substitutions,
          variables = variables,
          equations = eq$delay$equations,
-         default = ir_expression(eq$delay$default),
-         time = ir_expression(eq$delay$time)))
+         default = ir_serialise_expression(eq$delay$default),
+         time = ir_serialise_expression(eq$delay$time)))
 }
 
 
@@ -260,17 +260,32 @@ ir_serialise_equation_delay_index <- function(eq) {
 
 
 ir_serialise_delay_discrete <- function(eq) {
-  ret <- list(rhs = list(value = ir_expression(eq$rhs$value)),
-              delay = list(ring = scalar(eq$delay$ring),
-                           time = ir_expression(eq$delay$time),
-                           default = ir_expression(eq$delay$default)))
+  ret <- list(rhs = list(value = ir_serialise_expression(eq$rhs$value)),
+              delay = list(
+                ring = scalar(eq$delay$ring),
+                time = ir_serialise_expression(eq$delay$time),
+                default = ir_serialise_expression(eq$delay$default)))
   if (!is.null(eq$rhs$index)) {
     ret$rhs$index <- lapply(eq$rhs$index, function(i)
-      list(value = ir_expression(i$value),
+      list(value = ir_serialise_expression(i$value),
            is_range = scalar(i$is_range),
            index = scalar(i$index)))
   }
   ret
+}
+
+
+ir_serialise_expression <- function(expr) {
+  if (is.symbol(expr)) {
+    jsonlite::unbox(as.character(expr))
+  } else if (is.atomic(expr)) {
+    jsonlite::unbox(expr)
+  } else if (is.call(expr)) {
+    c(list(jsonlite::unbox(as.character(expr[[1L]]))),
+      lapply(expr[-1L], ir_serialise_expression))
+  } else {
+    stop("implement me")
+  }
 }
 
 
