@@ -548,6 +548,16 @@ generate_c_compiled_library <- function(dat) {
              "get_user_array_dim_double")
     }
   }
+
+  used <- unique(unlist(lapply(dat$equations, function(x)
+    x$depends$functions), FALSE, FALSE))
+  if ("%%" %in% used) {
+    v <- c(v, "fmodr")
+  }
+  if ("%/%" %in% used) {
+    v <- c(v, "fintdiv")
+  }
+
   stopifnot(all(v %in% names(lib$declarations)))
   v <- unique(v)
 

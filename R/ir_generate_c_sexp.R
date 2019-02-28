@@ -28,8 +28,14 @@ generate_c_sexp <- function(x, data, meta) {
       ret <- generate_c_sexp(dim, data, meta)
     } else if (fn == "norm_rand") {
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
+    } else if (fn == "log" && length(values) == 2L) {
+      ret <- sprintf("(log(%s) / log(%s))", values[[1L]], values[[2L]])
+    } else if (fn == "min" || fn == "max") {
+      ret <- c_fold_call(paste0("f", fn), values)
     } else {
-      if (!any(names(FUNCTIONS) == fn)) {
+      if (any(names(FUNCTIONS_RENAME) == fn)) {
+        fn <- FUNCTIONS_RENAME[[fn]]
+      } else if (!any(names(FUNCTIONS) == fn)) {
         stop(sprintf("unsupported function '%s'", fn))
       }
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
@@ -44,5 +50,14 @@ generate_c_sexp <- function(x, data, meta) {
     }
   } else if (is.numeric(x)) {
     deparse(x, control = "digits17")
+  }
+}
+
+
+c_fold_call <- function(fn, args) {
+  if (length(args) == 1L) {
+    args[[1L]]
+  } else {
+    sprintf("%s(%s, %s)", fn, args[[1L]], c_fold_call(fn, args[-1]))
   }
 }

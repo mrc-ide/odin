@@ -151,3 +151,20 @@ double* get_user_array_dim_double(SEXP user, const char *name, int rank, int *de
   get_user_array_copy_double(el, name, dest);
   return dest;
 }
+
+// modulo that conforms to (approximately) the same behaviour as R
+double fmodr(double x, double y) {
+  double tmp = fmod(x, y);
+  if (tmp * y < 0) {
+    tmp += y;
+  }
+  return tmp;
+}
+
+// this probably does not need to be done separately (could be
+// inlined) but we'll let the compiler do that for us.  Keeping it out
+// means if I find out that it's really platform dependent we can
+// tweak that here.
+double fintdiv(double x, double y) {
+  return floor(x / y);
+}
