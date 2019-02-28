@@ -1,4 +1,4 @@
-test_that("discrete delays")
+context("discrete delays")
 
 test_that("delays", {
   gen <- odin::odin({
