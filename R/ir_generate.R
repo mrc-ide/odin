@@ -1,5 +1,5 @@
-## These two are temporary!
-odin2 <- function(x, validate = TRUE, verbose = TRUE, target = NULL) {
+## These are temporary!
+odin2 <- function(x, validate = NULL, verbose = NULL, target = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -11,19 +11,20 @@ odin2 <- function(x, validate = TRUE, verbose = TRUE, target = NULL) {
 }
 
 
-odin2_ <- function(x, validate = TRUE, verbose = TRUE, target = NULL) {
-  ir <- odin_parse2(x, validate)
+odin2_ <- function(x, validate = NULL, verbose = NULL, target = NULL) {
+  opts <- odin_options(validate = validate, verbose = verbose, target = target)
+
+  ir <- odin_parse2(x, opts$validate)
   dat <- ir_deserialise(ir)
 
-  target <- target %||% getOption("odin.target", "r")
-  switch(target,
+  switch(opts$target,
          "r" = generate_r(dat),
-         "c" = generate_c(dat),
-         stop(sprintf("Unknown target '%s'", target)))
+         "c" = generate_c(dat, opts$verbose),
+         stop(sprintf("Unknown target '%s'", opts$target)))
 }
 
 
-odin_parse2 <- function(x, validate = TRUE) {
+odin_parse2 <- function(x, validate = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -36,5 +37,13 @@ odin_parse2 <- function(x, validate = TRUE) {
 
 
 odin_parse2_ <- function(x, validate = FALSE) {
-  odin_build_ir2(x, validate = validate)
+  opts <- odin_options(validate = validate)
+  odin_build_ir2(x, validate = opts$validate)
+}
+
+
+odin_options <- function(validate = NULL, verbose = NULL, target = NULL) {
+  list(validate = validate %||% getOption("odin.validate", FALSE),
+       verbose = verbose %||% getOption("odin.verbose", TRUE),
+       target = target %||% getOption("odin.target", "r"))
 }

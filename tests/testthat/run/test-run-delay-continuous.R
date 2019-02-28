@@ -1,4 +1,4 @@
-context("run: continuous delays")
+context("run: %TARGET%: continuous delays")
 
 test_that("mixed delay model", {
   ## I want a model where the components of a delay are an array and a
@@ -33,7 +33,7 @@ test_that("mixed delay model", {
 
     ## And output that for checking
     output(a) <- a
-  }, verbose = TEST_VERBOSE)
+  })
 
   for (i in 1:2) {
     y0 <- runif(3)
@@ -80,7 +80,7 @@ test_that("use subset of variables", {
     ## TODO: output(tmp) <- delay(...) should be ok
     tmp <- delay(b + c, 2)
     output(tmp) <- tmp
-  }, verbose = TEST_VERBOSE)
+  })
 
   tt <- seq(0, 10, length.out = 101)
   mod <- gen()
@@ -111,7 +111,7 @@ test_that("delay array storage", {
 
     ## And output that for checking
     output(a) <- a
-  }, verbose = TEST_VERBOSE)
+  })
 
   for (i in 1:2) {
     y0 <- runif(2 + i)
@@ -148,7 +148,7 @@ test_that("3 arg delay", {
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
     output(ylag) <- ylag
     config(base) <- "delay3"
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0, 3, length.out = 101)
@@ -174,7 +174,7 @@ test_that("3 arg delay with array", {
     tmp[] <- delay(a[i], 2, alt[i])
     dim(tmp) <- length(a)
     output(tmp[]) <- TRUE # or tmp[i]
-  }, verbose = TEST_VERBOSE)
+  })
 
   tt <- seq(0, 2, length.out = 11)
   x <- -runif(5, 2, 3)
@@ -216,7 +216,7 @@ test_that("delay index packing", {
     dim(c) <- 12
     dim(d) <- 13
     dim(e) <- 14
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   dat <- mod$contents()

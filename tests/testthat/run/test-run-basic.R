@@ -1,4 +1,4 @@
-context("odin: basic")
+context("odin: %TARGET%: basic")
 
 test_that("trivial model", {
   gen <- odin2({
@@ -396,6 +396,7 @@ test_that("user array - direct 3d", {
 
 ## NOTE: this is the test from test-interpolation.R
 test_that("interpolation", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -586,6 +587,7 @@ test_that("rich user sized arrays", {
 
 
 test_that("discrete delays: matrix", {
+  skip_for_target("c")
   gen <- odin2({
     initial(y[, ]) <- 1
     update(y[, ]) <- y[i, j] + 1

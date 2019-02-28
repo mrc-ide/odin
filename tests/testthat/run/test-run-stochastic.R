@@ -1,11 +1,11 @@
-context("run: stochastic")
+context("run: %TARGET%: stochastic")
 
 test_that("stochastic", {
   ## Here's a stochastic random walk:
   gen <- odin2({
     initial(x) <- 0
     update(x) <- x + norm_rand()
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- 0:20
@@ -31,7 +31,7 @@ test_that("stochastic variables are time dependent", {
     v <- norm_rand() # this variable is implicitly time dependent.
     initial(x) <- 0
     update(x) <- x + v
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- 0:20
@@ -51,7 +51,7 @@ test_that("array stochastic variables are time dependent", {
     initial(x[]) <- 0
     update(x[]) <- norm_rand()
     dim(x) <- 3
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- 0:20
@@ -71,7 +71,7 @@ test_that("stochastic initial conditions don't get called every step", {
     v <- norm_rand() # this variable is implicitly time dependent.
     initial(x) <- v
     update(x) <- x + 1
-  }, verbose = TEST_VERBOSE)
+  })
 
   cmp <- .Random.seed
   mod <- gen()
@@ -112,7 +112,7 @@ test_that("exotic stochastic functions", {
     mu <- 1
     sd <- 2
     update(x) <- rnorm(mu, sd)
-  }, verbose = TEST_VERBOSE)
+  })
 
   set.seed(1)
   mod <- gen()
@@ -129,7 +129,7 @@ test_that("round & rbinom", {
     p <- user()
     update(x) <- 0
     initial(x) <- rbinom(size, p)
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen(p = 1, size = 0.4)
   expect_equal(mod$initial(0), 0)
@@ -141,11 +141,10 @@ test_that("round & rbinom", {
 test_that("mutlinomial", {
   skip("library support")
   ## This is just a check that these compile and run
-  sir1 <- odin2("stochastic/sir_discrete.R", verbose = TEST_VERBOSE)
-  sir2 <- odin2("stochastic/sir_discrete_stochastic.R", verbose = TEST_VERBOSE)
-  sir3 <- odin2("stochastic/sir_discrete_stochastic2.R", verbose = TEST_VERBOSE)
-  sir4 <- odin2("stochastic/sir_discrete_stochastic_multi.R",
-                verbose = TEST_VERBOSE)
+  sir1 <- odin2("stochastic/sir_discrete.R")
+  sir2 <- odin2("stochastic/sir_discrete_stochastic.R")
+  sir3 <- odin2("stochastic/sir_discrete_stochastic2.R")
+  sir4 <- odin2("stochastic/sir_discrete_stochastic_multi.R")
 
   mod1 <- sir1()
   mod2 <- sir2()
@@ -170,7 +169,7 @@ test_that("replicate: scalar", {
   gen <- odin2({
     initial(x) <- 0
     update(x) <- x + norm_rand()
-  }, verbose = TEST_VERBOSE)
+  })
   m <- gen()
   tt <- 0:50
   res <- m$run(tt, replicate = 100)
@@ -190,7 +189,7 @@ test_that("replicate: array", {
     update(x) <- x + norm_rand()
     update(y[]) <- y[i] + norm_rand() / 2
     dim(y) <- 3
-  }, verbose = TEST_VERBOSE)
+  })
   m <- gen()
 
   tt <- 0:20

@@ -1,4 +1,4 @@
-context("run: general")
+context("run: %TARGET%: general")
 
 ## TODO: these should be split up eventually
 
@@ -7,7 +7,7 @@ test_that("constant model", {
   gen <- odin2({
     deriv(y) <- 0.5
     initial(y) <- 1
-  }, verbose = TEST_VERBOSE)
+  })
   mod <- gen()
   expect_identical(r6_private(mod)$init, 1.0)
   expect_identical(mod$deriv(0.0, r6_private(mod)$init), 0.5)
@@ -27,7 +27,7 @@ test_that("user variables", {
     N0 <- user(1)
     K <- user(100)
     r <- user()
-  }, verbose = TEST_VERBOSE)
+  })
 
   ## Two different errors when r is not provided:
   expect_error(gen(), 'argument "r" is missing')
@@ -63,7 +63,7 @@ test_that("user variables on models with none", {
     a <- 1
     deriv(y) <- 0.5 * a
     initial(y) <- 1
-  }, verbose = TEST_VERBOSE)
+  })
   expect_error(gen(a = 1), "unused argument")
   mod <- gen()
   ## NOTE: This is a change of behaviour, but that's probably OK
@@ -78,7 +78,7 @@ test_that("non-numeric time", {
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-  }, verbose = TEST_VERBOSE)
+  })
   mod <- gen()
   t <- as.integer(0:10)
   expect_equal(mod$initial(t), 0.5)
@@ -90,7 +90,7 @@ test_that("delays and initial conditions", {
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   t <- as.integer(0:10)
@@ -125,7 +125,7 @@ test_that("non-numeric user", {
     N0 <- user(1)
     K <- user(100)
     r <- user()
-  }, verbose = TEST_VERBOSE)
+  })
   mod <- gen(1L)
   expect_is(mod$contents()$r, "numeric")
   expect_identical(mod$contents()$r, 1.0)
@@ -135,7 +135,7 @@ test_that("conditionals", {
   gen <- odin2({
     deriv(x) <- if (x > 2) 0 else 0.5
     initial(x) <- 0
-  }, verbose = TEST_VERBOSE)
+  })
 
   ## Hey ho it works:
   mod <- gen()
@@ -149,7 +149,7 @@ test_that("conditionals, precendence", {
   gen <- odin2({
     deriv(x) <- 0.1 + 2 * if (t > 2) -0.1 else 0.5
     initial(x) <- 0
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   t <- seq(0, 5, length.out = 101)
@@ -167,7 +167,7 @@ test_that("time dependent", {
     N0 <- sqrt(t) + 1
     K <- 100
     r <- 0.5
-  }, verbose = TEST_VERBOSE)
+  })
 
   ## The same model, but taking N0 as a user parameter.
   gen_cmp <- odin2({
@@ -176,7 +176,7 @@ test_that("time dependent", {
     N0 <- user()
     K <- 100
     r <- 0.5
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod_t <- gen_t()
   t0 <- seq(0,  10, length.out = 101)
@@ -192,7 +192,7 @@ test_that("time dependent initial conditions", {
     deriv(y2) <- y1
     initial(y2) <- -1
     output(y1) <- y1
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   t <- seq(0, 2 * pi, length.out = 101)
@@ -209,7 +209,7 @@ test_that("user c", {
     output(z) <- z
     deriv(y) <- z
     initial(y) <- 0
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   t <- seq(0, 3, length.out = 301)
@@ -238,7 +238,7 @@ initial(y) <- 0' -> expr
   expect_error(odin2_(test), "Could not find file 'myfuns.c'")
 
   file.copy("user_fns.c", file.path(dest, "myfuns.c"))
-  gen <- odin2_(test, verbose = TEST_VERBOSE)
+  gen <- odin2_(test)
 
   ## copied from above:
   mod <- gen()
@@ -260,7 +260,7 @@ test_that("time dependent initial conditions", {
     initial(y3) <- y2
     output(y1) <- y1
     output(y2) <- y2
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
 
@@ -288,7 +288,7 @@ test_that("time dependent initial conditions depending on vars", {
 
     deriv(y3) <- y3 * 0.1
     initial(y3) <- y1 + y2
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   expect_equal(mod$initial(0), c(1, 2, 3))
@@ -320,7 +320,7 @@ test_that("unused variable in output", {
     deriv(R) <- gamma2 * I2
 
     output(tot) <- S + E1 + E2 + I1 + I2 + R
-  }, verbose = TEST_VERBOSE)
+  })
   mod <- gen()
   expect_is(mod, "odin_model")
   t <- seq(0, 10, length.out = 100)
@@ -332,7 +332,7 @@ test_that("3d array", {
     initial(y[,,]) <- 1
     deriv(y[,,]) <- y[i,j,k] * 0.1
     dim(y) <- c(2, 3, 4)
-  }, verbose = TEST_VERBOSE)
+  })
   mod <- gen()
   expect_equal(mod$initial(), rep(1.0, 2 * 3 * 4))
 
@@ -361,7 +361,7 @@ test_that("4d array", {
     initial(y[,,,]) <- 1
     deriv(y[,,,]) <- y[i,j,k,l] * 0.1
     dim(y) <- c(2, 3, 4, 5)
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   expect_equal(mod$initial(), rep(1.0, 2 * 3 * 4 * 5))
@@ -381,7 +381,7 @@ test_that("mixed", {
     initial(v[]) <- 1
     dim(v) <- 3
     r <- 0.1
-  }, verbose = TEST_VERBOSE)
+  })
   mod <- gen()
   expect_is(mod, "odin_model")
   t <- seq(0, 10, length.out = 100)
@@ -431,7 +431,7 @@ test_that("output array", {
     output(y2[]) <- y[i] * 2
     ## NOTE: Not dim(output(y2)) [TODO: should we support this?]
     dim(y2) <- 3 # length(y) -- TODO -- should be OK?
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0, 10, length.out = 101)
@@ -456,7 +456,7 @@ test_that("output array", {
     dim(y) <- 3
     ## This should probably be OK, but might need some more trickery...
     output(r[]) <- r
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0, 10, length.out = 101)
@@ -479,7 +479,7 @@ test_that("use length on rhs", {
     r[] <- 0.1
     dim(y) <- 3
     dim(r) <- length(y)
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   expect_equal(mod$contents()$r, rep(0.1, 3))
@@ -492,7 +492,7 @@ test_that("use dim on rhs", {
     r[] <- 0.1
     dim(y) <- c(3, 4)
     dim(r) <- dim(y, 1)
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   expect_equal(mod$contents()$r, rep(0.1, 3))
@@ -512,7 +512,7 @@ test_that("transform variables with output", {
     y0[] <- user()
     dim(y0) <- length(r)
     output(a) <- sum(y)
-  }, verbose = TEST_VERBOSE)
+  })
 
   y0 <- runif(3)
   r <- runif(3)
@@ -547,7 +547,7 @@ test_that("transform variables without time", {
     y0[] <- user()
     dim(y0) <- length(r)
     output(a) <- sum(y)
-  }, verbose = TEST_VERBOSE)
+  })
 
   y0 <- runif(3)
   r <- runif(3)
@@ -595,7 +595,7 @@ test_that("pathalogical array index", {
     y3 <- y[1 + 2] # y[3]
     y4 <- y[a - 1] # y[4]
     y5 <- y[5 + (a - a)] # y[5]
-  }, verbose = TEST_VERBOSE)
+  })
 
   dat <- gen()$contents()
   expect_equal(dat$y1, 1.0)
@@ -616,7 +616,7 @@ test_that("two output arrays", {
     output(yr[]) <- y[i] / i
     dim(yr) <- 3
     output(r[]) <- TRUE
-  }, verbose = TEST_VERBOSE)
+  })
 
   r <- runif(3)
   mod <- gen(r = r)
@@ -640,7 +640,7 @@ test_that("two output arrays", {
     output(yr[]) <- y[i] / y0[i]
     dim(yr) <- length(y0)
     output(r[]) <- TRUE
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod2 <- gen2(y0 = as.numeric(1:3), r = r)
   res <- mod2$run(tt, atol = 1e-8, rtol = 1e-8)
@@ -662,7 +662,7 @@ test_that("non-numeric input", {
     dim(array) <- user()
     array4[,,,] <- user()
     dim(array4) <- user()
-  }, verbose = TEST_VERBOSE)
+  })
 
   scalar <- 1
   vector <- as.numeric(1:3)
@@ -755,7 +755,7 @@ test_that("only used in output", {
     output(ytot) <- tot
     output(y2[]) <- y[i] * 2
     dim(y2) <- length(y)
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0, 10, length.out = 101)
@@ -938,7 +938,7 @@ test_that("self output for scalar", {
     deriv(a) <- 0
     x <- t
     output(x) <- TRUE
-  }, verbose = TEST_VERBOSE)
+  })
 
   tt <- seq(0, 10, length.out = 11)
   expect_equal(gen()$run(tt)[, "x"], tt)
@@ -950,7 +950,7 @@ test_that("non-time sentsitive output", {
     deriv(a) <- 0
     x <- 1
     output(x) <- TRUE
-  }, verbose = TEST_VERBOSE)
+  })
 
   tt <- seq(0, 10, length.out = 11)
   expect_equal(gen()$run(tt)[, "x"], rep(1, length(tt)))
@@ -970,7 +970,7 @@ test_that("logical operations", {
     output(x3) <- t > 8 || t > 1 && t < 3 # should equal x4
     output(x4) <- t > 8 || (t > 1 && t < 3)
     output(x5) <- (t > 8 || t > 1) && t < 3
-  }, verbose = TEST_VERBOSE)
+  })
 
   t <- seq(0, 10, length.out = 101)
   y <- gen()$run(t)
@@ -996,7 +996,7 @@ test_that("integer vector", {
     initial(v[]) <- x[idx[i]] # TODO: fixme
     deriv(v[]) <- 0
     dim(v) <- length(x)
-  }, verbose = TEST_VERBOSE)
+  })
 
   set.seed(1)
   idx <- sample(15)
@@ -1024,7 +1024,7 @@ test_that("integer matrix", {
 
     initial(z) <- 1
     deriv(z) <- 0
-  }, verbose = TEST_VERBOSE)
+  })
 
   x <- runif(10)
   idx <- matrix(sample(length(x), length(x) * 3, replace = TRUE), length(x), 3)
@@ -1043,7 +1043,7 @@ test_that("c in dim for vector", {
     initial(x[]) <- 1
     deriv(x[]) <- 0
     dim(x) <- c(5)
-  }, verbose = TEST_VERBOSE)
+  })
   mod <- gen()
   expect_equal(mod$contents()$initial_x, rep(1.0, 5))
 })
@@ -1060,8 +1060,8 @@ test_that("bounds check", {
     dim(y) <- len
   })
 
-  gen1 <- odin2(expr, verbose = TEST_VERBOSE, safe = FALSE, skip_cache = TRUE)
-  gen2 <- odin2(expr, verbose = TEST_VERBOSE, safe = TRUE, skip_cache = TRUE)
+  gen1 <- odin2(expr, safe = FALSE, skip_cache = TRUE)
+  gen2 <- odin2(expr, safe = TRUE, skip_cache = TRUE)
   r <- rep(1, 5)
 
   mod1 <- gen1(len = length(r), r = r)
@@ -1088,7 +1088,7 @@ test_that("bounds check on set", {
     "deriv(y[])<-r * y[i]",
     "initial(y[1:10])<-1",
     "r<-0.5",
-    "dim(y)<-5"), verbose = TEST_VERBOSE, safe = TRUE)
+    "dim(y)<-5"), safe = TRUE)
   expect_error(gen()$run(tt),
                "Array index 6 is out of bounds [1, 5] while setting initial(y)",
                fixed = TRUE)
@@ -1109,7 +1109,7 @@ test_that("bounds check (2d)", {
 
     r[, ] <- 0.1
     dim(r) <- c(5, 7)
-  }, safe = TRUE, verbose = TEST_VERBOSE)
+  }, safe = TRUE)
 
   expect_silent(res <- gen(5, 7)$run(0:5))
 
@@ -1131,7 +1131,7 @@ test_that("bounds check on set (4d)", {
     "initial(y[,,,]) <- 1",
     "initial(y[1, 4, 1, 6])<-1",
     "r<-0.5",
-    "dim(y)<-c(10, 3, 4, 5)"), verbose = TEST_VERBOSE, safe = TRUE)
+    "dim(y)<-c(10, 3, 4, 5)"), safe = TRUE)
 
   err <- tryCatch(gen(), error = identity)
   expect_is(err, "error")
@@ -1159,7 +1159,7 @@ test_that("user variable information", {
     K <- user(100)
     r[] <- user()
     dim(r) <- 1
-  }, verbose = TEST_VERBOSE)
+  })
 
   info <- coef(gen)
   expect_is(info, "data.frame")
@@ -1179,7 +1179,7 @@ test_that("user variable information - when no user", {
     N0 <- 10
     K <- 100
     r <- 0.1
-  }, verbose = TEST_VERBOSE)
+  })
   info <- coef(gen)
   cmp <- data.frame(name = character(),
                     has_default = logical(),
@@ -1202,7 +1202,7 @@ test_that("format/print", {
     K <- user(100)
     r[] <- user()
     dim(r) <- 1
-  }, verbose = TEST_VERBOSE)
+  })
 
   txt <- capture.output(x <- withVisible(print(gen)))
   expect_match(txt,
@@ -1220,8 +1220,7 @@ test_that("format/print", {
 
 test_that("multiline string", {
   ## Literal multiline string:
-  gen <- odin2(c("deriv(y) <- 0.5", "initial(y) <- 1"),
-               verbose = TEST_VERBOSE)
+  gen <- odin2(c("deriv(y) <- 0.5", "initial(y) <- 1"))
   expect_is(gen(), "odin_model")
 })
 
@@ -1233,7 +1232,7 @@ test_that("user integer", {
     deriv(y) <- 0.5
     initial(y) <- y0
     y0 <- user(1, integer = TRUE, min = 0)
-  }, verbose = TEST_VERBOSE)
+  })
 
   expect_error(gen(y0 = 1.5), "Expected 'y0' to be integer-like")
   expect_error(gen(y0 = -1L), "Expected 'y0' to be at least 0")
@@ -1249,7 +1248,7 @@ test_that("multiple constraints", {
     initial(y) <- y0
     y0 <- user(1, min = 0)
     r <- user(0.5, max = 10)
-  }, verbose = TEST_VERBOSE)
+  })
 
   expect_error(gen(y0 = -1L), "Expected 'y0' to be at least 0")
   expect_error(gen(r = 100), "Expected 'r' to be at most 10")
@@ -1262,7 +1261,7 @@ test_that("set_user honours constraints", {
     initial(y) <- y0
     y0 <- user(1, min = 0)
     r <- user(0.5, max = 10)
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   expect_error(mod$set_user(y0 = -1L), "Expected 'y0' to be at least 0")

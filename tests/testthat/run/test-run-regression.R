@@ -1,4 +1,4 @@
-context("run: regression")
+context("run: %TARGET%: regression")
 
 test_that("bug #78", {
   gen <- odin2({
@@ -11,7 +11,7 @@ test_that("bug #78", {
     initial(I) <- 0
     S0[, ] <- user()
     dim(S0) <- c(n, m)
-  }, verbose = TEST_VERBOSE)
+  })
 
   parameters <- list(S0 = cbind(c(1, 2), c(3, 4)))
   mod <- gen(user = parameters)

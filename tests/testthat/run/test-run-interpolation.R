@@ -1,4 +1,4 @@
-context("run: interpolation")
+context("run: %TARGET%: interpolation")
 
 test_that("constant", {
   gen <- odin2({
@@ -12,7 +12,7 @@ test_that("constant", {
     dim(tp) <- user()
     dim(zp) <- user()
     output(p) <- pulse
-  }, verbose = TEST_VERBOSE)
+  })
 
   ## NOTE: when doing the checks for spanning, the only thing that
   ## matters for constant interpolation is that the *minimum* time
@@ -57,7 +57,7 @@ test_that("constant array", {
     dim(zp) <- user()
     dim(pulse) <- 2
     dim(y) <- 2
-  }, verbose = TEST_VERBOSE)
+  })
 
   tp <- c(0, 1, 2)
   zp <- cbind(c(0, 1, 0),
@@ -96,7 +96,7 @@ test_that("constant 3d array", {
     dim(pulse) <- c(2, 2)
     dim(y) <- c(2, 2)
     config(base) <- "ic2"
-  }, verbose = TEST_VERBOSE)
+  })
 
   ## This is really challenging to even build the 'z' matrix here.
   ## When we go up one more dimension the user is going to enter a
@@ -142,7 +142,7 @@ test_that("linear", {
     zp[] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
-  }, verbose = TEST_VERBOSE)
+  })
 
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
@@ -176,7 +176,7 @@ test_that("spline", {
     zp[] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
-  }, verbose = TEST_VERBOSE)
+  })
 
   tp <- seq(0, pi, length.out = 31)
   zp <- sin(tp)
@@ -210,8 +210,7 @@ test_that("interpolation with two variables", {
         zp2[] <- user()
         dim(tp2) <- user()
         dim(zp2) <- length(tp2)
-      }, list(type = type)),
-      verbose = TEST_VERBOSE)
+      }, list(type = type)))
 
     tp1 <- c(-1, 3)
     zp1 <- c( 0, 1)
@@ -266,7 +265,7 @@ test_that("interpolation in a delay", {
     uy[] <- user()
     dim(ut) <- user()
     dim(uy) <- length(ut)
-  }, verbose = TEST_VERBOSE)
+  })
 
   tt <- seq(0, 10, length.out = 11)
   u <- seq(-10, 20, length.out = 301)

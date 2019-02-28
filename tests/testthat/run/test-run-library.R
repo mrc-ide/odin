@@ -1,11 +1,11 @@
-context("run: library support")
+context("run: %TARGET%: library support")
 
 test_that("abs", {
   gen <- odin2({
     deriv(y) <- 0
     initial(y) <- 0
     output(a) <- abs(t)
-  }, verbose = TEST_VERBOSE)
+  })
   tt <- seq(-5, 5, length.out = 101)
   expect_equal(gen()$run(tt)[, "a"], abs(tt))
 })
@@ -18,7 +18,7 @@ test_that("log", {
     output(a) <- log(t)
     output(b) <- log(t, 2)
     output(c) <- log(t, 10)
-  }, verbose = TEST_VERBOSE)
+  })
   tt <- seq(0.0001, 5, length.out = 101)
   yy <- gen()$run(tt)
   expect_equal(yy[, "a"], log(tt))
@@ -33,7 +33,7 @@ test_that("pow", {
     initial(y) <- 0
     output(a) <- min(t, t^2 - 2, -t)
     output(b) <- max(t, t^2 - 2, -t)
-  }, verbose = TEST_VERBOSE)
+  })
   tt <- seq(0.0001, 5, length.out = 101)
   yy <- gen()$run(tt)
   expect_equal(yy[, "a"], pmin(tt, tt^2 - 2, -tt))
@@ -55,7 +55,7 @@ test_that("%%", {
     output(q2) <- -t %%  q
     output(q3) <-  t %% -q
     output(q4) <- -t %% -q
-  }, verbose = TEST_VERBOSE)
+  })
   tt <- seq(-5, 5, length.out = 101)
   mod <- gen()
   res <- mod$run(tt)
@@ -89,7 +89,7 @@ test_that("%/%", {
     output(q2) <- -t %/%  q
     output(q3) <-  t %/% -q
     output(q4) <- -t %/% -q
-  }, verbose = TEST_VERBOSE)
+  })
   tt <- seq(-5, 5, length.out = 101)
   mod <- gen()
   res <- mod$run(tt)

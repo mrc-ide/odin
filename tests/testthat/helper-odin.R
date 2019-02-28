@@ -1,5 +1,9 @@
 TEST_VERBOSE <- FALSE
 
+options(odin.verbose = FALSE,
+        odin.validate = TRUE,
+        odin.target = NULL)
+
 on_appveyor <- function() {
   identical(Sys.getenv("APPVEYOR"), "True")
 }
@@ -21,3 +25,43 @@ unload_dlls <- function() {
 r6_private <- function(cl) {
   environment(cl$initialize)$private
 }
+
+
+skip_for_target <- function(target, using = NULL) {
+  using <- odin_options(target = using)$target
+  if (target == using) {
+    testthat::skip(sprintf("Engine is %s", target))
+  }
+}
+
+
+prepare_run_tests <- function() {
+  path <- "run"
+  re <- "^test-run-(.*\\.R)$"
+  files <- dir(path, pattern = re)
+  pat <- "%TARGET%"
+
+  targets <- c("r")
+  header_fmt <- "## Automatically generated from %s/%s - do not edit!"
+
+  for (f in files) {
+    txt <- readLines(file.path(path, f))
+    header <- sprintf(header_fmt, path, f)
+
+    if (!grepl(pat, txt[[1]])) {
+      stop("did not find target replacement in ", f)
+    }
+    for (t in targets) {
+      dest <- sprintf("test-run-%s-%s", t, sub(re, "\\1", f))
+      message(sprintf("Writing '%s'", dest))
+      res <- c(header,
+               sprintf('options(odin.target = "%s")', t),
+               gsub(pat, t, txt),
+               "options(odin.target = NULL)")
+      writeLines(res, dest)
+    }
+  }
+}
+
+
+prepare_run_tests()

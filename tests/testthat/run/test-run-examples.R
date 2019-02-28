@@ -1,4 +1,4 @@
-context("run: examples")
+context("run: %TARGET%: examples")
 
 ## TODO: this should all be rewritten
 

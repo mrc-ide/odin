@@ -16,3 +16,4 @@ tests/testthat/eugene
 docs
 *~
 tests/testthat/ir/*.json
+tests/testthat/test-run-*.R

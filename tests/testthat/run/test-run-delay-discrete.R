@@ -1,11 +1,11 @@
-context("run: discrete delays")
+context("run: %TARGET%: discrete delays")
 
 test_that("delays", {
   gen <- odin2({
     initial(y) <- 1
     update(y) <- y + yprev
     yprev <- delay(y, 1)
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
 
@@ -23,7 +23,7 @@ test_that("delays: scalar variable", {
     initial(y) <- 0.2
     x <- delay(y, 2)
     output(x) <- TRUE
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0:20)
@@ -47,7 +47,7 @@ test_that("delays: scalar expression", {
     x <- delay(sum(y) / length(y), 2)
     output(x) <- TRUE
     dim(y) <- 2
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0:20)
@@ -72,7 +72,7 @@ test_that("delays: vector variable", {
     output(x[]) <- TRUE
     dim(y) <- 2
     dim(x) <- 2
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0:20)
@@ -97,7 +97,7 @@ test_that("delays: vector expression", {
     output(x[]) <- TRUE
     dim(x) <- 2
     dim(y) <- 2
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- seq(0:20)
@@ -121,7 +121,7 @@ test_that("delay vars that depend on time", {
     v <- if (step < 5) 0 else 1
     y <- delay(v, 2)
     output(y) <- TRUE
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   tt <- 0:10

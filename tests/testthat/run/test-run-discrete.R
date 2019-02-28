@@ -1,10 +1,10 @@
-context("run: discrete")
+context("run: %TARGET%: discrete")
 
 test_that("basic", {
   gen <- odin2({
     initial(x) <- 1
     update(x) <- x + 1
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   expect_equal(mod$contents(), list(initial_x = 1))
@@ -28,7 +28,7 @@ test_that("output", {
     dim(x) <- length(x0)
     dim(r) <- length(x)
     output(total) <- sum(x)
-  }, verbose = TEST_VERBOSE)
+  })
 
   x0 <- runif(10)
   r <- runif(length(x0))
@@ -52,7 +52,7 @@ test_that("interpolate", {
     zp[] <- user()
     dim(sp) <- user()
     dim(zp) <- length(sp)
-  }, verbose = TEST_VERBOSE)
+  })
 
   sp <- c(0, 10, 20)
   zp <- c(0, 1, 0)
@@ -74,7 +74,7 @@ test_that("use step in model", {
   gen <- odin2({
     initial(x) <- step
     update(x) <- step + 1
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen()
   res <- mod$run(5:10)
@@ -92,7 +92,7 @@ test_that("2d array equations", {
     dim(x0) <- user()
     dim(x) <- c(dim(x0, 1), dim(x0, 2))
     dim(r) <- c(dim(x0, 1), dim(x0, 2))
-  }, verbose = TEST_VERBOSE)
+  })
 
   r <- matrix(runif(10), 2, 5)
   x0 <- matrix(runif(10), 2, 5)
@@ -112,7 +112,7 @@ test_that("complex initialisation: scalar", {
     initial(x2) <- r + 1
     update(x1) <- x1 + r
     update(x2) <- x2 + r
-  }, verbose = TEST_VERBOSE)
+  })
 
   gen2 <- odin2({
     x1_0 <- user()
@@ -121,7 +121,7 @@ test_that("complex initialisation: scalar", {
     initial(x2) <- r + 1
     update(x1) <- x1 + r
     update(x2) <- x2 + r
-  }, verbose = TEST_VERBOSE)
+  })
 
   set.seed(1)
   mod <- gen()
@@ -159,7 +159,7 @@ test_that("complex initialisation: vector", {
     dim(x1) <- 10
     dim(r) <- length(x1)
     dim(x2) <- length(x1)
-  }, verbose = TEST_VERBOSE)
+  })
 
   set.seed(1)
   mod <- gen()
