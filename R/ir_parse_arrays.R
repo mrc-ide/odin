@@ -58,6 +58,10 @@ ir_parse_arrays <- function(eqs, variables, source) {
   ##
   ## dim(x) <- c(dim(a), dim(b))
   f <- function(x) {
+    if (x$type == "user" && !is.null(x$user$default)) {
+      ir_odin_error("Default in user dimension size not handled",
+                    x$source, source)
+    }
     if (x$type == "user" || !(c("length", "dim") %in% x$depends$functions)) {
       character(0)
     } else if (is_dim_or_length(x$rhs$value)) {
@@ -433,47 +437,6 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 
   eqs
 }
-
-
-ir_parse_expr_check_dim <- function(rhs, line, expr) {
-  if (isTRUE(rhs$user)) {
-    stop("writeme")
-    if (isTRUE(rhs$default)) {
-      odin_error("Default in user dimension size not handled", line, expr)
-    }
-    rank <- NULL
-    type <- "user"
-  } else if (is.symbol(rhs$value) || is.numeric(rhs$value)) {
-    rank <- 1L
-    type <- "given"
-  } else if (is_call(rhs$value, "c")) {
-    ## TODO: what about dim(.) <- c(1.2, 3) -- should error
-    ##
-    ## TODO: what about 1 + 2 -- could be OK?
-    ok <- vlapply(as.list(rhs$value[-1L]), function(x)
-      is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
-    if (!all(ok)) {
-      odin_error(
-        "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
-        line, expr)
-    }
-    rank <- length(ok)
-    type <- "given"
-  } else if (is_dim_or_length(rhs$value)) {
-    rank <- NULL
-    type <- "dependent"
-  } else {
-    odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
-               line, expr)
-  }
-  rhs$rank <- rank
-  rhs$type <- type
-  rhs
-}
-
-
-## There is a general issue here that is not yet resolved, in that
-## there might be a DAG of dependencies of ranks.
 
 
 ir_parse_arrays_rank <- function(eq, eqs, variables) {

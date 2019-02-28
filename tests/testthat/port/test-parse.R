@@ -442,8 +442,7 @@ test_that("sums", {
 
 
 test_that("some dim() pathologies", {
-  skip("fixme")
-  expect_error(odin_parse2(ex("dim(a) <- user(1)")),
+  expect_error(odin_parse2(ex("a[] <- user(); dim(a) <- user(1)")),
                "Default in user dimension size not handled")
   expect_error(odin_parse2(ex("dim(a) <- 'foo'")),
                "expected numeric, symbol, user or c")
