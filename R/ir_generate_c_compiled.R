@@ -399,7 +399,7 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
     eqs_initial <- dat$equations[dat$components$initial$equations]
     eqs_initial <- lapply(ir_substitute(eqs_initial, subs),
                           generate_c_equation, dat, rewrite)
-    if (dat$initial_time_dependent && dat$features$has_stochastic) {
+    if (dat$features$initial_time_dependent && dat$features$has_stochastic) {
       eqs_initial <- c("GetRNGstate();", eqs_initial, "PutRNGstate();")
     }
   } else {

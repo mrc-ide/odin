@@ -1,6 +1,7 @@
 context("run: %TARGET%: library support")
 
 test_that("abs", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- 0
     initial(y) <- 0
@@ -12,6 +13,7 @@ test_that("abs", {
 
 
 test_that("log", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- 0
     initial(y) <- 0
@@ -28,6 +30,7 @@ test_that("log", {
 
 
 test_that("pow", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- 0
     initial(y) <- 0
@@ -42,6 +45,7 @@ test_that("pow", {
 
 
 test_that("%%", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- 0
     initial(y) <- 0
@@ -75,6 +79,7 @@ test_that("%%", {
 
 
 test_that("%/%", {
+  skip_for_target("c")
   ## As for %% but with %/%
   gen <- odin2({
     deriv(y) <- 0

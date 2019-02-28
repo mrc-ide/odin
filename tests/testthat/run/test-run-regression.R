@@ -1,6 +1,7 @@
 context("run: %TARGET%: regression")
 
 test_that("bug #78", {
+  skip_for_target("c")
   gen <- odin2({
     n <- 2
     m <- 2

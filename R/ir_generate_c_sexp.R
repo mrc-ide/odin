@@ -29,7 +29,9 @@ generate_c_sexp <- function(x, data, meta) {
     } else if (fn == "norm_rand") {
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     } else {
-      stop(sprintf("unsupported function '%s'", fn))
+      if (!any(names(FUNCTIONS) == fn)) {
+        stop(sprintf("unsupported function '%s'", fn))
+      }
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     }
     ret

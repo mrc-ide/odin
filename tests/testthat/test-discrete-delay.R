@@ -1,3 +1,5 @@
+test_that("discrete delays")
+
 test_that("delays", {
   gen <- odin::odin({
     initial(y) <- 1

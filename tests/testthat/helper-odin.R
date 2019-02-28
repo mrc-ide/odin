@@ -41,7 +41,7 @@ prepare_run_tests <- function() {
   files <- dir(path, pattern = re)
   pat <- "%TARGET%"
 
-  targets <- c("r")
+  targets <- c("r", "c")
   header_fmt <- "## Automatically generated from %s/%s - do not edit!"
 
   for (f in files) {
@@ -62,6 +62,3 @@ prepare_run_tests <- function() {
     }
   }
 }
-
-
-prepare_run_tests()

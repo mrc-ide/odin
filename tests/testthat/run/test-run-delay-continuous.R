@@ -1,6 +1,7 @@
 context("run: %TARGET%: continuous delays")
 
 test_that("mixed delay model", {
+  skip_for_target("c")
   ## I want a model where the components of a delay are an array and a
   ## scalar.  This is going to be a pretty common thing to have, and I
   ## think it will throw up a few corner cases that are worth keeping
@@ -70,6 +71,7 @@ test_that("mixed delay model", {
 
 
 test_that("use subset of variables", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(a) <- 1
     deriv(b) <- 2
@@ -90,6 +92,7 @@ test_that("use subset of variables", {
 })
 
 test_that("delay array storage", {
+  skip_for_target("c")
   gen <- odin2({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -142,6 +145,7 @@ test_that("delay array storage", {
 })
 
 test_that("3 arg delay", {
+  skip_for_target("c")
   gen <- odin2({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
@@ -165,6 +169,7 @@ test_that("3 arg delay", {
 })
 
 test_that("3 arg delay with array", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(a[]) <- i
     initial(a[]) <- (i - 1) / 10
@@ -194,6 +199,7 @@ test_that("3 arg delay with array", {
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
 test_that("delay index packing", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(a[]) <- i
     deriv(b[]) <- i

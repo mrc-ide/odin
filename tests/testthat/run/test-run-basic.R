@@ -310,6 +310,7 @@ test_that("user array", {
 
 
 test_that("user matrix", {
+  skip_for_target("c")
   gen <- odin2({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -489,6 +490,7 @@ test_that("multiple arrays: dynamic", {
 
 
 test_that("multiple output arrays", {
+  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- y[i] * r[i]
     initial(y[]) <- i
@@ -552,6 +554,7 @@ test_that("3d array time dependent and variable", {
 
 
 test_that("rich user arrays", {
+  skip_for_target("c")
   gen <- odin2({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -569,6 +572,7 @@ test_that("rich user arrays", {
 
 
 test_that("rich user sized arrays", {
+  skip_for_target("c")
   gen <- odin2({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
