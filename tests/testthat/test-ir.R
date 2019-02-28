@@ -2,6 +2,9 @@ context("ir")
 
 ## NOTE: this is too harsh a test but might come in useful
 test_that("reference sets are unchanged", {
+  skip_on_travis()
+  skip_on_appveyor()
+  skip_on_cran()
   path <- "ir"
   re_ext <- "\\.json$"
   files <- dir(path, full.names = TRUE, pattern = re_ext)
