@@ -227,6 +227,8 @@ generate_c_compiled_deriv_dde <- function(dat) {
 
 
 generate_c_compiled_rhs_r <- function(dat, rewrite) {
+  discrete <- dat$features$discrete
+  time_access <- if (discrete) "INTEGER" else "REAL"
   body <- collector()
   body$add("SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
           dat$meta$result, dat$meta$state)
@@ -245,9 +247,11 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
     body$add("double *%s = NULL;", dat$meta$output)
   }
 
-  body$add("%s(%s, REAL(%s)[0], REAL(%s), REAL(%s), %s);",
-           dat$meta$c$rhs, dat$meta$internal, dat$meta$time, dat$meta$state,
-           dat$meta$result, dat$meta$output)
+  ## TODO: adding some coercion here would be nice, though it might be
+  ## better on the R side.
+  body$add("%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
+           dat$meta$c$rhs, dat$meta$internal, time_access, dat$meta$time,
+           dat$meta$state, dat$meta$result, dat$meta$output)
   body$add("UNPROTECT(1);")
   body$add("return %s;", dat$meta$result)
 
@@ -265,7 +269,7 @@ generate_c_compiled_update <- function(eqs, dat, rewrite) {
   body <- c_flatten_eqs(c(unpack, eqs[equations]))
 
   args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
-            double = dat$meta$time,
+            "size_t" = dat$meta$time,
             "double *" = dat$meta$state,
             "double *" = dat$meta$result,
             "double *" = dat$meta$output)
