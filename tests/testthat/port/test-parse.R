@@ -371,7 +371,6 @@ test_that("lhs checking", {
   expect_error(odin_parse2(quote(dim() <- 1)),
                "Invalid length special function on lhs")
 
-  skip("these are not yet handled")
   expect_error(odin_parse2(quote(deriv(deriv(a)) <- 1)),
                "Invalid nested lhs function usage")
   expect_error(odin_parse2(quote(deriv(initial(a)) <- 1)),

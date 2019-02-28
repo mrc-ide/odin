@@ -648,7 +648,6 @@ ir_parse_expr_lhs <- function(lhs, line, expr, source) {
     lhs <- lhs[[2L]]
   }
 
-
   name <- ir_parse_expr_check_lhs_name(lhs, special, line, source)
   type <- if (is_array) "expression_array" else "expression_scalar"
 
@@ -752,8 +751,13 @@ ir_parse_expr_check_lhs_name <- function(lhs, special, line, source) {
   ## nested special functions.
   if (is.call(lhs)) {
     fun <- deparse_str(lhs[[1L]])
-    ir_odin_error(sprintf("Unhandled expression %s on lhs", fun),
-                  line, source)
+    if (fun %in% SPECIAL_LHS) {
+      ## no special warning about f(deriv(deriv(x))) but that's ok
+      msg <- sprintf("Invalid nested lhs function usage for %s", fun)
+    } else {
+      msg <- sprintf("Unhandled expression %s on lhs", fun)
+    }
+    ir_odin_error(msg, line, source)
   }
 
   ## things like atomic will raise here: 1 <- 2
