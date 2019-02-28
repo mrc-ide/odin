@@ -182,6 +182,25 @@ test_that("output", {
 })
 
 
+test_that("copy output", {
+  skip_for_target("c")
+  gen <- odin2({
+    deriv(y) <- 1
+    initial(y) <- 1
+    z[] <- t
+    dim(z) <- 5
+    output(z[]) <- TRUE
+  })
+
+  mod <- gen()
+  tt <- 0:10
+  y <- mod$run(tt)
+  yy <- mod$transform_variables(y)
+  expect_equal(yy$y, tt + 1)
+  expect_equal(yy$z, matrix(tt, length(tt), 5))
+})
+
+
 ## Basic discrete models
 test_that("discrete", {
   gen <- odin2({

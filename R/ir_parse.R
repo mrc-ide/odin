@@ -19,10 +19,11 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   features <- ir_parse_features(eqs, source)
 
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
+  output <- ir_parse_find_output(eqs, source)
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
 
-  eqs <- ir_parse_arrays(eqs, variables, source)
+  eqs <- ir_parse_arrays(eqs, variables, output, source)
 
   packing <- ir_parse_packing(eqs, variables, source)
   eqs <- c(eqs, packing$offsets)
@@ -286,6 +287,12 @@ ir_parse_find_variables <- function(eqs, discrete, source) {
   }
 
   unique(unname(vars))
+}
+
+
+ir_parse_find_output <- function(eqs, source) {
+  i <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
+  vcapply(eqs[i], function(x) x$lhs$name_data, USE.NAMES = FALSE)
 }
 
 
