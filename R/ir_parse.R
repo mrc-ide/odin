@@ -850,7 +850,7 @@ ir_parse_expr_rhs_expression <- function(rhs, line, expr, source) {
 
   ## TODO: look at this later, but it's called only for throwing as
   ## side effect for now, so we can clean it up later easily
-  odin_parse_expr_rhs_check_usage(rhs, line, expr)
+  ir_parse_expr_rhs_check_usage(rhs, line, source)
 
   if ("sum" %in% depends$functions) {
     rhs <- ir_parse_expr_rhs_expression_sum(rhs, line, source)
@@ -1436,4 +1436,52 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
   packing <- ir_parse_packing_new(eqs[i], FALSE, eq$name)
 
   list(equations = used_eqs, variables = used_vars, packing = packing)
+}
+
+
+ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
+  len <- c(FUNCTIONS,
+           setNames(FUNCTIONS[FUNCTIONS_RENAME], names(FUNCTIONS_RENAME)))
+
+  throw <- function(...) {
+    ir_odin_error(sprintf(...), line, source)
+  }
+
+  check_usage <- function(x) {
+    if (is.recursive(x)) {
+      fn <- x[[1L]]
+      if (!is.name(fn)) {
+        throw("Cannot process statement")
+      }
+      nm <- deparse(fn)
+
+      n <- len[[nm]]
+      nargs <- length(x) - 1L
+
+      if (length(n) > 1L) {
+        if (nargs < n[[1L]] || nargs > n[[2L]]) {
+          if (is.finite(n[[2L]])) {
+            throw("Expected %d-%d arguments in %s call, but recieved %d",
+                  n[[1L]], n[[2L]], nm, nargs)
+          } else {
+            throw("Expected %d or more arguments in %s call, but recieved %d",
+                  n[[1L]], nm, nargs)
+          }
+        }
+      } else if (!is.null(n) && is.finite(n)) {
+        if (nargs != n) {
+          if (nm == "if") {
+            ## NOTE: slightly different wording here to make the
+            ## problem a little clearer.
+            throw("All if statements must have an else clause")
+          } else {
+            throw("Expected %d %s in %s call, but recieved %d",
+                  n, ngettext(n, "argument", "arguments"), nm, nargs)
+          }
+        }
+      }
+      lapply(as.list(x[-1L]), check_usage)
+    }
+  }
+  check_usage(rhs)
 }
