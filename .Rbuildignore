@@ -16,9 +16,9 @@
 ^ignore$
 ^notes\.md$
 ^issues\.md$
-^update_web\.sh$
 ^tests/testthat/joel$
 ^tests/testthat/eugene$
 ^appveyor\.yml$
 ^\.valgrind_ignore$
 ^docs$
+^scripts$
