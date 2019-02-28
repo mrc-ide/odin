@@ -72,7 +72,15 @@ generate_c_equation_alloc_ring <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_copy <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  x <- dat$data$output$contents[[data_info$name]]
+  target <- c_variable_reference(x, data_info, "output", rewrite)
+  if (data_info$rank == 0L) {
+    sprintf_safe("%s = %s;", target, rewrite(eq$lhs))
+  } else {
+    sprintf_safe("memcpy(%s, %s, %s * sizeof(%s));",
+                 target, rewrite(eq$lhs), rewrite(data_info$dimnames$length),
+                 data_info$storage_type)
+  }
 }
 
 

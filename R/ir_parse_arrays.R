@@ -27,7 +27,7 @@
 ##
 ## The dim() calls get written out as a new group of data elements;
 ## we'll sort that out here too.
-ir_parse_arrays <- function(eqs, variables, output, source) {
+ir_parse_arrays <- function(eqs, variables, source) {
   ir_parse_arrays_check_indices(eqs, source)
   eqs <- ir_parse_arrays_find_integers(eqs, source)
 
@@ -93,7 +93,7 @@ ir_parse_arrays <- function(eqs, variables, output, source) {
   stopifnot(all(dims %in% names(eqs)))
 
   for (eq in eqs[dims]) {
-    eqs <- ir_parse_arrays_collect(eq, eqs, variables, output, source)
+    eqs <- ir_parse_arrays_collect(eq, eqs, variables, source)
   }
 
   for (eq in eqs[vcapply(eqs, "[[", "type") == "copy"]) {
@@ -295,7 +295,7 @@ ir_odin_parse_arrays_check_dim <- function(eq, rank, source) {
 ## We don't currently deal with user-sized arrays at all yet, nor
 ## dependent arrays (dim(x) <- dim(y); and these chains could run
 ## arbitrarily deep).
-ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
+ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
   user_dim <- eq$type == "user"
   if (user_dim) {
     if (eq$lhs$name_data %in% variables) {
@@ -358,6 +358,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
     }
   }
 
+  output <- ir_parse_find_exclusive_output(eqs, source)
   dims <- ir_parse_arrays_dims(eq, rank, variables, output)
 
   ## Eject the original dim() call and add our new equations

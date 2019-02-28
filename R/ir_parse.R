@@ -19,11 +19,10 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   features <- ir_parse_features(eqs, source)
 
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
-  output <- ir_parse_find_output(eqs, source)
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
 
-  eqs <- ir_parse_arrays(eqs, variables, output, source)
+  eqs <- ir_parse_arrays(eqs, variables, source)
 
   packing <- ir_parse_packing(eqs, variables, source)
   eqs <- c(eqs, packing$offsets)
@@ -290,9 +289,24 @@ ir_parse_find_variables <- function(eqs, discrete, source) {
 }
 
 
-ir_parse_find_output <- function(eqs, source) {
+## This is a bit of a faff for now, and finds only *exclusive* output
+## variables.  If we drop the "copy" equation type and always work in
+## place for output variables this will work.  However, for that to
+## work we need special treatment of
+##
+##   output(x[]) <- x[i]
+##
+## because in that case an arbitrary transformation is currently
+## allowed, for example
+##
+##   output(x[]) <- x[i] / 2
+##
+## which is really quite different.
+ir_parse_find_exclusive_output <- function(eqs, source) {
   i <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
-  vcapply(eqs[i], function(x) x$lhs$name_data, USE.NAMES = FALSE)
+  j <- vlapply(eqs, function(x) is.null(x$lhs$special))
+  nms <- vcapply(eqs[i], function(x) x$lhs$name_data, USE.NAMES = FALSE)
+  setdiff(nms, names_if(j))
 }
 
 

@@ -183,7 +183,6 @@ test_that("output", {
 
 
 test_that("copy output", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- 1
     initial(y) <- 1
@@ -516,7 +515,6 @@ test_that("multiple arrays: dynamic", {
 
 
 test_that("multiple output arrays", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- y[i] * r[i]
     initial(y[]) <- i

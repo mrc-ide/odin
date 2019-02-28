@@ -55,6 +55,9 @@ prepare_run_tests <- function() {
     if (!grepl(pat, txt[[1]])) {
       stop("did not find target replacement in ", f)
     }
+    if (any(grepl("\\btarget\\s*=", txt))) {
+      stop("detected leftover manual target setting in ", f)
+    }
     for (t in targets) {
       dest <- sprintf("test-run-%s-%s", t, sub(re, "\\1", f))
       message(sprintf("Writing '%s'", dest))
