@@ -439,62 +439,6 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 }
 
 
-ir_parse_arrays_rank <- function(eq, eqs, variables) {
-  user_dim <- eq$type == "user"
-  if (user_dim) {
-    if (eq$lhs$name_data %in% variables) {
-      odin_error(sprintf("Can't specify user-sized variables (for %s)",
-                         paste(nm[err], collapse = ", ")),
-                 get_lines(tmp), get_exprs(tmp))
-    }
-
-    ## It's an error to use
-    ##   dim(foo) <- user()
-    ## without specifying
-    ##   foo[] <- user()
-    ##   foo[,] <- user()
-    ## etc.
-    eq_data <- eqs[[eq$lhs$name_data]]
-    if (eq_data$type != "user") {
-      odin_error(sprintf("No array assignment found for %s, but dim() found",
-                         pastec(nm[err])),
-                 get_lines(tmp), get_exprs(tmp))
-    }
-
-    rank <- length(eq_data$lhs$index)
-    ## - see odin_parse_arrays_nd
-  } else if (is_dim_or_length(eq$rhs$value)) {
-    ## I think this branch can come out now?
-    ## eq$rhs$value[[2]]
-    ## browser()
-    ## dependent dimensions
-    stop("writeme")
-  } else {
-    if (is.symbol(eq$rhs$value) || is.numeric(eq$rhs$value)) {
-      rank <- 1L
-    } else if (is_call(eq$rhs$value, "c")) {
-      value <- as.list(eq$rhs$value[-1L])
-      ok <- vlapply(value, function(x)
-        is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
-      if (!all(ok)) {
-        odin_error(
-          "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
-          line, expr)
-      }
-      rank <- length(ok)
-      eq$depends$functions <- setdiff(eq$depends$functions, "c")
-      eq$rhs$value <- value
-    } else {
-      odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
-                 line, expr)
-    }
-  }
-  list(user_dim = user_dim,
-       rank = rank,
-       eq = eq)
-}
-
-
 ir_parse_arrays_dims <- function(eq, rank, variables) {
   nm <- eq$lhs$name_data
   user_dim <- eq$type == "user"
@@ -608,7 +552,7 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
               bquote(1:dim(.(target), .(i))))
           }
         }
-        tmp <- lapply(index, odin_parse_expr_lhs_check_index)
+        tmp <- lapply(index, ir_parse_expr_lhs_check_index)
         ok <- vlapply(tmp, as.logical)
         if (!all(ok)) {
           msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"),
@@ -842,4 +786,57 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
 
   check(rhs, NULL)
   invisible(NULL) # never return anything at all.
+}
+
+
+ir_parse_expr_lhs_check_index <- function(x) {
+  seen <- FALSE
+  err <- collector()
+  valid <- setdiff(VALID_ARRAY, ":")
+
+  f <- function(x, max) {
+    if (is.recursive(x)) {
+      nm <- as.character(x[[1L]])
+      if (identical(nm, ":")) {
+        if (seen) {
+          err$add("Multiple calls to ':' are not allowed")
+        } else {
+          seen <<- TRUE
+        }
+        if (max) {
+          f(x[[3L]], max)
+        } else {
+          f(x[[2L]], max)
+        }
+      } else {
+        if (nm == "-" && length(x) == 2L) {
+          err$add("Unary minus invalid in array calculation")
+        } else if (!(nm %in% valid)) {
+          err$add(paste("Invalid function in array calculation",
+                        as.character(nm)))
+        }
+        as.call(c(list(x[[1L]]), lapply(x[-1L], f, max)))
+      }
+    } else {
+      x
+    }
+  }
+  g <- function(x) {
+    if (is.recursive(x) && identical(x[[1]], quote(`(`))) x[[2L]] else x
+  }
+
+  value_max <- f(x, TRUE)
+  if (seen) { # check minimum branch
+    seen <- FALSE
+    value_min <- f(x, FALSE)
+  } else {
+    value_min <- NULL
+  }
+
+  x <- unique(err$get())
+  if (length(x) == 0L) {
+    structure(TRUE, value_max = g(value_max), value_min = f(value_min))
+  } else {
+    structure(FALSE, message = x)
+  }
 }

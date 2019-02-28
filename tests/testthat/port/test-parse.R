@@ -251,21 +251,21 @@ test_that("RHS array checking", {
 })
 
 test_that("lhs array checking", {
-  res <- odin_parse_expr_lhs_check_index(quote(a + (2:(n-3) - 4) + z))
+  res <- ir_parse_expr_lhs_check_index(quote(a + (2:(n-3) - 4) + z))
   expect_true(res)
   expect_equal(attr(res, "value_max"), quote(a + ((n-3) - 4) + z))
   expect_equal(attr(res, "value_min"), quote(a + (2 - 4) + z))
 
-  res <- odin_parse_expr_lhs_check_index(quote(a))
+  res <- ir_parse_expr_lhs_check_index(quote(a))
   expect_true(res)
   expect_equal(attr(res, "value_max"), quote(a))
   expect_null(attr(res, "value_min"))
 
-  expect_false(odin_parse_expr_lhs_check_index(quote(a:b + c:d)))
-  expect_false(odin_parse_expr_lhs_check_index(quote(-(a:b))))
-  expect_false(odin_parse_expr_lhs_check_index(quote((a:b):c)))
-  expect_false(odin_parse_expr_lhs_check_index(quote(c:(a:b))))
-  expect_false(odin_parse_expr_lhs_check_index(quote((-a))))
+  expect_false(ir_parse_expr_lhs_check_index(quote(a:b + c:d)))
+  expect_false(ir_parse_expr_lhs_check_index(quote(-(a:b))))
+  expect_false(ir_parse_expr_lhs_check_index(quote((a:b):c)))
+  expect_false(ir_parse_expr_lhs_check_index(quote(c:(a:b))))
+  expect_false(ir_parse_expr_lhs_check_index(quote((-a))))
 })
 
 test_that("sum rewriting", {

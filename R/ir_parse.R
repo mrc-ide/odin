@@ -736,7 +736,7 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
   ## TODO: Consider looking for, and warning about (1:x - 1)
   ## rather than (1:x) - 1 as that will imply a negative length
   ## array.  Or we can look for the minimum value being negative.
-  tmp <- lapply(index, odin_parse_expr_lhs_check_index)
+  tmp <- lapply(index, ir_parse_expr_lhs_check_index)
   ok <- vlapply(tmp, as.logical)
   if (all(ok)) {
     extent_max <- lapply(tmp, attr, "value_max", exact = TRUE)
