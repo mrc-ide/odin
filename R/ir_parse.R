@@ -559,8 +559,8 @@ ir_parse_exprs <- function(exprs) {
 
 
 ir_parse_expr <- function(expr, line, source) {
-  lhs <- ir_parse_expr_lhs(expr[[2L]], line, expr, source)
-  rhs <- ir_parse_expr_rhs(expr[[3L]], line, expr, source)
+  lhs <- ir_parse_expr_lhs(expr[[2L]], line, source)
+  rhs <- ir_parse_expr_rhs(expr[[3L]], line, source)
   depends <- join_deps(list(lhs$depends, rhs$depends))
   rhs$depends <- NULL
 
@@ -644,7 +644,7 @@ ir_parse_expr <- function(expr, line, source) {
 }
 
 
-ir_parse_expr_lhs <- function(lhs, line, expr, source) {
+ir_parse_expr_lhs <- function(lhs, line, source) {
   is_special <- is_array <- FALSE
   special <- index <- depends <- NULL
 
@@ -811,20 +811,20 @@ ir_parse_expr_check_lhs_name <- function(lhs, special, line, source) {
 
 
 ## TODO: the 'expr' part here needs to come out entirely
-ir_parse_expr_rhs <- function(rhs, line, expr, source) {
+ir_parse_expr_rhs <- function(rhs, line, source) {
   if (is_call(rhs, quote(delay))) {
-    ir_parse_expr_rhs_delay(rhs, line, expr, source)
+    ir_parse_expr_rhs_delay(rhs, line, source)
   } else if (is_call(rhs, quote(user))) {
     ir_parse_expr_rhs_user(rhs, line, source)
   } else if (is_call(rhs, quote(interpolate))) {
     ir_parse_expr_rhs_interpolate(rhs, line, source)
   } else {
-    ir_parse_expr_rhs_expression(rhs, line, expr, source)
+    ir_parse_expr_rhs_expression(rhs, line, source)
   }
 }
 
 
-ir_parse_expr_rhs_expression <- function(rhs, line, expr, source) {
+ir_parse_expr_rhs_expression <- function(rhs, line, source) {
   depends <- find_symbols(rhs)
   err <- intersect(setdiff(SPECIAL_LHS, "dim"), depends$functions)
   if (length(err) > 0L) {
@@ -945,9 +945,7 @@ ir_parse_expr_rhs_interpolate <- function(rhs, line, source) {
 }
 
 
-ir_parse_expr_rhs_delay <- function(rhs, line, expr, source) {
-  ## TODO: do we get sensible errors here with missing args, extra args, etc?
-  ## m <- match.call(function(expr, by, default = NULL) NULL, rhs, FALSE)
+ir_parse_expr_rhs_delay <- function(rhs, line, source) {
   na <- length(rhs) - 1L
   if (na < 2L || na > 3L) {
     ir_odin_error("delay() requires two or three arguments",
@@ -957,7 +955,7 @@ ir_parse_expr_rhs_delay <- function(rhs, line, expr, source) {
   delay_expr <- rhs[[2L]]
   delay_time <- rhs[[3L]]
   if (na == 3L) {
-    delay_default <- ir_parse_expr_rhs(rhs[[4L]], line, expr, source)
+    delay_default <- ir_parse_expr_rhs(rhs[[4L]], line, source)
   } else {
     delay_default <- NULL
   }
