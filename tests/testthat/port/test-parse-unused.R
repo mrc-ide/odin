@@ -1,69 +1,61 @@
 context("parse (unused variables)")
 
 test_that("no unused variables", {
-  skip("unused")
-  expect_silent(odin::odin({
+  expect_silent(odin_parse2(quote({
     deriv(y) <- 1
     initial(y) <- 0
-  }, verbose = TEST_VERBOSE, build = FALSE))
+  })))
 })
 
 test_that("one unused variable", {
-  skip("unused")
-  expect_message(odin::odin({
+  expect_message(odin_parse2(quote({
     deriv(y) <- 1
     initial(y) <- 0
     a <- 1
-  }, verbose = TEST_VERBOSE, build = FALSE),
-  "Unused variable: a")
+  })), "Unused equation: a")
 })
 
 test_that("more than one unused variable", {
-  skip("unused")
-  expect_message(odin::odin({
+  expect_message(odin_parse2(quote({
     deriv(y) <- 1
     initial(y) <- 0
     a <- 1
     b <- 2
-  }, verbose = TEST_VERBOSE, build = FALSE),
-  "Unused variables: a, b")
+  })),
+  "Unused equations: a, b")
 })
 
 test_that("dependent unused variables", {
-  skip("unused")
-  expect_message(odin::odin({
+  expect_message(odin_parse2(quote({
     deriv(y) <- 1
     initial(y) <- 0
     a <- 1
     b <- a * 2
-  }, verbose = TEST_VERBOSE, build = FALSE),
-  "Unused variables: a, b")
+  })),
+  "Unused equations: a, b")
 })
 
 test_that("dependent non-unused variables", {
-  skip("unused")
-  expect_silent(odin::odin({
+  expect_silent(odin_parse2(quote({
     deriv(y) <- b
     initial(y) <- 0
     a <- 1
     b <- a * 2
-  }, verbose = TEST_VERBOSE, build = FALSE))
+  })))
 })
 
 test_that("delayed non-unused variables", {
-  skip("unused")
-  expect_silent(gen <- odin::odin({
+  expect_silent(odin_parse2(quote({
     ylag <- delay(y + a, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
     a <- 1
-  }, verbose = TEST_VERBOSE, build = FALSE))
+  })))
 })
 
 test_that("dimension names get cleaned", {
-  skip("unused")
   expect_message(
-    gen <- odin::odin({
+    odin_parse2(quote({
       deriv(y[]) <- y[i] * r[i]
       initial(y[]) <- i + 1
       y0[] <- i + 1
@@ -75,6 +67,5 @@ test_that("dimension names get cleaned", {
       dim(yr) <- 3
       output(r[]) <- TRUE
       config(base) <- "mod"
-    }, verbose = TEST_VERBOSE, build = FALSE),
-    "Unused variable: y0")
+    })), "Unused equation: y0")
 })

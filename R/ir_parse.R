@@ -75,7 +75,7 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
   }
 
   components <- ir_parse_components(eqs, dependencies, variables, stage,
-                                    features$discrete)
+                                    features$discrete, source)
   equations <- ir_parse_equations(eqs)
 
   ## TODO: it's a bit unclear where this best belongs
@@ -474,7 +474,7 @@ ir_parse_features <- function(eqs, source) {
 
 
 ir_parse_components <- function(eqs, dependencies, variables, stage,
-                                discrete) {
+                                discrete, source) {
   eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
   eqs_user <- intersect(names_if(stage == STAGE_USER), names(eqs))
   eqs_time <- intersect(names_if(stage == STAGE_TIME), names(eqs))
@@ -497,6 +497,30 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     identical(x$lhs$special, "initial")))
   v <- unique(c(initial, unlist(dependencies[initial], use.names = FALSE)))
   eqs_initial <- intersect(eqs_time, v)
+
+  type <- vcapply(eqs, "[[", "type")
+  core <- unique(c(initial, rhs, output, eqs_initial, eqs_rhs, eqs_output))
+
+  used_in_delay <- unlist(lapply(eqs[type == "delay_continuous"], function(x)
+    x$delay$depends$variables), FALSE, FALSE)
+  core <- union(core, used_in_delay)
+  ignore <- c("config", "null", "delay_index", "alloc")
+  core <- c(core, names(eqs)[type %in% ignore])
+
+  used <- unique(c(core, unlist(dependencies[core], FALSE, FALSE)))
+  unused <- setdiff(names(eqs), used)
+
+  if (length(unused) > 0L) {
+    ## NOTE: at this point it would be nicest to unravel the
+    ## dependency graph a bit to find the variables that are really
+    ## never used; these are the ones that that the others come from.
+    ## But at this point all of these can be ripped out so we'll just
+    ## report them all:
+    what <- ngettext(length(unused), "equation", "equations")
+    ir_odin_note(sprintf("Unused %s: %s",
+                         what, paste(sort(unused), collapse = ", ")),
+                 ir_get_lines(eqs[unused]), source)
+  }
 
   list(
     create = list(variables = character(0), equations = eqs_constant),
@@ -1087,6 +1111,13 @@ ir_odin_error <- function(msg, line, source) {
 }
 
 
+ir_odin_note <- function(msg, line, source) {
+  announce <- .odin$note_function %||% function(x) message(x$message)
+  ret <- ir_odin_info_data(msg, unique(line), source, "message")
+  announce(ret)
+}
+
+
 ir_odin_info_data <- function(msg, line, source, type) {
   if (length(line) > 0L) {
     expr <- source[line]
@@ -1302,7 +1333,8 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
                        contents = graph$packing$contents),
       equations = graph$equations,
       default = eq$delay$default,
-      time = eq$delay$time),
+      time = eq$delay$time,
+      depends = eq$delay$depends),
     array = eq$array)
 
   array <- list(dimnames = list(length = nm_dim, dim = NULL, mult = NULL),
