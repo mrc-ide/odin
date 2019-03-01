@@ -8,12 +8,8 @@ generate_c_sexp <- function(x, data, meta) {
     if (fn == "(") {
       ret <- sprintf("(%s)", values[[1]])
     } else if (fn == "[") {
-      if (is.numeric(args[[2L]])) {
-        index <- generate_c_sexp(args[[2L]] - 1L, data, meta)
-      } else {
-        index <- sprintf("%s - 1", values[[2L]])
-      }
-      ret <- sprintf("%s[%s]", values[[1]], index)
+      pos <- c_array_access(args[[1L]], args[-1], data, meta)
+      ret <- sprintf("%s[%s]", values[[1L]], pos)
     } else if (n == 2L && fn %in% FUNCTIONS_INFIX) {
       fmt <- switch(fn,
                     "/" = "%s %s (double) %s",
@@ -60,4 +56,32 @@ c_fold_call <- function(fn, args) {
   } else {
     sprintf("%s(%s, %s)", fn, args[[1L]], c_fold_call(fn, args[-1]))
   }
+}
+
+
+## See: generate_r_equation_array_lhs
+c_array_access <- function(target, index, data, meta) {
+  rewrite <- function(x) {
+    generate_c_sexp(x, data, meta)
+  }
+
+  minus1 <- function(x, protect = TRUE) {
+    if (is.numeric(x)) {
+      x - 1L
+    } else {
+      sprintf(if (protect) "(%s - 1)" else "%s - 1", rewrite(x))
+    }
+  }
+
+  mult <- data$elements[[target]]$dimnames$mult
+
+  f <- function(i) {
+    if (i == 1) {
+      minus1(index[[i]], FALSE)
+    } else {
+      sprintf("%s * %s", rewrite(mult[[i]]), minus1(index[[i]]))
+    }
+  }
+
+  paste(vcapply(rev(seq_along(index)), f), collapse = " + ")
 }

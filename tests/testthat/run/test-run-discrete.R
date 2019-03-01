@@ -87,11 +87,9 @@ test_that("use step in model", {
 
 ## This is to avoid a regression with array_dim_name
 test_that("2d array equations", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x[,]) <- x0[i, j]
     update(x[,]) <- x[i, j] + r[i, j]
-    ## dim(x) <- dim(x0) # TODO: this would be nice; expanding to dim(x0, 1, ...
     x0[,] <- user()
     r[,] <- user()
     dim(x0) <- user()
@@ -104,6 +102,9 @@ test_that("2d array equations", {
 
   mod <- gen(x0 = x0, r = r)
   yy <- mod$run(0:10)
+
+  expect_equal(mod$contents()$x0, x0)
+  expect_equal(matrix(mod$initial(0), 2, 5), x0)
 
   expect_equal(unname(diff(yy)[1, ]), c(1, c(r)))
   expect_equal(unname(diff(yy)[10, ]), c(1, c(r)))
