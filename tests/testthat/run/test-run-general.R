@@ -429,7 +429,6 @@ test_that("mixed", {
 ##
 ## (1) A new array:
 test_that("output array", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
@@ -457,7 +456,6 @@ test_that("output array", {
 
 ## (2) An existing array
 test_that("output array", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
@@ -513,7 +511,6 @@ test_that("use dim on rhs", {
 ## Ideally we'll end up with all combinations of has array/has scalar
 ## (there are 15 possible combinations though!)
 test_that("transform variables with output", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
@@ -533,23 +530,15 @@ test_that("transform variables with output", {
   real_y <- t(y0 * exp(outer(r, tt)))
   real_a <- rowSums(real_y)
 
-  yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
+  y <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
+  yy <- mod$transform_variables(y)
 
-  ## The actual data is correct:
-  expect_equal(unname(yy[, 2:4]), real_y)
-  expect_equal(yy[, 5], real_a)
-
-  zz <- mod$transform_variables(yy)
-  expect_equal(zz$a, real_a)
-
-  z1 <- mod$transform_variables(yy[length(tt),])
-  expect_equal(z1$y, real_y[length(tt), ])
-  expect_equal(z1$a, real_a[length(tt)])
+  expect_equal(yy$y, real_y)
+  expect_equal(yy$a, real_a)
 })
 
 
 test_that("transform variables without time", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
@@ -620,7 +609,6 @@ test_that("pathalogical array index", {
 
 
 test_that("two output arrays", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- y[i] * r[i]
     initial(y[]) <- i
@@ -758,7 +746,6 @@ test_that("non-numeric input", {
 })
 
 test_that("only used in output", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1

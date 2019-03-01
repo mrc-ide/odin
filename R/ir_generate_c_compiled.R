@@ -561,6 +561,9 @@ generate_c_compiled_library <- function(dat) {
   if ("%/%" %in% used) {
     v <- c(v, "fintdiv")
   }
+  if ("sum" %in% used) {
+    v <- c(v, "odin_sum1")
+  }
 
   stopifnot(all(v %in% names(lib$declarations)))
   v <- unique(v)

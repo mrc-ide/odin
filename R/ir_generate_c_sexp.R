@@ -36,6 +36,8 @@ generate_c_sexp <- function(x, data, meta) {
       ret <- sprintf("(log(%s) / log(%s))", values[[1L]], values[[2L]])
     } else if (fn == "min" || fn == "max") {
       ret <- c_fold_call(paste0("f", fn), values)
+    } else if (fn == "sum" || fn == "odin_sum") {
+      ret <- generate_c_sexp_sum(args, data, meta)
     } else {
       if (any(names(FUNCTIONS_RENAME) == fn)) {
         fn <- FUNCTIONS_RENAME[[fn]]
@@ -54,6 +56,21 @@ generate_c_sexp <- function(x, data, meta) {
     }
   } else if (is.numeric(x)) {
     deparse(x, control = "digits17")
+  }
+}
+
+
+generate_c_sexp_sum <- function(args, data, meta) {
+  target <- generate_c_sexp(args[[1]], data, meta)
+  data_info <- data$elements[[args[[1]]]]
+  if (length(args) == 1L) {
+    len <- generate_c_sexp(data_info$dimnames$length, data, meta)
+    sprintf("odin_sum1(%s, 0, %s - 1)", target, len)
+  } else {
+    stop("writeme")
+    ## message(odin_generate2_sum(2)$definitions)
+    n <- (length(args) - 1L) / 2
+    sprintf("odin_sum%d(%s, %s)", n, target, args_str)
   }
 }
 
