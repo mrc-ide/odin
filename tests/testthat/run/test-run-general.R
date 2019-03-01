@@ -939,7 +939,6 @@ test_that("sum for a 4d array", {
 })
 
 test_that("self output for scalar", {
-  skip_for_target("c")
   gen <- odin2({
     initial(a) <- 1
     deriv(a) <- 0
@@ -952,7 +951,6 @@ test_that("self output for scalar", {
 })
 
 test_that("non-time sentsitive output", {
-  skip_for_target("c")
   gen <- odin2({
     initial(a) <- 1
     deriv(a) <- 0
