@@ -4,6 +4,8 @@ generate_c_class <- function(core, dll, dat) {
     loadNamespace("cinterpolate")
   }
 
+  ## TODO: here, and in the R version, we need to swap the name of t
+  ## and step for initial
   if (dat$features$initial_time_dependent) {
     set_user <- function(..., user = list(...)) {
       .Call(private$core$set_user, private$ptr, user)
@@ -30,9 +32,11 @@ generate_c_class <- function(core, dll, dat) {
       if (private$delay) {
         stop("Can't call update() on delay models")
       }
-      .Call(private$core$rhs_r, private$ptr, step, y, PACKAGE = private$dll)
+      .Call(private$core$rhs_r, private$ptr, as.integer(step), as.numeric(y),
+            PACKAGE = private$dll)
     }
     run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
+      step <- as.integer(step)
       if (is.null(y)) {
         y <- self$initial(step)
       }
