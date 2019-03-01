@@ -10,6 +10,14 @@ generate_c_sexp <- function(x, data, meta) {
     } else if (fn == "[") {
       pos <- c_array_access(args[[1L]], args[-1], data, meta)
       ret <- sprintf("%s[%s]", values[[1L]], pos)
+    } else if (fn == "if") {
+      ## NOTE: The ternary operator has very low precendence, so I'm
+      ## going to agressively parenthesise it.  This is strictly not
+      ## needed when this expression is the only element of `expr` but
+      ## that's hard to detect so we'll tolerate a few additional
+      ## parens for now.
+      ret <- sprintf("(%s ? %s : %s)",
+                     values[[1L]], values[[2L]], values[[3L]])
     } else if (n == 2L && fn %in% FUNCTIONS_INFIX) {
       fmt <- switch(fn,
                     "/" = "%s %s (double) %s",

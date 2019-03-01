@@ -135,7 +135,6 @@ test_that("non-numeric user", {
 })
 
 test_that("conditionals", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(x) <- if (x > 2) 0 else 0.5
     initial(x) <- 0
@@ -150,7 +149,6 @@ test_that("conditionals", {
 })
 
 test_that("conditionals, precendence", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(x) <- 0.1 + 2 * if (t > 2) -0.1 else 0.5
     initial(x) <- 0
