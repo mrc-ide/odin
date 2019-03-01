@@ -1,3 +1,6 @@
+## TODO: we should use getNativeSymbolInfo here for faster and more
+## accurate lookup of symbols.  For now, all .Call statements need a
+## PACKAGE argument.
 generate_c_class <- function(core, dll, dat) {
   self <- private <- NULL # quieten global check: R6 adds these later
   if (dat$features$has_interpolate) {
@@ -8,17 +11,19 @@ generate_c_class <- function(core, dll, dat) {
   ## and step for initial
   if (dat$features$initial_time_dependent) {
     set_user <- function(..., user = list(...)) {
-      .Call(private$core$set_user, private$ptr, user)
+      .Call(private$core$set_user, private$ptr, user, PACKAGE = private$dll)
       private$update_metadata()
     }
     initial <- function(t) {
-      .Call(private$core$initial_conditions, private$ptr, t)
+      .Call(private$core$initial_conditions, private$ptr, t,
+            PACKAGE = private$dll)
     }
   } else {
     set_user <- function(..., user = list(...)) {
-      .Call(private$core$set_user, private$ptr, user)
+      .Call(private$core$set_user, private$ptr, user, PACKAGE = private$dll)
       private$init <-
-        .Call(private$core$initial_conditions, private$ptr, NA_real_)
+        .Call(private$core$initial_conditions, private$ptr, NA_real_,
+              PACKAGE = private$dll)
       private$update_metadata()
     }
     initial <- function(t) {
@@ -118,7 +123,7 @@ generate_c_class <- function(core, dll, dat) {
       n_out = NULL,
 
       update_metadata = function() {
-        meta <- .Call(private$core$metadata, private$ptr)
+        meta <- .Call(private$core$metadata, private$ptr, PACKGE = private$dll)
         private$variable_order <- meta$variable_order
         private$output_order <- meta$output_order
         private$n_out <- meta$n_out

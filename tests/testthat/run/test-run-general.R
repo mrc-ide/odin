@@ -163,7 +163,6 @@ test_that("conditionals, precendence", {
 })
 
 test_that("time dependent", {
-  skip_for_target("c")
   ## A time dependent initial condition:
   gen_t <- odin2({
     deriv(N) <- r * N * (1 - N / K)
@@ -183,6 +182,9 @@ test_that("time dependent", {
   })
 
   mod_t <- gen_t()
+  expect_equal(mod_t$initial(0), 1)
+  expect_equal(mod_t$initial(10), sqrt(10) + 1)
+
   t0 <- seq(0,  10, length.out = 101)
   t1 <- seq(10, 10, length.out = 101)
 
@@ -191,7 +193,6 @@ test_that("time dependent", {
 })
 
 test_that("time dependent initial conditions", {
-  skip_for_target("c")
   gen <- odin2({
     y1 <- sin(t)
     deriv(y2) <- y1
@@ -260,7 +261,6 @@ initial(y) <- 0' -> expr
 })
 
 test_that("time dependent initial conditions", {
-  skip_for_target("c")
   gen <- odin2({
     y1 <- cos(t)
     y2 <- y1 * (1 + t)
