@@ -670,7 +670,11 @@ ir_substitute1 <- function(eq, substitutions) {
   from <- names(substitutions)
   if (any(from %in% eq$depends$variables)) {
     if (eq$type == "expression_array") {
-      eq$rhs$value <- lapply(eq$rhs$value, ir_substitute_sexpr, substitutions)
+      f <- function(x) {
+        x$value <- ir_substitute_sexpr(x$value, substitutions)
+        x
+      }
+      eq$rhs <- lapply(eq$rhs, f)
     } else {
       eq$rhs$value <- ir_substitute_sexpr(eq$rhs$value, substitutions)
     }

@@ -151,7 +151,6 @@ test_that("complex initialisation: scalar", {
 })
 
 test_that("complex initialisation: vector", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x1[]) <- norm_rand()
     r[] <- x1[i] * 2
