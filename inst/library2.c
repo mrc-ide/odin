@@ -172,7 +172,7 @@ double fintdiv(double x, double y) {
 
 double odin_sum1(double *x, size_t from, size_t to) {
   double tot = 0.0;
-  for (size_t i = from; i <= to; ++i) {
+  for (size_t i = from; i < to; ++i) {
     tot += x[i];
   }
   return tot;

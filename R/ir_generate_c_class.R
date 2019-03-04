@@ -123,7 +123,7 @@ generate_c_class <- function(core, dll, dat) {
       n_out = NULL,
 
       update_metadata = function() {
-        meta <- .Call(private$core$metadata, private$ptr, PACKGE = private$dll)
+        meta <- .Call(private$core$metadata, private$ptr, PACKAGE = private$dll)
         private$variable_order <- meta$variable_order
         private$output_order <- meta$output_order
         private$n_out <- meta$n_out
