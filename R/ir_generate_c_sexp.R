@@ -65,12 +65,17 @@ generate_c_sexp_sum <- function(args, data, meta) {
   data_info <- data$elements[[args[[1]]]]
   if (length(args) == 1L) {
     len <- generate_c_sexp(data_info$dimnames$length, data, meta)
-    sprintf("odin_sum1(%s, 0, %s - 1)", target, len)
+    sprintf("odin_sum1(%s, 0, %s)", target, len)
   } else {
-    stop("writeme")
-    ## message(odin_generate2_sum(2)$definitions)
-    n <- (length(args) - 1L) / 2
-    sprintf("odin_sum%d(%s, %s)", n, target, args_str)
+    i <- seq(2, length(args), by = 2)
+
+    all_args <- c(args, as.list(data_info$dimnames$mult[-1]))
+    values <- character(length(all_args))
+    values[i] <- vcapply(all_args[i], c_minus_1, FALSE, data, meta)
+    values[-i] <- vcapply(all_args[-i], generate_c_sexp, data, meta)
+    arg_str <- paste(values, collapse = ", ")
+
+    sprintf_safe("odin_sum%d(%s)", length(i), arg_str)
   }
 }
 
@@ -86,27 +91,27 @@ c_fold_call <- function(fn, args) {
 
 ## See: generate_r_equation_array_lhs
 c_array_access <- function(target, index, data, meta) {
-  rewrite <- function(x) {
-    generate_c_sexp(x, data, meta)
-  }
-
-  minus1 <- function(x, protect = TRUE) {
-    if (is.numeric(x)) {
-      x - 1L
-    } else {
-      sprintf(if (protect) "(%s - 1)" else "%s - 1", rewrite(x))
-    }
-  }
-
   mult <- data$elements[[target]]$dimnames$mult
 
   f <- function(i) {
+    index_i <- c_minus_1(index[[i]], i > 1, data, meta)
     if (i == 1) {
-      minus1(index[[i]], FALSE)
+      index_i
     } else {
-      sprintf("%s * %s", rewrite(mult[[i]]), minus1(index[[i]]))
+      mult_i <- generate_c_sexp(mult[[i]], data, meta)
+      sprintf("%s * %s", mult_i, index_i)
     }
   }
 
   paste(vcapply(rev(seq_along(index)), f), collapse = " + ")
+}
+
+
+c_minus_1 <- function(x, protect, data, meta) {
+  if (is.numeric(x)) {
+    generate_c_sexp(x - 1L, data, meta)
+  } else {
+    x_expr <- generate_c_sexp(x, data, meta)
+    sprintf(if (protect) "(%s - 1)" else "%s - 1", x_expr)
+  }
 }

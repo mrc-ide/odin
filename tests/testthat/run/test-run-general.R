@@ -790,8 +790,6 @@ test_that("overlapping graph", {
 })
 
 test_that("sum over one dimension", {
-  skip_for_target("c")
-
   ## This does rowSums / colSums and will be important for building up
   ## towards a general sum.
   gen <- odin2({
@@ -832,7 +830,6 @@ test_that("sum over one dimension", {
 })
 
 test_that("sum over two dimensions", {
-  skip_for_target("c")
   ## This is where things get a bit more horrid:
   gen <- odin2({
     deriv(y) <- 0
@@ -905,7 +902,6 @@ test_that("sum over two dimensions", {
 })
 
 test_that("sum for a 4d array", {
-  skip_for_target("c")
   ## I don't want to check absolutely everything here, so hopefully if
   ## these few go OK then given the more exhaustive tests above we'll
   ## be OK

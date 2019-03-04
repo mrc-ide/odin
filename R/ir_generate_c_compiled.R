@@ -565,6 +565,26 @@ generate_c_compiled_library <- function(dat) {
     v <- c(v, "odin_sum1")
   }
 
+  if ("odin_sum" %in% used) {
+    ## We can do better than this but it requires going through a lot
+    ## of code (especially with delays) and this will always be close
+    ## enough with lowish cost.
+    ranks <- sort(unique(viapply(dat$data$elements, "[[", "rank")))
+    ranks <- ranks[ranks > 0]
+
+    v <- c(v, sprintf("odin_sum%d", ranks[ranks > 0]))
+
+    if (any(ranks > 1L)) {
+      extra <- lapply(ranks[ranks > 1], generate_c_compiled_sum)
+      nms <- vcapply(extra, "[[", "name")
+      extra_lib <- list(
+        declarations = set_names(vcapply(extra, "[[", "declaration"), nms),
+        definitions = set_names(vcapply(extra, function(x)
+          paste0(x$definition, "\n", collapse = "")), nms))
+      lib <- join_library(list(lib, extra_lib))
+    }
+  }
+
   stopifnot(all(v %in% names(lib$declarations)))
   v <- unique(v)
 
