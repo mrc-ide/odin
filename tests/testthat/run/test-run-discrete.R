@@ -109,7 +109,6 @@ test_that("2d array equations", {
 
 ## This turns up in one of Neil's cases:
 test_that("complex initialisation: scalar", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x1) <- norm_rand()
     r <- x1 * 2

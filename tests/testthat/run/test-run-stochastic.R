@@ -1,7 +1,6 @@
 context("run: %TARGET%: stochastic")
 
 test_that("stochastic", {
-  skip_for_target("c")
   ## Here's a stochastic random walk:
   gen <- odin2({
     initial(x) <- 0
@@ -28,7 +27,6 @@ test_that("stochastic", {
 ## variable that is used only in the initial condition I do not want
 ## that repeatedly called during the run.
 test_that("stochastic variables are time dependent", {
-  skip_for_target("c")
   gen <- odin2({
     v <- norm_rand() # this variable is implicitly time dependent.
     initial(x) <- 0
@@ -47,7 +45,6 @@ test_that("stochastic variables are time dependent", {
 
 
 test_that("array stochastic variables are time dependent", {
-  skip_for_target("c")
   ## This checks that even in the absence of array indexing on the RHS
   ## array variables are set correctly when stochastic.
   gen <- odin2({
@@ -68,7 +65,6 @@ test_that("array stochastic variables are time dependent", {
 
 
 test_that("stochastic initial conditions don't get called every step", {
-  skip_for_target("c")
   ## There is quite a few nasty little conditions that are tested
   ## here.
   gen <- odin2({
@@ -171,7 +167,6 @@ test_that("mutlinomial", {
 
 
 test_that("replicate: scalar", {
-  skip_for_target("c")
   ## TODO: this will be a nice version to try and benchmark the dde
   ## overheads I think...
   gen <- odin2({
@@ -191,7 +186,6 @@ test_that("replicate: scalar", {
 
 
 test_that("replicate: array", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x) <- 0
     initial(y[]) <- 0
