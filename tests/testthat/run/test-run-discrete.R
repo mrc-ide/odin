@@ -1,7 +1,6 @@
 context("run: %TARGET%: discrete")
 
 test_that("basic", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x) <- 1
     update(x) <- x + 1
@@ -20,7 +19,6 @@ test_that("basic", {
 })
 
 test_that("output", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x[]) <- x0[i]
     update(x[]) <- x[i] + r[i]
@@ -74,7 +72,6 @@ test_that("interpolate", {
 })
 
 test_that("use step in model", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x) <- step
     update(x) <- step + 1

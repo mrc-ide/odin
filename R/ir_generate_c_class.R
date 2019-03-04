@@ -7,16 +7,22 @@ generate_c_class <- function(core, dll, dat) {
     loadNamespace("cinterpolate")
   }
 
-  ## TODO: here, and in the R version, we need to swap the name of t
-  ## and step for initial
+  ## TODO: This is unacceptably complicated
   if (dat$features$initial_time_dependent) {
     set_user <- function(..., user = list(...)) {
       .Call(private$core$set_user, private$ptr, user, PACKAGE = private$dll)
       private$update_metadata()
     }
-    initial <- function(t) {
-      .Call(private$core$initial_conditions, private$ptr, t,
-            PACKAGE = private$dll)
+    if (dat$features$discrete) {
+      initial <- function(step) {
+        .Call(private$core$initial_conditions, private$ptr, as_integer(step),
+              PACKAGE = private$dll)
+      }
+    } else {
+      initial <- function(t) {
+        .Call(private$core$initial_conditions, private$ptr, as_numeric(t),
+              PACKAGE = private$dll)
+      }
     }
   } else {
     set_user <- function(..., user = list(...)) {
@@ -26,8 +32,14 @@ generate_c_class <- function(core, dll, dat) {
               PACKAGE = private$dll)
       private$update_metadata()
     }
-    initial <- function(t) {
-      private$init
+    if (dat$features$discrete) {
+      initial <- function(step) {
+        private$init
+      }
+    } else {
+      initial <- function(t) {
+        private$init
+      }
     }
   }
 
@@ -37,11 +49,11 @@ generate_c_class <- function(core, dll, dat) {
       if (private$delay) {
         stop("Can't call update() on delay models")
       }
-      .Call(private$core$rhs_r, private$ptr, as.integer(step), as.numeric(y),
+      .Call(private$core$rhs_r, private$ptr, as_integer(step), as_numeric(y),
             PACKAGE = private$dll)
     }
     run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
-      step <- as.integer(step)
+      step <- as_integer(step)
       if (is.null(y)) {
         y <- self$initial(step)
       }

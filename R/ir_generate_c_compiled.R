@@ -416,7 +416,14 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
 
   body <- collector()
   if (dat$features$initial_time_dependent) {
-    body$add("double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
+    if (dat$features$discrete) {
+      type <- "int"
+      unpack <- "INTEGER"
+    } else {
+      type <- "double"
+      unpack <- "REAL"
+    }
+    body$add("%s %s = %s(%s)[0];", type, dat$meta$time, unpack, time_ptr)
   }
   body$add("%s *%s = %s(%s, 1);",
           dat$meta$c$internal_t, dat$meta$internal,

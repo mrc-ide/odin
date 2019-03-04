@@ -42,6 +42,7 @@ generate_r_class <- function(core, dat, env) {
       private$core$set_user(user, private$data)
       private$core$metadata(self, private)
     }
+    ## TODO: we need to have 't' become 'step' for discrete time models
     initial <- function(t) {
       private$core$ic(t, private$data)
     }
