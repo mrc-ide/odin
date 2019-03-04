@@ -637,6 +637,15 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
 }
 
 ir_parse_arrays_find_integers <- function(eqs, source) {
+  ## TODO: duplicates the above
+  type <- vcapply(eqs, "[[", "type")
+  is_dim <- type == "dim"
+  is_array <- type == "expression_array"
+  index_vars <- unique(unlist(c(
+    lapply(eqs[is_dim], function(x) x$depends$variables),
+    lapply(eqs[is_array], function(x) x$lhs$depends$variables),
+    names_if(vlapply(eqs, function(x) is_dim_or_length(x$rhs$value))))))
+
   ## Set a data_type element (on the lhs) to int for all variables
   ## that are used as indices.  Here we'll throw in the index arrays
   ## too (treated separtately for now...)
@@ -644,8 +653,7 @@ ir_parse_arrays_find_integers <- function(eqs, source) {
   ## TODO: deal with inplace varaibles here too:
   ## integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x)
   ##   identical(x$rhs$inplace_type, "int")))
-  ## integer_vars <- c(index_vars, integer_arrays, integer_inplace)
-  integer_vars <- integer_arrays
+  integer_vars <- c(index_vars, integer_arrays)
 
   ## TODO: this is not ideal because it has the potential to set too
   ## many things to integers; in particular we don't want to set

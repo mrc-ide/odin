@@ -663,16 +663,21 @@ test_that("more parse errors", {
 })
 
 
-test_that("user sized dependent variables are allowed", {
-  gen <- odin2({
-    deriv(y[]) <- r[i] * y[i]
-    initial(y[]) <- 1
-    r[] <- user()
-    dim(r) <- user()
-    dim(y) <- length(r)
+test_that("detect integers", {
+  ir <- odin_parse2({
+    n <- 2
+    m <- 2
+    deriv(S[, ]) <- 0
+    deriv(I) <- S[n,m]
+    dim(S) <- c(n,m)
+    initial(S[, ]) <- S0[i, j]
+    initial(I) <- 0
+    S0[, ] <- user()
+    dim(S0) <- c(n, m)
   })
-  r <- runif(3)
-  mod <- gen(r = r)
-  expect_identical(mod$contents()$r, r)
-  expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
+  dat <- ir_deserialise(ir)
+  type <- vcapply(dat$data$elements, "[[", "storage_type")
+  int <- names_if(type == "int")
+  expect_true("n" %in% int)
+  expect_true("m" %in% int)
 })

@@ -577,7 +577,6 @@ test_that("transform variables without time", {
 
 
 test_that("pathalogical array index", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(z) <- y1 + y2 + y3 + y4 + y5
     initial(z) <- 0
@@ -1273,4 +1272,19 @@ test_that("set_user honours constraints", {
   mod <- gen()
   expect_error(mod$set_user(y0 = -1L), "Expected 'y0' to be at least 0")
   expect_error(mod$set_user(r = 100), "Expected 'r' to be at most 10")
+})
+
+
+test_that("user sized dependent variables are allowed", {
+  gen <- odin2({
+    deriv(y[]) <- r[i] * y[i]
+    initial(y[]) <- 1
+    r[] <- user()
+    dim(r) <- user()
+    dim(y) <- length(r)
+  })
+  r <- runif(3)
+  mod <- gen(r = r)
+  expect_identical(mod$contents()$r, r)
+  expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
 })
