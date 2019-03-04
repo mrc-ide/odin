@@ -39,8 +39,19 @@ generate_c_sexp <- function(x, data, meta) {
     } else if (fn == "sum" || fn == "odin_sum") {
       ret <- generate_c_sexp_sum(args, data, meta)
     } else {
+      if (fn == "rbinom") {
+        ## This is a little extreme but is useful in at least some
+        ## cases (and I don't imagine that returning NaN will be
+        ## useful most of the time).
+        values[[1L]] <- sprintf("round(%s)", values[[1L]])
+      }
+      if (fn == "rexp") {
+        values[[1L]] <- sprintf("1 / (double) %s", values[[1L]])
+      }
       if (any(names(FUNCTIONS_RENAME) == fn)) {
         fn <- FUNCTIONS_RENAME[[fn]]
+      } else if (any(FUNCTIONS_REWRITE_RF == fn)) {
+        fn <- paste0("Rf_", fn)
       } else if (!any(names(FUNCTIONS) == fn)) {
         stop(sprintf("unsupported function '%s'", fn))
       }

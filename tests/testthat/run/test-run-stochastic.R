@@ -107,7 +107,6 @@ test_that("stochastic initial conditions don't get called every step", {
 
 
 test_that("exotic stochastic functions", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x) <- 0
     mu <- 1
@@ -125,7 +124,6 @@ test_that("exotic stochastic functions", {
 
 
 test_that("round & rbinom", {
-  skip_for_target("c")
   gen <- odin2({
     size <- user()
     p <- user()
