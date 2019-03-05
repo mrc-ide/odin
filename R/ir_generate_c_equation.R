@@ -155,11 +155,12 @@ generate_c_equation_delay_index <- function(eq, data_info, dat, rewrite) {
     if (d$rank == 0L) {
       sprintf_safe("%s[%s] = %s;", lhs, v$offset, offset)
     } else {
-      stop("checkme")
       loop <- sprintf_safe(
-        "for (size_t i = %s, j = %s; j < %s; ++i, ++j)",
-        rewrite(v$offset), rewrite(offset), rewrite(d$dimnames$length))
-      c(loop, sprintf("  %s[i] <- j;", lhs), "}")
+        "for (int i = 0, j = %s; i < %s; ++i, ++j) {",
+        rewrite(offset), rewrite(d$dimnames$length))
+      c(loop,
+        sprintf_safe("  %s[%s + i] = j;", lhs, rewrite(v$offset)),
+        "}")
     }
   }
 
