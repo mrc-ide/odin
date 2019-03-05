@@ -73,7 +73,7 @@ test_that("user variables on models with none", {
 })
 
 test_that("non-numeric time", {
-  skip_for_target("c")
+  skip_for_target("c", "delay")
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
   gen <- odin2({
@@ -88,7 +88,7 @@ test_that("non-numeric time", {
 })
 
 test_that("delays and initial conditions", {
-  skip_for_target("c")
+  skip_for_target("c", "delay")
   gen <- odin2({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
@@ -208,7 +208,6 @@ test_that("time dependent initial conditions", {
 })
 
 test_that("user c", {
-  skip_for_target("c")
   skip("user_c")
   gen <- odin2({
     config(include) <- "user_fns.c"
@@ -230,7 +229,6 @@ test_that("user c", {
 })
 
 test_that("user c in subdir", {
-  skip_for_target("c")
   skip("user_c")
   dest <- tempfile()
   dir.create(dest)
@@ -1229,7 +1227,7 @@ test_that("multiline string", {
 ## This is basically all ok but what is still not great is _doing_ the
 ## validation.
 test_that("user integer", {
-  skip_for_target("c")
+  skip_for_target("c", "rich user")
   gen <- odin2({
     deriv(y) <- 0.5
     initial(y) <- y0
@@ -1245,7 +1243,7 @@ test_that("user integer", {
 
 
 test_that("multiple constraints", {
-  skip_for_target("c")
+  skip_for_target("c", "rich user")
   gen <- odin2({
     deriv(y) <- r
     initial(y) <- y0
@@ -1259,7 +1257,7 @@ test_that("multiple constraints", {
 
 
 test_that("set_user honours constraints", {
-  skip_for_target("c")
+  skip_for_target("c", "rich user")
   gen <- odin2({
     deriv(y) <- r
     initial(y) <- y0

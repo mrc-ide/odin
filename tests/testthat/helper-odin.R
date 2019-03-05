@@ -32,9 +32,14 @@ odin_target_name <- function(using = NULL) {
 }
 
 
-skip_for_target <- function(target, using = NULL) {
+skip_for_target <- function(target, reason = NULL, using = NULL) {
   if (target == odin_target_name(using)) {
-    testthat::skip(sprintf("Engine is %s", target))
+    if (is.null(reason)) {
+      msg <- sprintf("Engine is %s", target)
+    } else {
+      msg <- sprintf("Engine is %s (%s)", target, reason)
+    }
+    testthat::skip(msg)
   }
 }
 

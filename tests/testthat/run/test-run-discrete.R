@@ -44,7 +44,7 @@ test_that("output", {
 })
 
 test_that("interpolate", {
-  skip_for_target("c")
+  skip_for_target("c", "interpolate")
   gen <- odin2({
     initial(x) <- 0
     update(x) <- x + pulse
