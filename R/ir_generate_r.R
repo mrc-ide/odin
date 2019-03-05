@@ -10,7 +10,7 @@ generate_r <- function(dat) {
     dat$meta$use_dde <- "odin_use_dde"
     dat$data$elements[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
                                                   location = "internal",
-                                                  storage_type = "boolean",
+                                                  storage_type = "bool",
                                                   rank = 0L,
                                                   dimnames = NULL)
   }

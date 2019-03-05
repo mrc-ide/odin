@@ -8,7 +8,7 @@ generate_c_compiled <- function(eqs, dat, rewrite) {
               initmod_desolve = generate_c_compiled_initmod_desolve(dat),
               contents = generate_c_compiled_contents(dat, rewrite),
               set_user = generate_c_compiled_set_user(eqs, dat),
-              set_initial = generate_c_compiled_set_initial(dat),
+              set_initial = generate_c_compiled_set_initial(dat, rewrite),
               metadata = generate_c_compiled_metadata(dat, rewrite),
               initial_conditions =
                 generate_c_compiled_initial_conditions(dat, rewrite))
@@ -363,7 +363,7 @@ generate_c_compiled_contents <- function(dat, rewrite) {
 generate_c_compiled_set_user <- function(eqs, dat) {
   body <- collector()
   if (dat$features$has_user) {
-    body$add("%s *%s = %s(%s, 0);",
+    body$add("%s *%s = %s(%s, 1);",
              dat$meta$c$internal_t, dat$meta$internal,
              dat$meta$c$get_internal, dat$meta$c$ptr)
     body$add(c_flatten_eqs(eqs[dat$components$user$equations]), literal = TRUE)
@@ -374,11 +374,36 @@ generate_c_compiled_set_user <- function(eqs, dat) {
 }
 
 
-generate_c_compiled_set_initial <- function(dat) {
+generate_c_compiled_set_initial <- function(dat, rewrite) {
   if (!dat$features$has_delay) {
     return(NULL)
   }
-  stop("Implement me")
+
+  set_initial1 <- function(x) {
+    rhs <- c_extract_variable(x, dat$data$elements, dat$meta$state, rewrite)
+    sprintf_safe("%s = %s;", rewrite(x$initial), rhs)
+  }
+
+  ## TODO: see generate_c_compiled_initial_conditions for more that
+  ## could be harmonised here
+  time_ptr <- sprintf("%s_ptr", dat$meta$time)
+  state_ptr <- sprintf("%s_ptr", dat$meta$state)
+  ptr <- dat$meta$c$ptr
+  internal <- dat$meta$internal
+  internal_t <- dat$meta$c$internal_t
+
+  args <- list(SEXP = ptr, SEXP = time_ptr, SEXP = state_ptr)
+
+  body <- collector()
+  body$add("%s *%s = %s(%s, 1);",
+           internal_t, internal, dat$meta$c$get_internal, ptr)
+  body$add("double * %s = REAL(%s);", dat$meta$state, state_ptr)
+  body$add("const double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
+  body$add("%s = %s;", rewrite(dat$meta$initial_time), dat$meta$time)
+  body$add(c_flatten_eqs(lapply(dat$data$variable$contents, set_initial1)))
+  body$add("return R_NilValue;")
+
+  c_function("SEXP", dat$meta$c$set_initial, args, body$get())
 }
 
 
@@ -643,8 +668,12 @@ c_type_info <- function(storage_type) {
     sexp_name <- "INTSXP"
     sexp_access <- "INTEGER"
     scalar_allocate <- "ScalarInteger"
+  } else if (storage_type == "bool") {
+    sexp_name <- "LGLSXP"
+    sexp_access <- "INTEGER"
+    scalar_allocate <- "ScalarLogical"
   } else {
-    stop("Invalid type [odin bug]")
+    stop(sprintf("Invalid type %s [odin bug]", storage_type))
   }
   list(c_name = storage_type,
        sexp_name = sexp_name,

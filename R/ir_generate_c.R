@@ -10,7 +10,7 @@ generate_c <- function(dat, verbose = FALSE) {
     dat$meta$use_dde <- "odin_use_dde"
     dat$data$elements[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
                                                   location = "internal",
-                                                  storage_type = "boolean",
+                                                  storage_type = "bool",
                                                   rank = 0L,
                                                   dimnames = NULL)
   }
@@ -30,6 +30,7 @@ generate_c <- function(dat, verbose = FALSE) {
     contents = sprintf("%s_contents", base),
     get_internal = sprintf("%s_get_internal", base),
     set_user = sprintf("%s_set_user", base),
+    set_initial = sprintf("%s_set_initial", base),
     initial_conditions = sprintf("%s_initial_conditions", base),
     metadata = sprintf("%s_metadata", base),
     rhs = sprintf("%s_rhs", base),
