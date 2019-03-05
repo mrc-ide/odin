@@ -89,6 +89,11 @@ generate_c_class <- function(core, dll, dat) {
 
     run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL,
                     n_history = 1000L) {
+      if (!is.null(y)) {
+        y <- as_numeric(y)
+      }
+      .Call(private$core$set_initial, private$ptr, as_numeric(t[[1]]),
+            y, private$use_dde, PACKAGE = private$dll)
       if (is.null(y)) {
         y <- self$initial(t)
       }

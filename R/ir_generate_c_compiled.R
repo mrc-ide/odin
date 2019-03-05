@@ -113,11 +113,6 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
   body$add("%s *%s = (%s*) Calloc(1, %s);",
            internal_t, internal, internal_t, internal_t)
 
-  ## Avoid UB by ensuring this is always set to something.
-  if (dat$features$has_delay && !dat$features$discrete) {
-    body$add("%s = false;", rewrite(dat$meta$c$use_dde))
-  }
-
   ## Assign all arrays as NULL, which allows all allocations to be
   ## written as Free/Calloc because Free will not try to free a
   ## pointer that has been set to NULL.
@@ -194,9 +189,6 @@ generate_c_compiled_output <- function(eqs, dat, rewrite) {
   body$add("%s *%s = (%s*) %s;",
            dat$meta$c$internal_t, dat$meta$internal, dat$meta$c$internal_t,
            dat$meta$c$ptr)
-  if (dat$features$has_delay) {
-    body$add("%s = true;", rewrite(dat$meta$c$use_dde))
-  }
   body$add(c_flatten_eqs(c(unpack, eqs[equations])), literal = TRUE)
   args <- c("size_t" = "n_eq",
             "double" = dat$meta$time,
@@ -238,13 +230,6 @@ generate_c_compiled_deriv_dde <- function(dat) {
                        dat$meta$c$rhs, dat$meta$c$internal_t,
                        dat$meta$internal, dat$meta$time, dat$meta$state,
                        dat$meta$result, dat$meta$output)
-  if (dat$features$has_delay) {
-    body <- c(sprintf_safe("((%s*)%s)->%s = true;",
-                           dat$meta$c$internal_t,
-                           dat$meta$internal,
-                           dat$meta$c$use_dde),
-              body)
-  }
   c_function("void", dat$meta$c$rhs_dde, args, body)
 }
 
@@ -268,14 +253,6 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
     body$add("double *%s = REAL(%s);", dat$meta$output, output_ptr)
   } else {
     body$add("double *%s = NULL;", dat$meta$output)
-  }
-
-  ## TODO: adding some coercion here would be nice, though it might be
-  ## better on the R side.
-  if (dat$features$has_delay && !dat$features$discrete) {
-    ## Strictly this is not needed because delay rhs do not allow
-    ## calling the rhs.
-    body$add("%s = false;", rewrite(dat$meta$c$use_dde))
   }
 
   body$add("%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
@@ -331,9 +308,6 @@ generate_c_compiled_initmod_desolve <- function(dat) {
   body$add("}")
   body$add("%s = %s(get_desolve_gparms(), 1);",
            dat$meta$c$internal_ds, dat$meta$c$get_internal)
-  if (dat$features$has_delay) {
-    body$add("%s->%s = false;", dat$meta$c$internal_ds, dat$meta$c$use_dde)
-  }
 
   args <- c("void(* odeparms)" = "(int *, double *)")
   global <- sprintf_safe("static %s *%s;",
@@ -418,19 +392,32 @@ generate_c_compiled_set_initial <- function(dat, rewrite) {
   ## could be harmonised here
   time_ptr <- sprintf("%s_ptr", dat$meta$time)
   state_ptr <- sprintf("%s_ptr", dat$meta$state)
+  use_dde_ptr <- sprintf("%s_ptr", dat$meta$c$use_dde)
+
   ptr <- dat$meta$c$ptr
   internal <- dat$meta$internal
   internal_t <- dat$meta$c$internal_t
 
+  set_initial_variables <-
+    c_flatten_eqs(lapply(dat$data$variable$contents, set_initial1))
+
   args <- list(SEXP = ptr, SEXP = time_ptr, SEXP = state_ptr)
+  if (!dat$features$discrete) {
+    args <- c(args, SEXP = use_dde_ptr)
+  }
 
   body <- collector()
   body$add("%s *%s = %s(%s, 1);",
            internal_t, internal, dat$meta$c$get_internal, ptr)
-  body$add("double * %s = REAL(%s);", dat$meta$state, state_ptr)
   body$add("const double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
   body$add("%s = %s;", rewrite(dat$meta$initial_time), dat$meta$time)
-  body$add(c_flatten_eqs(lapply(dat$data$variable$contents, set_initial1)))
+  if (!dat$features$discrete) {
+    body$add("%s = INTEGER(%s)[0];", rewrite(dat$meta$c$use_dde), use_dde_ptr)
+  }
+  body$add("if (%s != R_NilValue) {", state_ptr)
+  body$add("  double * %s = REAL(%s);", dat$meta$state, state_ptr)
+  body$add(paste0("  ", set_initial_variables))
+  body$add("}")
   body$add("return R_NilValue;")
 
   c_function("SEXP", dat$meta$c$set_initial, args, body$get())

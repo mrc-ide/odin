@@ -195,7 +195,6 @@ test_that("3 arg delay with array", {
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
 test_that("delay index packing", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(a[]) <- i
     deriv(b[]) <- i

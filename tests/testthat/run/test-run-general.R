@@ -87,7 +87,6 @@ test_that("non-numeric time", {
 })
 
 test_that("delays and initial conditions", {
-  skip_for_target("c", "delay")
   gen <- odin2({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
