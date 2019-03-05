@@ -39,8 +39,8 @@ generate_c_compiled_headers <- function(dat) {
 
 generate_c_compiled_struct <- function(dat) {
   struct_element <- function(x) {
-    fmt <- if (x$rank == 0L) "%s %s;" else "%s *%s;"
-    sprintf(fmt, x$storage_type, x$name)
+    is_ptr <- x$rank > 0L || x$storage_type == "ring_buffer"
+    sprintf(if (is_ptr) "%s *%s;" else "%s %s;", x$storage_type, x$name)
   }
   i <- vcapply(dat$data$elements, "[[", "location") == "internal"
   els <- vcapply(unname(dat$data$elements[i]), struct_element)
@@ -120,9 +120,12 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
   ## NOTE: previously we ignored user equations here
   ##   !identical(dat$equations[[x$name]]$type, "user")
   ## but I don't think that's needed
-  arrays <- names_if(vlapply(dat$data$elements, function(x)
-    x$rank > 0 && x$location == "internal"))
-  body$add("%s = NULL;", vcapply(arrays, rewrite, USE.NAMES = FALSE))
+  null_initial <- names_if(vlapply(dat$data$elements, function(x) {
+    (x$rank > 0 && x$location == "internal") ||
+      x$storage_type == "ring_buffer"
+  }))
+
+  body$add("%s = NULL;", vcapply(null_initial, rewrite, USE.NAMES = FALSE))
 
   body$add(c_flatten_eqs(eqs[dat$components$create$equations]))
 
@@ -320,6 +323,10 @@ generate_c_compiled_initmod_desolve <- function(dat) {
 
 generate_c_compiled_contents <- function(dat, rewrite) {
   extract <- function(x, i, body) {
+    if (x$storage_type == "ring_buffer") {
+      ## nothing for now at least - later we'll return something more
+      return()
+    }
     info <- c_type_info(x$storage_type)
     if (x$rank == 0L) {
       body$add("SET_VECTOR_ELT(contents, %d, %s(%s->%s));",

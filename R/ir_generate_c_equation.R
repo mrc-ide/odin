@@ -67,7 +67,26 @@ generate_c_equation_alloc_interpolate <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_alloc_ring <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  data_info_contents <- dat$data$elements[[eq$delay]]
+
+  lhs <- rewrite(eq$lhs)
+
+  ## TODO: need to get n_history into here - follow same approach as
+  ## use_dde I think.  However, it's a little more complex because it
+  ## needs to be done on *create* and set into the internal data quite
+  ## early.
+  n_history <- 1000
+  if (data_info_contents$rank == 0L) {
+    len <- 1L
+  } else {
+    len <- rewrite(data_info_contents$dimnames$length)
+  }
+
+  c(sprintf_safe("if (%s) {", lhs),
+    sprintf_safe("  ring_buffer_destroy(%s);", lhs),
+    sprintf_safe("}"),
+    sprintf_safe("%s = ring_buffer_create(%s, %s * sizeof(double), %s);",
+                 lhs, n_history, len, "OVERFLOW_OVERWRITE"))
 }
 
 
@@ -253,8 +272,57 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 }
 
 
+
 generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  if (data_info$storage_type != "double") {
+    ## TODO: this will all go wrong if we're delaying an integer, but
+    ## it will not be hard to fix.  Also needs work up in the
+    ## allocation.
+    stop("writeme")
+  }
+
+  head <- sprintf("%s_head", eq$delay$ring)
+  tail <- sprintf("%s_tail", eq$delay$ring)
+  ring <- rewrite(eq$delay$ring)
+  lhs <- rewrite(eq$lhs)
+
+  advance <- sprintf_safe(
+    "double * %s = (double *)ring_buffer_head_advance(%s);",
+    head, ring)
+  if (data_info$rank == 0L) {
+    push <- sprintf("%s[0] = %s;", head, rewrite(eq$rhs$value))
+  } else {
+    stop("writeme")
+  }
+
+  time_check <- sprintf_safe(
+    "%s - %s < %s",
+    dat$meta$time, rewrite(eq$delay$time), rewrite(dat$meta$initial_time))
+  data_initial <- sprintf_safe(
+    "%s = (double*)ring_buffer_tail(%s);", tail, ring)
+  ## TODO: I feel like this should be an offset of %s - 1 for second
+  ## arg but that lags one too long.  But without that, this crashes.
+  data_offset <- sprintf_safe(
+    "%s = (double *) ring_buffer_head_offset(%s, %s - 1);",
+    tail, ring, rewrite(eq$delay$time))
+
+  if (data_info$rank == 0L) {
+    if (data_info$location == "transient") {
+      fmt <- "double %s = %s[0];"
+    } else {
+      fmt <- "%s = %s[0];"
+    }
+    assign <- sprintf(fmt, lhs, tail)
+  } else {
+    assign <- sprintf("memcpy(%s, %s, %s * sizeof(double));",
+                      lhs, tail, rewrite(data_info$dimnames$length))
+  }
+
+  c(advance,
+    push,
+    sprintf_safe("double * %s;", tail),
+    c_expr_if(time_check, data_initial, data_offset),
+    assign)
 }
 
 

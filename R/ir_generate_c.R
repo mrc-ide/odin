@@ -43,12 +43,21 @@ generate_c <- function(dat, verbose = FALSE) {
 
   lib <- generate_c_compiled_library(dat)
 
+
+  if (dat$features$has_delay && dat$features$discrete) {
+    ring <- odin_ring_support(FALSE)
+  } else {
+    ring <- NULL
+  }
+
   decl <- c(generate_c_compiled_headers(dat),
+            ring$declarations,
             generate_c_compiled_struct(dat),
             unname(vcapply(core, "[[", "declaration")),
             lib$declaration)
   defn <- c(c_flatten_eqs(c(lapply(core, "[[", "definition"))),
-            lib$definition)
+            lib$definition,
+            ring$definitions)
 
   code <- c(decl, defn)
 
