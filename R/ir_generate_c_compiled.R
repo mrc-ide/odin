@@ -142,14 +142,15 @@ generate_c_compiled_deriv <- function(eqs, dat, rewrite) {
   variables <- dat$components$rhs$variables
   equations <- dat$components$rhs$equations
 
-  unpack <- lapply(variables, c_unpack_variable, dat, rewrite)
+  unpack <- lapply(variables, c_unpack_variable, dat, dat$meta$state, rewrite)
 
   body <- collector()
   body$add(c_flatten_eqs(c(unpack, eqs[equations])))
 
   if (dat$features$has_output) {
     variables_output <- setdiff(dat$components$output$variables, variables)
-    unpack_output <- lapply(variables_output, c_unpack_variable, dat, rewrite)
+    unpack_output <- lapply(variables_output, c_unpack_variable, dat,
+                            dat$meta$state, rewrite)
     equations_output <- setdiff(dat$components$output$equations, equations)
     output <- c_flatten_eqs(c(unpack_output, eqs[equations_output]))
 
@@ -175,7 +176,7 @@ generate_c_compiled_output <- function(eqs, dat, rewrite) {
   variables <- dat$components$output$variables
   equations <- dat$components$output$equations
 
-  unpack <- lapply(variables, c_unpack_variable, dat, rewrite)
+  unpack <- lapply(variables, c_unpack_variable, dat, dat$meta$state, rewrite)
 
   body <- collector()
   body$add("%s *%s = (%s*) %s;",
@@ -265,7 +266,7 @@ generate_c_compiled_update <- function(eqs, dat, rewrite) {
                      dat$components$output$variables)
   equations <- union(dat$components$rhs$equations,
                      dat$components$output$equations)
-  unpack <- lapply(variables, c_unpack_variable, dat, rewrite)
+  unpack <- lapply(variables, c_unpack_variable, dat, dat$meta$state, rewrite)
   body <- c_flatten_eqs(c(unpack, eqs[equations]))
 
   args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
@@ -600,14 +601,38 @@ generate_c_compiled_library <- function(dat) {
 }
 
 
-c_unpack_variable <- function(name, dat, rewrite) {
+c_unpack_variable <- function(name, dat, state, rewrite) {
   el <- dat$data$variable$contents[[name]]
   data_info <- dat$data$elements[[el$name]]
-  rhs <- c_variable_reference(el, data_info, dat$meta$state, rewrite)
+  rhs <- c_variable_reference(el, data_info, state, rewrite)
   if (data_info$rank == 0L) {
     fmt <- "%s %s = %s;"
   } else {
     fmt <- "%s * %s = %s;"
   }
   sprintf(fmt, data_info$storage_type, el$name, rhs)
+}
+
+
+## TODO: harmoise with the above - mostly this is rewriting previous uses
+c_unpack_variable2 <- function(x, data_elements, state, declaration, rewrite) {
+  rhs <- c_extract_variable(x, data_elements, state, rewrite)
+  d <- data_elements[[x$name]]
+  if (declaration) {
+    fmt <- if (d$rank == 0L) "%s %s = %s;" else "%s * %s = %s;"
+    sprintf_safe(fmt, d$storage_type, x$name, rhs)
+  } else {
+    sprintf_safe("%s = %s", x$name, rhs)
+  }
+}
+
+
+## TODO: this is the same as c_variable_reference
+c_extract_variable <- function(x, data_elements, state, rewrite) {
+  d <- data_elements[[x$name]]
+  if (d$rank == 0L) {
+    sprintf("%s[%s]", state, rewrite(x$offset))
+  } else {
+    sprintf("%s + %s", state, rewrite(x$offset))
+  }
 }

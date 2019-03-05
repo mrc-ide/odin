@@ -140,12 +140,99 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_delay_index <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  delay <- dat$equations[[eq$delay]]$delay
+  lhs <- rewrite(eq$lhs)
+
+  alloc <- c(sprintf_safe("Free(%s);", lhs),
+             sprintf_safe("%s = Calloc(%s, int);",
+                          lhs, rewrite(delay$variables$length)))
+
+  index1 <- function(v) {
+    d <- dat$data$elements[[v$name]]
+    offset <- dat$data$variable$contents[[v$name]]$offset
+    if (d$rank == 0L) {
+      sprintf_safe("%s[%s] = %s;", lhs, v$offset, offset)
+    } else {
+      stop("checkme")
+      loop <- sprintf_safe(
+        "for (size_t i = %s, j = %s; j < %s; ++i, ++j)",
+        rewrite(v$offset), rewrite(offset), rewrite(d$dimnames$length))
+      c(loop, "  lhs[i] <- j;", "}")
+    }
+  }
+
+  index <- c_flatten_eqs(lapply(delay$variables$contents, index1))
+  c(alloc, index)
 }
 
 
 generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  delay <- eq$delay
+  time <- dat$meta$time
+
+  initial_time <- rewrite(dat$meta$initial_time)
+  state <- rewrite(delay$state)
+  index <- rewrite(delay$index)
+  len <- rewrite(delay$variables$length)
+
+  time_set <- sprintf("double %s = %s - %s;", time, time, rewrite(delay$time))
+
+  lookup_vars <- c_expr_if(
+    rewrite(dat$meta$use_dde),
+    sprintf_safe("lagvalue_dde(%s, %s, %s, %s);",
+                 time, index, len, state),
+    sprintf_safe("lagvalue_ds(%s, %s, %s, %s);",
+                 time, index, len, state))
+
+  unpack_vars <- c_flatten_eqs(lapply(
+    delay$variables$contents, c_unpack_variable2,
+    dat$data$elements, state, FALSE, rewrite))
+
+  eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
+  eqs <- c_flatten_eqs(lapply(eqs_src, generate_c_equation, dat, rewrite))
+
+  unpack_initial1 <- function(x) {
+    d <- dat$data$elements[[x$name]]
+    sprintf_safe("%s = %s;", x$name, rewrite(x$initial))
+  }
+
+  decl1 <- function(x) {
+    d <- dat$data$elements[[x$name]]
+    fmt <- if (d$rank == 0L) "%s %s;" else "%s *%s;"
+    sprintf_safe(fmt, d$storage_type, x$name)
+  }
+
+  decl <- c_flatten_eqs(lapply(delay$variables$contents, decl1))
+
+  ## Only used where there is no default:
+  unpack_initial <-
+    lapply(dat$data$variable$contents[names(delay$variables$contents)],
+           unpack_initial1)
+  unpack <- c(decl,
+              c_expr_if(
+                sprintf_safe("%s <= %s", time, initial_time),
+                c_flatten_eqs(unpack_initial),
+                c(lookup_vars, unpack_vars)))
+
+  if (data_info$rank != 0L) {
+    stop("checkme")
+  }
+  if (!is.null(delay$default)) {
+    stop("checkme")
+  }
+  if (data_info$location != "transient") {
+    stop("checkme")
+  }
+
+  rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
+  exit <- sprintf_safe("%s = %s;", rewrite(eq$lhs), rewrite(rhs_expr))
+
+  ret <- c(sprintf_safe("%s %s;", data_info$storage_type, eq$lhs),
+           "{",
+           paste0("  ", c(time_set, unpack, eqs, exit)),
+           "}")
+
+  ret
 }
 
 
@@ -203,4 +290,13 @@ generate_c_equation_array_rhs <- function(value, index, lhs, rewrite) {
     ret <- c("{", paste("  ", ret), "}")
   }
   ret
+}
+
+
+c_expr_if <- function(condition, a, b) {
+  c(sprintf_safe("if (%s) {", condition),
+    paste0("  ", c_flatten_eqs(a)),
+    "} else {",
+    paste0("  ", c_flatten_eqs(b)),
+    "}")
 }

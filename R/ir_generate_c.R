@@ -1,7 +1,19 @@
 generate_c <- function(dat, verbose = FALSE) {
   features_supported <- c("initial_time_dependent", "has_user", "has_output",
-                          "discrete", "has_array", "has_stochastic")
+                          "discrete", "has_array", "has_stochastic",
+                          "has_delay")
   generate_check_features(features_supported, dat)
+
+  if (dat$features$has_delay) {
+    ## We're going to need an additional bit of internal data here,
+    ## but this sits outside the core odin ir
+    dat$meta$use_dde <- "odin_use_dde"
+    dat$data$elements[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
+                                                  location = "internal",
+                                                  storage_type = "boolean",
+                                                  rank = 0L,
+                                                  dimnames = NULL)
+  }
 
   rewrite <- function(x) {
     generate_c_sexp(x, dat$data, dat$meta)
