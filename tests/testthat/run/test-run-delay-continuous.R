@@ -71,7 +71,6 @@ test_that("mixed delay model", {
 
 
 test_that("use subset of variables", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(a) <- 1
     deriv(b) <- 2

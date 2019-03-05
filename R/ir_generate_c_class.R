@@ -43,14 +43,19 @@ generate_c_class <- function(core, dll, dat) {
     }
   }
 
+  ## TODO: it's possible that code generation here would help, as
+  ## would a private function that does the middle bit alone?
   if (dat$features$discrete) {
     deriv <- NULL
-    update <- function(step, y) {
-      if (private$delay) {
+    if (dat$features$has_delay) {
+      update <- function(step, y) {
         stop("Can't call update() on delay models")
       }
-      .Call(private$core$rhs_r, private$ptr, as_integer(step), as_numeric(y),
-            PACKAGE = private$dll)
+    } else {
+      update <- function(step, y) {
+        .Call(private$core$rhs_r, private$ptr, as_integer(step), as_numeric(y),
+              PACKAGE = private$dll)
+      }
     }
     run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
       step <- as_integer(step)
@@ -76,14 +81,41 @@ generate_c_class <- function(core, dll, dat) {
       }
       ret
     }
-  } else {
+  } else if (dat$features$has_delay) {
     update <- NULL
     deriv <- function(t, y) {
-      if (private$delay) {
-        stop("Can't call deriv() on delay models")
+      stop("Can't call deriv() on delay models")
+    }
+
+    run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL,
+                    n_history = 1000L) {
+      if (is.null(y)) {
+        y <- self$initial(t)
       }
+      if (private$use_dde) {
+        ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
+                          dllname = private$dll, parms_are_real = FALSE,
+                          n_history = n_history, n_out = private$n_out,
+                          output = private$core$output, ynames = FALSE, ...)
+      } else {
+        ## TODO: initmod => initfunc
+        ret <- deSolve::dede(y, t, private$core$rhs_desolve, private$ptr,
+                             initfunc = private$core$initmod_desolve,
+                             nout = private$n_out, dllname = private$dll,
+                             control = list(mxhist = n_history), ...)
+      }
+      if (use_names) {
+        colnames(ret) <- private$ynames
+      } else {
+        colnames(ret) <- NULL
+      }
+      ret
+    }
+  } else {
+    deriv <- function(t, y) {
       .Call(private$core$rhs_r, private$ptr, t, y, PACKAGE = private$dll)
     }
+
     run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
       if (is.null(y)) {
         y <- self$initial(t)
@@ -91,8 +123,8 @@ generate_c_class <- function(core, dll, dat) {
       if (private$use_dde) {
         ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
                           dllname = private$dll, parms_are_real = FALSE,
-                          n_out = private$n_out, output = private$core$output,
-                          ynames = FALSE, ...)
+                          n_out = private$n_out,
+                          output = private$core$output, ynames = FALSE, ...)
       } else {
         ## TODO: initmod => initfunc
         ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$ptr,
@@ -123,7 +155,6 @@ generate_c_class <- function(core, dll, dat) {
       use_dde = NULL,
       init = NULL,
       interpolate_t = NULL,
-      delay = dat$features$has_delay,
       ir_ = dat$ir,
 
       ## These are not obviously the right bit of metadata to keep

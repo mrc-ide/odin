@@ -171,13 +171,17 @@ generate_c_equation_delay_index <- function(eq, data_info, dat, rewrite) {
 generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   delay <- eq$delay
   time <- dat$meta$time
+  time_true <- sprintf("%s_true", time)
 
   initial_time <- rewrite(dat$meta$initial_time)
   state <- rewrite(delay$state)
   index <- rewrite(delay$index)
   len <- rewrite(delay$variables$length)
 
-  time_set <- sprintf("double %s = %s - %s;", time, time, rewrite(delay$time))
+  time_set <- c(
+    sprintf_safe("const double %s = %s;", time_true, time),
+    sprintf_safe("const double %s = %s - %s;",
+                 time, time_true, rewrite(delay$time)))
 
   lookup_vars <- sprintf_safe(
     "lagvalue(%s, %s, %s, %s, %s);",
