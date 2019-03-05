@@ -221,9 +221,6 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   if (data_info$rank != 0L) {
     stop("checkme")
   }
-  if (!is.null(delay$default)) {
-    stop("checkme")
-  }
   if (data_info$location != "transient") {
     stop("checkme")
   }
@@ -231,10 +228,22 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
   exit <- sprintf_safe("%s = %s;", rewrite(eq$lhs), rewrite(rhs_expr))
 
-  ret <- c(sprintf_safe("%s %s;", data_info$storage_type, eq$lhs),
-           "{",
-           paste0("  ", c(time_set, unpack, eqs, exit)),
-           "}")
+  if (data_info$rank == 0L) {
+    if (is.null(delay$default)) {
+      body <- c(time_set, unpack, eqs, exit)
+    } else {
+      default <- rewrite(delay$default)
+      body <- c(time_set,
+                c_expr_if(
+                  sprintf_safe("%s <= %s", time, initial_time),
+                  sprintf_safe("%s = %s;", rewrite(eq$lhs), default),
+                  c(decl, lookup_vars, unpack_vars, eqs, exit)))
+    }
+    setup <- sprintf_safe("%s %s;", data_info$storage_type, eq$lhs)
+    ret <- c(setup, "{", paste0("  ", body), "}")
+  } else {
+    stop("writeme")
+  }
 
   ret
 }

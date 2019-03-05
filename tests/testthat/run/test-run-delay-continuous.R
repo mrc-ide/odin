@@ -142,7 +142,6 @@ test_that("delay array storage", {
 })
 
 test_that("3 arg delay", {
-  skip_for_target("c")
   gen <- odin2({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
@@ -156,7 +155,6 @@ test_that("3 arg delay", {
   yy <- mod$run(tt)
   expect_equal(yy[, "ylag"], rep(2.0, length(tt)))
 
-  ## OK, this is not actually working; ylag never moves off of 2.
   tt <- seq(0, 10, length.out = 101)
   yy <- mod$run(tt)
 
