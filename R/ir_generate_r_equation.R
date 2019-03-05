@@ -174,6 +174,7 @@ generate_r_equation_user <- function(eq, data_info, dat, rewrite) {
 }
 
 
+## TODO: allocate delay state here too
 generate_r_equation_delay_index <- function(eq, data_info, dat,
                                               rewrite) {
   delay <- dat$equations[[eq$delay]]$delay
@@ -200,8 +201,7 @@ generate_r_equation_delay_index <- function(eq, data_info, dat,
 }
 
 
-generate_r_equation_delay_continuous <- function(eq, data_info,
-                                                   dat, rewrite) {
+generate_r_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   delay <- eq$delay
   time <- as.name(dat$meta$time)
 

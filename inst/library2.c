@@ -204,3 +204,31 @@ double odin_sum1(double *x, size_t from, size_t to) {
   }
   return tot;
 }
+
+
+void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
+  typedef void (*lagvalue_type)(double, int*, int, double*);
+  static lagvalue_type fun = NULL;
+  if (fun == NULL) {
+    fun = (lagvalue_type)R_GetCCallable("deSolve", "lagvalue");
+  }
+  fun(t, idx, dim_idx, state);
+}
+
+void lagvalue_dde(double t, int *idx, size_t dim_idx, double *state) {
+  typedef void (*lagvalue_type)(double, int*, size_t, double*);
+  static lagvalue_type fun = NULL;
+  if (fun == NULL) {
+    fun = (lagvalue_type)R_GetCCallable("dde", "ylag_vec_int");
+  }
+  fun(t, idx, dim_idx, state);
+}
+
+
+void lagvalue(double t, bool use_dde, int *idx, int dim_idx, double *state) {
+  if (use_dde) {
+    lagvalue_dde(t, idx, dim_idx, state);
+  } else {
+    lagvalue_ds(t, idx, dim_idx, state);
+  }
+}

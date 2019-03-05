@@ -4,22 +4,6 @@ generate_c <- function(dat, verbose = FALSE) {
                           "has_delay")
   generate_check_features(features_supported, dat)
 
-  if (dat$features$has_delay) {
-    ## We're going to need an additional bit of internal data here,
-    ## but this sits outside the core odin ir
-    dat$meta$use_dde <- "odin_use_dde"
-    dat$data$elements[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
-                                                  location = "internal",
-                                                  storage_type = "bool",
-                                                  rank = 0L,
-                                                  dimnames = NULL)
-  }
-
-  rewrite <- function(x) {
-    generate_c_sexp(x, dat$data, dat$meta)
-  }
-  eqs <- generate_c_equations(dat, rewrite)
-
   base <- dat$config$base
   dat$meta$c <- list(
     ptr = sprintf("%s_p", dat$meta$internal),
@@ -31,6 +15,7 @@ generate_c <- function(dat, verbose = FALSE) {
     get_internal = sprintf("%s_get_internal", base),
     set_user = sprintf("%s_set_user", base),
     set_initial = sprintf("%s_set_initial", base),
+    use_dde = sprintf("%s_use_dde", base),
     initial_conditions = sprintf("%s_initial_conditions", base),
     metadata = sprintf("%s_metadata", base),
     rhs = sprintf("%s_rhs", base),
@@ -39,6 +24,20 @@ generate_c <- function(dat, verbose = FALSE) {
     rhs_r = sprintf("%s_rhs_r", base),
     output_dde = sprintf("%s_output_dde", base),
     initmod_desolve = sprintf("%s_initmod_desolve", base))
+
+  if (dat$features$has_delay) {
+    dat$data$elements[[dat$meta$c$use_dde]] <-
+      list(name = dat$meta$c$use_dde,
+           location = "internal",
+           storage_type = "bool",
+           rank = 0L,
+           dimnames = NULL)
+  }
+
+  rewrite <- function(x) {
+    generate_c_sexp(x, dat$data, dat$meta)
+  }
+  eqs <- generate_c_equations(dat, rewrite)
 
   core <- generate_c_compiled(eqs, dat, rewrite)
 

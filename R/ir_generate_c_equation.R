@@ -140,10 +140,14 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
 generate_c_equation_delay_index <- function(eq, data_info, dat, rewrite) {
   delay <- dat$equations[[eq$delay]]$delay
   lhs <- rewrite(eq$lhs)
+  state <- rewrite(delay$state)
 
   alloc <- c(sprintf_safe("Free(%s);", lhs),
              sprintf_safe("%s = Calloc(%s, int);",
-                          lhs, rewrite(delay$variables$length)))
+                          lhs, rewrite(delay$variables$length)),
+             sprintf_safe("Free(%s);", state),
+             sprintf_safe("%s = Calloc(%s, double);",
+                          state, rewrite(delay$variables$length)))
 
   index1 <- function(v) {
     d <- dat$data$elements[[v$name]]
@@ -155,7 +159,7 @@ generate_c_equation_delay_index <- function(eq, data_info, dat, rewrite) {
       loop <- sprintf_safe(
         "for (size_t i = %s, j = %s; j < %s; ++i, ++j)",
         rewrite(v$offset), rewrite(offset), rewrite(d$dimnames$length))
-      c(loop, "  lhs[i] <- j;", "}")
+      c(loop, sprintf("  %s[i] <- j;", lhs), "}")
     }
   }
 
@@ -175,12 +179,9 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
   time_set <- sprintf("double %s = %s - %s;", time, time, rewrite(delay$time))
 
-  lookup_vars <- c_expr_if(
-    rewrite(dat$meta$use_dde),
-    sprintf_safe("lagvalue_dde(%s, %s, %s, %s);",
-                 time, index, len, state),
-    sprintf_safe("lagvalue_ds(%s, %s, %s, %s);",
-                 time, index, len, state))
+  lookup_vars <- sprintf_safe(
+    "lagvalue(%s, %s, %s, %s, %s);",
+    time, rewrite(dat$meta$c$use_dde), index, len, state)
 
   unpack_vars <- c_flatten_eqs(lapply(
     delay$variables$contents, c_unpack_variable2,

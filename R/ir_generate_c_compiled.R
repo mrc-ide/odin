@@ -113,12 +113,21 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
   body$add("%s *%s = (%s*) Calloc(1, %s);",
            internal_t, internal, internal_t, internal_t)
 
-  if (dat$features$has_array) {
-    arrays <- names_if(vlapply(dat$data$elements, function(x)
-      x$rank > 0 && x$location == "internal" &&
-      dat$equations[[x$name]]$type != "user"))
-    body$add("%s = NULL;", vcapply(arrays, rewrite, USE.NAMES = FALSE))
+  ## Avoid UB by ensuring this is always set to something.
+  if (dat$features$has_delay && !dat$features$discrete) {
+    body$add("%s = false;", rewrite(dat$meta$c$use_dde))
   }
+
+  ## Assign all arrays as NULL, which allows all allocations to be
+  ## written as Free/Calloc because Free will not try to free a
+  ## pointer that has been set to NULL.
+  ##
+  ## NOTE: previously we ignored user equations here
+  ##   !identical(dat$equations[[x$name]]$type, "user")
+  ## but I don't think that's needed
+  arrays <- names_if(vlapply(dat$data$elements, function(x)
+    x$rank > 0 && x$location == "internal"))
+  body$add("%s = NULL;", vcapply(arrays, rewrite, USE.NAMES = FALSE))
 
   body$add(c_flatten_eqs(eqs[dat$components$create$equations]))
 
@@ -135,7 +144,9 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
   body$add("UNPROTECT(1);")
   body$add("return %s;", ptr)
 
-  c_function("SEXP", dat$meta$c$create, c(SEXP = dat$meta$user), body$get())
+  args <- c(SEXP = dat$meta$user)
+
+  c_function("SEXP", dat$meta$c$create, args, body$get())
 }
 
 
@@ -183,6 +194,9 @@ generate_c_compiled_output <- function(eqs, dat, rewrite) {
   body$add("%s *%s = (%s*) %s;",
            dat$meta$c$internal_t, dat$meta$internal, dat$meta$c$internal_t,
            dat$meta$c$ptr)
+  if (dat$features$has_delay) {
+    body$add("%s = true;", rewrite(dat$meta$c$use_dde))
+  }
   body$add(c_flatten_eqs(c(unpack, eqs[equations])), literal = TRUE)
   args <- c("size_t" = "n_eq",
             "double" = dat$meta$time,
@@ -224,6 +238,13 @@ generate_c_compiled_deriv_dde <- function(dat) {
                        dat$meta$c$rhs, dat$meta$c$internal_t,
                        dat$meta$internal, dat$meta$time, dat$meta$state,
                        dat$meta$result, dat$meta$output)
+  if (dat$features$has_delay) {
+    body <- c(sprintf_safe("((%s*)%s)->%s = true;",
+                           dat$meta$c$internal_t,
+                           dat$meta$internal,
+                           dat$meta$c$use_dde),
+              body)
+  }
   c_function("void", dat$meta$c$rhs_dde, args, body)
 }
 
@@ -251,6 +272,12 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
 
   ## TODO: adding some coercion here would be nice, though it might be
   ## better on the R side.
+  if (dat$features$has_delay && !dat$features$discrete) {
+    ## Strictly this is not needed because delay rhs do not allow
+    ## calling the rhs.
+    body$add("%s = false;", rewrite(dat$meta$c$use_dde))
+  }
+
   body$add("%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
            dat$meta$c$rhs, dat$meta$internal, time_access, dat$meta$time,
            dat$meta$state, dat$meta$result, dat$meta$output)
@@ -304,6 +331,9 @@ generate_c_compiled_initmod_desolve <- function(dat) {
   body$add("}")
   body$add("%s = %s(get_desolve_gparms(), 1);",
            dat$meta$c$internal_ds, dat$meta$c$get_internal)
+  if (dat$features$has_delay) {
+    body$add("%s->%s = false;", dat$meta$c$internal_ds, dat$meta$c$use_dde)
+  }
 
   args <- c("void(* odeparms)" = "(int *, double *)")
   global <- sprintf_safe("static %s *%s;",
@@ -581,6 +611,9 @@ generate_c_compiled_library <- function(dat) {
              "get_user_array_dim")
     }
   }
+  if (dat$features$has_delay && !dat$features$discrete) {
+    v <- c(v, "lagvalue", "lagvalue_dde", "lagvalue_ds")
+  }
 
   used <- unique(unlist(lapply(dat$equations, function(x)
     x$depends$functions), FALSE, FALSE))
@@ -643,7 +676,7 @@ c_unpack_variable2 <- function(x, data_elements, state, declaration, rewrite) {
     fmt <- if (d$rank == 0L) "%s %s = %s;" else "%s * %s = %s;"
     sprintf_safe(fmt, d$storage_type, x$name, rhs)
   } else {
-    sprintf_safe("%s = %s", x$name, rhs)
+    sprintf_safe("%s = %s;", x$name, rhs)
   }
 }
 
