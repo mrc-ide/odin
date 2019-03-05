@@ -286,24 +286,25 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
   ring <- rewrite(eq$delay$ring)
   lhs <- rewrite(eq$lhs)
 
-  advance <- sprintf_safe(
-    "double * %s = (double *)ring_buffer_head_advance(%s);",
+  get_ring_head <- sprintf_safe(
+    "double * %s = (double*) ring_buffer_head(%s);",
     head, ring)
+
   if (data_info$rank == 0L) {
     push <- sprintf("%s[0] = %s;", head, rewrite(eq$rhs$value))
   } else {
     stop("writeme")
   }
 
+  advance <- sprintf_safe("ring_buffer_head_advance(%s);", ring)
+
   time_check <- sprintf_safe(
-    "%s - %s < %s",
+    "%s - %s <= %s",
     dat$meta$time, rewrite(eq$delay$time), rewrite(dat$meta$initial_time))
   data_initial <- sprintf_safe(
     "%s = (double*)ring_buffer_tail(%s);", tail, ring)
-  ## TODO: I feel like this should be an offset of %s - 1 for second
-  ## arg but that lags one too long.  But without that, this crashes.
   data_offset <- sprintf_safe(
-    "%s = (double *) ring_buffer_head_offset(%s, %s - 1);",
+    "%s = (double *) ring_buffer_head_offset(%s, %s);",
     tail, ring, rewrite(eq$delay$time))
 
   if (data_info$rank == 0L) {
@@ -318,8 +319,9 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
                       lhs, tail, rewrite(data_info$dimnames$length))
   }
 
-  c(advance,
+  c(get_ring_head,
     push,
+    advance,
     sprintf_safe("double * %s;", tail),
     c_expr_if(time_check, data_initial, data_offset),
     assign)
