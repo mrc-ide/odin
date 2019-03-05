@@ -32,6 +32,7 @@ generate_c_compiled_headers <- function(dat) {
   c("#include <R.h>",
     "#include <Rmath.h>",
     "#include <Rinternals.h>",
+    "#include <stdbool.h>",
     "#include <R_ext/Rdynload.h>")
 }
 
@@ -315,21 +316,16 @@ generate_c_compiled_initmod_desolve <- function(dat) {
 
 generate_c_compiled_contents <- function(dat, rewrite) {
   extract <- function(x, i, body) {
+    info <- c_type_info(x$storage_type)
     if (x$rank == 0L) {
-      fn <- switch(x$storage_type,
-                   double = "ScalarReal",
-                   int = "ScalarInteger",
-                   stop("Unsupported storage type"))
       body$add("SET_VECTOR_ELT(contents, %d, %s(%s->%s));",
-               i, fn, dat$meta$internal, x$name)
+               i, info$scalar_allocate, dat$meta$internal, x$name)
     } else {
-      if (x$storage_type != "double") {
-        stop("writeme")
-      }
-      body$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
-               x$name, rewrite(x$dimnames$length))
-      body$add("memcpy(REAL(%s), %s, %s * sizeof(double));",
-               x$name, rewrite(x$name), rewrite(x$dimnames$length))
+      body$add("SEXP %s = PROTECT(allocVector(%s, %s));",
+               x$name, info$sexp_name, rewrite(x$dimnames$length))
+      body$add("memcpy(%s(%s), %s, %s * sizeof(%s));",
+               info$sexp_access, x$name, rewrite(x$name),
+               rewrite(x$dimnames$length), info$c_name)
       if (x$rank > 1L) {
         dim <- paste(vcapply(x$dimnames$dim, rewrite), collapse = ", ")
         body$add("odin_set_dim(%s, %d, %s);", x$name, x$rank, dim)
@@ -555,9 +551,9 @@ generate_c_compiled_library <- function(dat) {
     user_arrays <- any(vlapply(dat$equations, function(x)
       !is.null(x$user) && d[[x$name]]$rank > 0))
     if (user_arrays) {
-      v <- c(v, "get_user_array_double", "get_user_array_copy_double",
+      v <- c(v, "get_user_array", "get_user_array_copy",
              "get_user_array_check_rank", "get_list_element",
-             "get_user_array_dim_double")
+             "get_user_array_dim")
     }
   }
 
@@ -635,4 +631,23 @@ c_extract_variable <- function(x, data_elements, state, rewrite) {
   } else {
     sprintf("%s + %s", state, rewrite(x$offset))
   }
+}
+
+
+c_type_info <- function(storage_type) {
+  if (storage_type == "double") {
+    sexp_name <- "REALSXP"
+    sexp_access <- "REAL"
+    scalar_allocate <- "ScalarReal"
+  } else if (storage_type == "int") {
+    sexp_name <- "INTSXP"
+    sexp_access <- "INTEGER"
+    scalar_allocate <- "ScalarInteger"
+  } else {
+    stop("Invalid type [odin bug]")
+  }
+  list(c_name = storage_type,
+       sexp_name = sexp_name,
+       sexp_access = sexp_access,
+       scalar_allocate = scalar_allocate)
 }

@@ -988,7 +988,6 @@ test_that("logical operations", {
 ## with this for now, and then go through and see if we can detect if
 ## a number is an integer thing because it's only used within indexes.
 test_that("integer vector", {
-  skip_for_target("c")
   ## We expect 'idx' to come through as an integer
   gen <- odin2({
     x[] <- user()
@@ -1014,7 +1013,6 @@ test_that("integer vector", {
 
 ## This is much closer to the test case needed for Neil's model
 test_that("integer matrix", {
-  skip_for_target("c")
   gen <- odin2({
     x[] <- user()
     dim(x) <- user()

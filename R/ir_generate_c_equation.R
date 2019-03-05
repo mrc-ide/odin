@@ -93,24 +93,24 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
   rank <- data_info$rank
 
   lhs <- rewrite(eq$lhs)
+  storage_type <- data_info$storage_type
+  is_integer <- if (storage_type == "int") "true" else "false"
   if (eq$user$dim) {
-    if (data_info$storage_type != "double") {
-      stop("not yet implemented")
-    }
     free <- sprintf_safe("Free(%s);", lhs)
     len <- data_info$dimnames$length
 
     if (rank == 1L) {
       ret <- c(
         free,
-        sprintf_safe('%s = get_user_array_dim_double(%s, "%s", %d, &%s);',
-                     lhs, user, eq$lhs, rank, rewrite(len)))
+        sprintf_safe('%s = (%s*) get_user_array_dim(%s, %s, "%s", %d, &%s);',
+                     lhs, storage_type, user, is_integer, eq$lhs, rank,
+                     rewrite(len)))
     } else {
       ret <- c(
         free,
         sprintf_safe("int %s[%d];", len, rank + 1),
-        sprintf_safe('%s = get_user_array_dim_double(%s, "%s", %d, %s);',
-                     lhs, user, eq$lhs, rank, len),
+        sprintf_safe('%s = (%s*) get_user_array_dim(%s, %s, "%s", %d, %s);',
+                     lhs, storage_type, user, is_integer, eq$lhs, rank, len),
         sprintf_safe("%s = %s[%d];", rewrite(len), len, 0),
         sprintf_safe("%s = %s[%d];",
                      vcapply(data_info$dimnames$dim, rewrite), len,
@@ -122,17 +122,15 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
         '%s = get_user_%s(%s, "%s", %s);',
         lhs, data_info$storage_type, user, eq$lhs, lhs)
     } else {
-      if (data_info$storage_type != "double") {
-        stop("not yet implemented")
-      }
       if (rank == 1L) {
         dim <- rewrite(data_info$dimnames$length)
       } else {
         dim <- paste(vcapply(data_info$dimnames$dim, rewrite), collapse = ", ")
       }
       ret <- c(sprintf_safe("Free(%s);", lhs),
-               sprintf_safe('%s = get_user_array_double(%s, "%s", %d, %s);',
-                            lhs, user, eq$lhs, rank, dim))
+               sprintf_safe('%s = (%s*) get_user_array(%s, %s, "%s", %d, %s);',
+                            lhs, storage_type, user, is_integer, eq$lhs,
+                            rank, dim))
     }
   }
   ret
