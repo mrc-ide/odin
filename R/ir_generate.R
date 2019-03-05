@@ -17,6 +17,8 @@ odin2_ <- function(x, validate = NULL, verbose = NULL, target = NULL) {
   ir <- odin_parse2(x, opts$validate)
   dat <- ir_deserialise(ir)
 
+  message("target: ", opts$target)
+
   switch(opts$target,
          "r" = generate_r(dat),
          "c" = generate_c(dat, opts$verbose),

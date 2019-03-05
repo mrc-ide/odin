@@ -218,34 +218,38 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
                 c_flatten_eqs(unpack_initial),
                 c(lookup_vars, unpack_vars)))
 
-  if (data_info$rank != 0L) {
-    stop("checkme")
-  }
-  if (data_info$location != "transient") {
-    stop("checkme")
-  }
-
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
-  exit <- sprintf_safe("%s = %s;", rewrite(eq$lhs), rewrite(rhs_expr))
-
   if (data_info$rank == 0L) {
-    if (is.null(delay$default)) {
-      body <- c(time_set, unpack, eqs, exit)
-    } else {
-      default <- rewrite(delay$default)
-      body <- c(time_set,
-                c_expr_if(
-                  sprintf_safe("%s <= %s", time, initial_time),
-                  sprintf_safe("%s = %s;", rewrite(eq$lhs), default),
-                  c(decl, lookup_vars, unpack_vars, eqs, exit)))
-    }
-    setup <- sprintf_safe("%s %s;", data_info$storage_type, eq$lhs)
-    ret <- c(setup, "{", paste0("  ", body), "}")
+    lhs <- rewrite(eq$lhs)
+    expr <- sprintf_safe("%s = %s;", lhs, rewrite(rhs_expr))
   } else {
-    stop("writeme")
+    lhs <- generate_c_equation_array_lhs(eq, data_info, dat, rewrite)
+    expr <- generate_c_equation_array_rhs(rhs_expr, eq$rhs$index, lhs, rewrite)
   }
 
-  ret
+  if (is.null(delay$default)) {
+    body <- c(time_set, unpack, eqs, expr)
+  } else {
+    if (data_info$rank == 0L) {
+      default <- sprintf_safe("%s = %s;", lhs, rewrite(delay$default))
+    } else {
+      default <- generate_c_equation_array_rhs(delay$default, eq$rhs$index,
+                                               lhs, rewrite)
+    }
+    body <- c(time_set,
+              c_expr_if(
+                sprintf_safe("%s <= %s", time, initial_time),
+                default,
+                c(decl, lookup_vars, unpack_vars, eqs, expr)))
+  }
+
+  if (data_info$location == "transient") {
+    setup <- sprintf_safe("%s %s;", data_info$storage_type, eq$lhs)
+  } else {
+    setup <- NULL
+  }
+
+  c(setup, "{", paste0("  ", body), "}")
 }
 
 
@@ -255,7 +259,11 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
-  index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
+  if (eq$type == "delay_continuous") {
+    index <- lapply(eq$rhs$index, "[[", "index")
+  } else {
+    index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
+  }
   location <- data_info$location
 
   f <- function(i) {

@@ -73,7 +73,6 @@ test_that("user variables on models with none", {
 })
 
 test_that("non-numeric time", {
-  skip_for_target("c", "delay")
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
   gen <- odin2({

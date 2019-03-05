@@ -163,8 +163,8 @@ test_that("3 arg delay", {
   expect_true(all(ylag[tt > 3] < 1)) # quite a big jump at first
 })
 
+
 test_that("3 arg delay with array", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(a[]) <- i
     initial(a[]) <- (i - 1) / 10
@@ -190,6 +190,7 @@ test_that("3 arg delay with array", {
   expect_equal(yy$tmp[!i, ],
                t(outer(1:5, tt[!i] - 2) + (0:4) / 10))
 })
+
 
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
@@ -225,10 +226,14 @@ test_that("delay index packing", {
   seq0 <- function(n) seq_len(n)
 
   expect_equal(dat$dim_delay_foo, dat$dim_b + dat$dim_c + dat$dim_e)
-  expect_equal(dat$delay_index_foo,
-               c(dat$dim_a + seq0(dat$dim_b),
-                 dat$offset_variable_c + seq0(dat$dim_c),
-                 dat$offset_variable_e + seq0(dat$dim_e)))
+
+  delay_index_foo <- c(dat$dim_a + seq0(dat$dim_b),
+                       dat$offset_variable_c + seq0(dat$dim_c),
+                       dat$offset_variable_e + seq0(dat$dim_e))
+  if (odin_target_name() == "c") {
+    delay_index_foo <- delay_index_foo - 1L
+  }
+  expect_equal(dat$delay_index_foo, delay_index_foo)
 
   tt <- seq(0, 10, length.out = 11)
   yy <- mod$transform_variables(mod$run(tt))
