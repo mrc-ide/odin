@@ -63,7 +63,6 @@ test_that("delays: scalar expression", {
 })
 
 test_that("delays: vector variable", {
-  skip_for_target("c")
   gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -89,7 +88,6 @@ test_that("delays: vector variable", {
 })
 
 test_that("delays: vector expression", {
-  skip_for_target("c")
   gen <- odin2({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -116,7 +114,6 @@ test_that("delays: vector expression", {
 })
 
 test_that("delay vars that depend on time", {
-  skip_for_target("c")
   gen <- odin2({
     initial(x) <- 0
     update(x) <- x + v

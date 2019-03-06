@@ -293,18 +293,22 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
   if (data_info$rank == 0L) {
     push <- sprintf("%s[0] = %s;", head, rewrite(eq$rhs$value))
   } else {
-    stop("writeme")
+    data_info_ring <- data_info
+    data_info_ring$name <- head
+    lhs_ring <- generate_c_equation_array_lhs(eq, data_info_ring, dat, rewrite)
+    push <- generate_c_equation_array_rhs(eq$rhs$value, eq$rhs$index,
+                                          lhs_ring, rewrite)
   }
 
   advance <- sprintf_safe("ring_buffer_head_advance(%s);", ring)
 
   time_check <- sprintf_safe(
-    "%s - %s <= %s",
+    "(int)%s - %s <= %s",
     dat$meta$time, rewrite(eq$delay$time), rewrite(dat$meta$initial_time))
   data_initial <- sprintf_safe(
     "%s = (double*)ring_buffer_tail(%s);", tail, ring)
   data_offset <- sprintf_safe(
-    "%s = (double *) ring_buffer_head_offset(%s, %s);",
+    "%s = (double*) ring_buffer_head_offset(%s, %s);",
     tail, ring, rewrite(eq$delay$time))
 
   if (data_info$rank == 0L) {
@@ -324,15 +328,15 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
     advance,
     sprintf_safe("double * %s;", tail),
     c_expr_if(time_check, data_initial, data_offset),
-    assign)
+    assign) -> ret
 }
 
 
 generate_c_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
-  if (eq$type == "delay_continuous") {
-    index <- lapply(eq$rhs$index, "[[", "index")
-  } else {
+  if (eq$type == "expression_array") {
     index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
+  } else {
+    index <- lapply(eq$rhs$index, "[[", "index")
   }
   location <- data_info$location
 
