@@ -1,7 +1,7 @@
 generate_c <- function(dat, verbose = FALSE) {
   features_supported <- c("initial_time_dependent", "has_user", "has_output",
                           "discrete", "has_array", "has_stochastic",
-                          "has_delay")
+                          "has_delay", "has_interpolate")
   generate_check_features(features_supported, dat)
 
   base <- dat$config$base
@@ -50,14 +50,22 @@ generate_c <- function(dat, verbose = FALSE) {
     ring <- NULL
   }
 
+  if (dat$features$has_interpolate) {
+    interpolate <- odin_interpolate_support(FALSE)
+  } else {
+    interpolate <- NULL
+  }
+
   decl <- c(generate_c_compiled_headers(dat),
             ring$declarations,
+            interpolate$declarations,
             generate_c_compiled_struct(dat),
             unname(vcapply(core, "[[", "declaration")),
             lib$declaration)
   defn <- c(c_flatten_eqs(c(lapply(core, "[[", "definition"))),
             lib$definition,
-            ring$definitions)
+            ring$definitions,
+            interpolate$definitions)
 
   code <- c(decl, defn)
 
@@ -83,4 +91,18 @@ c_variable_reference <- function(x, data_info, state, rewrite) {
 
 c_flatten_eqs <- function(eqs) {
   unlist(unname(eqs))
+}
+
+
+odin_interpolate_support <- function(package) {
+  if (package) {
+    stop("writeme")
+  }
+  r_h <- system.file("include/cinterpolate/cinterpolate.h",
+                     package = "cinterpolate", mustWork = TRUE)
+  r_c <- system.file("include/cinterpolate/cinterpolate.c",
+                     package = "cinterpolate", mustWork = TRUE)
+  decl <- sprintf('#include "%s"', r_h)
+  defn <- sprintf('#include "%s"', r_c)
+  list(declarations = decl, definitions = defn)
 }

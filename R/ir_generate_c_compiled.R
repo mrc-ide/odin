@@ -39,8 +39,12 @@ generate_c_compiled_headers <- function(dat) {
 
 generate_c_compiled_struct <- function(dat) {
   struct_element <- function(x) {
-    is_ptr <- x$rank > 0L || x$storage_type == "ring_buffer"
-    sprintf(if (is_ptr) "%s *%s;" else "%s %s;", x$storage_type, x$name)
+    type <- x$storage_type
+    if (type == "interpolate_data") {
+      type <- "void"
+    }
+    is_ptr <- x$rank > 0L || type == "ring_buffer" || type == "void"
+    sprintf(if (is_ptr) "%s *%s;" else "%s %s;", type, x$name)
   }
   i <- vcapply(dat$data$elements, "[[", "location") == "internal"
   els <- vcapply(unname(dat$data$elements[i]), struct_element)
@@ -323,7 +327,7 @@ generate_c_compiled_initmod_desolve <- function(dat) {
 
 generate_c_compiled_contents <- function(dat, rewrite) {
   extract <- function(x, i, body) {
-    if (x$storage_type == "ring_buffer") {
+    if (x$storage_type %in% c("ring_buffer", "interpolate_data")) {
       ## nothing for now at least - later we'll return something more
       return()
     }

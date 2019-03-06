@@ -12,6 +12,7 @@ generate_c_equation <- function(eq, dat, rewrite) {
     alloc_interpolate = generate_c_equation_alloc_interpolate,
     alloc_ring = generate_c_equation_alloc_ring,
     copy = generate_c_equation_copy,
+    interpolate = generate_c_equation_interpolate,
     user = generate_c_equation_user,
     delay_index = generate_c_equation_delay_index,
     delay_continuous = generate_c_equation_delay_continuous,
@@ -62,7 +63,47 @@ generate_c_equation_alloc <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_alloc_interpolate <- function(eq, data_info, dat, rewrite) {
-  .NotYetImplemented()
+  data_info_target <- dat$data$elements[[eq$interpolate$equation]]
+  data_info_t <- dat$data$elements[[eq$interpolate$t]]
+  data_info_y <- dat$data$elements[[eq$interpolate$y]]
+
+  ## TOOD: There is some key checking that we're currently missing here
+  len_t <- rewrite(data_info_t$dimnames$length)
+
+  lhs <- rewrite(eq$lhs)
+
+  if (data_info_target$rank == 0L) {
+    len_y <- rewrite(1L)
+  } else {
+    stop("writeme")
+    len_y <- rewrite(data_info_target$dimnames$length %||% 1L)
+  }
+
+  rhs <- sprintf_safe(
+    'cinterpolate_alloc("%s", %s, %s, %s, %s, false)',
+    eq$interpolate$type, len_t, len_y, rewrite(eq$interpolate$t),
+    rewrite(eq$interpolate$y))
+
+  c(sprintf_safe("cinterpolate_free(%s);", lhs),
+    sprintf_safe("%s = %s;", lhs, rhs))
+}
+
+
+generate_c_equation_interpolate <- function(eq, data_info, dat, rewrite) {
+  if (data_info$rank == 0L) {
+    lhs <- rewrite(eq$lhs)
+    ret <- sprintf_safe("cinterpolate_eval(%s, %s, &%s);",
+                        dat$meta$time, rewrite(eq$interpolate),
+                        rewrite(eq$lhs))
+    if (data_info$location == "transient") {
+      ret <- c(sprintf_safe("double %s = 0.0;", eq$lhs), ret)
+    }
+  } else {
+    ret <- sprintf_safe("cinterpolate_eval(%s, %s, %s);",
+                        dat$meta$time, rewrite(eq$interpolate),
+                        rewrite(eq$lhs))
+  }
+  ret
 }
 
 
