@@ -8,9 +8,6 @@ generate_r_sexp <- function(x, data, meta) {
     } else if (fn == "dim") {
       nm <- data$elements[[args[[1L]]]]$dimnames$dim[[args[[2L]]]]
       generate_r_sexp(nm, data, meta)
-    } else if (fn == "interpolate") {
-      as.call(list(generate_r_sexp(args[[1L]], data, meta),
-                   as.name(meta$time)))
     } else if (fn == "odin_sum") {
       generate_r_sexp_sum(lapply(args, generate_r_sexp,
                                  data, meta))

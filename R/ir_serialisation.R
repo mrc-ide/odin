@@ -172,6 +172,7 @@ ir_serialise_equation <- function(eq) {
     delay_index = ir_serialise_equation_delay_index(eq),
     expression_array = ir_serialise_equation_expression_array(eq),
     expression_scalar = ir_serialise_equation_expression_scalar(eq),
+    interpolate = ir_serialise_equation_interpolate(eq),
     user = ir_serialise_equation_user(eq),
     stop("odin bug"))
   c(base, extra)
@@ -215,6 +216,9 @@ ir_serialise_equation_expression_array <- function(eq) {
   list(rhs = lapply(eq$rhs, rhs))
 }
 
+ir_serialise_equation_interpolate <- function(eq) {
+  list(interpolate = scalar(eq$interpolate))
+}
 
 ir_serialise_equation_user <- function(eq) {
   list(user = list(default = ir_serialise_expression(eq$user$default),

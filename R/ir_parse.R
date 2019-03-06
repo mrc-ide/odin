@@ -1100,13 +1100,10 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
   eq_alloc$interpolate$equation <- nm
   time <- if (discrete) STEP else TIME
 
-  ## TODO: this is going to become "interpolate", because that is
-  ## needed to support C code generation.
   eq_use <- eq
-  eq_use$type <- "expression_scalar"
+  eq_use$type <- "interpolate"
   eq_use$depends <- ir_parse_depends(variables = c(time, nm_alloc))
-  eq_use$interpolate <- NULL # becomes `nm_alloc`
-  eq_use$rhs <- list(value = call("interpolate", as.name(nm_alloc)))
+  eq_use$interpolate <- nm_alloc
 
   ## TODO: this will switch over to be on eq_use once it changes type
   type <- eq_alloc$interpolate$type

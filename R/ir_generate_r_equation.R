@@ -12,6 +12,7 @@ generate_r_equation <- function(eq, dat, rewrite) {
     alloc_interpolate = generate_r_equation_alloc_interpolate,
     alloc_ring = generate_r_equation_alloc_ring,
     copy = generate_r_equation_copy,
+    interpolate = generate_r_equation_interpolate,
     user = generate_r_equation_user,
     delay_index = generate_r_equation_delay_index,
     delay_continuous = generate_r_equation_delay_continuous,
@@ -139,6 +140,12 @@ generate_r_equation_copy <- function(eq, data_info, dat, rewrite) {
 
   rhs <- rewrite(eq$lhs)
   call("<-", lhs, rhs)
+}
+
+
+generate_r_equation_interpolate <- function(eq, data_info, dat, rewrite) {
+  rhs <- as.call(list(rewrite(eq$interpolate), as.name(dat$meta$time)))
+  call("<-", rewrite(eq$lhs), rhs)
 }
 
 

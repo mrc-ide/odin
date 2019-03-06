@@ -57,6 +57,7 @@
                     "delay_index",
                     "delay_continuous",
                     "delay_discrete",
+                    "interpolate",
                     "user",
                     "expression_array",
                     "expression_scalar"
@@ -313,6 +314,7 @@
                         {"$ref": "#/definitions/equation_user"},
                         {"$ref": "#/definitions/equation_expression_array"},
                         {"$ref": "#/definitions/equation_expression_scalar"},
+                        {"$ref": "#/definitions/equation_interpolate"},
                         {"$ref": "#/definitions/equation_delay_index"},
                         {"$ref": "#/definitions/equation_delay_continuous"},
                         {"$ref": "#/definitions/equation_delay_discrete"}
@@ -664,6 +666,24 @@
                 }
             },
             "required": ["type", "rhs", "delay"],
+            "additionalProperties": false
+        },
+
+        "equation_interpolate": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "interpolate"
+                },
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "interpolate": {
+                    "type": "string"
+                }
+            },
+            "required": ["type", "interpolate"],
             "additionalProperties": false
         },
 
