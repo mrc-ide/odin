@@ -57,10 +57,16 @@ generate_c_class <- function(core, dll, dat) {
               PACKAGE = private$dll)
       }
     }
+    ## TODO: I don't see that this does the initial setting correctly
+    ## - surely this should end up here.  This suggests that we do not
+    ## have a case that uses the initial conditions correctly.
     run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
       step <- as_integer(step)
       if (is.null(y)) {
         y <- self$initial(step)
+      }
+      if (!is.null(private$interpolate_t)) {
+        support_check_interpolate_t(step[[1]], private$interpolate_t, NULL)
       }
       if (is.null(replicate)) {
         ret <- dde::difeq(y, step, private$core$rhs_dde, private$ptr,
@@ -94,6 +100,10 @@ generate_c_class <- function(core, dll, dat) {
       }
       .Call(private$core$set_initial, private$ptr, as_numeric(t[[1]]),
             y, private$use_dde, PACKAGE = private$dll)
+      if (!is.null(private$interpolate_t)) {
+        tcrit <- support_check_interpolate_t(t[[1]], private$interpolate_t,
+                                             tcrit)
+      }
       if (is.null(y)) {
         y <- self$initial(t)
       }
@@ -122,6 +132,10 @@ generate_c_class <- function(core, dll, dat) {
     }
 
     run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
+      if (!is.null(private$interpolate_t)) {
+        tcrit <- support_check_interpolate_t(t[[1]], private$interpolate_t,
+                                             tcrit)
+      }
       if (is.null(y)) {
         y <- self$initial(t)
       }
@@ -178,6 +192,7 @@ generate_c_class <- function(core, dll, dat) {
         private$ynames <- make_names2(private$variable_order,
                                       private$output_order,
                                       private$discrete)
+        private$interpolate_t <- meta$interpolate_t
       }
     ),
 

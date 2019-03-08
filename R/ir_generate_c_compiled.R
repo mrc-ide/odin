@@ -535,11 +535,12 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
   body$add("%s *%s = %s(%s, 1);",
           dat$meta$c$internal_t, dat$meta$internal,
           dat$meta$c$get_internal, dat$meta$c$ptr)
-  body$add("SEXP ret = PROTECT(allocVector(VECSXP, 3));")
-  body$add("SEXP nms = PROTECT(allocVector(STRSXP, 3));")
+  body$add("SEXP ret = PROTECT(allocVector(VECSXP, 4));")
+  body$add("SEXP nms = PROTECT(allocVector(STRSXP, 4));")
   body$add('SET_STRING_ELT(nms, 0, mkChar("variable_order"));')
   body$add('SET_STRING_ELT(nms, 1, mkChar("output_order"));')
   body$add('SET_STRING_ELT(nms, 2, mkChar("n_out"));')
+  body$add('SET_STRING_ELT(nms, 3, mkChar("interpolate_t"));')
   body$add("setAttrib(ret, R_NamesSymbol, nms);");
 
   body$add(len_block(variables, "variable", 0))
@@ -551,6 +552,31 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
   } else {
     body$add("SET_VECTOR_ELT(ret, 1, R_NilValue);")
     body$add("SET_VECTOR_ELT(ret, 2, ScalarInteger(0));")
+  }
+
+  if (dat$features$has_interpolate) {
+    ## TODO: we should generate out the the critical bits but that's
+    ## another problem.  See the comments in
+    ## support_check_interpolate_t
+    args_min <- c_fold_call("max", vcapply(dat$interpolate$min, function(x)
+      sprintf("%s[0]", rewrite(x))))
+    if (length(dat$interpolate$max) == 0) {
+      args_max <- "R_PosInf"
+    } else {
+      args_max <- c_fold_call("min", vcapply(dat$interpolate$max, function(x)
+        sprintf("%s[%s]", rewrite(x),
+                rewrite(dat$data$elements[[x]]$dimnames$length))))
+    }
+
+    body$add("SEXP interpolate_t = PROTECT(allocVector(VECSXP, 3));")
+    body$add("SEXP interpolate_t_nms = PROTECT(allocVector(STRSXP, 3));")
+    body$add("setAttrib(interpolate_t, R_NamesSymbol, interpolate_t_nms);");
+    body$add("SET_VECTOR_ELT(interpolate_t, 0, ScalarReal(%s));", args_min)
+    body$add("SET_VECTOR_ELT(interpolate_t, 1, ScalarReal(%s));", args_max)
+    body$add('SET_STRING_ELT(interpolate_t_nms, 0, mkChar("min"));')
+    body$add('SET_STRING_ELT(interpolate_t_nms, 1, mkChar("max"));')
+    body$add("SET_VECTOR_ELT(ret, 3, interpolate_t);")
+    body$add("UNPROTECT(2);")
   }
 
   body$add("UNPROTECT(2);")
