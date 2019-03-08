@@ -83,7 +83,6 @@ test_that("constant array", {
 
 
 test_that("constant 3d array", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[,]) <- pulse[i,j]
     initial(y[,]) <- 0
@@ -133,7 +132,6 @@ test_that("constant 3d array", {
 
 
 test_that("linear", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -168,7 +166,6 @@ test_that("linear", {
 
 
 test_that("spline", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- pulse
     initial(y) <- 0

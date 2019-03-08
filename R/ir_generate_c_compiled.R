@@ -564,7 +564,7 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
       args_max <- "R_PosInf"
     } else {
       args_max <- c_fold_call("min", vcapply(dat$interpolate$max, function(x)
-        sprintf("%s[%s]", rewrite(x),
+        sprintf("%s[%s - 1]", rewrite(x),
                 rewrite(dat$data$elements[[x]]$dimnames$length))))
     }
 

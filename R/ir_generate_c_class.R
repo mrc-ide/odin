@@ -66,7 +66,7 @@ generate_c_class <- function(core, dll, dat) {
         y <- self$initial(step)
       }
       if (!is.null(private$interpolate_t)) {
-        support_check_interpolate_t(step[[1]], private$interpolate_t, NULL)
+        support_check_interpolate_t(step, private$interpolate_t, NULL)
       }
       if (is.null(replicate)) {
         ret <- dde::difeq(y, step, private$core$rhs_dde, private$ptr,
@@ -101,8 +101,7 @@ generate_c_class <- function(core, dll, dat) {
       .Call(private$core$set_initial, private$ptr, as_numeric(t[[1]]),
             y, private$use_dde, PACKAGE = private$dll)
       if (!is.null(private$interpolate_t)) {
-        tcrit <- support_check_interpolate_t(t[[1]], private$interpolate_t,
-                                             tcrit)
+        tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
       }
       if (is.null(y)) {
         y <- self$initial(t)
@@ -111,13 +110,15 @@ generate_c_class <- function(core, dll, dat) {
         ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
                           dllname = private$dll, parms_are_real = FALSE,
                           n_history = n_history, n_out = private$n_out,
-                          output = private$core$output, ynames = FALSE, ...)
+                          output = private$core$output, ynames = FALSE,
+                          tcrit = tcrit, ...)
       } else {
         ## TODO: initmod => initfunc
         ret <- deSolve::dede(y, t, private$core$rhs_desolve, private$ptr,
                              initfunc = private$core$initmod_desolve,
                              nout = private$n_out, dllname = private$dll,
-                             control = list(mxhist = n_history), ...)
+                             control = list(mxhist = n_history),
+                             tcrit = tcrit, ...)
       }
       if (use_names) {
         colnames(ret) <- private$ynames
@@ -133,8 +134,7 @@ generate_c_class <- function(core, dll, dat) {
 
     run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
       if (!is.null(private$interpolate_t)) {
-        tcrit <- support_check_interpolate_t(t[[1]], private$interpolate_t,
-                                             tcrit)
+        tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
       }
       if (is.null(y)) {
         y <- self$initial(t)
@@ -143,12 +143,14 @@ generate_c_class <- function(core, dll, dat) {
         ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
                           dllname = private$dll, parms_are_real = FALSE,
                           n_out = private$n_out,
-                          output = private$core$output, ynames = FALSE, ...)
+                          output = private$core$output, ynames = FALSE,
+                          tcrit = tcrit, ...)
       } else {
         ## TODO: initmod => initfunc
         ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$ptr,
                             initfunc = private$core$initmod_desolve,
-                            nout = private$n_out, dllname = private$dll, ...)
+                            nout = private$n_out, dllname = private$dll,
+                            tcrit = tcrit, ...)
       }
       if (use_names) {
         colnames(ret) <- private$ynames
