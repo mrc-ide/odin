@@ -422,7 +422,6 @@ test_that("user array - direct 3d", {
 
 ## NOTE: this is the test from test-interpolation.R
 test_that("interpolation", {
-  skip_for_target("c", "interpolation")
   gen <- odin2({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -445,9 +444,13 @@ test_that("interpolation", {
   expect_equal(sort(names(dat)),
                sort(c("dim_tp", "dim_zp", "initial_y", "interpolate_pulse",
                       "tp", "zp")))
-  ## Interpolating function works
   pulse <- cinterpolate::interpolation_function(tp, zp, "constant")(tt)
-  expect_equal(vnapply(tt, dat$interpolate_pulse), pulse)
+  ## TODO: this can be done for c models too but it requires a bit
+  ## more work
+  if (odin_target_name() == "r") {
+    ## Interpolating function works
+    expect_equal(vnapply(tt, dat$interpolate_pulse), pulse)
+  }
 
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
@@ -615,7 +618,6 @@ test_that("rich user sized arrays", {
 
 
 test_that("discrete delays: matrix", {
-  skip_for_target("c", "discrete delay")
   gen <- odin2({
     initial(y[, ]) <- 1
     update(y[, ]) <- y[i, j] + 1

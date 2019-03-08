@@ -3,7 +3,6 @@ context("run: %TARGET%: examples")
 ## TODO: this should all be rewritten
 
 test_that("basic interface", {
-  skip_for_target("c")
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
@@ -97,7 +96,6 @@ test_that("basic interface", {
 
 
 test_that("user arrays", {
-  skip_for_target("c")
   ## In the first version we have constant sized arrays:
   gen1 <- odin2("examples/array_odin.R")
   gen2 <- odin2("examples/array_odin_user.R")
@@ -169,7 +167,6 @@ test_that("user arrays", {
 
 
 test_that("lv", {
-  skip_for_target("c")
   pars <- list(r = c(1.00, 0.72, 1.53, 1.27),
                a = rbind(c(1.00, 1.09, 1.52, 0.00),
                          c(0.00, 1.00, 0.44, 1.36),
@@ -203,7 +200,6 @@ test_that("lv", {
 
 
 test_that("dde", {
-  skip_for_target("c")
   skip_if_not_installed("dde")
 
   re <- "([[:alnum:]]+)_odin\\.R$"
