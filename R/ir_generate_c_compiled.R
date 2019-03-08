@@ -638,6 +638,9 @@ generate_c_compiled_library <- function(dat) {
   if (dat$features$has_delay && !dat$features$discrete) {
     v <- c(v, "lagvalue", "lagvalue_dde", "lagvalue_ds")
   }
+  if (dat$features$has_interpolate) {
+    v <- c(v, "interpolate_check_y")
+  }
 
   used <- unique(unlist(lapply(dat$equations, function(x)
     x$depends$functions), FALSE, FALSE))

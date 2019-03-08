@@ -1,7 +1,6 @@
 context("run: %TARGET%: interpolation")
 
 test_that("constant", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y) <- pulse
     initial(y) <- 0

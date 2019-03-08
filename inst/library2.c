@@ -232,3 +232,20 @@ void lagvalue(double t, bool use_dde, int *idx, int dim_idx, double *state) {
     lagvalue_ds(t, idx, dim_idx, state);
   }
 }
+
+// check here, given information on the type, that we have at least 1
+// point for type 0, 2 for type 1, and 3 for type 2.  That should work
+// pretty happily.
+void interpolate_check_y(size_t nx, size_t ny, size_t i, const char *name_arg, const char *name_target) {
+  if (nx != ny) {
+    if (i == 0) {
+      // vector case
+      Rf_error("Expected %s to have length %d (for %s)",
+               name_arg, nx, name_target);
+    } else {
+      // array case
+      Rf_error("Expected dimension %d of %s to have size %d (for %s)",
+               i, name_arg, nx, name_target);
+    }
+  }
+}

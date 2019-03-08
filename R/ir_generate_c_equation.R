@@ -62,6 +62,11 @@ generate_c_equation_alloc <- function(eq, data_info, dat, rewrite) {
 }
 
 
+## TODO: once we get proper array checking, all the interpolation
+## length bits will move into that - we'll generate out some lists of
+## constraints but these will have a "must be equal" rather than "must
+## be at least".  That will be required for things like matrix
+## multiplication too.
 generate_c_equation_alloc_interpolate <- function(eq, data_info, dat, rewrite) {
   data_info_target <- dat$data$elements[[eq$interpolate$equation]]
   data_info_t <- dat$data$elements[[eq$interpolate$t]]
@@ -73,18 +78,29 @@ generate_c_equation_alloc_interpolate <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
 
   if (data_info_target$rank == 0L) {
-    len_y <- rewrite(1L)
+    len_result <- rewrite(1L)
   } else {
     stop("writeme")
-    len_y <- rewrite(data_info_target$dimnames$length %||% 1L)
+    len_result <- rewrite(data_info_target$dimnames$length %||% 1L)
+  }
+
+  if (data_info$rank == 0) {
+    len_y <- rewrite(data_info_y$dimnames$length)
+    check <- sprintf_safe(
+      'interpolate_check_y(%s, %s, 0, "%s", "%s");',
+      len_t, len_y, data_info_y$name, eq$interpolate$equation)
+  } else {
+    ## see generate1
+    stop("writeme")
   }
 
   rhs <- sprintf_safe(
     'cinterpolate_alloc("%s", %s, %s, %s, %s, false)',
-    eq$interpolate$type, len_t, len_y, rewrite(eq$interpolate$t),
+    eq$interpolate$type, len_t, len_result, rewrite(eq$interpolate$t),
     rewrite(eq$interpolate$y))
 
-  c(sprintf_safe("cinterpolate_free(%s);", lhs),
+  c(check,
+    sprintf_safe("cinterpolate_free(%s);", lhs),
     sprintf_safe("%s = %s;", lhs, rhs))
 }
 
