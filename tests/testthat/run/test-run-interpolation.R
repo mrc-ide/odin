@@ -45,7 +45,6 @@ test_that("constant", {
 
 
 test_that("constant array", {
-  skip_for_target("c")
   gen <- odin2({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0

@@ -79,19 +79,26 @@ generate_c_equation_alloc_interpolate <- function(eq, data_info, dat, rewrite) {
 
   if (data_info_target$rank == 0L) {
     len_result <- rewrite(1L)
-  } else {
-    stop("writeme")
-    len_result <- rewrite(data_info_target$dimnames$length %||% 1L)
-  }
-
-  if (data_info$rank == 0) {
     len_y <- rewrite(data_info_y$dimnames$length)
     check <- sprintf_safe(
       'interpolate_check_y(%s, %s, 0, "%s", "%s");',
       len_t, len_y, data_info_y$name, eq$interpolate$equation)
   } else {
-    ## see generate1
-    stop("writeme")
+    len_result <- rewrite(data_info_target$dimnames$length)
+    rank <- data_info_target$rank
+    len_y <- vcapply(data_info_y$dimnames$dim, rewrite)
+    i <- seq_len(rank + 1)
+    if (rank == 1L) {
+      len_expected <- c(len_t, rewrite(data_info_target$dimnames$length))
+    } else {
+      len_expected <- c(
+        len_t,
+        vcapply(data_info_target$dimnames$dim[seq_len(rank)], rewrite))
+    }
+    check <- sprintf_safe(
+      'interpolate_check_y(%s, %s, %d, "%s", "%s");',
+      len_expected, len_y, seq_len(rank + 1), data_info_y$name,
+      eq$interpolate$equation)
   }
 
   rhs <- sprintf_safe(
