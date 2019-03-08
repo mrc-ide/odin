@@ -558,12 +558,12 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
     ## TODO: we should generate out the the critical bits but that's
     ## another problem.  See the comments in
     ## support_check_interpolate_t
-    args_min <- c_fold_call("max", vcapply(dat$interpolate$min, function(x)
+    args_min <- c_fold_call("fmax", vcapply(dat$interpolate$min, function(x)
       sprintf("%s[0]", rewrite(x))))
     if (length(dat$interpolate$max) == 0) {
       args_max <- "R_PosInf"
     } else {
-      args_max <- c_fold_call("min", vcapply(dat$interpolate$max, function(x)
+      args_max <- c_fold_call("fmin", vcapply(dat$interpolate$max, function(x)
         sprintf("%s[%s - 1]", rewrite(x),
                 rewrite(dat$data$elements[[x]]$dimnames$length))))
     }

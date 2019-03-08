@@ -193,7 +193,6 @@ test_that("spline", {
 
 
 test_that("interpolation with two variables", {
-  skip_for_target("c")
   for (type in INTERPOLATION_TYPES) {
     gen <- odin2_(
       bquote({
