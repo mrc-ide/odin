@@ -201,9 +201,12 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
     }
   } else {
     if (rank == 0L) {
+      ## TODO: add things like NA_REAL to reserved words
+      min <- rewrite(eq$user$min %||% "NA_REAL")
+      max <- rewrite(eq$user$max %||% "NA_REAL")
       ret <- sprintf_safe(
-        '%s = get_user_%s(%s, "%s", %s);',
-        lhs, data_info$storage_type, user, eq$lhs, lhs)
+        '%s = user_get_scalar_%s(%s, "%s", %s, %s, %s);',
+        lhs, data_info$storage_type, user, eq$lhs, lhs, min, max)
     } else {
       if (rank == 1L) {
         dim <- rewrite(data_info$dimnames$length)

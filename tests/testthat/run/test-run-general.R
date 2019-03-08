@@ -1225,7 +1225,6 @@ test_that("multiline string", {
 ## This is basically all ok but what is still not great is _doing_ the
 ## validation.
 test_that("user integer", {
-  skip_for_target("c", "rich user")
   gen <- odin2({
     deriv(y) <- 0.5
     initial(y) <- y0
@@ -1241,7 +1240,6 @@ test_that("user integer", {
 
 
 test_that("multiple constraints", {
-  skip_for_target("c", "rich user")
   gen <- odin2({
     deriv(y) <- r
     initial(y) <- y0
@@ -1255,7 +1253,6 @@ test_that("multiple constraints", {
 
 
 test_that("set_user honours constraints", {
-  skip_for_target("c", "rich user")
   gen <- odin2({
     deriv(y) <- r
     initial(y) <- y0

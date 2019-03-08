@@ -1,4 +1,5 @@
-double get_user_double(SEXP user, const char *name, double default_value) {
+double user_get_scalar_double(SEXP user, const char *name,
+                              double default_value, double min, double max) {
   double ret = default_value;
   SEXP el = get_list_element(user, name);
   if (el != R_NilValue) {
@@ -16,21 +17,30 @@ double get_user_double(SEXP user, const char *name, double default_value) {
   if (ISNA(ret)) {
     Rf_error("Expected a value for '%s'", name);
   }
+  user_check_values_double(&ret, 1, min, max, name);
   return ret;
 }
 
-int get_user_int(SEXP user, const char *name, int default_value) {
+int user_get_scalar_int(SEXP user, const char *name,
+                        int default_value, double min, double max) {
   int ret = default_value;
   SEXP el = get_list_element(user, name);
   if (el != R_NilValue) {
     if (length(el) != 1) {
       Rf_error("Expected scalar integer for %d", name);
     }
+    if (TYPEOF(el) == REALSXP) {
+      double tmp = REAL(el)[0];
+      if (fabs(tmp - round(tmp)) > 2e-8) {
+        Rf_error("Expected '%s' to be integer-like", name);
+      }
+    }
     ret = INTEGER(coerceVector(el, INTSXP))[0];
   }
   if (ret == NA_INTEGER) {
     Rf_error("Expected a value for '%s'", name);
   }
+  user_check_values_int(&ret, 1, min, max, name);
   return ret;
 }
 
@@ -154,7 +164,7 @@ SEXP get_user_array_check_rank(SEXP user, const char *name, int rank) {
 }
 
 void* get_user_array_dim(SEXP user, bool is_integer, const char *name,
-                           int rank, int *dest_dim) {
+                         int rank, int *dest_dim) {
   SEXP el = get_user_array_check_rank(user, name, rank);
 
   dest_dim[0] = LENGTH(el);
@@ -178,6 +188,66 @@ void* get_user_array_dim(SEXP user, bool is_integer, const char *name,
   get_user_array_copy(el, is_integer, name, dest);
   return dest;
 }
+
+
+void user_check_values(SEXP value, double min, double max,
+                           const char *name) {
+  size_t len = (size_t)length(value);
+  if (TYPEOF(value) == INTSXP) {
+    user_check_values_int(INTEGER(value), len, min, max, name);
+  } else {
+    user_check_values_double(REAL(value), len, min, max, name);
+  }
+}
+
+
+void user_check_values_int(int * value, size_t len,
+                               double min, double max, const char *name) {
+  for (size_t i = 0; i < len; ++i) {
+    if (ISNA(value[i])) {
+      Rf_error("'%s' must not contain NA values", name);
+    }
+  }
+  if (min != NA_REAL) {
+    for (size_t i = 0; i < len; ++i) {
+      if (value[i] < min) {
+        Rf_error("Expected '%s' to be at least %g", name, min);
+      }
+    }
+  }
+  if (max != NA_REAL) {
+    for (size_t i = 0; i < len; ++i) {
+      if (value[i] > max) {
+        Rf_error("Expected '%s' to be at most %g", name, max);
+      }
+    }
+  }
+}
+
+
+void user_check_values_double(double * value, size_t len,
+                                  double min, double max, const char *name) {
+  for (size_t i = 0; i < len; ++i) {
+    if (ISNA(value[i])) {
+      Rf_error("'%s' must not contain NA values", name);
+    }
+  }
+  if (min != NA_REAL) {
+    for (size_t i = 0; i < len; ++i) {
+      if (value[i] < min) {
+        Rf_error("Expected '%s' to be at least %g", name, min);
+      }
+    }
+  }
+  if (max != NA_REAL) {
+    for (size_t i = 0; i < len; ++i) {
+      if (value[i] > max) {
+        Rf_error("Expected '%s' to be at most %g", name, max);
+      }
+    }
+  }
+}
+
 
 // modulo that conforms to (approximately) the same behaviour as R
 double fmodr(double x, double y) {

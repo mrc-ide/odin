@@ -618,7 +618,11 @@ generate_c_compiled_library <- function(dat) {
   v <- character(0)
   if (dat$features$has_user) {
     ## TODO: should filter these?
-    v <- c(v, "get_user_double", "get_user_int", "get_list_element")
+    ## TODO: should standardise name here to prefix with user_
+    v <- c(v, "user_get_scalar_double", "user_get_scalar_int",
+           "get_list_element",
+           "user_check_values", "user_check_values_int",
+           "user_check_values_double")
   }
   if (dat$features$has_array) {
     if (any(viapply(dat$data$elements, "[[", "rank") > 1)) {
