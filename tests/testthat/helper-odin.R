@@ -69,6 +69,7 @@ prepare_run_tests <- function() {
       res <- c(header,
                sprintf('options(odin.target = "%s")', t),
                gsub(pat, t, txt),
+               if (t == "c") "unload_dlls()",
                "options(odin.target = NULL)")
       writeLines(res, dest)
     }
