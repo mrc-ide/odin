@@ -617,12 +617,9 @@ generate_c_compiled_library <- function(dat) {
   lib <- read_user_c(system.file("library2.c", package = "odin"))
   v <- character(0)
   if (dat$features$has_user) {
-    ## TODO: should filter these?
-    ## TODO: should standardise name here to prefix with user_
     v <- c(v, "user_get_scalar_double", "user_get_scalar_int",
-           "get_list_element",
-           "user_check_values", "user_check_values_int",
-           "user_check_values_double")
+           "user_check_values_double", "user_check_values_int",
+           "user_check_values", "user_list_element")
   }
   if (dat$features$has_array) {
     if (any(viapply(dat$data$elements, "[[", "rank") > 1)) {
@@ -634,9 +631,9 @@ generate_c_compiled_library <- function(dat) {
     user_arrays <- any(vlapply(dat$equations, function(x)
       !is.null(x$user) && d[[x$name]]$rank > 0))
     if (user_arrays) {
-      v <- c(v, "get_user_array", "get_user_array_copy",
-             "get_user_array_check_rank", "get_list_element",
-             "get_user_array_dim")
+      v <- c(v, "user_get_array_dim",
+             "user_get_array", "user_get_array_check",
+             "user_get_array_check_rank", "user_list_element")
     }
   }
   if (dat$features$has_delay && !dat$features$discrete) {
@@ -678,8 +675,11 @@ generate_c_compiled_library <- function(dat) {
     }
   }
 
-  stopifnot(all(v %in% names(lib$declarations)))
   v <- unique(v)
+  msg <- setdiff(v, names(lib$declarations))
+  if (length(msg) > 0L) {
+    stop("Missing library functions: ", paste(squote(msg), collapse = ", "))
+  }
 
   list(declaration = unname(lib$declarations[v]),
        definition = c_flatten_eqs(strsplit(lib$definitions[v], "\n")))

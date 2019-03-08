@@ -598,7 +598,6 @@ test_that("rich user arrays", {
 
 
 test_that("rich user sized arrays", {
-  skip_for_target("c", "rich user")
   gen <- odin2({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]

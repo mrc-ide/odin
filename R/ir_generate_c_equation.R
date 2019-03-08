@@ -178,6 +178,10 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
   storage_type <- data_info$storage_type
   is_integer <- if (storage_type == "int") "true" else "false"
+  ## TODO: add things like NA_REAL to reserved words
+  min <- rewrite(eq$user$min %||% "NA_REAL")
+  max <- rewrite(eq$user$max %||% "NA_REAL")
+
   if (eq$user$dim) {
     free <- sprintf_safe("Free(%s);", lhs)
     len <- data_info$dimnames$length
@@ -185,15 +189,17 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
     if (rank == 1L) {
       ret <- c(
         free,
-        sprintf_safe('%s = (%s*) get_user_array_dim(%s, %s, "%s", %d, &%s);',
-                     lhs, storage_type, user, is_integer, eq$lhs, rank,
-                     rewrite(len)))
+        sprintf_safe(
+          '%s = (%s*) user_get_array_dim(%s, %s, "%s", %d, %s, %s, &%s);',
+          lhs, storage_type, user, is_integer, eq$lhs, rank, min, max,
+          rewrite(len)))
     } else {
       ret <- c(
         free,
         sprintf_safe("int %s[%d];", len, rank + 1),
-        sprintf_safe('%s = (%s*) get_user_array_dim(%s, %s, "%s", %d, %s);',
-                     lhs, storage_type, user, is_integer, eq$lhs, rank, len),
+        sprintf_safe(
+          '%s = (%s*) user_get_array_dim(%s, %s, "%s", %d, %s, %s, %s);',
+          lhs, storage_type, user, is_integer, eq$lhs, rank, min, max, len),
         sprintf_safe("%s = %s[%d];", rewrite(len), len, 0),
         sprintf_safe("%s = %s[%d];",
                      vcapply(data_info$dimnames$dim, rewrite), len,
@@ -201,9 +207,6 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
     }
   } else {
     if (rank == 0L) {
-      ## TODO: add things like NA_REAL to reserved words
-      min <- rewrite(eq$user$min %||% "NA_REAL")
-      max <- rewrite(eq$user$max %||% "NA_REAL")
       ret <- sprintf_safe(
         '%s = user_get_scalar_%s(%s, "%s", %s, %s, %s);',
         lhs, data_info$storage_type, user, eq$lhs, lhs, min, max)
@@ -214,9 +217,10 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
         dim <- paste(vcapply(data_info$dimnames$dim, rewrite), collapse = ", ")
       }
       ret <- c(sprintf_safe("Free(%s);", lhs),
-               sprintf_safe('%s = (%s*) get_user_array(%s, %s, "%s", %d, %s);',
-                            lhs, storage_type, user, is_integer, eq$lhs,
-                            rank, dim))
+               sprintf_safe(
+                 '%s = (%s*) user_get_array(%s, %s, "%s", %s, %s, %d, %s);',
+                 lhs, storage_type, user, is_integer, eq$lhs, min, max,
+                 rank, dim))
     }
   }
   ret

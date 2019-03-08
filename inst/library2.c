@@ -1,7 +1,7 @@
 double user_get_scalar_double(SEXP user, const char *name,
                               double default_value, double min, double max) {
   double ret = default_value;
-  SEXP el = get_list_element(user, name);
+  SEXP el = user_list_element(user, name);
   if (el != R_NilValue) {
     if (length(el) != 1) {
       Rf_error("Expected scalar numeric for %s", name);
@@ -24,7 +24,7 @@ double user_get_scalar_double(SEXP user, const char *name,
 int user_get_scalar_int(SEXP user, const char *name,
                         int default_value, double min, double max) {
   int ret = default_value;
-  SEXP el = get_list_element(user, name);
+  SEXP el = user_list_element(user, name);
   if (el != R_NilValue) {
     if (length(el) != 1) {
       Rf_error("Expected scalar integer for %d", name);
@@ -44,7 +44,7 @@ int user_get_scalar_int(SEXP user, const char *name,
   return ret;
 }
 
-SEXP get_list_element(SEXP list, const char *name) {
+SEXP user_list_element(SEXP list, const char *name) {
   SEXP ret = R_NilValue, names = getAttrib(list, R_NamesSymbol);
   for (int i = 0; i < length(list); ++i) {
     if(strcmp(CHAR(STRING_ELT(names, i)), name) == 0) {
@@ -71,9 +71,9 @@ void odin_set_dim(SEXP target, int rank, ...) {
 }
 
 // get an array of known size
-void* get_user_array(SEXP user, bool is_integer, const char *name,
-                     int rank, ...) {
-  SEXP el = get_user_array_check_rank(user, name, rank);
+void* user_get_array(SEXP user, bool is_integer, const char *name,
+                     double min, double max, int rank, ...) {
+  SEXP el = user_get_array_check_rank(user, name, rank);
   SEXP r_dim;
   int *dim;
 
@@ -102,27 +102,32 @@ void* get_user_array(SEXP user, bool is_integer, const char *name,
   va_end(ap);
   UNPROTECT(1);
 
+  el = PROTECT(user_get_array_check(el, is_integer, name, min, max));
+
   void *dest = NULL;
   if (is_integer) {
     dest = Calloc(len, int);
+    memcpy(dest, INTEGER(el), len * sizeof(int));
   } else {
     dest = Calloc(len, double);
+    memcpy(dest, REAL(el), len * sizeof(double));
   }
 
-  get_user_array_copy(el, is_integer, name, dest);
+  UNPROTECT(1);
+
   return dest;
 }
 
 
-void get_user_array_copy(SEXP el, bool is_integer, const char *name,
-                         void *dest) {
+SEXP user_get_array_check(SEXP el, bool is_integer, const char *name,
+                          double min, double max) {
   size_t len = (size_t) length(el);
   if (is_integer) {
     if (TYPEOF(el) == INTSXP) {
-      memcpy(dest, INTEGER(el), len * sizeof(int));
+      user_check_values_int(INTEGER(el), len, min, max, name);
     } else if (TYPEOF(el) == REALSXP) {
       el = PROTECT(coerceVector(el, INTSXP));
-      memcpy(dest, REAL(el), len * sizeof(int));
+      user_check_values_int(INTEGER(el), len, min, max, name);
       UNPROTECT(1);
     } else {
       Rf_error("Expected a integer value for %s", name);
@@ -130,18 +135,19 @@ void get_user_array_copy(SEXP el, bool is_integer, const char *name,
   } else {
     if (TYPEOF(el) == INTSXP) {
       el = PROTECT(coerceVector(el, REALSXP));
-      memcpy(dest, REAL(el), len * sizeof(double));
+      user_check_values_double(REAL(el), len, min, max, name);
       UNPROTECT(1);
     } else if (TYPEOF(el) == REALSXP) {
-      memcpy(dest, REAL(el), len * sizeof(double));
+      user_check_values_double(REAL(el), len, min, max, name);
     } else {
       Rf_error("Expected a numeric value for %s", name);
     }
   }
+  return el;
 }
 
-SEXP get_user_array_check_rank(SEXP user, const char *name, int rank) {
-  SEXP el = get_list_element(user, name);
+SEXP user_get_array_check_rank(SEXP user, const char *name, int rank) {
+  SEXP el = user_list_element(user, name);
   if (el == R_NilValue) {
     Rf_error("Expected value for %s", name);
   } else {
@@ -163,9 +169,9 @@ SEXP get_user_array_check_rank(SEXP user, const char *name, int rank) {
   return el;
 }
 
-void* get_user_array_dim(SEXP user, bool is_integer, const char *name,
-                         int rank, int *dest_dim) {
-  SEXP el = get_user_array_check_rank(user, name, rank);
+void* user_get_array_dim(SEXP user, bool is_integer, const char *name,
+                         int rank, double min, double max, int *dest_dim) {
+  SEXP el = user_get_array_check_rank(user, name, rank);
 
   dest_dim[0] = LENGTH(el);
   if (rank > 1) {
@@ -179,13 +185,20 @@ void* get_user_array_dim(SEXP user, bool is_integer, const char *name,
     UNPROTECT(1);
   }
 
+  el = PROTECT(user_get_array_check(el, is_integer, name, min, max));
+
+  int len = length(el);
   void *dest = NULL;
   if (is_integer) {
-    dest = Calloc(length(el), int);
+    dest = Calloc(el, int);
+    memcpy(dest, INTEGER(el), len * sizeof(int));
   } else {
-    dest = Calloc(length(el), double);
+    dest = Calloc(el, double);
+    memcpy(dest, REAL(el), len * sizeof(double));
   }
-  get_user_array_copy(el, is_integer, name, dest);
+
+  UNPROTECT(1);
+
   return dest;
 }
 
