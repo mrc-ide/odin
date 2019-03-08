@@ -10,6 +10,7 @@ generate_c_class <- function(core, dll, dat) {
   ## TODO: This is unacceptably complicated
   if (dat$features$initial_time_dependent) {
     set_user <- function(..., user = list(...)) {
+      support_check_user(user, private$user)
       .Call(private$core$set_user, private$ptr, user, PACKAGE = private$dll)
       private$update_metadata()
     }
@@ -26,6 +27,7 @@ generate_c_class <- function(core, dll, dat) {
     }
   } else {
     set_user <- function(..., user = list(...)) {
+      support_check_user(user, private$user)
       .Call(private$core$set_user, private$ptr, user, PACKAGE = private$dll)
       private$init <-
         .Call(private$core$initial_conditions, private$ptr, NA_real_,
@@ -185,6 +187,7 @@ generate_c_class <- function(core, dll, dat) {
       output_order = NULL,
       ynames = NULL,
       n_out = NULL,
+      user = names(dat$user),
 
       update_metadata = function() {
         meta <- .Call(private$core$metadata, private$ptr, PACKAGE = private$dll)

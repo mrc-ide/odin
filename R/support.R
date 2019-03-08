@@ -16,6 +16,24 @@ support_transform_variables <- function(y, private) {
 }
 
 
+support_check_user <- function(user, allowed) {
+  given <- names(user)
+  if (length(user) > 0 && (is.null(given) || !all(nzchar(given)))) {
+    stop("All user parameters must be named")
+  }
+  err <- unique(given[duplicated(given)])
+  if (length(err) > 0L) {
+    stop("Duplicated user parameters: ", paste(err, collapse = ", "),
+         call. = FALSE)
+  }
+  err <- setdiff(given, allowed)
+  if (length(err) > 0L) {
+    stop("Unknown user parameters: ", paste(err, collapse = ", "),
+         call. = FALSE)
+  }
+}
+
+
 as_integer <- function(x, name = deparse(substitute(x))) {
   if (is.integer(x)) {
     x

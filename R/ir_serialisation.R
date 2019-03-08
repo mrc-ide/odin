@@ -15,6 +15,7 @@ ir_deserialise <- function(ir) {
   names(dat$data$output$contents) <-
     vcapply(dat$data$output$contents, "[[", "name")
   names(dat$equations) <- vcapply(dat$equations, "[[", "name")
+  names(dat$user) <- vcapply(dat$user, "[[", "name")
 
   dat$interpolate <- lapply(dat$interpolate, list_to_character)
   dat$equations <- lapply(dat$equations, ir_deserialise_equation)

@@ -59,7 +59,6 @@ test_that("user variables", {
 })
 
 test_that("user variables on models with none", {
-  skip_for_target("c")
   gen <- odin2({
     a <- 1
     deriv(y) <- 0.5 * a
