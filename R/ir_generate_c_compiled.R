@@ -3,7 +3,7 @@
 ## later.
 generate_c_compiled <- function(eqs, dat, rewrite) {
   ret <- list(get_internal = generate_c_compiled_get_internal(dat),
-              finalise = generate_c_compiled_finalise(dat),
+              finalise = generate_c_compiled_finalise(dat, rewrite),
               create = generate_c_compiled_create(eqs, dat, rewrite),
               initmod_desolve = generate_c_compiled_initmod_desolve(dat),
               contents = generate_c_compiled_contents(dat, rewrite),
@@ -58,7 +58,7 @@ generate_c_compiled_struct <- function(dat) {
 }
 
 
-generate_c_compiled_finalise <- function(dat) {
+generate_c_compiled_finalise <- function(dat, rewrite) {
   ptr <- dat$meta$c$ptr
   internal <- dat$meta$internal
   internal_t <- dat$meta$c$internal_t
@@ -67,6 +67,18 @@ generate_c_compiled_finalise <- function(dat) {
   body$add("%s *%s = %s(%s, 0);",
           internal_t, internal, dat$meta$c$get_internal, ptr)
   body$add("if (%s) {", ptr)
+
+  storage_type <- vcapply(dat$data$elements, "[[", "storage_type")
+  if (dat$features$has_interpolate) {
+    i <- names_if(storage_type == "interpolate_data")
+    body$add("  cinterpolate_free(%s);", vcapply(i, rewrite))
+  }
+
+  if (dat$features$has_delay && dat$features$discrete) {
+    i <- names_if(storage_type == "ring_buffer")
+    body$add("  ring_buffer_destroy(%s);", vcapply(i, rewrite))
+  }
+
   if (dat$features$has_array) {
     for (el in dat$data$elements) {
       if (el$rank > 0 && el$location == "internal") {
@@ -74,6 +86,7 @@ generate_c_compiled_finalise <- function(dat) {
       }
     }
   }
+
   body$add("  Free(%s);", internal)
   body$add("  R_ClearExternalPtr(%s);", ptr)
   body$add("}")
