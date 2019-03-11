@@ -70,7 +70,7 @@ odin_options <- function(validate = NULL, verbose = NULL, target = NULL,
                  verbose = verbose,
                  target = target,
                  pretty = pretty,
-                 no_check_naked_index = FALSE,
+                 no_check_naked_index = no_check_naked_index,
                  compiler_warnings = compiler_warnings)
   }
   stopifnot(setequal(names(defaults), names(opts)))

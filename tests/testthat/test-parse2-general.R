@@ -684,10 +684,14 @@ test_that("detect integers", {
 
 
 test_that("notify on naked index", {
-  expect_message(odin_parse2({
-    deriv(x[]) <- i
-    initial(x[]) <- 1
-    dim(x) <- 5
-  }),
-  "Equations use index variables i on the rhs outside of an index.")
+  code <- c(
+    "deriv(x[]) <- i",
+    "initial(x[]) <- 1",
+    "dim(x) <- 5")
+  expect_message(
+    odin_parse2(code),
+    "Equations use index variables i on the rhs outside of an index.")
+  expect_message(
+    odin_parse2(code, odin_options(no_check_naked_index = TRUE)),
+    NA)
 })
