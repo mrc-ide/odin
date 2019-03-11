@@ -187,13 +187,13 @@ void* user_get_array_dim(SEXP user, bool is_integer, const char *name,
 
   el = PROTECT(user_get_array_check(el, is_integer, name, min, max));
 
-  int len = length(el);
+  int len = LENGTH(el);
   void *dest = NULL;
   if (is_integer) {
-    dest = Calloc(el, int);
+    dest = Calloc(len, int);
     memcpy(dest, INTEGER(el), len * sizeof(int));
   } else {
-    dest = Calloc(el, double);
+    dest = Calloc(len, double);
     memcpy(dest, REAL(el), len * sizeof(double));
   }
 
