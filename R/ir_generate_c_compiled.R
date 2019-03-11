@@ -72,16 +72,19 @@ generate_c_compiled_finalise <- function(dat, rewrite) {
   if (dat$features$has_interpolate) {
     i <- names_if(storage_type == "interpolate_data")
     body$add("  cinterpolate_free(%s);", vcapply(i, rewrite))
+    body$add("  %s = NULL;", vcapply(i, rewrite))
   }
 
   if (dat$features$has_delay && dat$features$discrete) {
     i <- names_if(storage_type == "ring_buffer")
     body$add("  ring_buffer_destroy(%s);", vcapply(i, rewrite))
+    body$add("  %s = NULL;", vcapply(i, rewrite))
   }
 
   if (dat$features$has_array) {
     for (el in dat$data$elements) {
-      if (el$rank > 0 && el$location == "internal") {
+      if (el$rank > 0 && el$location == "internal" &&
+          el$storage_type %in% c("int", "double")) {
         body$add("  Free(%s->%s);", internal, el$name)
       }
     }
