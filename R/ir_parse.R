@@ -1,4 +1,4 @@
-odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
+odin_build_ir2 <- function(x, opts) {
   ## TODO: this gets looked at later
   xp <- odin_preprocess(x)
 
@@ -94,8 +94,8 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
               user = user,
               interpolate = interpolate,
               source = source)
-  ir <- ir_serialise(ret, pretty)
-  if (validate) {
+  ir <- ir_serialise(ret, opts$pretty)
+  if (opts$validate) {
     ir_validate(ir, TRUE)
   }
   ir

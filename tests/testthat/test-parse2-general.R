@@ -683,7 +683,7 @@ test_that("detect integers", {
 })
 
 
-test_that("warn on naked index", {
+test_that("notify on naked index", {
   expect_message(odin_parse2({
     deriv(x[]) <- i
     initial(x[]) <- 1

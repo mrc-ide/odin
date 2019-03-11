@@ -1,4 +1,4 @@
-generate_r <- function(dat) {
+generate_r <- function(dat, opts) {
   features_supported <- c("has_user", "has_output", "discrete", "has_array",
                           "has_interpolate", "has_stochastic", "has_delay",
                           "initial_time_dependent")
