@@ -7,6 +7,7 @@ generate_c_equation <- function(eq, dat, rewrite) {
   f <- switch(
     eq$type,
     expression_scalar = generate_c_equation_scalar,
+    expression_inplace = generate_c_equation_inplace,
     expression_array = generate_c_equation_array,
     alloc = generate_c_equation_alloc,
     alloc_interpolate = generate_c_equation_alloc_interpolate,
@@ -39,6 +40,34 @@ generate_c_equation_scalar <- function(eq, data_info, dat, rewrite) {
   }
   rhs <- rewrite(eq$rhs$value)
   sprintf("%s = %s;", lhs, rhs)
+}
+
+
+generate_c_equation_inplace <- function(eq, data_info, dat, rewrite) {
+  location <- data_info$location
+  if (location == "internal") {
+    lhs <- rewrite(eq$lhs)
+  } else {
+    offset <- dat$data[[location]]$contents[[data_info$name]]$offset
+    storage <- if (location == "variable") dat$meta$result else dat$meta$output
+    lhs <- sprintf("%s + %s", storage, rewrite(offset))
+  }
+
+  fn <- eq$rhs$value[[1]]
+  args <- lapply(eq$rhs$value[-1], rewrite)
+  switch(
+    fn,
+    rmultinom = generate_c_equation_inplace_rmultinom(eq, lhs, dat, rewrite),
+    stop("odin bug"))
+}
+
+
+generate_c_equation_inplace_rmultinom <- function(eq, lhs, dat, rewrite) {
+  args <- eq$rhs$value[-1]
+  len <- rewrite(dat$data$elements[[args[[2]]]]$dimnames$length)
+  stopifnot(!is.null(len))
+  sprintf_safe("Rf_rmultinom(%s, %s, %s, %s);",
+               rewrite(args[[1]]), rewrite(args[[2]]), len, lhs)
 }
 
 

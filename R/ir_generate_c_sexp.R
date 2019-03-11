@@ -30,7 +30,7 @@ generate_c_sexp <- function(x, data, meta, supported) {
     } else if (fn == "dim") {
       dim <- data$elements[[args[[1L]]]]$dimnames$dim[[args[[2]]]]
       ret <- generate_c_sexp(dim, data, meta, supported)
-    } else if (fn == "norm_rand") {
+    } else if (fn %in% c("norm_rand", "unif_rand", "exp_rand")) {
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     } else if (fn == "log" && length(values) == 2L) {
       ret <- sprintf("(log(%s) / log(%s))", values[[1L]], values[[2L]])

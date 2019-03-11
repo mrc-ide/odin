@@ -14,8 +14,6 @@ odin_build_ir2 <- function(x, opts) {
   eqs <- dat$eqs
   source <- dat$source
 
-  ## TODO: config not yet done
-
   ## Data elements:
 
   config <- ir_parse_config(eqs, base, root, source)
@@ -585,9 +583,12 @@ ir_parse_expr <- function(expr, line, source) {
     }
   }
 
+  ## There is heaps of work required here, unfortunately
   if (any(names(FUNCTIONS_INPLACE) %in% depends$functions)) {
-    stop("check")
-    rhs <- odin_parse_expr_rhs_rewrite_inplace(rhs, lhs, line, expr)
+    type <- "expression_inplace"
+    ## TODO: should check here that the lhs is really complete, but
+    ## that requires being able to see empty indices.
+    ir_parse_expr_rhs_check_inplace(lhs, rhs, line, source)
   }
 
   ## NOTE: arrays are the only case where self referential variables
@@ -1451,4 +1452,22 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
     }
   }
   check_usage(rhs)
+}
+
+
+ir_parse_expr_rhs_check_inplace <- function(lhs, rhs, line, source) {
+  fn <- deparse(rhs$rhs$value[[1]])
+  depends <- join_deps(lapply(rhs$rhs$value[-1], find_symbols))
+
+  ## Start strict, liberalise later
+  if (!(fn %in% names(FUNCTIONS_INPLACE)) || length(depends$functions) > 0L) {
+    ir_odin_error(sprintf(
+      "At present, inplace function '%s' must use no functions", fn),
+      line, expr)
+  }
+  if (is.null(lhs$index)) {
+    ir_odin_error(sprintf(
+      "Expected an array on the lhs of inplace function '%s'", fn),
+      line, source)
+  }
 }

@@ -636,3 +636,29 @@ test_that("discrete delays: matrix", {
   expect_equal(zz$z[1:3, ,], array(1, c(3, 2, 3)))
   expect_equal(zz$z[4:11, , ], zz$y[1:8, , ])
 })
+
+
+test_that("multinomial", {
+  gen <- odin2({
+    q[] <- user()
+    p[] <- q[i] / sum(q)
+    initial(x[]) <- 0
+    update(x[]) <- y[i]
+    y[] <- rmultinom(5, p)
+    dim(p) <- 5
+    dim(q) <- 5
+    dim(x) <- 5
+    dim(y) <- 5
+  })
+
+  set.seed(1)
+  p <- runif(5)
+  mod <- gen(p)
+
+  set.seed(1)
+  y <- mod$update(0, mod$initial())
+  set.seed(1)
+  cmp <- drop(rmultinom(1, 5, p))
+
+  expect_equal(cmp, y)
+})

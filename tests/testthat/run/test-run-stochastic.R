@@ -139,7 +139,6 @@ test_that("round & rbinom", {
 
 
 test_that("mutlinomial", {
-  skip("library support")
   ## This is just a check that these compile and run
   sir1 <- odin2("stochastic/sir_discrete.R")
   sir2 <- odin2("stochastic/sir_discrete_stochastic.R")

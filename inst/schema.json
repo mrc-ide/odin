@@ -60,6 +60,7 @@
                     "interpolate",
                     "user",
                     "expression_array",
+                    "expression_inplace",
                     "expression_scalar"
                 ],
                 "comment": "This duplicates different equation types"
@@ -337,6 +338,7 @@
                         {"$ref": "#/definitions/equation_alloc_ring"},
                         {"$ref": "#/definitions/equation_user"},
                         {"$ref": "#/definitions/equation_expression_array"},
+                        {"$ref": "#/definitions/equation_expression_inplace"},
                         {"$ref": "#/definitions/equation_expression_scalar"},
                         {"$ref": "#/definitions/equation_interpolate"},
                         {"$ref": "#/definitions/equation_delay_index"},
@@ -525,6 +527,23 @@
             "type": "object",
             "properties": {
                 "type": {"const": "expression_scalar"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {
+                    "$ref": "#/definitions/equation_rhs_scalar"
+                }
+            },
+            "required": ["type", "rhs"],
+            "additionalProperties": false
+        },
+
+        "equation_expression_inplace": {
+            "type": "object",
+            "comment": "This will probably change",
+            "properties": {
+                "type": {"const": "expression_inplace"},
                 "name": {},
                 "source": {},
                 "depends": {},

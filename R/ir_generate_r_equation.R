@@ -7,6 +7,7 @@ generate_r_equation <- function(eq, dat, rewrite) {
   f <- switch(
     eq$type,
     expression_scalar = generate_r_equation_scalar,
+    expression_inplace = generate_r_equation_inplace,
     expression_array = generate_r_equation_array,
     alloc = generate_r_equation_alloc,
     alloc_interpolate = generate_r_equation_alloc_interpolate,
@@ -35,6 +36,23 @@ generate_r_equation_scalar <- function(eq, data_info, dat, rewrite) {
     offset <- dat$data[[location]]$contents[[data_info$name]]$offset
     storage <- if (location == "variable") dat$meta$result else dat$meta$output
     lhs <- call("[[", as.name(storage), offset_to_position(offset))
+  }
+
+  rhs <- rewrite(eq$rhs$value)
+  call("<-", lhs, rhs)
+}
+
+
+generate_r_equation_inplace <- function(eq, data_info, dat, rewrite) {
+  location <- data_info$location
+
+  if (location == "internal" || location == "transient") {
+    lhs <- rewrite(eq$lhs)
+  } else {
+    storage <- if (location == "variable") dat$meta$result else dat$meta$output
+    offset <- dat$data[[location]]$contents[[data_info$name]]$offset
+    i <- call("seq_len", rewrite(data_info$dimnames$length))
+    lhs <- call("[", as.name(storage), call("+", offset, i))
   }
 
   rhs <- rewrite(eq$rhs$value)

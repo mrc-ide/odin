@@ -29,7 +29,7 @@
 ## we'll sort that out here too.
 ir_parse_arrays <- function(eqs, variables, source) {
   ir_parse_arrays_check_indices(eqs, source)
-  eqs <- ir_parse_arrays_find_integers(eqs, source)
+  eqs <- ir_parse_arrays_find_integers(eqs, variables, source)
 
   ir_parse_arrays_check_usage(eqs, source)
 
@@ -110,6 +110,7 @@ ir_parse_arrays <- function(eqs, variables, source) {
 ir_parse_arrays_check_usage <- function(eqs, source) {
   is_dim <- vlapply(eqs, function(x) identical(x$lhs$special, "dim"))
   is_array <- vlapply(eqs, function(x) x$type == "expression_array")
+  is_inplace <- vlapply(eqs, function(x) x$type == "expression_inplace")
   is_interpolate <- vlapply(eqs, function(x) x$type == "interpolate")
   is_user <- vlapply(eqs, function(x) x$type == "user")
   is_copy <- vlapply(eqs, function(x) x$type == "copy")
@@ -123,8 +124,8 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   ##
   ## TODO: is_interpolate might be too lax here - in general this
   ## check is probably not ideal in the new approach.
-  err <- !(is_array | is_dim | is_user | is_copy | is_delay_array |
-           is_interpolate) & name_data %in% name_data[is_dim]
+  err <- !(is_array | is_inplace | is_dim | is_user | is_copy |
+           is_delay_array | is_interpolate) & name_data %in% name_data[is_dim]
   if (any(err)) {
     ir_odin_error(
       sprintf("Array variables must always assign as arrays (%s)",
@@ -256,6 +257,7 @@ ir_odin_parse_arrays_check_dim <- function(eq, rank, source) {
   uses_dim <-
     any(c("dim", "length") %in% eq$lhs$depends$functions) ||
     any(c("dim", "length") %in% eq$depends$functions)
+  skip_types <- c("user", "copy", "interpolate", "expression_inplace")
   if (uses_dim) {
     if (eq$type == "expression_scalar") {
       check(eq$rhs$value)
@@ -273,7 +275,7 @@ ir_odin_parse_arrays_check_dim <- function(eq, rank, source) {
       }
       check(eq$delay$time)
       check(eq$delay$default)
-    } else if (eq$type %in% c("user", "copy", "interpolate")) {
+    } else if (eq$type %in% skip_types) {
     } else {
       stop("writeme")
     }
@@ -378,10 +380,11 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 
   rank_used <- viapply(eqs[i], function(el) length(el$lhs$index))
   if (any(rank_used != rank)) {
+    err <- ir_get_lines(eqs[i][rank_used != rank])
     ir_odin_error(
       sprintf("Array dimensionality is not consistent (expected %d %s)",
               rank, ngettext(rank, "index", "indices")),
-      eq$source, source)
+      err, source)
   }
 
   ## TODO: in ir_parse_arrays_check_usage we do this for user() too,
@@ -400,8 +403,14 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 
   join <- function(i, eqs, depend_alloc = TRUE) {
     use <- unname(eqs[i])
+    eq_type <- vcapply(use, "[[", "type")
     eq_use <- use[[1]]
-    if (eq_use$type == "delay") {
+    if (any(eq_type == "expression_inplace")) {
+      if (length(use) > 1L) {
+        ir_odin_error("Multi-line in place equations are not possible",
+                      ir_get_lines(use), source)
+      }
+    } else if (eq_use$type == "delay") {
       eq_use$rhs$index <- eq_use$lhs$index
     } else if (eq_use$type != "user") {
       eq_use$rhs <- lapply(use, function(x)
@@ -636,11 +645,12 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
   }
 }
 
-ir_parse_arrays_find_integers <- function(eqs, source) {
+ir_parse_arrays_find_integers <- function(eqs, variables, source) {
   ## TODO: duplicates the above
   type <- vcapply(eqs, "[[", "type")
   is_dim <- type == "dim"
   is_array <- type == "expression_array"
+  is_inplace <- type == "expression_inplace"
   index_vars <- unique(unlist(c(
     lapply(eqs[is_dim], function(x) x$depends$variables),
     lapply(eqs[is_array], function(x) x$lhs$depends$variables),
@@ -650,17 +660,24 @@ ir_parse_arrays_find_integers <- function(eqs, source) {
   ## that are used as indices.  Here we'll throw in the index arrays
   ## too (treated separtately for now...)
   integer_arrays <- ir_parse_arrays_used_as_index(eqs)
-  ## TODO: deal with inplace varaibles here too:
-  ## integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x)
-  ##   identical(x$rhs$inplace_type, "int")))
-  integer_vars <- c(index_vars, integer_arrays)
+  integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x)
+    identical(x$rhs$value[[1]], quote(rmultinom))))
+  integer_vars <- unique(c(index_vars, integer_arrays, integer_inplace))
+
+  err <- vcapply(eqs[integer_inplace], function(x) x$lhs$name_data) %in%
+    variables
+  if (any(err)) {
+    ## TODO: this can be relaxed by using an additional variable
+    tmp <- eqs[integer_inplace][err]
+    rhs <- tmp[[1L]]$lhs$special
+    ir_odin_error(
+      sprintf("Can't use inplace integer expression in %s", rhs),
+      ir_get_lines(tmp), source)
+  }
 
   ## TODO: this is not ideal because it has the potential to set too
   ## many things to integers; in particular we don't want to set
-  ## things like dimension calls
-  ##
-  # TODO: Using these things is likely to end quite badly in the C
-  # code I think
+  ## things like dimension calls; they should be size_t probably.
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
   for (i in which(name_data %in% integer_vars)) {
     if (!identical(eqs[[i]]$lhs$special, "dim")) {

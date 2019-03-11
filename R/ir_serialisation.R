@@ -179,6 +179,7 @@ ir_serialise_equation <- function(eq) {
     delay_index = ir_serialise_equation_delay_index(eq),
     expression_array = ir_serialise_equation_expression_array(eq),
     expression_scalar = ir_serialise_equation_expression_scalar(eq),
+    expression_inplace = ir_serialise_equation_expression_inplace(eq),
     interpolate = ir_serialise_equation_interpolate(eq),
     user = ir_serialise_equation_user(eq),
     stop("odin bug"))
@@ -208,6 +209,11 @@ ir_serialise_equation_copy <- function(eq) {
 
 
 ir_serialise_equation_expression_scalar <- function(eq) {
+  list(rhs = list(value = ir_serialise_expression(eq$rhs$value)))
+}
+
+
+ir_serialise_equation_expression_inplace <- function(eq) {
   list(rhs = list(value = ir_serialise_expression(eq$rhs$value)))
 }
 
