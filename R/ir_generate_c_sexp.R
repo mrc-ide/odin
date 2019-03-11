@@ -1,9 +1,9 @@
-generate_c_sexp <- function(x, data, meta) {
+generate_c_sexp <- function(x, data, meta, supported) {
   if (is.recursive(x)) {
     fn <- x[[1L]]
     args <- x[-1L]
     n <- length(args)
-    values <- vcapply(args, generate_c_sexp, data, meta)
+    values <- vcapply(args, generate_c_sexp, data, meta, supported)
 
     if (fn == "(") {
       ret <- sprintf("(%s)", values[[1]])
@@ -26,10 +26,10 @@ generate_c_sexp <- function(x, data, meta) {
       ret <- sprintf(fmt, values[[1]], fn, values[[2]])
     } else if (fn == "length") {
       ret <- generate_c_sexp(data$elements[[args[[1L]]]]$dimnames$length,
-                             data, meta)
+                             data, meta, supported)
     } else if (fn == "dim") {
       dim <- data$elements[[args[[1L]]]]$dimnames$dim[[args[[2]]]]
-      ret <- generate_c_sexp(dim, data, meta)
+      ret <- generate_c_sexp(dim, data, meta, supported)
     } else if (fn == "norm_rand") {
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     } else if (fn == "log" && length(values) == 2L) {
@@ -37,7 +37,7 @@ generate_c_sexp <- function(x, data, meta) {
     } else if (fn == "min" || fn == "max") {
       ret <- c_fold_call(paste0("f", fn), values)
     } else if (fn == "sum" || fn == "odin_sum") {
-      ret <- generate_c_sexp_sum(args, data, meta)
+      ret <- generate_c_sexp_sum(args, data, meta, supported)
     } else {
       if (fn == "rbinom") {
         ## This is a little extreme but is useful in at least some
@@ -52,7 +52,7 @@ generate_c_sexp <- function(x, data, meta) {
         fn <- FUNCTIONS_RENAME[[fn]]
       } else if (any(FUNCTIONS_REWRITE_RF == fn)) {
         fn <- paste0("Rf_", fn)
-      } else if (!any(names(FUNCTIONS) == fn)) {
+      } else if (!any(c(names(FUNCTIONS), supported) == fn)) {
         stop(sprintf("unsupported function '%s'", fn))
       }
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
@@ -71,11 +71,11 @@ generate_c_sexp <- function(x, data, meta) {
 }
 
 
-generate_c_sexp_sum <- function(args, data, meta) {
-  target <- generate_c_sexp(args[[1]], data, meta)
+generate_c_sexp_sum <- function(args, data, meta, supported) {
+  target <- generate_c_sexp(args[[1]], data, meta, supported)
   data_info <- data$elements[[args[[1]]]]
   if (length(args) == 1L) {
-    len <- generate_c_sexp(data_info$dimnames$length, data, meta)
+    len <- generate_c_sexp(data_info$dimnames$length, data, meta, supported)
     sprintf("odin_sum1(%s, 0, %s)", target, len)
   } else {
     i <- seq(2, length(args), by = 2)
@@ -83,7 +83,7 @@ generate_c_sexp_sum <- function(args, data, meta) {
     all_args <- c(args, as.list(data_info$dimnames$mult[-1]))
     values <- character(length(all_args))
     values[i] <- vcapply(all_args[i], c_minus_1, FALSE, data, meta)
-    values[-i] <- vcapply(all_args[-i], generate_c_sexp, data, meta)
+    values[-i] <- vcapply(all_args[-i], generate_c_sexp, data, meta, supported)
     arg_str <- paste(values, collapse = ", ")
 
     sprintf_safe("odin_sum%d(%s)", length(i), arg_str)
@@ -109,7 +109,7 @@ c_array_access <- function(target, index, data, meta) {
     if (i == 1) {
       index_i
     } else {
-      mult_i <- generate_c_sexp(mult[[i]], data, meta)
+      mult_i <- generate_c_sexp(mult[[i]], data, meta, supported)
       sprintf("%s * %s", mult_i, index_i)
     }
   }
@@ -120,9 +120,9 @@ c_array_access <- function(target, index, data, meta) {
 
 c_minus_1 <- function(x, protect, data, meta) {
   if (is.numeric(x)) {
-    generate_c_sexp(x - 1L, data, meta)
+    generate_c_sexp(x - 1L, data, meta, supported)
   } else {
-    x_expr <- generate_c_sexp(x, data, meta)
+    x_expr <- generate_c_sexp(x, data, meta, supported)
     sprintf(if (protect) "(%s - 1)" else "%s - 1", x_expr)
   }
 }

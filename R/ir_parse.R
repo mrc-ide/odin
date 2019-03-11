@@ -1,13 +1,16 @@
 odin_build_ir2 <- function(x, opts) {
   ## TODO: this gets looked at later
   xp <- odin_preprocess(x)
+  root <- xp$root
+  exprs <- xp$exprs
+  base <- "odin"
 
   ## this just checks that everything is ok; we can examine this in
   ## more detail later but because it does not affect the output it
   ## can just be run as is for now.
-  odin_parse_prepare(xp$exprs)
+  odin_parse_prepare(exprs)
 
-  dat <- ir_parse_exprs(xp$exprs)
+  dat <- ir_parse_exprs(exprs)
   eqs <- dat$eqs
   source <- dat$source
 
@@ -15,8 +18,8 @@ odin_build_ir2 <- function(x, opts) {
 
   ## Data elements:
 
-  config <- ir_parse_config(eqs, "odin", source)
-  features <- ir_parse_features(eqs, source)
+  config <- ir_parse_config(eqs, base, root, source)
+  features <- ir_parse_features(eqs, config, source)
 
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
 
@@ -81,7 +84,7 @@ odin_build_ir2 <- function(x, opts) {
   equations <- ir_parse_equations(eqs)
 
   ## TODO: it's a bit unclear where this best belongs
-  ir_parse_check_functions(eqs, features$discrete, source)
+  ir_parse_check_functions(eqs, features$discrete, config$include, source)
 
   ret <- list(version = .odin$version,
               config = config,
@@ -190,60 +193,6 @@ ir_parse_meta <- function(discrete) {
        output = OUTPUT,
        time = time,
        initial_time = initial_name(time))
-}
-
-
-ir_parse_config <- function(eqs, base_default, source) {
-  i <- vcapply(eqs, "[[", "type") == "config"
-
-  config <- lapply(unname(eqs[i]), ir_parse_config1, source)
-  config_target <- vcapply(config, function(x) x$lhs$name_data)
-  config_value <- lapply(config, function(x) x$rhs$value)
-
-  i <- which(config_target == "base")
-  if (length(i) == 0L) {
-    base <- base_default
-    base_line <- NULL
-  } else if (length(i) == 1L) {
-    base <- config_value[[i]]
-    base_line <- config[[i]]$source
-  } else {
-    ir_odin_error("Expected a single config(base) option",
-                  ir_get_lines(config[i]), source)
-  }
-  if (!is_c_identifier(base)) {
-    ir_odin_error(
-      sprintf("Invalid base value: '%s', must be a valid C identifier", base),
-      base_line, source)
-  }
-
-  list(base = base)
-}
-
-
-ir_parse_config1 <- function(eq, source) {
-  target <- eq$lhs$name_data
-  value <- eq$rhs$value
-
-  expected_type <- switch(
-    target,
-    base = "character",
-    ir_odin_error(sprintf("Unknown configuration option: %s", target),
-                  eq$source, source))
-
-  if (!is.atomic(value)) {
-    ir_odin_error("config() rhs must be atomic (not an expression or symbol)",
-                  eq$source, source)
-  }
-
-  if (storage.mode(value) != expected_type) {
-    ir_odin_error(sprintf(
-      "Expected a %s for config(%s) but recieved a %s",
-      expected_type, target, storage.mode(value)),
-      eq$source, source)
-  }
-
-  eq
 }
 
 
@@ -465,7 +414,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
 ## A downside of the approach here is that we do make the checks in a
 ## few different places.  It might be worth trying to shift more of
 ## this classification into the initial equation parsing.
-ir_parse_features <- function(eqs, source) {
+ir_parse_features <- function(eqs, config, source) {
   is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
@@ -492,6 +441,7 @@ ir_parse_features <- function(eqs, source) {
        has_delay = any(is_delay),
        has_interpolate = any(is_interpolate),
        has_stochastic = any(is_stochastic),
+       has_include = !is.null(config$include),
        initial_time_dependent = NULL)
 }
 
@@ -1182,7 +1132,7 @@ ir_parse_rewrite_initial <- function(eq, variables) {
 }
 
 
-ir_parse_check_functions <- function(eqs, discrete, source) {
+ir_parse_check_functions <- function(eqs, discrete, include, source) {
   used_functions <- lapply(eqs, function(x) x$depends$functions)
   all_used_functions <- unique(unlist(used_functions))
 
@@ -1202,9 +1152,8 @@ ir_parse_check_functions <- function(eqs, discrete, source) {
                names(FUNCTIONS_UNARY),
                names(FUNCTIONS_RENAME),
                "odin_sum",
+               names(include),
                if (discrete) names(FUNCTIONS_STOCHASTIC))
-  ## TODO:
-  ## names(obj$config$include$declarations))
 
   err <- setdiff(all_used_functions, allowed)
   if (length(err) > 0L) {

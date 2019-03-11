@@ -702,6 +702,13 @@ generate_c_compiled_library <- function(dat) {
 }
 
 
+generate_c_compiled_include <- function(dat) {
+  include <- unname(dat$config$include)
+  list(declaration = c_flatten_eqs(lapply(include, "[[", "declaration")),
+       definition = c_flatten_eqs(lapply(include, "[[", "definition")))
+}
+
+
 c_unpack_variable <- function(name, dat, state, rewrite) {
   el <- dat$data$variable$contents[[name]]
   data_info <- dat$data$elements[[el$name]]

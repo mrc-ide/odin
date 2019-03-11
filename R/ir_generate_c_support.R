@@ -49,10 +49,3 @@ generate_c_compiled_sum <- function(rank) {
              args,
              body)
 }
-
-
-join_library2 <- function(x) {
-  list(declarations = unlist(lapply(x, "[[", "declarations")),
-       definitions = unlist(lapply(x, "[[", "definitions")),
-       filename = unlist(lapply(x, "[[", "filename")))
-}

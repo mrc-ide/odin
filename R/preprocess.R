@@ -16,14 +16,17 @@ odin_preprocess <- function(x, type = NULL) {
 
   if (type == "file") {
     file <- x
-    path <- c(normalizePath(dirname(x)), normalizePath(getwd()))
+    root <- normalizePath(dirname(x))
+    path <- c(root, normalizePath(getwd()))
   } else {
     file <- NULL
     path <- getwd()
+    root <- getwd()
   }
 
   ret <- list(type = type,
               path = path,
+              root = root,
               file = file,
               exprs = exprs)
 

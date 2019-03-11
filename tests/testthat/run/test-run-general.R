@@ -205,7 +205,7 @@ test_that("time dependent initial conditions", {
 })
 
 test_that("user c", {
-  skip("user_c")
+  skip_for_target("r")
   gen <- odin2({
     config(include) <- "user_fns.c"
     z <- squarepulse(t, 1, 2)
@@ -226,15 +226,15 @@ test_that("user c", {
 })
 
 test_that("user c in subdir", {
-  skip("user_c")
+  skip_for_target("r")
   dest <- tempfile()
   dir.create(dest)
 
-  'config(include) <- "myfuns.c"
-z <- squarepulse(t, 1, 2)
-output(z) <- z
-deriv(y) <- z
-initial(y) <- 0' -> expr
+  expr <- c('config(include) <- "myfuns.c"',
+            "z <- squarepulse(t, 1, 2)",
+            "output(z) <- z",
+            "deriv(y) <- z",
+            "initial(y) <- 0")
   test <- file.path(dest, "test.R")
   writeLines(expr, test)
 

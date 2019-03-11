@@ -144,9 +144,32 @@
             "properties": {
                 "base": {
                     "type": "string"
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/include"
+                    }
                 }
             },
-            "required": ["base"],
+            "required": ["base", "include"],
+            "additionalProperties": false
+        },
+
+        "include": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "definition": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "declaration": {
+                    "$ref": "#/definitions/basic/character_vector"
+                }
+            },
+            "required": ["name", "definition", "declaration"],
             "additionalProperties": false
         },
 
@@ -175,11 +198,12 @@
                 "has_delay": { "type": "boolean" },
                 "has_interpolate": { "type": "boolean" },
                 "has_stochastic": { "type": "boolean" },
+                "has_include": { "type": "boolean" },
                 "initial_time_dependent": { "type": "boolean" }
             },
             "required": ["discrete", "has_array", "has_output", "has_user",
                          "has_delay", "has_interpolate", "has_stochastic",
-                         "initial_time_dependent"],
+                         "has_include", "initial_time_dependent"],
             "additionalProperties": false
         },
 

@@ -1,7 +1,7 @@
 generate_c <- function(dat, opts) {
   features_supported <- c("initial_time_dependent", "has_user", "has_output",
                           "discrete", "has_array", "has_stochastic",
-                          "has_delay", "has_interpolate")
+                          "has_delay", "has_include", "has_interpolate")
   generate_check_features(features_supported, dat)
 
   base <- dat$config$base
@@ -35,14 +35,14 @@ generate_c <- function(dat, opts) {
   }
 
   rewrite <- function(x) {
-    generate_c_sexp(x, dat$data, dat$meta)
+    generate_c_sexp(x, dat$data, dat$meta, names(dat$config$include))
   }
   eqs <- generate_c_equations(dat, rewrite)
 
   core <- generate_c_compiled(eqs, dat, rewrite)
 
   lib <- generate_c_compiled_library(dat)
-
+  include <- generate_c_compiled_include(dat)
 
   if (dat$features$has_delay && dat$features$discrete) {
     ring <- odin_ring_support(FALSE)
@@ -61,11 +61,13 @@ generate_c <- function(dat, opts) {
             interpolate$declarations,
             generate_c_compiled_struct(dat),
             unname(vcapply(core, "[[", "declaration")),
-            lib$declaration)
+            lib$declaration,
+            include$declaration)
   defn <- c(c_flatten_eqs(c(lapply(core, "[[", "definition"))),
             lib$definition,
             ring$definitions,
-            interpolate$definitions)
+            interpolate$definitions,
+            include$definition)
 
   code <- c(decl, defn)
 

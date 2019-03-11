@@ -37,11 +37,10 @@ test_that("config(base)", {
 })
 
 test_that("config(include)", {
-  skip("user_c")
-  expect_error(odin_parse2(quote(config(include) <- 1)),
-               "config(include) must be a character", fixed = TRUE)
+  expect_error(odin_parse2_(quote(config(include) <- 1)),
+               "Expected a character for config(include)", fixed = TRUE)
 
-  expect_error(odin_parse2(quote(config(include) <- "no file.c")),
+  expect_error(odin_parse2_(quote(config(include) <- "no file.c")),
                "Could not find file 'no file.c'", fixed = TRUE)
 
   expect_error(odin_parse2(
