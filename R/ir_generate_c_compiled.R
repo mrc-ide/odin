@@ -278,9 +278,18 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
     body$add("double *%s = NULL;", dat$meta$output)
   }
 
+  if(dat$features$has_stochastic) {
+    body$add("GetRNGstate();")
+  }
+
   body$add("%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
            dat$meta$c$rhs, dat$meta$internal, time_access, dat$meta$time,
            dat$meta$state, dat$meta$result, dat$meta$output)
+
+  if(dat$features$has_stochastic) {
+    body$add("PutRNGstate();")
+  }
+
   body$add("UNPROTECT(1);")
   body$add("return %s;", dat$meta$result)
 
