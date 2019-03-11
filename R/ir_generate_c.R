@@ -1,4 +1,4 @@
-generate_c <- function(dat, verbose = FALSE, compiler_warnings = FALSE) {
+generate_c <- function(dat, verbose, compiler_warnings) {
   features_supported <- c("initial_time_dependent", "has_user", "has_output",
                           "discrete", "has_array", "has_stochastic",
                           "has_delay", "has_interpolate")

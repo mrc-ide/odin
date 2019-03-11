@@ -11,13 +11,20 @@ ir_schema <- function() {
 
 
 ir_validate <- function(x, error = FALSE) {
-  json_validate(x, ir_schema(), error)
+  odin_validate(x, error)
 }
 
 
-json_validate <- function(x, schema, error) {
+odin_validator <- function() {
   jsonvalidate_version <- utils::packageVersion("jsonvalidate")
   engine <- if (jsonvalidate_version > "1.0.0") "ajv" else "imjv"
-  jsonvalidate::json_validate(x, schema, verbose = TRUE, greedy = TRUE,
-                              error = error, engine = engine)
+  jsonvalidate::json_validator(ir_schema(), engine)
+}
+
+
+odin_validate <- function(x, error) {
+  if (is.null(.odin$validator)) {
+    .odin$validator <- odin_validator()
+  }
+  .odin$validator(x, verbose = TRUE, greedy = TRUE, error = error)
 }
