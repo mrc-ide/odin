@@ -3,7 +3,7 @@ odin_build_ir2 <- function(x, opts) {
   xp <- odin_preprocess(x)
   root <- xp$root
   exprs <- xp$exprs
-  base <- "odin"
+  base <- xp$base
 
   ## this just checks that everything is ok; we can examine this in
   ## more detail later but because it does not affect the output it

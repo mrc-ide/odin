@@ -18,16 +18,19 @@ odin_preprocess <- function(x, type = NULL) {
     file <- x
     root <- normalizePath(dirname(x))
     path <- c(root, normalizePath(getwd()))
+    base <- chartr("-", "_", tools::file_path_sans_ext(basename(file)))
   } else {
     file <- NULL
     path <- getwd()
     root <- getwd()
+    base <- "odin"
   }
 
   ret <- list(type = type,
               path = path,
               root = root,
               file = file,
+              base = base,
               exprs = exprs)
 
   ## TODO: This is a bit of a hack to avoid rewriting all the uses of
