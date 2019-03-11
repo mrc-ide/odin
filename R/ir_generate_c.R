@@ -1,4 +1,4 @@
-generate_c <- function(dat, verbose = FALSE) {
+generate_c <- function(dat, verbose = FALSE, compiler_warnings = FALSE) {
   features_supported <- c("initial_time_dependent", "has_user", "has_output",
                           "discrete", "has_array", "has_stochastic",
                           "has_delay", "has_interpolate")
@@ -71,7 +71,8 @@ generate_c <- function(dat, verbose = FALSE) {
 
   path <- tempfile(fileext = ".c")
   writeLines(code, path)
-  dll <- compile(path, verbose = verbose)
+  dll <- compile(path, verbose = verbose,
+                 compiler_warnings = compiler_warnings)
   dyn_load(dll$dll)
 
   core_r <- lapply(core, "[[", "name")
