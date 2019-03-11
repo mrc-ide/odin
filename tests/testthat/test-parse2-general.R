@@ -681,3 +681,13 @@ test_that("detect integers", {
   expect_true("n" %in% int)
   expect_true("m" %in% int)
 })
+
+
+test_that("warn on naked index", {
+  expect_message(odin_parse2({
+    deriv(x[]) <- i
+    initial(x[]) <- 1
+    dim(x) <- 5
+  }),
+  "Equations use index variables i on the rhs outside of an index.")
+})

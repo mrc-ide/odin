@@ -849,3 +849,53 @@ ir_parse_expr_lhs_check_index <- function(x) {
     structure(FALSE, message = x)
   }
 }
+
+
+ir_parse_arrays_check_naked_index <- function(eqs, no_check_naked_index,
+                                              source) {
+  if (no_check_naked_index) {
+    return()
+  }
+  used <- lapply(eqs, ir_parse_arrays_uses_naked_index)
+  n <- lengths(used)
+  i <- n > 0
+  if (any(i)) {
+    msg <- paste(
+      "Equations use index variables %s on the rhs outside of an index.",
+      "The behaviour of this has changed since odin 0.1.3 - see",
+      "https://github.com/mrc-ide/odin/issues/136 for details.",
+      "To silence this note, set option `odin.no_check_naked_index` to TRUE",
+      "This note will disappear in a version after odin 1.0.0",
+      sep = "\n")
+    x <- paste(sort(unique(unlist(used, FALSE, FALSE))), collapse = ", ")
+    ir_odin_note(sprintf(msg, x), ir_get_lines(eqs[i]), source)
+  }
+}
+
+
+ir_parse_arrays_uses_naked_index <- function(eq) {
+  if (!any(INDEX %in% eq$depends$variables)) {
+    return(character(0))
+  }
+
+  found <- collector()
+
+  check_expr <- function(expr) {
+    if (!is.recursive(expr)) {
+      symbol <- as.character(expr)
+      if (symbol %in% INDEX) {
+        found$add(symbol)
+      }
+    } else if (!is_call(expr, "[")) {
+      unlist(lapply(expr, check_expr))
+    }
+  }
+
+  if (eq$type == "expression_array") {
+    for (el in eq$rhs) {
+      check_expr(el$value)
+    }
+  }
+
+  unique(found$get())
+}

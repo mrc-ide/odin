@@ -47,6 +47,9 @@ odin_build_ir2 <- function(x, validate = FALSE, pretty = TRUE) {
 
   eqs <- eqs[order(names(eqs))]
 
+  no_check_naked_index <- FALSE
+  ir_parse_arrays_check_naked_index(eqs, no_check_naked_index, source)
+
   meta <- ir_parse_meta(features$discrete)
   ## TODO: determine the base here based on filenames
 
