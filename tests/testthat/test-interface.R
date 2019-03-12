@@ -1,15 +1,17 @@
 context("interface")
 
 test_that("NSE and SE defaults are the same", {
-  expect_equal(formals(odin), formals(odin_))
+  expect_equal(formals(odin2), formals(odin2_))
 })
 
 test_that("verbose", {
-  expect_output(odin::odin({
+  skip("verbose")
+  ## needs writing the temporary file with a better name
+  expect_output(odin2({
     initial(x) <- 0
     update(x) <- x + norm_rand()
     config(base) <- "mycrazymodel"
-  }, verbose = TRUE),
+  }, target = "c", verbose = TRUE),
   "mycrazymodel.o", fixed = TRUE)
 })
 
@@ -20,38 +22,35 @@ test_that("warnings", {
   })
 
   str <- capture.output(
-    tmp <- odin::odin_(code, verbose = TRUE, compiler_warnings = FALSE))
+    tmp <- odin2_(code, verbose = TRUE, compiler_warnings = FALSE))
   out <- classify_compiler_output(str)
+
   ## This will only give a warning with -Wall or greater.
   has_warning <- any(vlapply(seq_along(out$type), function(i)
     out$type[i] == "info" && attr(out$value[[i]], "type") == "warning"))
   if (has_warning) {
-    model_cache_clear()
     re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
-    expect_warning(odin::odin_(code, compiler_warnings = TRUE), re)
+    expect_warning(odin2_(code, compiler_warnings = TRUE), re)
 
-    oo <- options(odin.compiler_warnings = FALSE)
-    on.exit(options(oo))
+    with_options(
+      list(odin.compiler_warnings = FALSE),
+      expect_warning(odin2_(code, verbose = FALSE), NA))
 
-    model_cache_clear()
-    expect_warning(odin::odin_(code, verbose = FALSE), NA)
-    options(odin.compiler_warnings = TRUE)
-
-    model_cache_clear()
-    expect_warning(odin::odin_(code, verbose = FALSE), re)
+    with_options(
+      list(odin.compiler_warnings = TRUE),
+      expect_warning(odin2_(code, verbose = FALSE), re))
   } else {
-    model_cache_clear()
-    expect_warning(odin::odin_(code, compiler_warnings = TRUE,
+    expect_warning(odin2_(code, compiler_warnings = TRUE,
                                verbose = FALSE), NA) # none
   }
 })
 
 test_that("n_history is configurable", {
-  gen <- odin::odin({
+  gen <- odin2({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen(use_dde = TRUE)
   expect_true("n_history" %in% names(formals(mod$run)))
@@ -67,11 +66,12 @@ test_that("n_history is configurable", {
 
 
 test_that("sensible error on empty input", {
+  skip("pending")
   path <- tempfile()
   writeLines("", path)
-  expect_error(odin_(path), "Empty input: no expressions were provided")
+  expect_error(odin2_(path), "Empty input: no expressions were provided")
   writeLines("# some comment", path)
-  expect_error(odin_(path), "Empty input: no expressions were provided")
+  expect_error(odin2_(path), "Empty input: no expressions were provided")
 })
 
 

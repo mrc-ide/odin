@@ -75,17 +75,6 @@ test_that("unclassifiable output", {
   format(res)
 })
 
-test_that("symbol_sum", {
-  expect_equal(symbol_sum(list(1)), 1)
-  expect_equal(symbol_sum(list("a")), quote(a))
-
-  expect_equal(symbol_sum(list(1, "a")), quote(1 + a))
-  expect_equal(symbol_sum(list("a", "b")), quote(a + b))
-
-  expect_equal(symbol_sum(list(1, "a", "b")), quote(1 + a + b))
-  expect_equal(symbol_sum(list("a", "b", "c")), quote(a + b + c))
-})
-
 test_that("hash_files", {
   expect_error(hash_files(tempfile()), "Files missing")
 })
@@ -94,19 +83,6 @@ test_that("odin_version", {
   expect_identical(odin_version(), ODIN_VERSION)
   expect_true(setequal(names(ODIN_VERSION),
                        c("odin", "cinterpolate", "r", "platform")))
-})
-
-
-test_that("indent", {
-  expect_equal(indent(c("a\nb"), 2L), c("  a", "  b"))
-  expect_equal(indent(c("a\nb"), 2L, TRUE), c("a", "  b"))
-  expect_equal(indent(c("a\nb"), 2L, FALSE, TRUE), c("  a\n  b"))
-  expect_equal(indent(c("a\nb"), 2L, TRUE, TRUE), c("a\n  b"))
-
-  expect_equal(indent("a", 2L, FALSE), "  a")
-  expect_equal(indent("a", 2L, TRUE), "a")
-
-  expect_error(indent(""), "should never happen [odin bug]", fixed = TRUE)
 })
 
 

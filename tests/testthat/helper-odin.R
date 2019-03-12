@@ -75,3 +75,10 @@ prepare_run_tests <- function() {
     }
   }
 }
+
+
+with_options <- function(opts, code) {
+  oo <- options(opts)
+  on.exit(oo)
+  force(code)
+}

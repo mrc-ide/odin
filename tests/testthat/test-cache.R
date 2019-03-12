@@ -2,6 +2,7 @@ context("model cache")
 
 
 test_that("hash model", {
+  skip("cache")
   code <- c("deriv(y) <- 0.5",
             "initial(y) <- 1")
   expect_equal(hash_model(odin_preprocess(code)),
@@ -12,6 +13,7 @@ test_that("hash model", {
 
 
 test_that("invalidate cache", {
+  skip("cache")
   model_cache_clear()
   code <- c("deriv(y) <- 0.5",
             "initial(y) <- 1")
@@ -33,6 +35,7 @@ test_that("invalidate cache", {
 })
 
 test_that("includes", {
+  skip("cache")
   fns <- readLines("user_fns.c")
   fns2 <- gsub("t1", "t2", fns)
   user <- basename(tempfile("odin_", ".", ".c"))
@@ -58,6 +61,7 @@ test_that("includes", {
 
 
 test_that("filename", {
+  skip("cache")
   model_cache_clear()
   code1 <- c("deriv(y)<- 0.5",
             "initial(y)<- 1")
@@ -88,6 +92,7 @@ test_that("filename", {
 
 
 test_that("avoid overwriting non-odin .c code", {
+  skip("cache")
   dest <- tempfile()
 
   model_cache_clear()
