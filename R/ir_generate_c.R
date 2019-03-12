@@ -1,4 +1,19 @@
 generate_c <- function(dat, opts) {
+  res <- generate_c_code(dat, opts)
+  code <- res$code
+  core <- res$core
+
+  path <- tempfile(fileext = ".c")
+  writeLines(code, path)
+  dll <- compile(path, verbose = opts$verbose,
+                 compiler_warnings = opts$compiler_warnings)
+  dyn_load(dll$dll)
+
+  generate_c_class(core, dll$base, dat)
+}
+
+
+generate_c_code <- function(dat, opts, package = FALSE) {
   features_supported <- c("initial_time_dependent", "has_user", "has_output",
                           "discrete", "has_array", "has_stochastic",
                           "has_delay", "has_include", "has_interpolate")
@@ -37,12 +52,14 @@ generate_c <- function(dat, opts) {
   rewrite <- function(x) {
     generate_c_sexp(x, dat$data, dat$meta, names(dat$config$include))
   }
-  eqs <- generate_c_equations(dat, rewrite)
 
+  eqs <- generate_c_equations(dat, rewrite)
+  headers <- generate_c_compiled_headers()
+  struct <- generate_c_compiled_struct(dat)
   core <- generate_c_compiled(eqs, dat, rewrite)
 
-  lib <- generate_c_compiled_library(dat)
-  include <- generate_c_compiled_include(dat)
+  lib <- generate_c_compiled_library(dat, package)
+  include <- generate_c_compiled_include(dat, package)
 
   if (dat$features$has_delay && dat$features$discrete) {
     ring <- odin_ring_support(FALSE)
@@ -56,30 +73,30 @@ generate_c <- function(dat, opts) {
     interpolate <- NULL
   }
 
-  decl <- c(generate_c_compiled_headers(dat),
-            ring$declarations,
-            interpolate$declarations,
-            generate_c_compiled_struct(dat),
-            unname(vcapply(core, "[[", "declaration")),
-            lib$declaration,
-            include$declaration)
-  defn <- c(c_flatten_eqs(c(lapply(core, "[[", "definition"))),
-            lib$definition,
-            ring$definitions,
-            interpolate$definitions,
-            include$definition)
-
-  code <- c(decl, defn)
-
-  path <- tempfile(fileext = ".c")
-  writeLines(code, path)
-  dll <- compile(path, verbose = opts$verbose,
-                 compiler_warnings = opts$compiler_warnings)
-  dyn_load(dll$dll)
-
-  core_r <- lapply(core, "[[", "name")
-
-  generate_c_class(core_r, dll$base, dat)
+  if (package) {
+    stop("not yet finished")
+    list(headers = headers,
+         struct = struct,
+         core = core,
+         lib = lib,
+         include = include,
+         ring = ring,
+         interpolate = interpolate)
+  } else {
+    decl <- c(headers,
+              ring$declarations,
+              interpolate$declarations,
+              struct,
+              core$declaration,
+              lib$declaration,
+              include$declaration)
+    defn <- c(core$definition,
+              lib$definition,
+              ring$definitions,
+              interpolate$definitions,
+              include$definition)
+    list(code = c(decl, defn), core = core$name)
+  }
 }
 
 

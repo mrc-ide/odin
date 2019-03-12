@@ -2,33 +2,37 @@
 ## be compiled (i.e., the C sources).  The name can get picked up
 ## later.
 generate_c_compiled <- function(eqs, dat, rewrite) {
-  ret <- list(get_internal = generate_c_compiled_get_internal(dat),
-              finalise = generate_c_compiled_finalise(dat, rewrite),
-              create = generate_c_compiled_create(eqs, dat, rewrite),
-              initmod_desolve = generate_c_compiled_initmod_desolve(dat),
-              contents = generate_c_compiled_contents(dat, rewrite),
-              set_user = generate_c_compiled_set_user(eqs, dat),
-              set_initial = generate_c_compiled_set_initial(dat, rewrite),
-              metadata = generate_c_compiled_metadata(dat, rewrite),
-              initial_conditions =
-                generate_c_compiled_initial_conditions(dat, rewrite))
+  core <- list(get_internal = generate_c_compiled_get_internal(dat),
+               finalise = generate_c_compiled_finalise(dat, rewrite),
+               create = generate_c_compiled_create(eqs, dat, rewrite),
+               initmod_desolve = generate_c_compiled_initmod_desolve(dat),
+               contents = generate_c_compiled_contents(dat, rewrite),
+               set_user = generate_c_compiled_set_user(eqs, dat),
+               set_initial = generate_c_compiled_set_initial(dat, rewrite),
+               metadata = generate_c_compiled_metadata(dat, rewrite),
+               initial_conditions =
+                 generate_c_compiled_initial_conditions(dat, rewrite))
 
   if (dat$features$discrete) {
-    ret$rhs <- generate_c_compiled_update(eqs, dat, rewrite)
-    ret$rhs_dde <- generate_c_compiled_update_dde(dat)
+    core$rhs <- generate_c_compiled_update(eqs, dat, rewrite)
+    core$rhs_dde <- generate_c_compiled_update_dde(dat)
   } else {
-    ret$rhs <- generate_c_compiled_deriv(eqs, dat, rewrite)
-    ret$rhs_dde <- generate_c_compiled_deriv_dde(dat)
-    ret$rhs_desolve <- generate_c_compiled_deriv_desolve(dat)
-    ret$output <- generate_c_compiled_output(eqs, dat, rewrite)
+    core$rhs <- generate_c_compiled_deriv(eqs, dat, rewrite)
+    core$rhs_dde <- generate_c_compiled_deriv_dde(dat)
+    core$rhs_desolve <- generate_c_compiled_deriv_desolve(dat)
+    core$output <- generate_c_compiled_output(eqs, dat, rewrite)
   }
-  ret$rhs_r <- generate_c_compiled_rhs_r(dat, rewrite)
+  core$rhs_r <- generate_c_compiled_rhs_r(dat, rewrite)
 
-  ret[!vlapply(ret, is.null)]
+  core <- core[!vlapply(core, is.null)]
+
+  list(name = lapply(core, "[[", "name"),
+       declaration = unname(vcapply(core, "[[", "declaration")),
+       definition = c_flatten_eqs(c(lapply(core, "[[", "definition"))))
 }
 
 
-generate_c_compiled_headers <- function(dat) {
+generate_c_compiled_headers <- function() {
   c("#include <R.h>",
     "#include <Rmath.h>",
     "#include <Rinternals.h>",
@@ -638,7 +642,7 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
 }
 
 
-generate_c_compiled_library <- function(dat) {
+generate_c_compiled_library <- function(dat, package) {
   lib <- read_user_c(system.file("library2.c", package = "odin"))
   v <- character(0)
   if (dat$features$has_user) {
@@ -706,15 +710,23 @@ generate_c_compiled_library <- function(dat) {
     stop("Missing library functions: ", paste(squote(msg), collapse = ", "))
   }
 
-  list(declaration = unname(lib$declarations[v]),
-       definition = c_flatten_eqs(strsplit(lib$definitions[v], "\n")))
+  if (package) {
+    list(used = v, lib = lib)
+  } else {
+    list(declaration = unname(lib$declarations[v]),
+         definition = c_flatten_eqs(strsplit(lib$definitions[v], "\n")))
+  }
 }
 
 
-generate_c_compiled_include <- function(dat) {
-  include <- unname(dat$config$include)
-  list(declaration = c_flatten_eqs(lapply(include, "[[", "declaration")),
-       definition = c_flatten_eqs(lapply(include, "[[", "definition")))
+generate_c_compiled_include <- function(dat, package) {
+  include <- dat$config$include
+  if (package) {
+    include
+  } else {
+    list(declaration = c_flatten_eqs(lapply(include, "[[", "declaration")),
+         definition = c_flatten_eqs(lapply(include, "[[", "definition")))
+  }
 }
 
 
