@@ -642,7 +642,7 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
 }
 
 
-generate_c_compiled_library <- function(dat, package) {
+generate_c_compiled_library <- function(dat, is_package) {
   lib <- read_user_c(system.file("library2.c", package = "odin"))
   v <- character(0)
   if (dat$features$has_user) {
@@ -710,7 +710,7 @@ generate_c_compiled_library <- function(dat, package) {
     stop("Missing library functions: ", paste(squote(msg), collapse = ", "))
   }
 
-  if (package) {
+  if (is_package) {
     list(used = v, lib = lib)
   } else {
     list(declaration = unname(lib$declarations[v]),
@@ -719,9 +719,9 @@ generate_c_compiled_library <- function(dat, package) {
 }
 
 
-generate_c_compiled_include <- function(dat, package) {
+generate_c_compiled_include <- function(dat, is_package) {
   include <- dat$config$include
-  if (package) {
+  if (is_package) {
     include
   } else {
     list(declaration = c_flatten_eqs(lapply(include, "[[", "declaration")),

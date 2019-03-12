@@ -2,29 +2,21 @@ context("package")
 
 test_that("generate package", {
   files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
-  for (single_file in c(TRUE, FALSE)) {
-    res <- odin_create_package("example", files, single_file = single_file,
-                               verbose = TEST_VERBOSE)
-    on.exit(res$cleanup())
+  res <- odin_create_package("example", files, verbose = TEST_VERBOSE)
+  on.exit(res$cleanup())
 
-    mod <- res$env$lorenz_odin()
-    cmp <- source1("examples/lorenz_deSolve.R")
+  mod <- res$env$lorenz_odin()
+  cmp <- source1("examples/lorenz_deSolve.R")
 
-    files_src <- dir(file.path(res$path, "src"), pattern = "\\.c$")
-    if (single_file) {
-      expect_equal(files_src, "odin.c")
-    } else {
-      expect_equal(length(files_src), length(files) + 1L)
-      expect_true("odin.c" %in% files_src)
-    }
+  expect_equal(dir(file.path(res$path, "src"), pattern = "\\.c$"), "odin.c")
+  expect_equal(dir(file.path(res$path, "R"), pattern = "\\.R$"), "odin.R")
 
-    t <- seq(0, 10, length.out = 100)
-    y_c <- mod$run(t)
-    y_r <- run_model(cmp, t)
-    expect_equal(y_c[, 2:4], y_r[, 2:4], check.attributes = FALSE)
-    res$cleanup()
-    on.exit()
-  }
+  t <- seq(0, 10, length.out = 100)
+  y_c <- mod$run(t)
+  y_r <- run_model(cmp, t)
+  expect_equal(y_c[, 2:4], y_r[, 2:4], check.attributes = FALSE)
+  res$cleanup()
+  on.exit()
 })
 
 test_that("interpolation", {
@@ -58,6 +50,19 @@ test_that("interpolation", {
   }
 })
 
+
+test_that("ring", {
+  path <- "pkg/inst/odin/discretedelay.R"
+  res <- odin_create_package("discretedelay", path, verbose = TEST_VERBOSE)
+  on.exit(res$cleanup())
+
+  mod <- res$env$discretedelay()
+  tt <- seq(0:10)
+  yy <- mod$run(tt)
+  expect_equal(yy[, "y"], c(1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144))
+})
+
+
 test_that("error cases", {
   name <- "example"
   pkg <- file.path(tempfile(), name)
@@ -68,26 +73,13 @@ test_that("error cases", {
     writeLines(sprintf(readLines(file.path("pkg", f)), name),
                file.path(pkg, f))
   }
-  expect_error(odin_package(pkg), "inst/odin must exist")
-  expect_error(odin_package(pkg, character(0)),
-               "At least one filename must be given")
+  expect_error(odin_package(pkg), "Did not find inst/odin within your package")
   dir.create(file.path(pkg, "inst", "odin"), FALSE, TRUE)
-  expect_error(odin_package(pkg), "At least one filename must be given")
-
-  expect_error(odin_package(pkg, "foo.R"),
-               "Input file not found")
-  expect_error(odin_package(pkg, c("foo.R", "bar.R")),
-               "Input files not found")
-
-  files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
-  expect_error(odin_package(pkg, rep(files, 1:2)),
-               "Duplicate file")
-  expect_error(odin_package(pkg, rep(files, 2)),
-               "Duplicate files")
+  expect_error(odin_package(pkg), "Did not find any files in inst/odin")
 
   desc <- file.path(pkg, "DESCRIPTION")
   tmp <- tolower(readLines(desc))
   writeLines(tmp, desc)
-  expect_error(odin_package(pkg, files),
+  expect_error(odin_package(pkg),
                "Failed to get package name from DESCRIPTION")
 })

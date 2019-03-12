@@ -1,5 +1,5 @@
 generate_c <- function(dat, opts) {
-  res <- generate_c_code(dat, opts)
+  res <- generate_c_code(dat, opts, NULL)
   code <- res$code
   core <- res$core
 
@@ -17,16 +17,10 @@ generate_c <- function(dat, opts) {
 }
 
 
-generate_c_code <- function(dat, opts, package = FALSE) {
-  features_supported <- c("initial_time_dependent", "has_user", "has_output",
-                          "discrete", "has_array", "has_stochastic",
-                          "has_delay", "has_include", "has_interpolate")
-  generate_check_features(features_supported, dat)
-
-  base <- dat$config$base
-  dat$meta$c <- list(
-    ptr = sprintf("%s_p", dat$meta$internal),
-    internal_ds = sprintf("%s_ds", dat$meta$internal),
+generate_c_meta <- function(base, internal) {
+  list(
+    ptr = sprintf("%s_p", internal),
+    internal_ds = sprintf("%s_%s_ds", base, internal),
     internal_t = sprintf("%s_internal", base),
     finalise = sprintf("%s_finalise", base),
     create = sprintf("%s_create", base),
@@ -43,6 +37,16 @@ generate_c_code <- function(dat, opts, package = FALSE) {
     rhs_r = sprintf("%s_rhs_r", base),
     output_dde = sprintf("%s_output_dde", base),
     initmod_desolve = sprintf("%s_initmod_desolve", base))
+}
+
+
+generate_c_code <- function(dat, opts, package) {
+  features_supported <- c("initial_time_dependent", "has_user", "has_output",
+                          "discrete", "has_array", "has_stochastic",
+                          "has_delay", "has_include", "has_interpolate")
+  generate_check_features(features_supported, dat)
+
+  dat$meta$c <- generate_c_meta(dat$config$base, dat$meta$internal)
 
   if (dat$features$has_delay) {
     dat$data$elements[[dat$meta$c$use_dde]] <-
@@ -62,8 +66,9 @@ generate_c_code <- function(dat, opts, package = FALSE) {
   struct <- generate_c_compiled_struct(dat)
   core <- generate_c_compiled(eqs, dat, rewrite)
 
-  lib <- generate_c_compiled_library(dat, package)
-  include <- generate_c_compiled_include(dat, package)
+  is_package <- !is.null(package)
+  lib <- generate_c_compiled_library(dat, is_package)
+  include <- generate_c_compiled_include(dat, is_package)
 
   if (dat$features$has_delay && dat$features$discrete) {
     ring <- odin_ring_support(FALSE)
@@ -72,21 +77,12 @@ generate_c_code <- function(dat, opts, package = FALSE) {
   }
 
   if (dat$features$has_interpolate) {
-    interpolate <- odin_interpolate_support(FALSE)
+    interpolate <- odin_interpolate_support()
   } else {
     interpolate <- NULL
   }
 
-  if (package) {
-    stop("not yet finished")
-    list(headers = headers,
-         struct = struct,
-         core = core,
-         lib = lib,
-         include = include,
-         ring = ring,
-         interpolate = interpolate)
-  } else {
+  if (is.null(package)) {
     decl <- c(headers,
               ring$declarations,
               interpolate$declarations,
@@ -100,7 +96,58 @@ generate_c_code <- function(dat, opts, package = FALSE) {
               interpolate$definitions,
               include$definition)
     list(code = c(decl, defn), core = core$name)
+  } else {
+    r <- generate_c_r(dat, core$name, package)
+    list(headers = headers,
+         struct = struct,
+         core = core,
+         lib = lib,
+         include = include,
+         ring = ring,
+         interpolate = interpolate,
+         r = r)
   }
+}
+
+
+generate_c_r <- function(dat, core, package) {
+  as_str <- function(x, fn = "list") {
+    sprintf("%s(%s)", fn, paste(x, collapse = ", "))
+  }
+
+  base <- dat$config$base
+  class_name <- paste0(".", base)
+  user_str <- as_str(dquote(names(dat$user)), "c")
+
+  core_str <- as_str(sprintf(
+    '%s = "%s"', names(core), list_to_character(core)))
+  features_str <- as_str(sprintf(
+    '%s = %s', names(dat$features), vlapply(dat$features, identity)))
+
+  ## TODO:
+  ## nicer would be to:
+  ##
+  ## * format this more nicely
+  ## * sort out the ir properly
+  ## * not use a triple-colon accessor
+  ##
+  ## Passing in *just* the path to the ir would probably be nice, but
+  ## might have a bit more cost than ideal, but would allow for
+  ## creation of a class from an IR object alone.  However, there are
+  ## some real gotchas for doing this during package installation I
+  ## believe, because we can end up storing the incorrect path if we
+  ## evaluate during package installation.
+  ret <- collector()
+  ret$add('%s <- odin:::odin_c_class("%s", %s, %s, %s, "%s", "%s")',
+          class_name, base, core_str, user_str, features_str, package, dat$ir)
+
+  ctor <- generate_r_constructor(class_name, dat$features$discrete, dat$user,
+                                 .GlobalEnv)
+  ctor <- sub("\\s+$", "", deparse(ctor))
+  ctor[[1]] <- sprintf("%s <- %s", base, ctor[[1]])
+  ret$add(ctor)
+
+  ret$get()
 }
 
 
@@ -118,10 +165,7 @@ c_flatten_eqs <- function(eqs) {
 }
 
 
-odin_interpolate_support <- function(package) {
-  if (package) {
-    stop("writeme")
-  }
+odin_interpolate_support <- function() {
   r_h <- system.file("include/cinterpolate/cinterpolate.h",
                      package = "cinterpolate", mustWork = TRUE)
   r_c <- system.file("include/cinterpolate/cinterpolate.c",
