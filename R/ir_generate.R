@@ -36,7 +36,7 @@ odin2_ <- function(x, validate = NULL, verbose = NULL, target = NULL,
 }
 
 
-odin_parse2 <- function(x, opts = NULL) {
+odin_parse2 <- function(x, opts = NULL, type = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -48,7 +48,7 @@ odin_parse2 <- function(x, opts = NULL) {
 }
 
 
-odin_parse2_ <- function(x, opts = NULL) {
+odin_parse2_ <- function(x, opts = NULL, type = NULL) {
   opts <- odin_options(opts = opts)
   odin_build_ir2(x, opts)
 }

@@ -24,10 +24,9 @@ odin_validate_model <- function(x, type = NULL) {
   ## should.  If we do involve the cache we'll need to come up with
   ## something that can be purged or we'll have memory grow without
   ## bounds.
-  res <- tryCatch({
-    xp <- odin_preprocess(x, type)
-    odin_parse(xp)
-  }, error = identity)
+  res <- tryCatch(
+    odin_parse2_(x, type = type),
+    error = identity)
 
   success <- !inherits(res, "error")
   error <- if (success) NULL else res

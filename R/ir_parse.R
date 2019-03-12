@@ -1,6 +1,6 @@
-odin_build_ir2 <- function(x, opts) {
+odin_build_ir2 <- function(x, opts, type = NULL) {
   ## TODO: this gets looked at later
-  xp <- odin_preprocess(x)
+  xp <- odin_preprocess(x, type)
   root <- xp$root
   exprs <- xp$exprs
   base <- xp$base

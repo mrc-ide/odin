@@ -6,7 +6,7 @@ test_that("valid model", {
   res <- odin_validate_model(code, "text")
   expect_true(res$success)
   expect_null(res$error)
-  expect_is(res$result, "list")
+  expect_is(res$result, "json")
   expect_equal(res$messages, list())
 })
 
@@ -25,7 +25,7 @@ test_that("unused variables can be detected", {
   code <- c("initial(x) <- 1", "deriv(x) <- 1", "a <- 1")
   res <- odin_validate_model(code, "text")
   expect_equal(length(res$messages), 1L)
-  expect_match(res$messages[[1]]$msg, "Unused variable: a")
+  expect_match(res$messages[[1]]$msg, "Unused equation: a")
   expect_equivalent(res$messages[[1]]$line, 3)
 })
 
