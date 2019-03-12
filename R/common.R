@@ -165,6 +165,7 @@ rm(.join)
 FUNCTIONS_NARY <-
   names(which(vapply(FUNCTIONS, function(x) x[[length(x)]] == Inf, logical(1))))
 
+
 ## Avoid a lot of error print pasting:
 array_dim_name <- function(name, sub = NULL, use = TRUE) {
   if (length(name) > 1L) {
@@ -191,30 +192,7 @@ array_dim_name <- function(name, sub = NULL, use = TRUE) {
   name_dim
 }
 
-delay_name <- function(name) {
-  sprintf("delay_%s", name)
-}
 
 initial_name <- function(name) {
   sprintf("initial_%s", name)
-}
-
-deriv_name <- function(name) {
-  sprintf("deriv_%s", name)
-}
-
-offset_name <- function(name, output = FALSE) {
-  sprintf(if (output) "offset_output_%s" else "offset_%s", name)
-}
-
-output_name <- function(name) {
-  sprintf("output_%s", name)
-}
-
-update_name <- function(name) {
-  sprintf("update_%s", name)
-}
-
-target_name <- function(name, discrete) {
-  if (discrete) update_name(name) else deriv_name(name)
 }

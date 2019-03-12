@@ -411,10 +411,6 @@ test_that("interpolation", {
   expect_error(odin_parse2_(quote(x <- interpolate(a, b, "lin"))),
                "Invalid interpolation type")
 
-  expect_equal(
-    odin_parse_expr(quote(x <- interpolate(a, b)), NULL, NULL)$rhs$value$type,
-    "spline")
-
   expect_error(odin_parse2_(quote(x <- interpolate(a))),
                "interpolate() requires two or three arguments", fixed = TRUE)
   expect_error(odin_parse2_(quote(x <- interpolate(a, b, c, d))),

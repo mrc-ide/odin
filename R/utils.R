@@ -29,32 +29,6 @@ collector <- function(init = character(0)) {
        get = function() res)
 }
 
-## We'll use this in the main loop.  This could quite happily get out
-## of whack, so there are some checks here that can be removed in
-## eventual production.
-collector_named <- function(required = FALSE) {
-  data <- collector()
-  names <- collector()
-  list(
-    add = function(..., name = "") {
-      n <- max(lengths(list(...)))
-      nms <- rep_len(name, n)
-      if (required && !all(nzchar(nms))) {
-        stop("required names are missing [odin bug]") # nocov
-      }
-      names$add(nms)
-      n_prev <- data$length()
-      data$add(...)
-      if (data$length() != n_prev + n) {
-        stop("odin bug") # nocov
-      }
-    },
-    get = function() {
-      setNames(data$get(), names$get())
-    }
-  )
-}
-
 collector_list <- function(init = list()) {
   res <- init
   list(add = function(x) res <<- c(res, list(x)),
@@ -63,29 +37,6 @@ collector_list <- function(init = list()) {
 
 pastec <- function(..., collapse = ", ") {
   paste(..., collapse = collapse)
-}
-
-indent <- function(x, n = 2, skip_first = FALSE, collapse = FALSE) {
-  if (length(x) == 0L && is.character(x)) {
-    return(x)
-  } else {
-    x <- unlist(strsplit(x, "\n", fixed = TRUE), use.names = FALSE)
-    if (length(x) > 0L) {
-      if (skip_first) {
-        if (length(x) > 1L) {
-          x[-1] <- paste0(strrep(n), x[-1])
-        }
-      } else {
-        x <- paste0(strrep(n), x)
-      }
-    } else {
-      stop("should never happen [odin bug]")
-    }
-  }
-  if (collapse && length(x) > 1L) {
-    x <- paste(x, collapse = "\n")
-  }
-  x
 }
 
 strrep <- function(n, x = " ") {
@@ -135,12 +86,6 @@ names_if <- function(x) {
   names(x)[x]
 }
 
-rbind_as_df <- function(x) {
-  do.call("rbind",
-          lapply(x, as.data.frame, stringsAsFactors = FALSE),
-          quote = TRUE)
-}
-
 ## Abstract the hashing away in case we go for something like openssl.
 hash_object <- function(object) {
   digest::digest(object)
@@ -181,11 +126,6 @@ dquote <- function(x) {
 
 squote <- function(x) {
   sprintf("'%s'", x)
-}
-
-escape_printf <- function(x) {
-  gsub('"', '\"',
-       gsub("%", "%%", x, fixed = TRUE))
 }
 
 odin_version <- function() {
@@ -229,18 +169,8 @@ scalar <- function(x) {
 }
 
 
-from_json <- function(json) {
-  jsonlite::fromJSON(json, simplifyVector = FALSE)
-}
-
-
 drop_null <- function(x) {
   x[!vlapply(x, is.null)]
-}
-
-
-list_to_logical <- function(x) {
-  vlapply(x, identity)
 }
 
 
