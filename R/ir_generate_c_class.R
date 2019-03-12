@@ -1,234 +1,270 @@
 ## TODO: we should use getNativeSymbolInfo here for faster and more
 ## accurate lookup of symbols.  For now, all .Call statements need a
 ## PACKAGE argument.
-generate_c_class <- function(core, dll, dat) {
-  self <- private <- NULL # quieten global check: R6 adds these later
-  if (dat$features$has_interpolate) {
-    loadNamespace("cinterpolate")
-  }
 
-  ## TODO: This is unacceptably complicated
-  if (dat$features$initial_time_dependent) {
-    set_user <- function(..., user = list(...)) {
-      support_check_user(user, private$user)
-      .Call(private$core$set_user, private$ptr, user, PACKAGE = private$dll)
-      private$update_metadata()
-    }
-    if (dat$features$discrete) {
-      initial <- function(step) {
-        .Call(private$core$initial_conditions, private$ptr, as_integer(step),
-              PACKAGE = private$dll)
-      }
-    } else {
-      initial <- function(t) {
-        .Call(private$core$initial_conditions, private$ptr, as_numeric(t),
-              PACKAGE = private$dll)
-      }
-    }
-  } else {
-    set_user <- function(..., user = list(...)) {
-      support_check_user(user, private$user)
-      .Call(private$core$set_user, private$ptr, user, PACKAGE = private$dll)
-      private$init <-
-        .Call(private$core$initial_conditions, private$ptr, NA_real_,
-              PACKAGE = private$dll)
-      private$update_metadata()
-    }
-    if (dat$features$discrete) {
-      initial <- function(step) {
-        private$init
-      }
-    } else {
-      initial <- function(t) {
-        private$init
-      }
-    }
-  }
+## TODO: rework the whole use_dde bit
 
-  ## TODO: it's possible that code generation here would help, as
-  ## would a private function that does the middle bit alone?
-  if (dat$features$discrete) {
-    deriv <- NULL
-    if (dat$features$has_delay) {
-      update <- function(step, y) {
-        stop("Can't call update() on delay models")
-      }
-    } else {
-      update <- function(step, y) {
-        .Call(private$core$rhs_r, private$ptr, as_integer(step), as_numeric(y),
-              PACKAGE = private$dll)
-      }
-    }
-    ## TODO: I don't see that this does the initial setting correctly
-    ## - surely this should end up here.  This suggests that we do not
-    ## have a case that uses the initial conditions correctly.
-    run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
-      step <- as_integer(step)
-      if (is.null(y)) {
-        y <- self$initial(step)
-      }
-      if (!is.null(private$interpolate_t)) {
-        support_check_interpolate_t(step, private$interpolate_t, NULL)
-      }
-      if (is.null(replicate)) {
-        ret <- dde::difeq(y, step, private$core$rhs_dde, private$ptr,
-                          dllname = private$dll, parms_are_real = FALSE,
-                          ynames = FALSE, n_out = private$n_out, ...)
-      } else {
-        ret <- dde::difeq_replicate(replicate, y, step,
-                                    private$core$rhs_dde, private$ptr,
-                                    dllname = private$dll,
-                                    parms_are_real = FALSE,
-                                    ynames = FALSE, n_out = private$n_out,
-                                    ...)
-      }
-      if (use_names) {
-        colnames(ret) <- private$ynames
-      } else {
-        colnames(ret) <- NULL
-      }
-      ret
-    }
-  } else if (dat$features$has_delay) {
-    update <- NULL
-    deriv <- function(t, y) {
-      stop("Can't call deriv() on delay models")
-    }
+## TODO: all the core/ptr bits need work because we'll probably move
+## these out to work directly with a native symbols where possible.
 
-    run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL,
-                    n_history = 1000L) {
-      if (!is.null(y)) {
-        y <- as_numeric(y)
-      }
-      .Call(private$core$set_initial, private$ptr, as_numeric(t[[1]]),
-            y, private$use_dde, PACKAGE = private$dll)
-      if (!is.null(private$interpolate_t)) {
-        tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
-      }
-      if (is.null(y)) {
-        y <- self$initial(t)
-      }
-      if (private$use_dde) {
-        ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
-                          dllname = private$dll, parms_are_real = FALSE,
-                          n_history = n_history, n_out = private$n_out,
-                          output = private$core$output, ynames = FALSE,
-                          tcrit = tcrit, ...)
-      } else {
-        ## TODO: initmod => initfunc
-        ret <- deSolve::dede(y, t, private$core$rhs_desolve, private$ptr,
-                             initfunc = private$core$initmod_desolve,
-                             nout = private$n_out, dllname = private$dll,
-                             control = list(mxhist = n_history),
-                             tcrit = tcrit, ...)
-      }
-      if (use_names) {
-        colnames(ret) <- private$ynames
-      } else {
-        colnames(ret) <- NULL
-      }
-      ret
-    }
-  } else {
-    deriv <- function(t, y) {
-      .Call(private$core$rhs_r, private$ptr, t, y, PACKAGE = private$dll)
-    }
-
-    run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
-      if (!is.null(private$interpolate_t)) {
-        tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
-      }
-      if (is.null(y)) {
-        y <- self$initial(t)
-      }
-      if (private$use_dde) {
-        ret <- dde::dopri(y, t, private$core$rhs_dde, private$ptr,
-                          dllname = private$dll, parms_are_real = FALSE,
-                          n_out = private$n_out,
-                          output = private$core$output, ynames = FALSE,
-                          tcrit = tcrit, ...)
-      } else {
-        ## TODO: initmod => initfunc
-        ret <- deSolve::ode(y, t, private$core$rhs_desolve, private$ptr,
-                            initfunc = private$core$initmod_desolve,
-                            nout = private$n_out, dllname = private$dll,
-                            tcrit = tcrit, ...)
-      }
-      if (use_names) {
-        colnames(ret) <- private$ynames
-      } else {
-        colnames(ret) <- NULL
-      }
-      ret
-    }
-  }
-
-  env <- new.env(parent = as.environment("package:base"))
-  env[[dat$config$base]] <- R6::R6Class(
+odin_c_class <- function(base, core, user, features, dll, ir) {
+  R6::R6Class(
     "odin_model",
-    parent_env = environment(odin),
+    parent_env = environment(odin2),
     cloneable = FALSE,
     private = list(
-      name = dat$config$base,
-
+      ## Constant:
+      name = base,
       core = core,
-      ptr = NULL,
       dll = dll,
-
+      discrete = features$discrete, # TODO: drop?
+      user = user,
+      ir_ = ir,
+      ## Set at initialisation:
+      ptr = NULL,
       use_dde = NULL,
       init = NULL,
       interpolate_t = NULL,
-      ir_ = dat$ir,
-
-      ## These are not obviously the right bit of metadata to keep
-      ## All of these might want better names.
-      discrete = dat$features$discrete,
+      ## Set more dynamically
       variable_order = NULL,
       output_order = NULL,
       ynames = NULL,
       n_out = NULL,
-      user = names(dat$user),
-
-      update_metadata = function() {
-        meta <- .Call(private$core$metadata, private$ptr, PACKAGE = private$dll)
-        private$variable_order <- meta$variable_order
-        private$output_order <- meta$output_order
-        private$n_out <- meta$n_out
-        private$ynames <- make_names2(private$variable_order,
-                                      private$output_order,
-                                      private$discrete)
-        private$interpolate_t <- meta$interpolate_t
-      }
+      ## Private method
+      update_metadata = odin_c_class_update_metadata(features)
     ),
-
     public = drop_null(list(
-      initialize = function(user = NULL, use_dde = FALSE) {
-        private$use_dde <- use_dde || private$discrete
-        if (private$use_dde) {
-          loadNamespace("dde")
-        }
-        private$ptr <- .Call(private$core$create, PACKAGE = private$dll)
-        self$set_user(user = user)
-      },
+      initialize = odin_c_class_initialize(features),
+      set_user = odin_c_class_set_user(features),
+      initial = odin_c_class_initial(features),
+      update = odin_c_class_update(features),
+      deriv = odin_c_class_deriv(features),
+      run = odin_c_class_run(features),
+      contents = odin_c_class_contents(features),
+      ir = odin_c_class_ir(features),
+      transform_variables = odin_c_class_transform(features))))
+}
 
-      initial = initial,
-      set_user = set_user,
-      run = run,
-      deriv = deriv,
-      update = update,
 
-      ir = function() {
-        private$ir_
-      },
+odin_c_class_set_user <- function(features, env = .GlobalEnv) {
+  args <- alist("..." =, user = list(...))
 
-      contents = function() {
-        .Call(private$core$contents, private$ptr, PACKAGE = private$dll)
-      },
+  check_user <- quote(support_check_user(user, private$user))
+  set_user_c <- call(".Call", quote(private$core$set_user), quote(private$ptr),
+                     quote(user), PACKAGE = quote(private$dll))
+  if (features$initial_time_dependent) {
+    set_initial <- NULL
+  } else {
+    t0 <- if (features$discrete) NA_integer_ else NA_real_
+    set_initial <- call(
+      "<-", quote(private$init),
+      call(".Call", quote(private$core$initial_conditions),
+           quote(private$ptr), t0, PACKAGE = quote(private$dll)))
+  }
+  update_metadata <- quote(private$update_metadata())
 
-      transform_variables = function(y) {
-        support_transform_variables(y, private)
-      }
-    )))
+  body <- list(check_user, set_user_c, set_initial, update_metadata)
+  as_function(args, expr_block(body), env)
+}
 
-  generate_r_constructor(dat, env)
+
+odin_c_class_initial <- function(features, env = .GlobalEnv) {
+  time <- if (features$discrete) STEP else TIME
+  args <- alist(time =)
+  names(args) <- time
+  if (features$initial_time_dependent) {
+    time_clean <- if (features$discrete) "as_integer" else "as_numeric"
+    body <- call(".Call", quote(private$core$initial_conditions),
+                 quote(private$ptr), call(time_clean, as.name(time)),
+                 PACKAGE = quote(private$dll))
+  } else {
+    body <- quote(private$init)
+  }
+  as_function(args, expr_block(body), env)
+}
+
+
+odin_c_class_update <- function(features, env = .GlobalEnv) {
+  if (features$discrete) {
+    args <- alist(step =, y =)
+    if (features$has_delay) {
+      body <- quote(stop("Can't call update() on delay models"))
+    } else {
+      body <- call(".Call", quote(private$core$rhs_r), quote(private$ptr),
+                   quote(as_integer(step)), quote(as_numeric(y)),
+                   PACKAGE = quote(private$dll))
+    }
+    as_function(args, expr_block(body), env)
+  } else {
+    NULL
+  }
+}
+
+
+odin_c_class_deriv <- function(features, env = .GlobalEnv) {
+  if (features$discrete) {
+    NULL
+  } else {
+    args <- alist(t =, y =)
+    if (features$has_delay) {
+      body <- quote(stop("Can't call deriv() on delay models"))
+    } else {
+      body <- call(".Call", quote(private$core$rhs_r), quote(private$ptr),
+                   quote(as_numeric(t)), quote(as_numeric(y)),
+                   PACKAGE = quote(private$dll))
+    }
+    as_function(args, expr_block(body), env)
+  }
+}
+
+
+odin_c_class_run <- function(features, env = .GlobalEnv) {
+  if (features$discrete) {
+    odin_c_class_run_discrete(features, env)
+  } else {
+    odin_c_class_run_continuous(features, env)
+  }
+}
+
+
+odin_c_class_run_continuous <- function(features, env = .GlobalEnv) {
+  args <- alist(t =, y = NULL, "..." =, use_names = TRUE, tcrit = NULL)
+  if (features$has_delay) {
+    args <- c(args, alist(n_history = 1000))
+  }
+
+  check_t <- quote(t <- as_numeric(t))
+  check_y1 <- expr_if(quote(!is.null(y)), quote(y <- as_numeric(y)))
+  if (features$has_delay) {
+    set_initial <- call(".Call", quote(private$core$set_initial),
+                        quote(private$ptr), quote(t[[1]]), quote(y),
+                        quote(private$use_dde), PACKAGE = quote(private$dll))
+  } else {
+    set_initial <- NULL
+  }
+  if (features$has_interpolate) {
+    check_interpolate <- quote(
+      tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit))
+  } else {
+    check_interpolate <- NULL
+  }
+  check_y2 <- expr_if(quote(is.null(y)), quote(y <- self$initial(t[[1]])))
+
+  args_dde <- list(
+    quote(dde::dopri), quote(y), quote(t),
+    quote(private$core$rhs_dde), quote(private$ptr),
+    dllname = quote(private$dll), parms_are_real = FALSE,
+    n_out = quote(private$n_out), output = quote(private$core$output),
+    ynames = FALSE, tcrit = quote(tcrit), quote(...))
+  args_ds <- list(
+    quote(deSolve::ode), quote(y), quote(t),
+    quote(private$core$rhs_desolve), quote(private$ptr),
+    initfunc = quote(private$core$initmod_desolve),
+    nout = quote(private$n_out), dllname = quote(private$dll),
+    tcrit = quote(tcrit), quote(...))
+  if (features$has_delay) {
+    args_ds[[1]] <- quote(deSolve::dede)
+    args_ds <- c(args_ds, list(control = quote(list(mxhist = n_history))))
+    args_dde <- c(args_dde, list(n_history = quote(n_history)))
+  }
+  run <- expr_if(quote(private$use_dde),
+                 list(call("<-", quote(ret), as.call(args_dde))),
+                 list(call("<-", quote(ret), as.call(args_ds))))
+
+  cleanup <- expr_if(
+    quote(use_names),
+    quote(colnames(ret) <- private$ynames),
+    quote(colnames(ret) <- NULL))
+
+  body <- drop_null(list(check_t, check_y1, set_initial, check_interpolate,
+                         check_y2, run, cleanup, quote(ret)))
+  as_function(args, expr_block(body), env)
+}
+
+
+odin_c_class_run_discrete <- function(features, env = .GlobalEnv) {
+  args <- alist(step =, y = NULL, "..." =, use_names = TRUE, replicate = NULL)
+
+  check_step <- quote(step <- as_integer(step))
+  check_y <- expr_if(quote(is.null(y)), quote(y <- self$initial(step)))
+  if (features$has_interpolate) {
+    check_interpolate <-
+      quote(support_check_interpolate_t(step, private$interpolate_t, NULL))
+  } else {
+    check_interpolate <- NULL
+  }
+
+  run_args <- list(quote(y), quote(step), quote(private$core$rhs_dde),
+                   quote(private$ptr), dllname = quote(private$dll),
+                   parms_are_real = FALSE, ynames = FALSE,
+                   n_out = quote(private$n_out), quote(...))
+  run_args1 <- c(list(quote(dde::difeq)), run_args)
+  run_args2 <- c(list(quote(dde::difeq_replicate), quote(replicate)), run_args)
+  run <- expr_if(quote(is.null(replicate)),
+                 list(call("<-", quote(ret), as.call(run_args1))),
+                 list(call("<-", quote(ret), as.call(run_args2))))
+  cleanup <- expr_if(
+    quote(use_names),
+    quote(colnames(ret) <- private$ynames),
+    quote(colnames(ret) <- NULL))
+
+  body <- drop_null(list(check_step, check_y, check_interpolate, run,
+                         cleanup, quote(ret)))
+  as_function(args, expr_block(body), env)
+}
+
+
+odin_c_class_update_metadata <- function(features, env = .GlobalEnv) {
+  body <- list(
+    call("<-", quote(meta),
+         call(".Call", quote(private$core$metadata), quote(private$ptr),
+              PACKAGE = quote(private$dll))),
+    quote(private$variable_order <- meta$variable_order),
+    quote(private$output_order <- meta$output_order),
+    quote(private$n_out <- meta$n_out),
+    call("<-", quote(private$ynames),
+          call("make_names2", quote(private$variable_order),
+               quote(private$output_order), features$discrete)),
+    quote(private$interpolate_t <- meta$interpolate_t))
+  as_function(list(), expr_block(body), env)
+}
+
+
+odin_c_class_initialize <- function(features, env = .GlobalEnv) {
+  args <- alist(user = NULL)
+  if (features$discrete) {
+    set_use_dde <- NULL
+  } else {
+    args <- c(args, list(use_dde = FALSE))
+    set_use_dde <- quote(private$use_dde <- use_dde)
+  }
+
+  make_ptr <- as.call(list(
+    as.name("<-"),
+    quote(private$ptr),
+    call(".Call", quote(private$core$create), PACKAGE = quote(private$dll))))
+  body <- drop_null(list(
+    set_use_dde,
+    make_ptr,
+    quote(self$set_user(user = user))))
+  as_function(args, expr_block(body), env)
+}
+
+
+odin_c_class_contents <- function(features, env = .GlobalEnv) {
+  body <- call(".Call", quote(private$core$contents), quote(private$ptr),
+               PACKAGE = quote(private$dll))
+  as_function(alist(), expr_block(body), env)
+}
+
+
+odin_c_class_transform <- function(features, env = .GlobalEnv) {
+  args <- alist(y =)
+  body <- call("support_transform_variables", quote(y), quote(private))
+  as_function(args, expr_block(body), env)
+}
+
+
+odin_c_class_ir <- function(features, env = .GlobalEnv) {
+  as_function(alist(), quote(private$ir_), env)
 }

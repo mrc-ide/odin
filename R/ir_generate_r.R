@@ -641,12 +641,21 @@ extract_variable <- function(x, data, state, rewrite) {
 
 
 expr_block <- function(exprs) {
-  as.call(c(list(as.name("{")), flatten_eqs(exprs)))
+  if (is.language(exprs)) {
+    exprs <- list(exprs)
+  } else {
+    exprs <- flatten_eqs(exprs)
+  }
+  as.call(c(list(as.name("{")), exprs))
 }
 
 
 expr_if <- function(condition, a, b) {
-  call("if", condition, expr_block(a), expr_block(b))
+  if (missing(b)) {
+    call("if", condition, expr_block(a))
+  } else {
+    call("if", condition, expr_block(a), expr_block(b))
+  }
 }
 
 

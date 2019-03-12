@@ -145,30 +145,33 @@ generate_r_class <- function(core, dat, env) {
       }
     )))
 
-  generate_r_constructor(dat, env)
+  generate_r_constructor(dat$config$base, dat$features$discrete, dat$user, env)
 }
 
 
-generate_r_constructor <- function(dat, env) {
-  cl_init <- call("$", as.name(dat$config$base), quote(new))
-  ## Need to build a nice argument list here.  This is pretty ugly and
-  ## will be somewhat duplicated with different interfaces.
-  if (dat$features$has_user) {
-    i <- set_names(vlapply(dat$user, "[[", "has_default"),
-                   vcapply(dat$user, "[[", "name"))
+generate_r_constructor <- function(base, discrete, user, env) {
+  name_user <- "user"
+  if (length(user) > 0L) {
+    i <- set_names(vlapply(user, "[[", "has_default"),
+                   vcapply(user, "[[", "name"))
     nms <- names(i)
     args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i)))
     names(args) <- nms
-    args[[dat$meta$user]] <-
+    args[[name_user]] <-
       as.call(c(list(quote(list)),
                 set_names(lapply(nms, as.name), nms)))
-    args <- c(args, alist(use_dde = FALSE))
-    body <- call("{", as.call(list(cl_init, as.name(dat$meta$user),
-                                   quote(use_dde))))
+    user_value <- as.name(name_user)
   } else {
-    args <- alist(use_dde = FALSE)
-    body <- call("{", as.call(list(cl_init, NULL, quote(use_dde))))
+    args <- alist()
+    user_value <- NULL
   }
 
-  as_function(args, body, env)
+  cl_init <- call("$", as.name(base), quote(new))
+  call <- list(cl_init, user_value)
+  if (!discrete) {
+    call <- c(call, list(quote(use_dde)))
+    args <- c(args, alist(use_dde = FALSE))
+  }
+
+  as_function(args, expr_block(list(as.call(call))), env)
 }

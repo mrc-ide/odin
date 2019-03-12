@@ -9,7 +9,11 @@ generate_c <- function(dat, opts) {
                  compiler_warnings = opts$compiler_warnings)
   dyn_load(dll$dll)
 
-  generate_c_class(core, dll$base, dat)
+  env <- new.env(parent = as.environment("package:base"))
+  base <- dat$config$base
+  env[[base]] <-
+    odin_c_class(base, core, names(dat$user), dat$features, dll$base, dat$ir)
+  generate_r_constructor(base, dat$features$discrete, dat$user, env)
 }
 
 
