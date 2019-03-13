@@ -47,7 +47,8 @@ odin_c_class <- function(base, core, user, features, dll, ir) {
 
 
 odin_c_class_set_user <- function(features, env = .GlobalEnv) {
-  args <- alist("..." =, user = list(...))
+  args <- alist("..." =, user = )
+  args[[2]] <- quote(list(...))
 
   check_user <- quote(support_check_user(user, private$user))
   set_user_c <- call(".Call", quote(private$core$set_user), quote(private$ptr),
