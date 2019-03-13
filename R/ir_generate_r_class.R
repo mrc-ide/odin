@@ -107,7 +107,7 @@ generate_r_class <- function(core, dat, env) {
       update = if (dat$features$discrete) {
         function(step, y) {
           if (private$delay) {
-            stop("Can't call deriv() on delay models")
+            stop("Can't call update() on delay models")
           }
           private$core$rhs_dde(step, y, private$data)
         }

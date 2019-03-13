@@ -96,3 +96,14 @@ topological_order <- function(graph) {
 
   graph_sorted
 }
+
+
+recursive_dependencies <- function(order, deps, vars) {
+  deps_rec <- setNames(vector("list", length(order)), order)
+  for (i in order) {
+    j <- as.character(unlist(deps[i]))
+    deps_rec[[i]] <-
+      c(j, unique(as.character(unlist(deps_rec[j], use.names = FALSE))))
+  }
+  deps_rec
+}

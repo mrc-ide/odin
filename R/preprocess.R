@@ -48,6 +48,10 @@ odin_preprocess_detect <- function(x, type = NULL) {
   }
 
   if (is.language(x)) {
+    if (has_type && type != "expression") {
+      stop(sprintf("Invalid input for odin - expected %s", type),
+           call. = FALSE)
+    }
     as <- "expression"
   } else if (is.character(x)) {
     if (has_type) {

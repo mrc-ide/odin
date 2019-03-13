@@ -42,3 +42,13 @@ test_that("type detection can skip filenames", {
   expect_equal(odin_preprocess_detect("x", "text"), "text")
   expect_error(odin_preprocess_detect("x", "file"), "does not exist")
 })
+
+
+test_that("detect invalid type", {
+  expect_error(odin_preprocess_detect("x", "expression"),
+               "Invalid input for odin - expected expression")
+  expect_error(odin_preprocess_detect(quote(x), "text"),
+               "Invalid input for odin - expected text")
+  expect_error(odin_preprocess_detect(quote(x), "file"),
+               "Invalid input for odin - expected file")
+})

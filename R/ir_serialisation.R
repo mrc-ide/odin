@@ -301,7 +301,7 @@ ir_serialise_expression <- function(expr) {
     c(list(jsonlite::unbox(as.character(expr[[1L]]))),
       lapply(expr[-1L], ir_serialise_expression))
   } else {
-    stop("implement me")
+    stop("unhandled expression [odin bug]") # nocov
   }
 }
 

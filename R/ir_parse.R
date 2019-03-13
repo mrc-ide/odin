@@ -5,11 +5,6 @@ odin_build_ir2 <- function(x, opts, type = NULL) {
   exprs <- xp$exprs
   base <- xp$base
 
-  ## this just checks that everything is ok; we can examine this in
-  ## more detail later but because it does not affect the output it
-  ## can just be run as is for now.
-  odin_parse_prepare(exprs)
-
   dat <- ir_parse_exprs(exprs)
   eqs <- dat$eqs
   source <- dat$source
@@ -521,6 +516,16 @@ ir_parse_exprs <- function(exprs) {
     lines0 <- utils::getSrcLocation(exprs, "line", first = TRUE)
     lines1 <- utils::getSrcLocation(exprs, "line", first = FALSE)
     lines <- Map(seq.int, lines0, lines1)
+  }
+
+  expr_is_assignment <- function(x) {
+    length(x) == 3L &&
+      (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
+  }
+  err <- which(!vlapply(exprs, expr_is_assignment))
+  if (length(err) > 0L) {
+    ir_odin_error("Every line must contain an assignment",
+                  unlist(lines[err]), src)
   }
 
   eqs <- Map(ir_parse_expr, exprs, lines, MoreArgs = list(source = src))
@@ -1087,7 +1092,7 @@ ir_odin_note <- function(msg, line, source) {
 ir_odin_info_data <- function(msg, line, source, type) {
   if (length(line) > 0L) {
     expr <- source[line]
-    str <- odin_info_expr(line, expr)
+    str <- sprintf(ifelse(is.na(line), "%s", "%s # (line %s)"), expr, line)
     message <- paste0(msg, paste0("\n\t", str, collapse = ""))
   } else {
     expr <- NULL

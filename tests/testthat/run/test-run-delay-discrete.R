@@ -130,3 +130,17 @@ test_that("delay vars that depend on time", {
   expect_equal(yy[, "x"], ifelse(tt < 6, 0, tt - 5))
   expect_equal(yy[, "y"], ifelse(tt < 7, 0, 1))
 })
+
+
+test_that("disable update function", {
+  gen <- odin2({
+    initial(y) <- 1
+    update(y) <- y + yprev
+    yprev <- delay(y, 1)
+  })
+
+  mod <- gen()
+  expect_error(mod$update(0),
+               "Can't call update() on delay models",
+               fixed = TRUE)
+})

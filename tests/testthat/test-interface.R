@@ -85,11 +85,20 @@ test_that("prevent unknown target", {
 })
 
 
-test_that("force a vector of strings", {
+## issue #88
+test_that("force a vector of strings (compile)", {
   gen <- odin2(c("deriv(y) <- 0.5", "initial(y) <- 1"), target = "r")
   mod <- gen()
   y <- mod$run(0:10)[, "y"]
   expect_equal(y, seq(1, by = 0.5, length.out = 11))
+})
+
+
+## issue #88
+test_that("force a vector of strings (parse)", {
+  ir <- odin_parse2(c("deriv(y) <- 0.5", "initial(y) <- 1"))
+  dat <- ir_deserialise(ir)
+  expect_equal(names(dat$data$variable$contents), "y")
 })
 
 
