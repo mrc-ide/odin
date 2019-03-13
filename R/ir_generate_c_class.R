@@ -223,7 +223,7 @@ odin_c_class_update_metadata <- function(features, env = .GlobalEnv) {
     quote(private$output_order <- meta$output_order),
     quote(private$n_out <- meta$n_out),
     call("<-", quote(private$ynames),
-          call("make_names2", quote(private$variable_order),
+          call("make_names", quote(private$variable_order),
                quote(private$output_order), features$discrete)),
     quote(private$interpolate_t <- meta$interpolate_t))
   as_function(list(), expr_block(body), env)

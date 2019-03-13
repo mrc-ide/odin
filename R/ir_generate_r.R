@@ -231,7 +231,7 @@ generate_r_metadata <- function(dat, rewrite) {
   }
 
   ynames <- call(
-    "make_names2",
+    "make_names",
     quote(private$variable_order), quote(private$output_order),
     dat$features$discrete)
   n_out <- quote(support_n_out(private$output_order))
