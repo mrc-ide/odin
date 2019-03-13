@@ -41,11 +41,6 @@ generate_c_meta <- function(base, internal) {
 
 
 generate_c_code <- function(dat, opts, package) {
-  features_supported <- c("initial_time_dependent", "has_user", "has_output",
-                          "discrete", "has_array", "has_stochastic",
-                          "has_delay", "has_include", "has_interpolate")
-  generate_check_features(features_supported, dat)
-
   dat$meta$c <- generate_c_meta(dat$config$base, dat$meta$internal)
 
   if (dat$features$has_delay) {

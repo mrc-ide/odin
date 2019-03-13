@@ -1,9 +1,4 @@
 generate_r <- function(dat, opts) {
-  features_supported <- c("has_user", "has_output", "discrete", "has_array",
-                          "has_interpolate", "has_stochastic", "has_delay",
-                          "initial_time_dependent")
-  generate_check_features(features_supported, dat)
-
   if (dat$features$has_delay) {
     ## We're going to need an additional bit of internal data here,
     ## but this sits outside the core odin ir
