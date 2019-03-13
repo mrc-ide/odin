@@ -80,8 +80,7 @@ test_that("hash_files", {
 })
 
 test_that("odin_version", {
-  expect_identical(odin_version(), ODIN_VERSION)
-  expect_true(setequal(names(ODIN_VERSION),
+  expect_true(setequal(names(odin_version()),
                        c("odin", "cinterpolate", "r", "platform")))
 })
 

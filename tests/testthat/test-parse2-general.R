@@ -395,13 +395,6 @@ test_that("lhs checking", {
                "Invalid nested lhs function usage")
 })
 
-test_that("delay time handling", {
-  tmp <- odin_parse_expr(quote(a <- delay(b, c + d)), NA_integer_, NULL)
-  expect_equal(tmp$rhs$value_time, quote((c + d)))
-
-  tmp <- odin_parse_expr(quote(a <- delay(b, (c + d))), NA_integer_, NULL)
-  expect_equal(tmp$rhs$value_time, quote((c + d)))
-})
 
 test_that("interpolation", {
   expect_error(odin_parse2_(quote(x <- interpolate(a, b, c))),

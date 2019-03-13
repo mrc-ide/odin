@@ -42,5 +42,5 @@ hash_model <- function(x) {
   if (is.null(x$file)) {
     attributes(x$exprs) <- NULL
   }
-  hash_object(list(ODIN_VERSION, x))
+  hash_object(list(odin_version(), x))
 }

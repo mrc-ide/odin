@@ -168,28 +168,10 @@ FUNCTIONS_NARY <-
 
 ## Avoid a lot of error print pasting:
 array_dim_name <- function(name, sub = NULL, use = TRUE) {
-  if (length(name) > 1L) {
-    return(vcapply(name, array_dim_name, sub, use, USE.NAMES = FALSE))
-  }
   if (!is.null(sub)) {
     name <- sprintf("%s_%s", name, sub)
   }
-  if (grepl("^(initial|deriv|update)_", name)) {
-    name_dim <- sub("^(initial|deriv|update)_", "dim_", name)
-  } else if (grepl("^delay_", name)) {
-    re <- "^delay_([^_]+)_(.*)$"
-    type <- sub(re, "\\1", name)
-    if (type == INDEX[[1L]] || (use && type == STATE)) {
-      name_dim <- sub(re, "dim_delay_\\2", name)
-    } else if (use) {
-      name_dim <- sub("^delay_", "dim_", name)
-    } else {
-      name_dim <- ""
-    }
-  } else {
-    name_dim <- sprintf("dim_%s", name)
-  }
-  name_dim
+  sprintf("dim_%s", name)
 }
 
 

@@ -19,7 +19,7 @@ support_transform_variables <- function(y, private) {
 support_check_user <- function(user, allowed) {
   given <- names(user)
   if (length(user) > 0 && (is.null(given) || !all(nzchar(given)))) {
-    stop("All user parameters must be named")
+    stop("All user parameters must be named", call. = FALSE)
   }
   err <- unique(given[duplicated(given)])
   if (length(err) > 0L) {
@@ -37,12 +37,14 @@ support_check_user <- function(user, allowed) {
 as_integer <- function(x, name = deparse(substitute(x))) {
   if (is.integer(x)) {
     x
-  } else {
+  } else if (is.numeric(x)) {
     ret <- as.integer(x)
     if (max(abs(ret - x)) > sqrt(.Machine$double.eps)) {
       stop(sprintf("Expected integer input for '%s'", name), call. = FALSE)
     }
     ret
+  } else {
+    stop(sprintf("Expected integer input for '%s'", name), call. = FALSE)
   }
 }
 

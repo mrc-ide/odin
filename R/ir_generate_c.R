@@ -71,13 +71,13 @@ generate_c_code <- function(dat, opts, package) {
   include <- generate_c_compiled_include(dat, is_package)
 
   if (dat$features$has_delay && dat$features$discrete) {
-    ring <- odin_ring_support(FALSE)
+    ring <- generate_c_ring_support(is_package)
   } else {
     ring <- NULL
   }
 
   if (dat$features$has_interpolate) {
-    interpolate <- odin_interpolate_support()
+    interpolate <- generate_c_interpolate_support()
   } else {
     interpolate <- NULL
   }
@@ -162,15 +162,4 @@ c_variable_reference <- function(x, data_info, state, rewrite) {
 
 c_flatten_eqs <- function(eqs) {
   unlist(unname(eqs))
-}
-
-
-odin_interpolate_support <- function() {
-  r_h <- system.file("include/cinterpolate/cinterpolate.h",
-                     package = "cinterpolate", mustWork = TRUE)
-  r_c <- system.file("include/cinterpolate/cinterpolate.c",
-                     package = "cinterpolate", mustWork = TRUE)
-  decl <- sprintf('#include "%s"', r_h)
-  defn <- sprintf('#include "%s"', r_c)
-  list(declarations = decl, definitions = defn)
 }
