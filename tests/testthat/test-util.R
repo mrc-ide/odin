@@ -107,3 +107,15 @@ test_that("adrop works", {
   expect_equal(adrop(array(x, c(2, 5, 1)), 3),
                matrix(x, 2, 5))
 })
+
+
+test_that("sprintf_safe throws on empty arguments", {
+  expect_error(sprintf_safe("%s", NULL),
+               "Passed empty format parameter to formatter")
+  expect_error(sprintf_safe("%s %s", 1, NULL),
+               "Passed empty format parameter to formatter")
+  expect_error(sprintf_safe("%s %s", NULL, 1),
+               "Passed empty format parameter to formatter")
+  expect_equal(sprintf_safe("%s %s", "a", "b"),
+               sprintf("%s %s", "a", "b"))
+})

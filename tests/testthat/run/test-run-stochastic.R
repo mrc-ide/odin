@@ -202,3 +202,51 @@ test_that("replicate: array", {
   expect_equal(yy[[2]], res[, 2, ])
   expect_equal(yy[[3]], unname(res[, 3:5, ]))
 })
+
+
+test_that("low-level stochastics: norm_rand", {
+  gen <- odin2({
+    initial(y) <- 0
+    update(y) <- norm_rand()
+  })
+  m <- gen()
+
+  tt <- 0:10
+  set.seed(1)
+  y <- m$run(tt)[-1, "y"]
+
+  set.seed(1)
+  expect_equal(y, rnorm(10))
+})
+
+
+test_that("low-level stochastics: unif_rand", {
+  gen <- odin2({
+    initial(y) <- 0
+    update(y) <- unif_rand()
+  })
+  m <- gen()
+
+  tt <- 0:10
+  set.seed(1)
+  y <- m$run(tt)[-1, "y"]
+
+  set.seed(1)
+  expect_equal(y, runif(10))
+})
+
+
+test_that("low-level stochastics: exp_rand", {
+  gen <- odin2({
+    initial(y) <- 0
+    update(y) <- exp_rand()
+  })
+  m <- gen()
+
+  tt <- 0:10
+  set.seed(1)
+  y <- m$run(tt)[-1, "y"]
+
+  set.seed(1)
+  expect_equal(y, rexp(10))
+})

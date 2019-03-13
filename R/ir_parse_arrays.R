@@ -142,7 +142,8 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   prevent <- list("user()" = is_user,
                   "interpolate()" = is_interpolate,
                   "delay()" = is_delay,
-                  "direct output" = is_copy)
+                  "direct output" = is_copy,
+                  "in-place equations" = is_inplace)
   check <- is_duplicated(names(eqs))
   for (i in names(prevent)) {
     err <- check & prevent[[i]]
@@ -154,7 +155,7 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   }
 
   ## Then, start checking for duplicates:
-  err <- is_duplicated(names(eqs)) & !is_array
+  err <- is_duplicated(names(eqs)) & !is_array & !is_inplace
   if (any(err)) {
     ir_odin_error(
       sprintf("Duplicate entries must all be array assignments (%s)",
@@ -191,7 +192,7 @@ ir_parse_array_check_usage2 <- function(eqs, source) {
     x$lhs$name_data))
 
   for (eq in eqs) {
-    if (eq$type == "expression_scalar") {
+    if (eq$type == "expression_scalar" || eq$type == "expression_inplace") {
       ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
     } else if (eq$type == "expression_array") {
       for (el in eq$rhs) {
@@ -201,6 +202,8 @@ ir_parse_array_check_usage2 <- function(eqs, source) {
       ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
       ir_parse_arrays_check_rhs(eq$delay$default, rank, int_arrays, eq, source)
     } else {
+      ## TODO: not sure what comes through here, or if this is correct
+      ## at all.
       ir_parse_arrays_check_rhs(eq, rank, int_arrays, source)
     }
   }
@@ -277,7 +280,7 @@ ir_odin_parse_arrays_check_dim <- function(eq, rank, source) {
       check(eq$delay$default)
     } else if (eq$type %in% skip_types) {
     } else {
-      stop("writeme")
+      stop("unimplemented equation type [odin bug]") # nocov
     }
   }
 }
@@ -387,29 +390,12 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
       err, source)
   }
 
-  ## TODO: in ir_parse_arrays_check_usage we do this for user() too,
-  ## but I think that this is the correct place.
-  ##
-  ## TODO: Rethink the early exit when refactoring.
-  ##
-  ## TODO: I think this is now not possible to trigger
-  eq_type <- vcapply(eqs[i], "[[", "type")
-  if (any(eq_type == "delay")) {
-    if (length(i) != 1L) {
-      ir_odin_error("Multi-line delay() equations are not possible",
-                    ir_get_lines(eqs[i]), source)
-    }
-  }
-
   join <- function(i, eqs, depend_alloc = TRUE) {
     use <- unname(eqs[i])
     eq_type <- vcapply(use, "[[", "type")
     eq_use <- use[[1]]
-    if (any(eq_type == "expression_inplace")) {
-      if (length(use) > 1L) {
-        ir_odin_error("Multi-line in place equations are not possible",
-                      ir_get_lines(use), source)
-      }
+    if (eq_use$type == "expression_inplace") {
+      ## pass
     } else if (eq_use$type == "delay") {
       eq_use$rhs$index <- eq_use$lhs$index
     } else if (eq_use$type != "user") {

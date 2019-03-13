@@ -298,10 +298,14 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   index <- rewrite(delay$index)
   len <- rewrite(delay$variables$length)
 
+  if (is.recursive(delay$time)) {
+    dt <- rewrite(call("(", delay$time))
+  } else {
+    dt <- rewrite(delay$time)
+  }
   time_set <- c(
     sprintf_safe("const double %s = %s;", time_true, time),
-    sprintf_safe("const double %s = %s - %s;",
-                 time, time_true, rewrite(delay$time)))
+    sprintf_safe("const double %s = %s - %s;", time, time_true, dt))
 
   lookup_vars <- sprintf_safe(
     "lagvalue(%s, %s, %s, %s, %s);",

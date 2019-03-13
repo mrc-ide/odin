@@ -550,7 +550,7 @@ ir_parse_expr <- function(expr, line, source) {
   } else if (lhs$type == "expression_array") {
     type <- "expression_array"
   } else {
-    stop("writeme")
+    stop("unclassified equation type [odin bug]") # nocov
   }
   lhs$type <- NULL
 
@@ -959,12 +959,6 @@ ir_parse_expr_rhs_delay <- function(rhs, line, source) {
     ## mask the variables.
     ir_odin_error("delay() may not refer to time as that's confusing",
                   line, source)
-  }
-
-  if (is.recursive(delay_time) && !is_call(delay_time, quote(`(`))) {
-    ## TODO: I don't think this is needed
-    stop("checkme")
-    delay_time <- call("(", delay_time)
   }
 
   depends <- join_deps(list(deps_delay_time, delay_default$depends))

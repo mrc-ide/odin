@@ -157,23 +157,6 @@ test_that("dim rhs must be simple", {
 })
 
 
-test_that("delay call validation", {
-  expect_error(odin_parse2_(quote(a <- 1 + delay(1))),
-               "delay() must be the only call on the rhs", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(1))),
-               "delay() requires two or three arguments", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(1, 2, 3, 4))),
-               "delay() requires two or three arguments", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(delay(1, 2), 2))),
-               "delay() may not be nested", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(2, delay(1, 2)))),
-               "delay() may not be nested", fixed = TRUE)
-
-  expect_error(odin_parse2_(quote(a <- delay(y + t, 2))),
-               "delay() may not refer to time", fixed = TRUE)
-})
-
-
 test_that("user call", {
   expect_error(odin_parse2_(quote(a <- user() + 1)),
                "user() must be the only call on the rhs", fixed = TRUE)
@@ -451,14 +434,6 @@ test_that("some dim() pathologies", {
                "must contain symbols, numbers or lengths")
 })
 
-test_that("delay check", {
-  expect_error(ir_parse_expr(quote(deriv(x) <- delay(y, 1)), NULL, NULL),
-               "delay() only valid for non-special variables", fixed = TRUE)
-  expect_error(ir_parse_expr(quote(initial(x) <- delay(y, 1)), NULL, NULL),
-               "delay() only valid for non-special variables", fixed = TRUE)
-  expect_error(ir_parse_expr(quote(dim(x) <- delay(y, 1)), NULL, NULL),
-               "delay() only valid for non-special variables", fixed = TRUE)
-})
 
 test_that("array pathologies", {
   expect_error(
@@ -641,17 +616,6 @@ test_that("dependent dim never assigned", {
 })
 
 
-test_that("more parse errors", {
-  expect_error(odin_parse2({
-    x <- y + b
-    ylag <- delay(x, 10)
-    initial(y) <- 0.5
-    deriv(y) <- y + ylag
-  }), "Missing variable in delay expression: b (for delay ylag)",
-  fixed = TRUE)
-})
-
-
 test_that("detect integers", {
   ir <- odin_parse2({
     n <- 2
@@ -683,4 +647,12 @@ test_that("notify on naked index", {
   expect_message(
     odin_parse2(code, odin_options(no_check_naked_index = TRUE)),
     NA)
+})
+
+
+test_that("no variables", {
+  expect_error(odin_parse2({
+    x <- 1
+  }),
+  "Did not find a deriv() or an update() call", fixed = TRUE)
 })

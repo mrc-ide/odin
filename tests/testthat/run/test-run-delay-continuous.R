@@ -243,3 +243,18 @@ test_that("delay index packing", {
   expect_equal(yy$foo[8, ],
                yy$b[6, i] + yy$c[6, i + 1] + yy$e[6, i + 2])
 })
+
+
+test_that("nontrivial time", {
+  gen <- odin2({
+    ylag <- delay(y, 2 + 3)
+    initial(y) <- 0.5
+    deriv(y) <- 1
+    output(ylag) <- TRUE
+  })
+
+  tt <- 0:10
+  y <- gen()$run(tt)
+  expect_equal(y[, "ylag"],
+               c(rep(0.5, 6), seq(1.5, by = 1, length.out = 5)))
+})

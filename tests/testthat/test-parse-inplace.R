@@ -14,6 +14,23 @@ test_that("can't use integer inplace for update()", {
 })
 
 
+test_that("can't use multiline inplace", {
+  expect_error(odin_parse2({
+    q[] <- user()
+    p[] <- q[i] / sum(q)
+    initial(x[]) <- 0
+    update(x[]) <- y[i]
+    y[] <- rmultinom(5, p)
+    y[1] <- 0
+    dim(p) <- 5
+    dim(q) <- 5
+    dim(x) <- 5
+    dim(y) <- 5
+  }),
+  "in-place equations may only be used on a single-line array")
+})
+
+
 test_that("rmultinom is integer", {
   ir <- odin_parse2({
     q[] <- user()
@@ -29,4 +46,17 @@ test_that("rmultinom is integer", {
   dat <- ir_deserialise(ir)
   expect_equal(dat$data$elements$y$storage_type, "int")
   expect_equal(dat$data$elements$y$rank, 1)
+})
+
+
+test_that("rmultinom argument validation", {
+  expect_error(odin_parse2({
+    update(x) <- 1
+    initial(x) <- 1
+    p[] <- 0.2
+    dim(p) <- 5
+    dim(y) <- 5
+    y[] <- rmultinom(p, 5)
+  }),
+  "Function 'rmultinom' requires array as argument 2")
 })

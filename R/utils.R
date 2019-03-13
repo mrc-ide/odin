@@ -58,9 +58,6 @@ is_directory <- function(path) {
   file.exists(path) && file.info(path, extra_cols = FALSE)$isdir
 }
 
-basename_no_ext <- function(path) {
-  tools::file_path_sans_ext(basename(path))
-}
 
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x

@@ -75,4 +75,22 @@ test_that("sensible error on empty input", {
 })
 
 
+test_that("prevent unknown target", {
+  expect_error(odin2({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- 2
+  }, target = "fortran"),
+  "Unknown target 'fortran'", fixed = TRUE)
+})
+
+
+test_that("force a vector of strings", {
+  gen <- odin2(c("deriv(y) <- 0.5", "initial(y) <- 1"), target = "r")
+  mod <- gen()
+  y <- mod$run(0:10)[, "y"]
+  expect_equal(y, seq(1, by = 0.5, length.out = 11))
+})
+
+
 unload_dlls()
