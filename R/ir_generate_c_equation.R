@@ -45,20 +45,13 @@ generate_c_equation_scalar <- function(eq, data_info, dat, rewrite) {
 
 generate_c_equation_inplace <- function(eq, data_info, dat, rewrite) {
   location <- data_info$location
-  if (location == "internal") {
-    lhs <- rewrite(eq$lhs)
-  } else {
-    offset <- dat$data[[location]]$contents[[data_info$name]]$offset
-    storage <- if (location == "variable") dat$meta$result else dat$meta$output
-    lhs <- sprintf("%s + %s", storage, rewrite(offset))
-  }
-
+  lhs <- rewrite(eq$lhs)
   fn <- eq$rhs$value[[1]]
   args <- lapply(eq$rhs$value[-1], rewrite)
   switch(
     fn,
     rmultinom = generate_c_equation_inplace_rmultinom(eq, lhs, dat, rewrite),
-    stop("odin bug"))
+    stop("unhandled array expression [odin bug]")) # nocov
 }
 
 
@@ -313,7 +306,7 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
   unpack_vars <- c_flatten_eqs(lapply(
     delay$variables$contents, c_unpack_variable2,
-    dat$data$elements, state, FALSE, rewrite))
+    dat$data$elements, state, rewrite))
 
   eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
   eqs <- c_flatten_eqs(lapply(eqs_src, generate_c_equation, dat, rewrite))

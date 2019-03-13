@@ -250,3 +250,19 @@ test_that("low-level stochastics: exp_rand", {
   set.seed(1)
   expect_equal(y, rexp(10))
 })
+
+
+test_that("rexp parametrisation", {
+  gen <- odin2({
+    initial(y) <- 0
+    update(y) <- rexp(10)
+  })
+  m <- gen()
+
+  tt <- 0:10
+  set.seed(1)
+  y <- m$run(tt)[-1, "y"]
+
+  set.seed(1)
+  expect_equal(y, rexp(10, 10))
+})

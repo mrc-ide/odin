@@ -643,7 +643,7 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
 
 
 generate_c_compiled_library <- function(dat, is_package) {
-  lib <- read_user_c(system.file("library2.c", package = "odin"))
+  lib <- read_user_c(system.file("library.c", package = "odin"))
   v <- character(0)
   if (dat$features$has_user) {
     v <- c(v, "user_get_scalar_double", "user_get_scalar_int",
@@ -707,7 +707,7 @@ generate_c_compiled_library <- function(dat, is_package) {
   v <- unique(v)
   msg <- setdiff(v, names(lib$declarations))
   if (length(msg) > 0L) {
-    stop("Missing library functions: ", paste(squote(msg), collapse = ", "))
+    stop("Missing library functions [odin bug]") # nocov
   }
 
   if (is_package) {
@@ -744,15 +744,9 @@ c_unpack_variable <- function(name, dat, state, rewrite) {
 
 
 ## TODO: harmoise with the above - mostly this is rewriting previous uses
-c_unpack_variable2 <- function(x, data_elements, state, declaration, rewrite) {
+c_unpack_variable2 <- function(x, data_elements, state, rewrite) {
   rhs <- c_extract_variable(x, data_elements, state, rewrite)
-  d <- data_elements[[x$name]]
-  if (declaration) {
-    fmt <- if (d$rank == 0L) "%s %s = %s;" else "%s * %s = %s;"
-    sprintf_safe(fmt, d$storage_type, x$name, rhs)
-  } else {
-    sprintf_safe("%s = %s;", x$name, rhs)
-  }
+  sprintf_safe("%s = %s;", x$name, rhs)
 }
 
 
@@ -781,7 +775,7 @@ c_type_info <- function(storage_type) {
     sexp_access <- "INTEGER"
     scalar_allocate <- "ScalarLogical"
   } else {
-    stop(sprintf("Invalid type %s [odin bug]", storage_type))
+    stop(sprintf("Invalid type %s [odin bug]", storage_type)) # nocov
   }
   list(c_name = storage_type,
        sexp_name = sexp_name,

@@ -594,6 +594,8 @@ test_that("rich user arrays", {
   expect_error(gen(-r), "Expected 'r' to be at least 0")
   r[5] <- -1
   expect_error(gen(r), "Expected 'r' to be at least 0")
+  r[5] <- NA
+  expect_error(gen(r), "'r' must not contain any NA values")
 })
 
 

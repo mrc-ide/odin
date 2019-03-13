@@ -165,7 +165,7 @@ ir_parse_data_element <- function(x, stage) {
   } else if (x$lhs$special == "output") {
     location <- "output"
   } else {
-    stop("odin bug?")
+    stop("unclassified data type [odin bug]") # nocov
   }
 
   list(name = name,
@@ -668,7 +668,7 @@ ir_parse_expr_lhs <- function(lhs, line, source) {
   } else if (special %in% c("deriv", "output", "update", "config")) {
     name_lhs <- name_data
   } else {
-    stop("checkme")
+    stop("odin bug") # nocov
   }
 
   list(type = type,
@@ -978,23 +978,13 @@ ir_parse_expr_rhs_delay <- function(rhs, line, source) {
 
 ir_parse_equations <- function(eqs) {
   type <- vcapply(eqs, "[[", "type")
-  eqs <- eqs[!(type %in% c("null", "config"))]
-  ## At some point we'll move this around
-  f <- function(x) {
-    x$lhs <- x$lhs$name_lhs
-    x
-  }
-  eqs
+  eqs[!(type %in% c("null", "config"))]
 }
 
 
 ir_parse_depends <- function(functions = character(0),
                              variables = character(0)) {
-  if (length(functions) == 0L && length(variables) == 0L) {
-    NULL
-  } else {
-    list(functions = functions, variables = variables)
-  }
+  list(functions = functions, variables = variables)
 }
 
 
@@ -1462,7 +1452,7 @@ ir_parse_expr_rhs_check_inplace <- function(lhs, rhs, line, source) {
   if (!(fn %in% names(FUNCTIONS_INPLACE)) || length(depends$functions) > 0L) {
     ir_odin_error(sprintf(
       "At present, inplace function '%s' must use no functions", fn),
-      line, expr)
+      line, source)
   }
   if (is.null(lhs$index)) {
     ir_odin_error(sprintf(

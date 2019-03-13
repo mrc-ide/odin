@@ -45,16 +45,7 @@ generate_r_equation_scalar <- function(eq, data_info, dat, rewrite) {
 
 generate_r_equation_inplace <- function(eq, data_info, dat, rewrite) {
   location <- data_info$location
-
-  if (location == "internal" || location == "transient") {
-    lhs <- rewrite(eq$lhs)
-  } else {
-    storage <- if (location == "variable") dat$meta$result else dat$meta$output
-    offset <- dat$data[[location]]$contents[[data_info$name]]$offset
-    i <- call("seq_len", rewrite(data_info$dimnames$length))
-    lhs <- call("[", as.name(storage), call("+", offset, i))
-  }
-
+  lhs <- rewrite(eq$lhs)
   rhs <- rewrite(eq$rhs$value)
   call("<-", lhs, rhs)
 }

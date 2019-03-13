@@ -60,3 +60,25 @@ test_that("rmultinom argument validation", {
   }),
   "Function 'rmultinom' requires array as argument 2")
 })
+
+
+test_that("in place expressions must be simple", {
+  expect_error(
+    odin_parse2({
+      update(x) <- 1
+      initial(x) <- 1
+      y <- rmultinom(5 + 2, x)
+    }),
+    "At present, inplace function 'rmultinom' must use no functions")
+})
+
+
+test_that("in place expressions must return an array", {
+  expect_error(
+    odin_parse2({
+      update(x) <- 1
+      initial(x) <- 1
+      y <- rmultinom(2, x)
+    }),
+    "Expected an array on the lhs of inplace function 'rmultinom'")
+})
