@@ -5,17 +5,11 @@
 ##'
 ##' @title Validate an odin model
 ##'
-##' @param x An expression, character vector or filename with the odin
-##'   code
-##'
-##' @param type An optional string indicating the the type of input -
-##'   must be one of \code{expression}, \code{file} or \code{text} if
-##'   provided.  This skips the type detection code used by odin and
-##'   makes validating user input easier.
+##' @inheritParams odin_parse
 ##'
 ##' @export
 ##' @author Rich FitzJohn
-odin_validate_model <- function(x, type = NULL) {
+odin_validate <- function(x, type = NULL, options = NULL) {
   msg <- collector_list()
   .odin$note_function <- msg$add
   on.exit(.odin$note_function <- NULL)
@@ -25,7 +19,7 @@ odin_validate_model <- function(x, type = NULL) {
   ## something that can be purged or we'll have memory grow without
   ## bounds.
   res <- tryCatch(
-    odin_parse2_(x, type = type),
+    odin_parse_(x, type = type, options = options),
     error = identity)
 
   success <- !inherits(res, "error")

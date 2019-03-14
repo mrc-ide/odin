@@ -1,4 +1,4 @@
-odin_build_ir2 <- function(x, opts, type = NULL) {
+odin_build_ir2 <- function(x, options, type = NULL) {
   ## TODO: this gets looked at later
   xp <- odin_preprocess(x, type)
   root <- xp$root
@@ -43,7 +43,7 @@ odin_build_ir2 <- function(x, opts, type = NULL) {
 
   eqs <- eqs[order(names(eqs))]
 
-  ir_parse_arrays_check_naked_index(eqs, opts$no_check_naked_index, source)
+  ir_parse_arrays_check_naked_index(eqs, options$no_check_naked_index, source)
 
   meta <- ir_parse_meta(features$discrete)
   ## TODO: determine the base here based on filenames
@@ -89,8 +89,8 @@ odin_build_ir2 <- function(x, opts, type = NULL) {
               user = user,
               interpolate = interpolate,
               source = source)
-  ir <- ir_serialise(ret, opts$pretty)
-  if (opts$validate) {
+  ir <- ir_serialise(ret, options$pretty)
+  if (options$validate) {
     ir_validate(ir, TRUE)
   }
   ir

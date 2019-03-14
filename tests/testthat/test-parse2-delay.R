@@ -1,19 +1,19 @@
 context("parse: delay")
 
 test_that("missing variables in delay", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     ylag <- delay(x, 10)
     initial(y) <- 0.5
     deriv(y) <- y + ylag
   }), "Missing variable in delay expression")
 
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     ylag <- delay(x + y, 10)
     initial(y) <- 0.5
     deriv(y) <- y + ylag
   }), "Missing variable in delay expression")
 
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     ylag <- delay(x + z, 10)
     initial(y) <- 0.5
     deriv(y) <- y + ylag
@@ -22,18 +22,18 @@ test_that("missing variables in delay", {
 
 
 test_that("delay call validation", {
-  expect_error(odin_parse2_(quote(a <- 1 + delay(1))),
+  expect_error(odin_parse_(quote(a <- 1 + delay(1))),
                "delay() must be the only call on the rhs", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(1))),
+  expect_error(odin_parse_(quote(a <- delay(1))),
                "delay() requires two or three arguments", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(1, 2, 3, 4))),
+  expect_error(odin_parse_(quote(a <- delay(1, 2, 3, 4))),
                "delay() requires two or three arguments", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(delay(1, 2), 2))),
+  expect_error(odin_parse_(quote(a <- delay(delay(1, 2), 2))),
                "delay() may not be nested", fixed = TRUE)
-  expect_error(odin_parse2_(quote(a <- delay(2, delay(1, 2)))),
+  expect_error(odin_parse_(quote(a <- delay(2, delay(1, 2)))),
                "delay() may not be nested", fixed = TRUE)
 
-  expect_error(odin_parse2_(quote(a <- delay(y + t, 2))),
+  expect_error(odin_parse_(quote(a <- delay(y + t, 2))),
                "delay() may not refer to time", fixed = TRUE)
 })
 
@@ -49,7 +49,7 @@ test_that("delay check", {
 
 
 test_that("more parse errors", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     x <- y + b
     ylag <- delay(x, 10)
     initial(y) <- 0.5
@@ -61,7 +61,7 @@ test_that("more parse errors", {
 
 test_that("prevent multiline delay", {
   expect_error(
-    odin_parse2({
+    odin_parse({
       deriv(a[]) <- i
       initial(a[]) <- (i - 1) / 10
       dim(a) <- 5

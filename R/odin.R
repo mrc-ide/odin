@@ -123,24 +123,24 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                   validate = NULL, pretty = NULL, skip_cache = NULL,
                   compiler_warnings = NULL, no_check_naked_index = NULL) {
-  opts <- odin_options(verbose = verbose,
-                       target = target,
-                       workdir = workdir,
-                       validate = validate,
-                       pretty = pretty,
-                       skip_cache = skip_cache,
-                       no_check_naked_index = no_check_naked_index,
-                       compiler_warnings = compiler_warnings)
+  options <- odin_options(verbose = verbose,
+                          target = target,
+                          workdir = workdir,
+                          validate = validate,
+                          pretty = pretty,
+                          skip_cache = skip_cache,
+                          no_check_naked_index = no_check_naked_index,
+                          compiler_warnings = compiler_warnings)
 
-  ir <- odin_parse2(x, opts)
+  ir <- odin_parse_(x, options)
   dat <- ir_deserialise(ir)
 
-  if (opts$verbose) {
-    message("target: ", opts$target)
+  if (options$verbose) {
+    message("target: ", options$target)
   }
 
-  switch(opts$target,
-         "r" = generate_r(dat, opts),
-         "c" = generate_c(dat, opts),
-         stop(sprintf("Unknown target '%s'", opts$target)))
+  switch(options$target,
+         "r" = generate_r(dat, options),
+         "c" = generate_c(dat, options),
+         stop(sprintf("Unknown target '%s'", options$target)))
 }

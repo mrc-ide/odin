@@ -1,7 +1,7 @@
 context("parse: inplace")
 
 test_that("can't use integer inplace for update()", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     q[] <- user()
     p[] <- q[i] / sum(q)
     initial(x[]) <- 0
@@ -15,7 +15,7 @@ test_that("can't use integer inplace for update()", {
 
 
 test_that("can't use multiline inplace", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     q[] <- user()
     p[] <- q[i] / sum(q)
     initial(x[]) <- 0
@@ -32,7 +32,7 @@ test_that("can't use multiline inplace", {
 
 
 test_that("rmultinom is integer", {
-  ir <- odin_parse2({
+  ir <- odin_parse({
     q[] <- user()
     p[] <- q[i] / sum(q)
     initial(x[]) <- 0
@@ -50,7 +50,7 @@ test_that("rmultinom is integer", {
 
 
 test_that("rmultinom argument validation", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     update(x) <- 1
     initial(x) <- 1
     p[] <- 0.2
@@ -64,7 +64,7 @@ test_that("rmultinom argument validation", {
 
 test_that("in place expressions must be simple", {
   expect_error(
-    odin_parse2({
+    odin_parse({
       update(x) <- 1
       initial(x) <- 1
       y <- rmultinom(5 + 2, x)
@@ -75,7 +75,7 @@ test_that("in place expressions must be simple", {
 
 test_that("in place expressions must return an array", {
   expect_error(
-    odin_parse2({
+    odin_parse({
       update(x) <- 1
       initial(x) <- 1
       y <- rmultinom(2, x)

@@ -1,7 +1,7 @@
 context("parse: interpolation")
 
 test_that("interpolation parse errors: incorrect array dimension", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
     ##
@@ -16,7 +16,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
   }),
   "Expected zp to be a 2 dimensional array")
 
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
     ##
@@ -31,7 +31,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
   }),
   "Expected zp to be a 2 dimensional array")
 
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
     ##
@@ -49,7 +49,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
 
 
 test_that("unknown interpolation variable", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
     ##
@@ -65,7 +65,7 @@ test_that("unknown interpolation variable", {
 
 
 test_that("interpolation array assignment error", {
-  expect_error(odin_parse2({
+  expect_error(odin_parse({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
     ##

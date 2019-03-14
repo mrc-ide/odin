@@ -103,7 +103,7 @@ test_that("force a vector of strings (compile)", {
 
 ## issue #88
 test_that("force a vector of strings (parse)", {
-  ir <- odin_parse2(c("deriv(y) <- 0.5", "initial(y) <- 1"))
+  ir <- odin_parse(c("deriv(y) <- 0.5", "initial(y) <- 1"))
   dat <- ir_deserialise(ir)
   expect_equal(names(dat$data$variable$contents), "y")
 })

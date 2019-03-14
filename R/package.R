@@ -46,14 +46,14 @@ odin_package <- function(path_package) {
     stop("Did not find any files in inst/odin")
   }
 
-  opts <- odin_options(target = "c")
+  options <- odin_options(target = "c")
   f <- function(path) {
-    ir <- odin_parse2_(path, opts)
+    ir <- odin_parse_(path, options)
     dat <- ir_deserialise(ir)
     json <- sub("\\.[Rr]$", ".json", path)
     writeLines(ir, json)
     dat$ir <- sprintf("odin/%s", basename(json))
-    generate_c_code(dat, opts, package)
+    generate_c_code(dat, options, package)
   }
 
   dat <- lapply(filenames, f)

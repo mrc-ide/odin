@@ -1,17 +1,17 @@
-generate_c <- function(dat, opts) {
-  skip_cache <- opts$skip_cache
+generate_c <- function(dat, options) {
+  skip_cache <- options$skip_cache
   hash <- hash_string(dat$ir)  
   if (!skip_cache) {
     prev <- .odin$model_cache_c$get(hash)
     if (!is.null(prev)) {
-      if (opts$verbose) {
+      if (options$verbose) {
         message("Using cached model")
       }
       return(prev)
     }
   }
 
-  model <- generate_c_model(dat, hash, opts)
+  model <- generate_c_model(dat, hash, options)
 
   if (!skip_cache) {
     .odin$model_cache_c$put(hash, model)
@@ -21,19 +21,19 @@ generate_c <- function(dat, opts) {
 }
 
 
-generate_c_model <- function(dat, hash, opts) {
-  res <- generate_c_code(dat, opts, NULL)
+generate_c_model <- function(dat, hash, options) {
+  res <- generate_c_code(dat, options, NULL)
   code <- res$code
   core <- res$core
 
-  if (!file.exists(opts$workdir)) {
-    dir.create(opts$workdir, FALSE, TRUE)
+  if (!file.exists(options$workdir)) {
+    dir.create(options$workdir, FALSE, TRUE)
   }
   path <- sprintf_safe("%s/%s_%s.c",
-                       opts$workdir, dat$config$base, short_hash(hash))
+                       options$workdir, dat$config$base, short_hash(hash))
   writeLines(code, path)
-  dll <- compile(path, verbose = opts$verbose, preclean = TRUE,
-                 compiler_warnings = opts$compiler_warnings)
+  dll <- compile(path, verbose = options$verbose, preclean = TRUE,
+                 compiler_warnings = options$compiler_warnings)
   dyn.load(dll$dll)
 
   env <- new.env(parent = as.environment("package:base"))
@@ -71,7 +71,7 @@ generate_c_meta <- function(base, internal) {
 }
 
 
-generate_c_code <- function(dat, opts, package) {
+generate_c_code <- function(dat, options, package) {
   dat$meta$c <- generate_c_meta(dat$config$base, dat$meta$internal)
 
   if (dat$features$has_delay) {
