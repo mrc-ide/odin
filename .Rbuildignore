@@ -1,3 +1,5 @@
+^Meta$
+^doc$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^Makefile$
@@ -22,3 +24,4 @@
 ^\.valgrind_ignore$
 ^docs$
 ^scripts$
+^TODO\.md$
