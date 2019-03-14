@@ -8,7 +8,7 @@ generate_c_sexp <- function(x, data, meta, supported) {
     if (fn == "(") {
       ret <- sprintf("(%s)", values[[1]])
     } else if (fn == "[") {
-      pos <- c_array_access(args[[1L]], args[-1], data, meta)
+      pos <- c_array_access(args[[1L]], args[-1], data, meta, supported)
       ret <- sprintf("%s[%s]", values[[1L]], pos)
     } else if (fn == "if") {
       ## NOTE: The ternary operator has very low precendence, so I'm
@@ -82,7 +82,7 @@ generate_c_sexp_sum <- function(args, data, meta, supported) {
 
     all_args <- c(args, as.list(data_info$dimnames$mult[-1]))
     values <- character(length(all_args))
-    values[i] <- vcapply(all_args[i], c_minus_1, FALSE, data, meta)
+    values[i] <- vcapply(all_args[i], c_minus_1, FALSE, data, meta, supported)
     values[-i] <- vcapply(all_args[-i], generate_c_sexp, data, meta, supported)
     arg_str <- paste(values, collapse = ", ")
 
@@ -101,11 +101,11 @@ c_fold_call <- function(fn, args) {
 
 
 ## See: generate_r_equation_array_lhs
-c_array_access <- function(target, index, data, meta) {
+c_array_access <- function(target, index, data, meta, supported) {
   mult <- data$elements[[target]]$dimnames$mult
 
   f <- function(i) {
-    index_i <- c_minus_1(index[[i]], i > 1, data, meta)
+    index_i <- c_minus_1(index[[i]], i > 1, data, meta, supported)
     if (i == 1) {
       index_i
     } else {
@@ -118,7 +118,7 @@ c_array_access <- function(target, index, data, meta) {
 }
 
 
-c_minus_1 <- function(x, protect, data, meta) {
+c_minus_1 <- function(x, protect, data, meta, supported) {
   if (is.numeric(x)) {
     generate_c_sexp(x - 1L, data, meta, supported)
   } else {
