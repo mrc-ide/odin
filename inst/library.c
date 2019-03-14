@@ -4,7 +4,7 @@ double user_get_scalar_double(SEXP user, const char *name,
   SEXP el = user_list_element(user, name);
   if (el != R_NilValue) {
     if (length(el) != 1) {
-      Rf_error("Expected scalar numeric for %s", name);
+      Rf_error("Expected a scalar numeric for '%s'", name);
     }
     if (TYPEOF(el) == REALSXP) {
       ret = REAL(el)[0];
@@ -149,7 +149,7 @@ SEXP user_get_array_check(SEXP el, bool is_integer, const char *name,
 SEXP user_get_array_check_rank(SEXP user, const char *name, int rank) {
   SEXP el = user_list_element(user, name);
   if (el == R_NilValue) {
-    Rf_error("Expected value for %s", name);
+    Rf_error("Expected a value for '%s'", name);
   } else {
     if (rank == 1) {
       if (isArray(el)) {

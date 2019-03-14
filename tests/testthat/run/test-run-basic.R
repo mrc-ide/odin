@@ -125,6 +125,10 @@ test_that("user variables", {
   expect_error(gen())
   expect_error(gen(NULL),
                "Expected a value for 'r'", fixed = TRUE)
+  expect_error(gen(1:2),
+               "Expected a scalar numeric for 'r'")
+  expect_error(gen(numeric(0)),
+               "Expected a scalar numeric for 'r'")
 
   expect_equal(sort_list(gen(r = pi)$contents()),
                sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
@@ -397,6 +401,10 @@ test_that("user array - direct", {
     sort_list(list(dim_r = 3, dim_x = 3, initial_x = rep(1, 3), r = 1:3)))
   expect_error(gen(r = matrix(1, 2, 3)),
                "Expected a numeric vector for 'r'")
+  expect_error(gen(r = NULL),
+               "Expected a value for 'r'")
+  expect_silent(mod$set_user(r = NULL))
+  expect_equal(mod$contents()$r, 1:3)
 })
 
 

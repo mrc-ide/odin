@@ -11,7 +11,7 @@ ir_schema <- function() {
 
 
 ir_validate <- function(x, error = FALSE) {
-  odin_validate(x, error)
+  ir_validate_against_schema(x, error)
 }
 
 
@@ -22,7 +22,7 @@ odin_validator <- function() {
 }
 
 
-odin_validate <- function(x, error) {
+ir_validate_against_schema <- function(x, error) {
   if (is.null(.odin$validator)) {
     .odin$validator <- odin_validator()
   }

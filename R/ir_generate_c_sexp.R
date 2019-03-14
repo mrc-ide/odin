@@ -53,7 +53,7 @@ generate_c_sexp <- function(x, data, meta, supported) {
       } else if (any(FUNCTIONS_REWRITE_RF == fn)) {
         fn <- paste0("Rf_", fn)
       } else if (!any(c(names(FUNCTIONS), supported) == fn)) {
-        stop(sprintf("unsupported function '%s'", fn))
+        stop(sprintf("unsupported function '%s' [odin bug]", fn)) # nocov
       }
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     }

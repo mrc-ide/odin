@@ -110,3 +110,8 @@ test_that("sprintf_safe throws on empty arguments", {
   expect_equal(sprintf_safe("%s %s", "a", "b"),
                sprintf("%s %s", "a", "b"))
 })
+
+
+test_that("onload can be rerun safely", {
+  expect_silent(.onLoad())
+})
