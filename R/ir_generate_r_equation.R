@@ -315,14 +315,18 @@ generate_r_equation_delay_discrete <- function(eq, data_info, dat,
   read <- call("<-", lhs, read_rhs)
 
   if (is.null(eq$delay$default)) {
-    default_rhs <- call("<-", lhs, as.call(list(call("$", ring, quote(tail)))))
+    default_rhs <- as.call(list(call("$", ring, quote(tail))))
     if (data_info$rank > 1L) {
       default_rhs <- call("array", default_rhs, dim)
     }
     default <- call("<-", lhs, default_rhs)
   } else {
-    ## Be careful here especially with array expressions.
-    stop("writeme")
+    if (data_info$rank == 0L) {
+      default <- call("<-", lhs, rewrite(eq$delay$default))
+    } else {
+      default <- generate_r_equation_array_rhs(
+        eq$delay$default, eq$rhs$index, lhs_i, rewrite)
+    }
   }
 
   time_check <- call(
