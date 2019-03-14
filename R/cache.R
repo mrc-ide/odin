@@ -3,44 +3,61 @@
 ## but that's somewhat complicated by trying to avoid recompiling
 ## between sessions (and doing things like clobbering dlls that have
 ## been loaded by another process).
-model_cache <- new.env(parent = emptyenv())
+##
+## A small R6 class that allows for a very basic ring-like interface.
+## I might move something like this into ring at some point
+## (https://github.com/richfitz/ring/issues/11) given it's a pain to
+## test and it's the sort of thing that ring should really support
+## (and we depend on it already!)
+##
+## The other way of doing this would be to order the access times
+R6_cache <- R6::R6Class(
+  "cache",
 
-model_cache_clear <- function() {
-  rm(list = ls(model_cache, all.names = TRUE), envir = model_cache)
-}
+  public = list(
+    capacity = NULL,
+    data = NULL,
 
-model_cache_put <- function(hash, model, dll, skip_cache) {
-  if (!skip_cache) {
-    model_cache[[hash$model]] <- list(hash = hash, model = model, dll = dll)
-  }
-}
+    initialize = function(capacity) {
+      self$capacity <- capacity
+      self$clear()
+    },
 
-model_cache_get <- function(hash, skip_cache) {
-  if (skip_cache) {
-    return(NULL)
-  }
-  ret <- model_cache[[hash]]
-  if (!is.null(ret$hash$includes) &&
-       !isTRUE(all.equal(hash_files(names(ret$hash$includes), TRUE),
-                         ret$hash$includes))) {
-    ## Includes have changed so invalidate the cache:
-    ret <- NULL
-  }
-  ret
-}
+    clear = function() {
+      self$data <- set_names(list(), character())
+    },
 
-model_cache_list <- function() {
-  sort(ls(model_cache, all.names = TRUE))
-}
+    put = function(key, value) {
+      new <- set_names(list(value), key)
+      if (key %in% names(self$data)) {
+        self$promote(key)
+      } else if (length(self$data) >= self$capacity) {
+        self$data <- c(new, self$data[seq_len(self$capacity) - 1L])
+      } else {
+        self$data <- c(new, self$data)
+      }
+    },
 
+    get = function(key) {
+      ret <- self$data[[key]]
+      if (!is.null(ret)) {
+        self$promote(key)
+      }
+      ret
+    },
 
-hash_model <- function(x) {
-  if (!isTRUE(attr(x, "odin_preprocessed"))) {
-    stop("Expected preprocessed model")
-  }
-  ## source ref attributes are not good to keep!
-  if (is.null(x$file)) {
-    attributes(x$exprs) <- NULL
-  }
-  hash_object(list(odin_version(), x))
-}
+    promote = function(key) {
+      self$data <- self$data[c(key, setdiff(names(self$data), key))]
+    },
+
+    list = function() {
+      names(self$data)
+    },
+
+    resize = function(capacity) {
+      if (capacity < length(self$data)) {
+        self$data <- self$data[seq_len(capacity)]
+      }
+      self$capacity <- capacity
+    }
+  ))

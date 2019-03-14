@@ -966,7 +966,7 @@ test_that("logical operations", {
     output(x3) <- t > 8 || t > 1 && t < 3 # should equal x4
     output(x4) <- t > 8 || (t > 1 && t < 3)
     output(x5) <- (t > 8 || t > 1) && t < 3
-  })
+  }, compiler_warnings = FALSE)
 
   t <- seq(0, 10, length.out = 101)
   y <- gen()$run(t)

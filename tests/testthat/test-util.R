@@ -75,9 +75,6 @@ test_that("unclassifiable output", {
   format(res)
 })
 
-test_that("hash_files", {
-  expect_error(hash_files(tempfile()), "Files missing")
-})
 
 test_that("odin_version", {
   expect_true(setequal(names(odin_version()),

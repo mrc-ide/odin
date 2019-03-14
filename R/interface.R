@@ -74,13 +74,6 @@
 ##'   with both gcc and clang.  The compiler output is very simple and
 ##'   may not work on all platforms.
 ##'
-##' @param safe Use safe array access; try this option if odin crashes
-##'   R in order to track down invalid memory access.  This replaces
-##'   all array accesses in C with a version that will check that the
-##'   requested element is within bounds.  This will slow down your
-##'   model considerably (it checks \emph{every} access, even if it
-##'   could be worked out that it would be fine).
-##'
 ##' @param skip_cache Skip odin's cache.  This might be useful if the
 ##'   model appears not to compile when you would expect it to.
 ##'   Hopefully this will not be needed often.  Models with \code{safe

@@ -22,7 +22,8 @@ test_that("warnings", {
   })
 
   str <- capture.output(
-    tmp <- odin2_(code, verbose = TRUE, compiler_warnings = FALSE))
+    tmp <- odin2_(code, verbose = TRUE, compiler_warnings = FALSE,
+                  skip_cache = TRUE, workdir = tempfile()))
   out <- classify_compiler_output(str)
 
   ## This will only give a warning with -Wall or greater.
@@ -30,18 +31,22 @@ test_that("warnings", {
     out$type[i] == "info" && attr(out$value[[i]], "type") == "warning"))
   if (has_warning) {
     re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
-    expect_warning(odin2_(code, compiler_warnings = TRUE), re)
+    expect_warning(
+      odin2_(code, compiler_warnings = TRUE, skip_cache = TRUE,
+             workdir = tempfile()),
+      re)
 
     with_options(
       list(odin.compiler_warnings = FALSE),
-      expect_warning(odin2_(code, verbose = FALSE), NA))
-
+      expect_warning(odin2_(code, verbose = FALSE, skip_cache = TRUE,
+                            workdir = tempfile()), NA))
     with_options(
       list(odin.compiler_warnings = TRUE),
-      expect_warning(odin2_(code, verbose = FALSE), re))
+      expect_warning(odin2_(code, verbose = FALSE, skip_cache = TRUE,
+                            workdir = tempfile()), re))
   } else {
-    expect_warning(odin2_(code, compiler_warnings = TRUE,
-                               verbose = FALSE), NA) # none
+    expect_warning(odin2_(code, compiler_warnings = TRUE, verbose = FALSE,
+                          skip_cache = TRUE, workdir = tempfile()), NA) # none
   }
 })
 

@@ -1,18 +1,49 @@
 generate_c <- function(dat, opts) {
+  skip_cache <- opts$skip_cache
+  hash <- hash_string(dat$ir)  
+  if (!skip_cache) {
+    prev <- .odin$model_cache_c$get(hash)
+    if (!is.null(prev)) {
+      if (opts$verbose) {
+        message("Using cached model")
+      }
+      return(prev)
+    }
+  }
+
+  model <- generate_c_model(dat, hash, opts)
+
+  if (!skip_cache) {
+    .odin$model_cache_c$put(hash, model)
+  }
+
+  model
+}
+
+
+generate_c_model <- function(dat, hash, opts) {
   res <- generate_c_code(dat, opts, NULL)
   code <- res$code
   core <- res$core
 
-  path <- tempfile(fileext = ".c")
+  if (!file.exists(opts$workdir)) {
+    dir.create(opts$workdir, FALSE, TRUE)
+  }
+  path <- sprintf_safe("%s/%s_%s.c",
+                       opts$workdir, dat$config$base, short_hash(hash))
   writeLines(code, path)
-  dll <- compile(path, verbose = opts$verbose,
+  dll <- compile(path, verbose = opts$verbose, preclean = TRUE,
                  compiler_warnings = opts$compiler_warnings)
-  dyn_load(dll$dll)
+  dyn.load(dll$dll)
 
   env <- new.env(parent = as.environment("package:base"))
   base <- dat$config$base
   env[[base]] <-
     odin_c_class(base, core, names(dat$user), dat$features, dll$base, dat$ir)
+
+  ## Ensure that the DLL is unloaded when it goes out of scope.
+  reg.finalizer(env, function(e) try(dyn.unload(dll$dll), silent = TRUE))
+
   generate_r_constructor(base, dat$features$discrete, dat$user, env)
 }
 

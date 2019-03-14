@@ -83,34 +83,8 @@ names_if <- function(x) {
   names(x)[x]
 }
 
-## Abstract the hashing away in case we go for something like openssl.
-hash_object <- function(object) {
-  digest::digest(object)
-}
-
-
-hash_files <- function(filenames, named = FALSE) {
-  if (length(filenames) == 0L) {
-    return(NULL)
-  }
-  hash <- tools::md5sum(filenames)
-  if (any(is.na(hash))) {
-    stop("Files missing")
-  }
-  if (named) hash else unname(hash)
-}
-
 short_hash <- function(x) {
   substr(x, 1L, 8L)
-}
-
-## This is going to be used to keep track of dlls that we load
-.dlls <- collector()
-
-dyn_load <- function(dll) {
-  dll_full <- normalizePath(dll, mustWork = TRUE)
-  dyn.load(dll_full)
-  .dlls$add(dll_full)
 }
 
 dllname <- function(base) {
@@ -201,4 +175,9 @@ sprintf_safe <- function(fmt, ...) {
   } else {
     sprintf(fmt, ...)
   }
+}
+
+
+hash_string <- function(x) {
+  digest::digest(charToRaw(x), serialize = FALSE)
 }

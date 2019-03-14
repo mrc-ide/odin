@@ -12,12 +12,9 @@ compile <- function(filename, verbose = TRUE, preclean = FALSE,
   path <- dirname(filename)
   owd <- setwd(path)
   on.exit(setwd(owd))
-  filename <- basename(filename)
+  source <- basename(filename)
 
-  ## Lots of logic here:
-  hash <- hash_files(filename)
-  base <-
-    sprintf("%s_%s", tools::file_path_sans_ext(filename), short_hash(hash))
+  base <- tools::file_path_sans_ext(source)
   dll <- dllname(base)
 
   ## But then here we can assume a new filename means a new dll
@@ -29,14 +26,16 @@ compile <- function(filename, verbose = TRUE, preclean = FALSE,
     if (verbose) {
       message("Compiling shared library")
     }
-    args <- c("CMD", "SHLIB", filename,
-              "-o", dll, if (preclean) "--preclean")
-    output <- suppressWarnings(system2(file.path(R.home(), "bin", "R"), args,
-                                       stdout = TRUE, stderr = TRUE))
+    R <- file.path(R.home(), "bin", "R")
+    args <- c("CMD", "SHLIB", source,
+              "-o", dll, if (preclean) c("--preclean", "--clean"))
+    output <- suppressWarnings(system2(R, args, stdout = TRUE, stderr = TRUE))
     handle_compiler_output(output, verbose, compiler_warnings)
   }
 
-  list(path = path, base = base, hash = hash, source = normalizePath(filename),
+  list(path = path,
+       base = base,
+       source = normalizePath(source),
        dll = normalizePath(dll, mustWork = TRUE))
 }
 
