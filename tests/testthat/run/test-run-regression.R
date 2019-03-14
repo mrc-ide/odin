@@ -1,7 +1,7 @@
 context("run: %TARGET%: regression")
 
 test_that("bug #78", {
-  gen <- odin2({
+  gen <- odin({
     n <- 2
     m <- 2
     deriv(S[, ]) <- 0

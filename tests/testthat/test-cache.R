@@ -39,12 +39,12 @@ test_that("reused cached model", {
   code <- c("deriv(y) <- 0.5",
             "initial(y) <- 1")
 
-  gen <- odin2(code, verbose = TEST_VERBOSE)
+  gen <- odin(code, verbose = TEST_VERBOSE)
   expect_equal(.odin$model_cache_c$list(),
                hash_string(gen()$ir()))
-  expect_message(odin2(code, verbose = TRUE),
+  expect_message(odin(code, verbose = TRUE),
                  "Using cached model")
-  expect_silent(odin2(code, verbose = FALSE))
+  expect_silent(odin(code, verbose = FALSE))
 })
 
 
@@ -55,9 +55,9 @@ test_that("reuse shared library", {
 
   path <- tempfile()
   dir.create(path)
-  gen <- odin2(code, verbose = TEST_VERBOSE, skip_cache = TRUE, workdir = path)
+  gen <- odin(code, verbose = TEST_VERBOSE, skip_cache = TRUE, workdir = path)
   expect_message(
-    odin2(code, verbose = TRUE, skip_cache = TRUE, workdir = path),
+    odin(code, verbose = TRUE, skip_cache = TRUE, workdir = path),
     "Using previously compiled shared library")
   expect_equal(length(dir(path, pattern = paste0(.Platform$dynlib.ext, "$"))),
                1)

@@ -10,7 +10,7 @@
 odin_c_class <- function(base, core, user, features, dll, ir) {
   R6::R6Class(
     "odin_model",
-    parent_env = environment(odin2),
+    parent_env = environment(odin),
     cloneable = FALSE,
     private = list(
       ## Constant:

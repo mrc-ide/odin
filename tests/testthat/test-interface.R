@@ -1,12 +1,12 @@
 context("interface")
 
 test_that("NSE and SE defaults are the same", {
-  expect_equal(formals(odin2), formals(odin2_))
+  expect_equal(formals(odin), formals(odin_))
 })
 
 test_that("verbose", {
   expect_output(
-    odin2({
+    odin({
       initial(x) <- 0
       update(x) <- x + norm_rand()
       config(base) <- "mycrazymodel"
@@ -21,8 +21,8 @@ test_that("warnings", {
   })
 
   str <- capture.output(
-    tmp <- odin2_(code, verbose = TRUE, compiler_warnings = FALSE,
-                  skip_cache = TRUE, workdir = tempfile()))
+    tmp <- odin_(code, verbose = TRUE, compiler_warnings = FALSE,
+                 skip_cache = TRUE, workdir = tempfile()))
   out <- classify_compiler_output(str)
 
   ## This will only give a warning with -Wall or greater.
@@ -31,26 +31,26 @@ test_that("warnings", {
   if (has_warning) {
     re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
     expect_warning(
-      odin2_(code, compiler_warnings = TRUE, skip_cache = TRUE,
-             workdir = tempfile()),
+      odin_(code, compiler_warnings = TRUE, skip_cache = TRUE,
+            workdir = tempfile()),
       re)
 
     with_options(
       list(odin.compiler_warnings = FALSE),
-      expect_warning(odin2_(code, verbose = FALSE, skip_cache = TRUE,
-                            workdir = tempfile()), NA))
+      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
+                           workdir = tempfile()), NA))
     with_options(
       list(odin.compiler_warnings = TRUE),
-      expect_warning(odin2_(code, verbose = FALSE, skip_cache = TRUE,
-                            workdir = tempfile()), re))
+      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
+                           workdir = tempfile()), re))
   } else {
-    expect_warning(odin2_(code, compiler_warnings = TRUE, verbose = FALSE,
-                          skip_cache = TRUE, workdir = tempfile()), NA) # none
+    expect_warning(odin_(code, compiler_warnings = TRUE, verbose = FALSE,
+                         skip_cache = TRUE, workdir = tempfile()), NA) # none
   }
 })
 
 test_that("n_history is configurable", {
-  gen <- odin2({
+  gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
@@ -72,18 +72,18 @@ test_that("n_history is configurable", {
 test_that("sensible error on empty input", {
   path <- tempfile()
   writeLines("", path)
-  expect_error(odin2_(path),
+  expect_error(odin_(path),
                "Did not find a deriv() or an update() call",
                fixed = TRUE)
   writeLines("# some comment", path)
-  expect_error(odin2_(path),
+  expect_error(odin_(path),
                "Did not find a deriv() or an update() call",
                fixed = TRUE)
 })
 
 
 test_that("prevent unknown target", {
-  expect_error(odin2({
+  expect_error(odin({
     deriv(y) <- r
     initial(y) <- 1
     r <- 2
@@ -94,7 +94,7 @@ test_that("prevent unknown target", {
 
 ## issue #88
 test_that("force a vector of strings (compile)", {
-  gen <- odin2(c("deriv(y) <- 0.5", "initial(y) <- 1"), target = "r")
+  gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"), target = "r")
   mod <- gen()
   y <- mod$run(0:10)[, "y"]
   expect_equal(y, seq(1, by = 0.5, length.out = 11))

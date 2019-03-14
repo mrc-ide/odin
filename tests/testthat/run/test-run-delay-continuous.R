@@ -8,7 +8,7 @@ test_that("mixed delay model", {
   ##
   ## At the same time this will pick up user sized delayed arrays.
 
-  gen <- odin2({
+  gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
@@ -70,7 +70,7 @@ test_that("mixed delay model", {
 
 
 test_that("use subset of variables", {
-  gen <- odin2({
+  gen <- odin({
     deriv(a) <- 1
     deriv(b) <- 2
     deriv(c) <- 3
@@ -90,7 +90,7 @@ test_that("use subset of variables", {
 })
 
 test_that("delay array storage", {
-  gen <- odin2({
+  gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
@@ -142,7 +142,7 @@ test_that("delay array storage", {
 })
 
 test_that("3 arg delay", {
-  gen <- odin2({
+  gen <- odin({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
@@ -165,7 +165,7 @@ test_that("3 arg delay", {
 
 
 test_that("3 arg delay with array", {
-  gen <- odin2({
+  gen <- odin({
     deriv(a[]) <- i
     initial(a[]) <- (i - 1) / 10
     dim(a) <- 5
@@ -195,7 +195,7 @@ test_that("3 arg delay with array", {
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
 test_that("delay index packing", {
-  gen <- odin2({
+  gen <- odin({
     deriv(a[]) <- i
     deriv(b[]) <- i
     deriv(c[]) <- i
@@ -246,7 +246,7 @@ test_that("delay index packing", {
 
 
 test_that("nontrivial time", {
-  gen <- odin2({
+  gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
     deriv(y) <- 1

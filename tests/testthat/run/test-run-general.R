@@ -4,7 +4,7 @@ context("run: %TARGET%: general")
 
 ## Tests of the approach against some known models.
 test_that("constant model", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0.5
     initial(y) <- 1
   })
@@ -21,7 +21,7 @@ test_that("constant model", {
 })
 
 test_that("user variables", {
-  gen <- odin2({
+  gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
     N0 <- user(1)
@@ -59,7 +59,7 @@ test_that("user variables", {
 })
 
 test_that("user variables on models with none", {
-  gen <- odin2({
+  gen <- odin({
     a <- 1
     deriv(y) <- 0.5 * a
     initial(y) <- 1
@@ -74,7 +74,7 @@ test_that("user variables on models with none", {
 test_that("non-numeric time", {
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
-  gen <- odin2({
+  gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
@@ -86,7 +86,7 @@ test_that("non-numeric time", {
 })
 
 test_that("delays and initial conditions", {
-  gen <- odin2({
+  gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
@@ -119,7 +119,7 @@ test_that("delays and initial conditions", {
 })
 
 test_that("non-numeric user", {
-  gen <- odin2({
+  gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
     N0 <- user(1)
@@ -132,7 +132,7 @@ test_that("non-numeric user", {
 })
 
 test_that("conditionals", {
-  gen <- odin2({
+  gen <- odin({
     deriv(x) <- if (x > 2) 0 else 0.5
     initial(x) <- 0
   })
@@ -146,7 +146,7 @@ test_that("conditionals", {
 })
 
 test_that("conditionals, precendence", {
-  gen <- odin2({
+  gen <- odin({
     deriv(x) <- 0.1 + 2 * if (t > 2) -0.1 else 0.5
     initial(x) <- 0
   })
@@ -161,7 +161,7 @@ test_that("conditionals, precendence", {
 
 test_that("time dependent", {
   ## A time dependent initial condition:
-  gen_t <- odin2({
+  gen_t <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
     N0 <- sqrt(t) + 1
@@ -170,7 +170,7 @@ test_that("time dependent", {
   })
 
   ## The same model, but taking N0 as a user parameter.
-  gen_cmp <- odin2({
+  gen_cmp <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
     N0 <- user()
@@ -190,7 +190,7 @@ test_that("time dependent", {
 })
 
 test_that("time dependent initial conditions", {
-  gen <- odin2({
+  gen <- odin({
     y1 <- sin(t)
     deriv(y2) <- y1
     initial(y2) <- -1
@@ -206,7 +206,7 @@ test_that("time dependent initial conditions", {
 
 test_that("user c", {
   skip_for_target("r")
-  gen <- odin2({
+  gen <- odin({
     config(include) <- "user_fns.c"
     z <- squarepulse(t, 1, 2)
     output(z) <- z
@@ -238,10 +238,10 @@ test_that("user c in subdir", {
   test <- file.path(dest, "test.R")
   writeLines(expr, test)
 
-  expect_error(odin2_(test), "Could not find file 'myfuns.c'")
+  expect_error(odin_(test), "Could not find file 'myfuns.c'")
 
   file.copy("user_fns.c", file.path(dest, "myfuns.c"))
-  gen <- odin2_(test)
+  gen <- odin_(test)
 
   ## copied from above:
   mod <- gen()
@@ -256,7 +256,7 @@ test_that("user c in subdir", {
 })
 
 test_that("time dependent initial conditions", {
-  gen <- odin2({
+  gen <- odin({
     y1 <- cos(t)
     y2 <- y1 * (1 + t)
     deriv(y3) <- y2
@@ -280,7 +280,7 @@ test_that("time dependent initial conditions", {
 })
 
 test_that("time dependent initial conditions depending on vars", {
-  gen <- odin2({
+  gen <- odin({
     v1 <- exp(-t)
 
     initial(y1) <- 1
@@ -300,7 +300,7 @@ test_that("time dependent initial conditions depending on vars", {
 
 ## This test case kindly contributed by @blackedder in #14
 test_that("unused variable in output", {
-  gen <- odin2({
+  gen <- odin({
     initial(S) <- N - I0
     initial(E1) <- 0
     initial(E2) <- 0
@@ -331,7 +331,7 @@ test_that("unused variable in output", {
 })
 
 test_that("3d array", {
-  gen <- odin2({
+  gen <- odin({
     initial(y[,,]) <- 1
     deriv(y[,,]) <- y[i,j,k] * 0.1
     dim(y) <- c(2, 3, 4)
@@ -360,7 +360,7 @@ test_that("3d array", {
 
 test_that("4d array", {
   ## TODO: offset_y is saved here and is not really needed.
-  gen <- odin2({
+  gen <- odin({
     initial(y[,,,]) <- 1
     deriv(y[,,,]) <- y[i,j,k,l] * 0.1
     dim(y) <- c(2, 3, 4, 5)
@@ -375,7 +375,7 @@ test_that("4d array", {
 ## I need a system with mixed variables and arrays for testing the
 ## parse code.  This is going to be a really stupid system!
 test_that("mixed", {
-  gen <- odin2({
+  gen <- odin({
     deriv(a) <- r * a
     initial(a) <- 1
     deriv(b) <- r * b
@@ -424,7 +424,7 @@ test_that("mixed", {
 ##
 ## (1) A new array:
 test_that("output array", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
     r[] <- 0.1
@@ -451,7 +451,7 @@ test_that("output array", {
 
 ## (2) An existing array
 test_that("output array", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
     r[] <- 0.1
@@ -476,7 +476,7 @@ test_that("output array", {
 
 
 test_that("use length on rhs", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
     r[] <- 0.1
@@ -489,7 +489,7 @@ test_that("use length on rhs", {
 })
 
 test_that("use dim on rhs", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[,]) <- r[i] * y[i,j]
     initial(y[,]) <- 1
     r[] <- 0.1
@@ -506,7 +506,7 @@ test_that("use dim on rhs", {
 ## Ideally we'll end up with all combinations of has array/has scalar
 ## (there are 15 possible combinations though!)
 test_that("transform variables with output", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
     r[] <- user()
@@ -534,7 +534,7 @@ test_that("transform variables with output", {
 
 
 test_that("transform variables without time", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- y0[i]
     r[] <- user()
@@ -572,7 +572,7 @@ test_that("transform variables without time", {
 
 
 test_that("pathalogical array index", {
-  gen <- odin2({
+  gen <- odin({
     deriv(z) <- y1 + y2 + y3 + y4 + y5
     initial(z) <- 0
 
@@ -603,7 +603,7 @@ test_that("pathalogical array index", {
 
 
 test_that("two output arrays", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- y[i] * r[i]
     initial(y[]) <- i
     dim(y) <- 3
@@ -625,7 +625,7 @@ test_that("two output arrays", {
   expect_equal(zz$yr, t(t(zz$y) / (1:3)))
 
   ## An extension of the above that tickles an array size problem
-  gen2 <- odin2({
+  gen2 <- odin({
     deriv(y[]) <- y[i] * r[i]
     initial(y[]) <- y0[i]
     dim(y) <- length(y0)
@@ -646,7 +646,7 @@ test_that("two output arrays", {
 ## TODO: This still needs harmonising with get_user_array1 functions
 ## (non user dimensions) as they use coerceVector still.
 test_that("non-numeric input", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1
     scalar <- user()
@@ -740,7 +740,7 @@ test_that("non-numeric input", {
 })
 
 test_that("only used in output", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
     r[] <- 0.1
@@ -761,7 +761,7 @@ test_that("only used in output", {
 })
 
 test_that("overlapping graph", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- y * p
     initial(y) <- 1
     r <- -0.5
@@ -786,7 +786,7 @@ test_that("overlapping graph", {
 test_that("sum over one dimension", {
   ## This does rowSums / colSums and will be important for building up
   ## towards a general sum.
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 1
 
@@ -825,7 +825,7 @@ test_that("sum over one dimension", {
 
 test_that("sum over two dimensions", {
   ## This is where things get a bit more horrid:
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 1
 
@@ -899,7 +899,7 @@ test_that("sum for a 4d array", {
   ## I don't want to check absolutely everything here, so hopefully if
   ## these few go OK then given the more exhaustive tests above we'll
   ## be OK
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 1
 
@@ -929,7 +929,7 @@ test_that("sum for a 4d array", {
 })
 
 test_that("self output for scalar", {
-  gen <- odin2({
+  gen <- odin({
     initial(a) <- 1
     deriv(a) <- 0
     x <- t
@@ -941,7 +941,7 @@ test_that("self output for scalar", {
 })
 
 test_that("non-time sentsitive output", {
-  gen <- odin2({
+  gen <- odin({
     initial(a) <- 1
     deriv(a) <- 0
     x <- 1
@@ -953,7 +953,7 @@ test_that("non-time sentsitive output", {
 })
 
 test_that("logical operations", {
-  gen <- odin2({
+  gen <- odin({
     initial(a) <- 1
     deriv(a) <- 0
 
@@ -984,7 +984,7 @@ test_that("logical operations", {
 ## a number is an integer thing because it's only used within indexes.
 test_that("integer vector", {
   ## We expect 'idx' to come through as an integer
-  gen <- odin2({
+  gen <- odin({
     x[] <- user()
     dim(x) <- user()
     idx[] <- user()
@@ -1008,7 +1008,7 @@ test_that("integer vector", {
 
 ## This is much closer to the test case needed for Neil's model
 test_that("integer matrix", {
-  gen <- odin2({
+  gen <- odin({
     x[] <- user()
     dim(x) <- user()
 
@@ -1035,7 +1035,7 @@ test_that("integer matrix", {
 
 test_that("c in dim for vector", {
   ## This is a regression test for issue #61
-  gen <- odin2({
+  gen <- odin({
     initial(x[]) <- 1
     deriv(x[]) <- 0
     dim(x) <- c(5)
@@ -1056,8 +1056,8 @@ test_that("bounds check", {
     dim(y) <- len
   })
 
-  gen1 <- odin2(expr, safe = FALSE, skip_cache = TRUE)
-  gen2 <- odin2(expr, safe = TRUE, skip_cache = TRUE)
+  gen1 <- odin(expr, safe = FALSE, skip_cache = TRUE)
+  gen2 <- odin(expr, safe = TRUE, skip_cache = TRUE)
   r <- rep(1, 5)
 
   mod1 <- gen1(len = length(r), r = r)
@@ -1080,7 +1080,7 @@ test_that("bounds check on set", {
   skip("safe")
   ## Try invalid write (this one could be warned about statically
   ## though)
-  gen <- odin::odin2_(c(
+  gen <- odin::odin_(c(
     "deriv(y[])<-r * y[i]",
     "initial(y[1:10])<-1",
     "r<-0.5",
@@ -1095,7 +1095,7 @@ test_that("bounds check on set", {
 
 test_that("bounds check (2d)", {
   skip("safe")
-  gen <- odin2({
+  gen <- odin({
     deriv(y[, ]) <- r[i, j] * y[i, j]
     initial(y[, ]) <- 1
 
@@ -1122,7 +1122,7 @@ test_that("bounds check (2d)", {
 
 test_that("bounds check on set (4d)", {
   skip("safe")
-  gen <- odin::odin2_(c(
+  gen <- odin::odin_(c(
     "deriv(y[, , , ])<-r * y[i, j, k, l]",
     "initial(y[,,,]) <- 1",
     "initial(y[1, 4, 1, 6])<-1",
@@ -1148,7 +1148,7 @@ test_that("bounds check on set (4d)", {
 
 test_that("user variable information", {
   skip("model metadata")
-  gen <- odin2({
+  gen <- odin({
     deriv(N) <- r[1] * N * (1 - N / K)
     initial(N) <- N0
     N0 <- user(1)
@@ -1169,7 +1169,7 @@ test_that("user variable information", {
 
 test_that("user variable information - when no user", {
   skip("model metadata")
-  gen <- odin2({
+  gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
     N0 <- 10
@@ -1191,7 +1191,7 @@ test_that("user variable information - when no user", {
 
 test_that("format/print", {
   skip("model metadata")
-  gen <- odin2({
+  gen <- odin({
     deriv(N) <- r[1] * N * (1 - N / K)
     initial(N) <- N0
     N0 <- user(1)
@@ -1216,7 +1216,7 @@ test_that("format/print", {
 
 test_that("multiline string", {
   ## Literal multiline string:
-  gen <- odin2(c("deriv(y) <- 0.5", "initial(y) <- 1"))
+  gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"))
   expect_is(gen(), "odin_model")
 })
 
@@ -1224,7 +1224,7 @@ test_that("multiline string", {
 ## This is basically all ok but what is still not great is _doing_ the
 ## validation.
 test_that("user integer", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0.5
     initial(y) <- y0
     y0 <- user(1, integer = TRUE, min = 0)
@@ -1239,7 +1239,7 @@ test_that("user integer", {
 
 
 test_that("multiple constraints", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- r
     initial(y) <- y0
     y0 <- user(1, min = 0)
@@ -1252,7 +1252,7 @@ test_that("multiple constraints", {
 
 
 test_that("set_user honours constraints", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- r
     initial(y) <- y0
     y0 <- user(1, min = 0)
@@ -1266,7 +1266,7 @@ test_that("set_user honours constraints", {
 
 
 test_that("user sized dependent variables are allowed", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- r[i] * y[i]
     initial(y[]) <- 1
     r[] <- user()

@@ -1,7 +1,7 @@
 context("run: %TARGET%: discrete")
 
 test_that("basic", {
-  gen <- odin2({
+  gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
   })
@@ -19,7 +19,7 @@ test_that("basic", {
 })
 
 test_that("output", {
-  gen <- odin2({
+  gen <- odin({
     initial(x[]) <- x0[i]
     update(x[]) <- x[i] + r[i]
     x0[] <- user()
@@ -44,7 +44,7 @@ test_that("output", {
 })
 
 test_that("interpolate", {
-  gen <- odin2({
+  gen <- odin({
     initial(x) <- 0
     update(x) <- x + pulse
     pulse <- interpolate(sp, zp, "constant")
@@ -71,7 +71,7 @@ test_that("interpolate", {
 })
 
 test_that("use step in model", {
-  gen <- odin2({
+  gen <- odin({
     initial(x) <- step
     update(x) <- step + 1
   })
@@ -83,7 +83,7 @@ test_that("use step in model", {
 
 ## This is to avoid a regression with array_dim_name
 test_that("2d array equations", {
-  gen <- odin2({
+  gen <- odin({
     initial(x[,]) <- x0[i, j]
     update(x[,]) <- x[i, j] + r[i, j]
     x0[,] <- user()
@@ -108,7 +108,7 @@ test_that("2d array equations", {
 
 ## This turns up in one of Neil's cases:
 test_that("complex initialisation: scalar", {
-  gen <- odin2({
+  gen <- odin({
     initial(x1) <- norm_rand()
     r <- x1 * 2
     initial(x2) <- r + 1
@@ -116,7 +116,7 @@ test_that("complex initialisation: scalar", {
     update(x2) <- x2 + r
   })
 
-  gen2 <- odin2({
+  gen2 <- odin({
     x1_0 <- user()
     initial(x1) <- x1_0
     r <- x1 * 2
@@ -150,7 +150,7 @@ test_that("complex initialisation: scalar", {
 })
 
 test_that("complex initialisation: vector", {
-  gen <- odin2({
+  gen <- odin({
     initial(x1[]) <- norm_rand()
     r[] <- x1[i] * 2
     initial(x2[]) <- r[i] + 1

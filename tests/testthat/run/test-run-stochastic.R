@@ -2,7 +2,7 @@ context("run: %TARGET%: stochastic")
 
 test_that("stochastic", {
   ## Here's a stochastic random walk:
-  gen <- odin2({
+  gen <- odin({
     initial(x) <- 0
     update(x) <- x + norm_rand()
   })
@@ -27,7 +27,7 @@ test_that("stochastic", {
 ## variable that is used only in the initial condition I do not want
 ## that repeatedly called during the run.
 test_that("stochastic variables are time dependent", {
-  gen <- odin2({
+  gen <- odin({
     v <- norm_rand() # this variable is implicitly time dependent.
     initial(x) <- 0
     update(x) <- x + v
@@ -47,7 +47,7 @@ test_that("stochastic variables are time dependent", {
 test_that("array stochastic variables are time dependent", {
   ## This checks that even in the absence of array indexing on the RHS
   ## array variables are set correctly when stochastic.
-  gen <- odin2({
+  gen <- odin({
     initial(x[]) <- 0
     update(x[]) <- norm_rand()
     dim(x) <- 3
@@ -67,7 +67,7 @@ test_that("array stochastic variables are time dependent", {
 test_that("stochastic initial conditions don't get called every step", {
   ## There is quite a few nasty little conditions that are tested
   ## here.
-  gen <- odin2({
+  gen <- odin({
     v <- norm_rand() # this variable is implicitly time dependent.
     initial(x) <- v
     update(x) <- x + 1
@@ -107,7 +107,7 @@ test_that("stochastic initial conditions don't get called every step", {
 
 
 test_that("exotic stochastic functions", {
-  gen <- odin2({
+  gen <- odin({
     initial(x) <- 0
     mu <- 1
     sd <- 2
@@ -124,7 +124,7 @@ test_that("exotic stochastic functions", {
 
 
 test_that("round & rbinom", {
-  gen <- odin2({
+  gen <- odin({
     size <- user()
     p <- user()
     update(x) <- 0
@@ -140,10 +140,10 @@ test_that("round & rbinom", {
 
 test_that("mutlinomial", {
   ## This is just a check that these compile and run
-  sir1 <- odin2("stochastic/sir_discrete.R")
-  sir2 <- odin2("stochastic/sir_discrete_stochastic.R")
-  sir3 <- odin2("stochastic/sir_discrete_stochastic2.R")
-  sir4 <- odin2("stochastic/sir_discrete_stochastic_multi.R")
+  sir1 <- odin("stochastic/sir_discrete.R")
+  sir2 <- odin("stochastic/sir_discrete_stochastic.R")
+  sir3 <- odin("stochastic/sir_discrete_stochastic2.R")
+  sir4 <- odin("stochastic/sir_discrete_stochastic_multi.R")
 
   mod1 <- sir1()
   mod2 <- sir2()
@@ -165,7 +165,7 @@ test_that("mutlinomial", {
 test_that("replicate: scalar", {
   ## TODO: this will be a nice version to try and benchmark the dde
   ## overheads I think...
-  gen <- odin2({
+  gen <- odin({
     initial(x) <- 0
     update(x) <- x + norm_rand()
   })
@@ -182,7 +182,7 @@ test_that("replicate: scalar", {
 
 
 test_that("replicate: array", {
-  gen <- odin2({
+  gen <- odin({
     initial(x) <- 0
     initial(y[]) <- 0
     update(x) <- x + norm_rand()
@@ -205,7 +205,7 @@ test_that("replicate: array", {
 
 
 test_that("low-level stochastics: norm_rand", {
-  gen <- odin2({
+  gen <- odin({
     initial(y) <- 0
     update(y) <- norm_rand()
   })
@@ -221,7 +221,7 @@ test_that("low-level stochastics: norm_rand", {
 
 
 test_that("low-level stochastics: unif_rand", {
-  gen <- odin2({
+  gen <- odin({
     initial(y) <- 0
     update(y) <- unif_rand()
   })
@@ -237,7 +237,7 @@ test_that("low-level stochastics: unif_rand", {
 
 
 test_that("low-level stochastics: exp_rand", {
-  gen <- odin2({
+  gen <- odin({
     initial(y) <- 0
     update(y) <- exp_rand()
   })
@@ -253,7 +253,7 @@ test_that("low-level stochastics: exp_rand", {
 
 
 test_that("rexp parametrisation", {
-  gen <- odin2({
+  gen <- odin({
     initial(y) <- 0
     update(y) <- rexp(10)
   })

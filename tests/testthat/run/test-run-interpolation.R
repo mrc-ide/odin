@@ -1,7 +1,7 @@
 context("run: %TARGET%: interpolation")
 
 test_that("constant", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
     ##
@@ -45,7 +45,7 @@ test_that("constant", {
 
 
 test_that("constant array", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
     ##
@@ -83,7 +83,7 @@ test_that("constant array", {
 
 
 test_that("constant 3d array", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y[,]) <- pulse[i,j]
     initial(y[,]) <- 0
     ##
@@ -132,7 +132,7 @@ test_that("constant 3d array", {
 
 
 test_that("linear", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
     ##
@@ -166,7 +166,7 @@ test_that("linear", {
 
 
 test_that("spline", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
     ##
@@ -194,7 +194,7 @@ test_that("spline", {
 
 test_that("interpolation with two variables", {
   for (type in INTERPOLATION_TYPES) {
-    gen <- odin2_(
+    gen <- odin_(
       bquote({
         deriv(y) <- pulse1 + pulse2
         initial(y) <- 0
@@ -249,7 +249,7 @@ test_that("interpolation with two variables", {
 
 
 test_that("interpolation in a delay", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
     deriv(z) <- u

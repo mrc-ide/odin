@@ -1,7 +1,7 @@
 context("run: %TARGET%: library support")
 
 test_that("abs", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
     output(a) <- abs(t)
@@ -12,7 +12,7 @@ test_that("abs", {
 
 
 test_that("log", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
     output(a) <- log(t)
@@ -28,7 +28,7 @@ test_that("log", {
 
 
 test_that("pow", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
     output(a) <- min(t, t^2 - 2, -t)
@@ -42,7 +42,7 @@ test_that("pow", {
 
 
 test_that("%%", {
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
     s <- sin(1) # does not appear exactly
@@ -76,7 +76,7 @@ test_that("%%", {
 
 test_that("%/%", {
   ## As for %% but with %/%
-  gen <- odin2({
+  gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
     s <- sin(1) # does not appear exactly

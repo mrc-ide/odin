@@ -22,10 +22,10 @@ test_that("basic interface", {
 
     has_delay <- b %in% c("seir", "seir_array")
 
-    gen <- odin2(filename_o)
+    gen <- odin(filename_o)
     ## NOTE: this is a bit ugly; I'm really not sure what the right
     ## thing to do here is, but it might be to add an R6 option to
-    ## odin2() that would return the class (for use with inheritence
+    ## odin() that would return the class (for use with inheritence
     ## etc) rather that the generating function here.
     mod_c <- gen()
     expect_is(mod_c, "odin_model")
@@ -97,8 +97,8 @@ test_that("basic interface", {
 
 test_that("user arrays", {
   ## In the first version we have constant sized arrays:
-  gen1 <- odin2("examples/array_odin.R")
-  gen2 <- odin2("examples/array_odin_user.R")
+  gen1 <- odin("examples/array_odin.R")
+  gen2 <- odin("examples/array_odin_user.R")
 
   mod1 <- gen1()
   age_width <- mod1$contents()$age_width
@@ -118,7 +118,7 @@ test_that("user arrays", {
   expect_equal(res1, res2)
 
   ## User *sized* arrays.
-  gen3 <- odin2("examples/array_odin_user2.R")
+  gen3 <- odin("examples/array_odin_user2.R")
   mod3 <- gen3(age_width)
 
   dat3 <- mod3$contents()
@@ -141,7 +141,7 @@ test_that("user arrays", {
   expect_equal(tmp1$S[, 1], tmp3$S[, 1], tolerance = 1e-6)
 
   ## All in; this one is driven by a variable sized array.
-  gen4 <- odin2("examples/array_odin_user3.R")
+  gen4 <- odin("examples/array_odin_user3.R")
   mod4 <- gen4(age_width)
 
   dat4 <- mod4$contents()
@@ -175,7 +175,7 @@ test_that("lv", {
                y0 = c(0.3013, 0.4586, 0.1307, 0.3557))
   mod_r <- source1("examples/lv4_deSolve.R")
   invisible(mod_r$initial(pars = pars))
-  gen <- odin2("examples/lv4_odin.R")
+  gen <- odin("examples/lv4_odin.R")
   mod_c <- gen(user = pars)
 
   t <- seq_range(mod_r$t, 10000)
@@ -219,7 +219,7 @@ test_that("dde", {
     t <- seq_range(mod_r$t, 300)
     t0 <- mod_r$t[[1L]]
 
-    gen <- odin2(filename_o)
+    gen <- odin(filename_o)
     mod_ds <- gen()
     mod_dde <- gen(use_dde = TRUE)
 
