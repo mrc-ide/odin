@@ -5,14 +5,13 @@ test_that("NSE and SE defaults are the same", {
 })
 
 test_that("verbose", {
-  skip("verbose")
-  ## needs writing the temporary file with a better name
-  expect_output(odin2({
-    initial(x) <- 0
-    update(x) <- x + norm_rand()
-    config(base) <- "mycrazymodel"
-  }, target = "c", verbose = TRUE),
-  "mycrazymodel.o", fixed = TRUE)
+  expect_output(
+    odin2({
+      initial(x) <- 0
+      update(x) <- x + norm_rand()
+      config(base) <- "mycrazymodel"
+    }, target = "c", workdir = tempfile(), skip_cache = TRUE, verbose = TRUE),
+    "mycrazymodel_[[:xdigit:]]{8}\\.c")
 })
 
 test_that("warnings", {
@@ -71,12 +70,15 @@ test_that("n_history is configurable", {
 
 
 test_that("sensible error on empty input", {
-  skip("pending")
   path <- tempfile()
   writeLines("", path)
-  expect_error(odin2_(path), "Empty input: no expressions were provided")
+  expect_error(odin2_(path),
+               "Did not find a deriv() or an update() call",
+               fixed = TRUE)
   writeLines("# some comment", path)
-  expect_error(odin2_(path), "Empty input: no expressions were provided")
+  expect_error(odin2_(path),
+               "Did not find a deriv() or an update() call",
+               fixed = TRUE)
 })
 
 
