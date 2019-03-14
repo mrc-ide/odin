@@ -6,8 +6,6 @@
 ##'
 ##' @inheritParams odin
 ##'
-##' @param no_check_naked_index
-##'
 ##' @param options Named list of options.  If provided, then all other
 ##'   options are ignored.
 ##'

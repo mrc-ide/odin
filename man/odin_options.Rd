@@ -55,7 +55,14 @@ with both gcc and clang.  The compiler output is very simple and
 may not work on all platforms.  Defaults to the option
 \code{odin.compiler_warnings} or \code{FALSE} otherwise.}
 
-\item{no_check_naked_index}{}
+\item{no_check_naked_index}{If \code{TRUE}, then if an index
+variable (\code{i}, \code{j}, ...) is used outside of an array
+subset (e.g., \code{x[] <- i}) then a notice is printed.  The
+behaviour of this functionality changed in odin version
+\code{0.2.0} and this flag is intended to notify users about the
+change.  See \url{https://github.com/mrc-ide/odin/issues/136}
+for more information.  Defaults to the option
+\code{odin.no_check_naked_index} or \code{FALSE} otherwise.}
 
 \item{options}{Named list of options.  If provided, then all other
 options are ignored.}
