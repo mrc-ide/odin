@@ -203,25 +203,24 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
   ## TODO: add things like NA_REAL to reserved words
   min <- rewrite(eq$user$min %||% "NA_REAL")
   max <- rewrite(eq$user$max %||% "NA_REAL")
+  previous <- lhs
 
   if (eq$user$dim) {
     free <- sprintf_safe("Free(%s);", lhs)
     len <- data_info$dimnames$length
-
     if (rank == 1L) {
-      ret <- c(
-        free,
+      ret <-
         sprintf_safe(
-          '%s = (%s*) user_get_array_dim(%s, %s, "%s", %d, %s, %s, &%s);',
-          lhs, storage_type, user, is_integer, eq$lhs, rank, min, max,
-          rewrite(len)))
+          '%s = (%s*) user_get_array_dim(%s, %s, %s, "%s", %d, %s, %s, &%s);',
+          lhs, storage_type, user, is_integer, previous, eq$lhs, rank, min, max,
+          rewrite(len))
     } else {
       ret <- c(
-        free,
         sprintf_safe("int %s[%d];", len, rank + 1),
         sprintf_safe(
-          '%s = (%s*) user_get_array_dim(%s, %s, "%s", %d, %s, %s, %s);',
-          lhs, storage_type, user, is_integer, eq$lhs, rank, min, max, len),
+          '%s = (%s*) user_get_array_dim(%s, %s, %s, "%s", %d, %s, %s, %s);',
+          lhs, storage_type, user, is_integer, previous, eq$lhs, rank,
+          min, max, len),
         sprintf_safe("%s = %s[%d];", rewrite(len), len, 0),
         sprintf_safe("%s = %s[%d];",
                      vcapply(data_info$dimnames$dim, rewrite), len,
@@ -238,11 +237,10 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
       } else {
         dim <- paste(vcapply(data_info$dimnames$dim, rewrite), collapse = ", ")
       }
-      ret <- c(sprintf_safe("Free(%s);", lhs),
-               sprintf_safe(
-                 '%s = (%s*) user_get_array(%s, %s, "%s", %s, %s, %d, %s);',
-                 lhs, storage_type, user, is_integer, eq$lhs, min, max,
-                 rank, dim))
+      ret <- sprintf_safe(
+        '%s = (%s*) user_get_array(%s, %s, %s, "%s", %s, %s, %d, %s);',
+        lhs, storage_type, user, is_integer, previous, eq$lhs,
+        min, max, rank, dim)
     }
   }
   ret

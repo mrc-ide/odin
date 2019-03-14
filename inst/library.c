@@ -71,9 +71,14 @@ void odin_set_dim(SEXP target, int rank, ...) {
 }
 
 // get an array of known size
-void* user_get_array(SEXP user, bool is_integer, const char *name,
-                     double min, double max, int rank, ...) {
-  SEXP el = user_get_array_check_rank(user, name, rank);
+void* user_get_array(SEXP user, bool is_integer, void * previous,
+                     const char *name, double min, double max,
+                     int rank, ...) {
+  SEXP el = user_get_array_check_rank(user, name, rank, previous == NULL);
+  if (el == R_NilValue) {
+    return previous;
+  }
+
   SEXP r_dim;
   int *dim;
 
@@ -112,6 +117,7 @@ void* user_get_array(SEXP user, bool is_integer, const char *name,
     dest = Calloc(len, double);
     memcpy(dest, REAL(el), len * sizeof(double));
   }
+  Free(previous);
 
   UNPROTECT(1);
 
@@ -146,10 +152,13 @@ SEXP user_get_array_check(SEXP el, bool is_integer, const char *name,
   return el;
 }
 
-SEXP user_get_array_check_rank(SEXP user, const char *name, int rank) {
+SEXP user_get_array_check_rank(SEXP user, const char *name, int rank,
+                               bool required) {
   SEXP el = user_list_element(user, name);
   if (el == R_NilValue) {
-    Rf_error("Expected a value for '%s'", name);
+    if (required) {
+      Rf_error("Expected a value for '%s'", name);
+    }
   } else {
     if (rank == 1) {
       if (isArray(el)) {
@@ -169,9 +178,13 @@ SEXP user_get_array_check_rank(SEXP user, const char *name, int rank) {
   return el;
 }
 
-void* user_get_array_dim(SEXP user, bool is_integer, const char *name,
-                         int rank, double min, double max, int *dest_dim) {
-  SEXP el = user_get_array_check_rank(user, name, rank);
+void* user_get_array_dim(SEXP user, bool is_integer, void * previous,
+                         const char *name, int rank,
+                         double min, double max, int *dest_dim) {
+  SEXP el = user_get_array_check_rank(user, name, rank, previous == NULL);
+  if (el == R_NilValue) {
+    return previous;
+  }
 
   dest_dim[0] = LENGTH(el);
   if (rank > 1) {
@@ -196,6 +209,7 @@ void* user_get_array_dim(SEXP user, bool is_integer, const char *name,
     dest = Calloc(len, double);
     memcpy(dest, REAL(el), len * sizeof(double));
   }
+  Free(previous);
 
   UNPROTECT(1);
 

@@ -137,6 +137,11 @@ test_that("user variables", {
   expect_equal(gen(r = pi, N0 = 10)$initial(), 10)
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))
+
+  mod <- gen(r = pi, N0 = exp(1))
+  mod$set_user()
+  expect_equal(mod$contents()$r, pi)
+  expect_equal(mod$contents()$N0, exp(1))
 })
 
 
