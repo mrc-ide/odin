@@ -7,7 +7,7 @@
 odin_ir(x, parsed = FALSE)
 }
 \arguments{
-\item{x}{An \ode{odin_generator} function, as created by
+\item{x}{An \code{odin_generator} function, as created by
 \code{\link{odin}}}
 
 \item{parsed}{Logical, indicating if the representation should be
