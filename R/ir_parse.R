@@ -1145,7 +1145,7 @@ ir_parse_delay <- function(eqs, discrete, variables, source) {
       }
       arrays <- lapply(subs, f)
       names(arrays) <- vcapply(arrays, "[[", "name")
-      eqs <- c(eqs, arrays)
+      eqs <- c(eqs, arrays[setdiff(names(arrays), names(eqs))])
     }
   }
 
