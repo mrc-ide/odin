@@ -288,8 +288,7 @@ generate_r_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 }
 
 
-generate_r_equation_delay_discrete <- function(eq, data_info, dat,
-                                                 rewrite) {
+generate_r_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
   ring <- rewrite(eq$delay$ring)
   lhs <- rewrite(eq$lhs)
   if (data_info$rank == 0L) {

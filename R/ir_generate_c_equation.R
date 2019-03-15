@@ -369,6 +369,9 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
+  if (!is.null(eq$delay$default)) {
+    stop("Discrete delays with default not yet supported [odin bug]")
+  }
   if (data_info$storage_type != "double") {
     ## TODO: this will all go wrong if we're delaying an integer, but
     ## it will not be hard to fix.  Also needs work up in the
