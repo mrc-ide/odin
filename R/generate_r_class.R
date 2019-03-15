@@ -73,8 +73,6 @@ generate_r_class <- function(core, dat, env) {
       init = NULL,
       interpolate_t = NULL,
       delay = dat$features$has_delay,
-      ## TODO: this is a horrible name
-      ir_ = dat$ir,
 
       ## These are not obviously the right bit of metadata to keep
       ## All of these might want better names.
@@ -86,6 +84,8 @@ generate_r_class <- function(core, dat, env) {
     ),
 
     public = drop_null(list(
+      ir = dat$ir,
+
       ## Methods:
       initialize = function(user = NULL, use_dde = FALSE) {
         ## TODO: why is 'use_dde' here in the initialiser and not in
@@ -96,6 +96,7 @@ generate_r_class <- function(core, dat, env) {
         private$use_dde <- use_dde || private$discrete
         private$data <- private$core$create()
         self$set_user(user = user)
+        lockBinding("ir", self)
       },
 
       set_user = set_user,
@@ -126,12 +127,6 @@ generate_r_class <- function(core, dat, env) {
 
       run = run,
 
-      ## TODO: I am currently not sure if this belongs here or with
-      ## the generator...
-      ir = function() {
-        private$ir_
-      },
-
       contents = function() {
         sort_list(as.list(private$data))
       },
@@ -141,11 +136,12 @@ generate_r_class <- function(core, dat, env) {
       }
     )))
 
-  generate_r_constructor(dat$config$base, dat$features$discrete, dat$user, env)
+  generate_r_constructor(dat$config$base, dat$features$discrete, dat$user,
+                         dat$ir, env)
 }
 
 
-generate_r_constructor <- function(base, discrete, user, env) {
+generate_r_constructor <- function(base, discrete, user, ir, env) {
   name_user <- "user"
   if (length(user) > 0L) {
     i <- set_names(vlapply(user, "[[", "has_default"),
@@ -169,5 +165,8 @@ generate_r_constructor <- function(base, discrete, user, env) {
     args <- c(args, alist(use_dde = FALSE))
   }
 
-  as_function(args, r_expr_block(list(as.call(call))), env)
+  ret <- as_function(args, r_expr_block(list(as.call(call))), env)
+  attr(ret, "ir") <- ir
+  class(ret) <- "odin_generator"
+  ret
 }

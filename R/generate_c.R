@@ -44,7 +44,7 @@ generate_c_model <- function(dat, hash, options) {
   ## Ensure that the DLL is unloaded when it goes out of scope.
   reg.finalizer(env, function(e) try(dyn.unload(dll$dll), silent = TRUE))
 
-  generate_r_constructor(base, dat$features$discrete, dat$user, env)
+  generate_r_constructor(base, dat$features$discrete, dat$user, dat$ir, env)
 }
 
 

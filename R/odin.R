@@ -5,6 +5,8 @@
 ##' certainly want to use \code{\link{odin_package}} instead; see the
 ##' \code{odin_package} vignette for more information.}
 ##'
+##' A generated model can return information about itself; \code{\link{odin_ir}}
+##'
 ##' @section Delay equations with dde:
 ##'
 ##' When generating a model one must chose between using the

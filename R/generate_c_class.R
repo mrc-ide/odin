@@ -21,7 +21,6 @@ odin_c_class <- function(base, core, user, features, dll, ir) {
       dll = dll,
       discrete = features$discrete, # TODO: drop?
       user = user,
-      ir_ = ir,
       ## Set at initialisation:
       ptr = NULL,
       use_dde = NULL,
@@ -36,6 +35,7 @@ odin_c_class <- function(base, core, user, features, dll, ir) {
       update_metadata = odin_c_class_update_metadata(features)
     ),
     public = drop_null(list(
+      ir = ir,
       initialize = odin_c_class_initialize(features),
       set_user = odin_c_class_set_user(features),
       initial = odin_c_class_initial(features),
@@ -43,7 +43,6 @@ odin_c_class <- function(base, core, user, features, dll, ir) {
       deriv = odin_c_class_deriv(features),
       run = odin_c_class_run(features),
       contents = odin_c_class_contents(features),
-      ir = odin_c_class_ir(features),
       transform_variables = odin_c_class_transform(features))))
 }
 
@@ -249,7 +248,8 @@ odin_c_class_initialize <- function(features, env = .GlobalEnv) {
   body <- drop_null(list(
     set_use_dde,
     make_ptr,
-    quote(self$set_user(user = user))))
+    quote(self$set_user(user = user)),
+    quote(lockBinding("ir", self))))
   as_function(args, r_expr_block(body), env)
 }
 
@@ -265,9 +265,4 @@ odin_c_class_transform <- function(features, env = .GlobalEnv) {
   args <- alist(y =)
   body <- call("support_transform_variables", quote(y), quote(private))
   as_function(args, r_expr_block(body), env)
-}
-
-
-odin_c_class_ir <- function(features, env = .GlobalEnv) {
-  as_function(alist(), quote(private$ir_), env)
 }

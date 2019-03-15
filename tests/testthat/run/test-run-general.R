@@ -1002,7 +1002,7 @@ test_that("integer vector", {
   expect_equal(dat$idx, idx)
   expect_equal(dat$initial_v, x[idx])
 
-  expect_equal(ir_deserialise(mod$ir())$data$elements$idx$storage_type,
+  expect_equal(ir_deserialise(mod$ir)$data$elements$idx$storage_type,
                "int")
 })
 
@@ -1029,7 +1029,7 @@ test_that("integer matrix", {
 
   mod <- gen(x = x, idx = idx)
   expect_equal(mod$contents()$v, v)
-  expect_equal(ir_deserialise(mod$ir())$data$elements$idx$storage_type,
+  expect_equal(ir_deserialise(mod$ir)$data$elements$idx$storage_type,
                "int")
 })
 
@@ -1147,7 +1147,6 @@ test_that("bounds check on set (4d)", {
 })
 
 test_that("user variable information", {
-  skip("model metadata")
   gen <- odin({
     deriv(N) <- r[1] * N * (1 - N / K)
     initial(N) <- N0
@@ -1163,12 +1162,11 @@ test_that("user variable information", {
   expect_equal(info$has_default, c(FALSE, TRUE, TRUE))
   expect_equal(info$rank, c(1L, 0L, 0L))
 
-  mod <- gen(1)
-  expect_identical(mod$user_info(), info)
+  expect_identical(coef(gen(1)), info)
 })
 
+
 test_that("user variable information - when no user", {
-  skip("model metadata")
   gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
@@ -1186,11 +1184,11 @@ test_that("user variable information - when no user", {
                     integer = logical(),
                     stringsAsFactors = FALSE)
   expect_identical(info, cmp)
-  expect_identical(gen()$user_info(), cmp)
+  expect_identical(coef(gen()), cmp)
 })
 
+
 test_that("format/print", {
-  skip("model metadata")
   gen <- odin({
     deriv(N) <- r[1] * N * (1 - N / K)
     initial(N) <- N0
@@ -1213,6 +1211,19 @@ test_that("format/print", {
 
   expect_identical(x, list(value = gen, visible = FALSE))
 })
+
+
+test_that("ir is read-only", {
+  gen <- odin({
+    deriv(y) <- 0.5
+    initial(y) <- 1
+  })
+  mod <- gen()
+  ir <- mod$ir
+  expect_error(mod$ir <- TRUE)
+  expect_identical(mod$ir, ir)
+})
+
 
 test_that("multiline string", {
   ## Literal multiline string:
