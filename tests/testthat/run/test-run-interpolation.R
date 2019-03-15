@@ -275,3 +275,33 @@ test_that("interpolation in a delay", {
   expect_equal(yy[, "ud"], seq(-2, 8))
   expect_equal(yy[, "u"], seq(0, 10))
 })
+
+
+test_that("critical times", {
+  ## this is only done for the R generation so far:
+  skip_for_target("c")
+  gen <- odin({
+    deriv(y) <- pulse1 + pulse2
+    initial(y) <- 0
+
+    pulse1 <- interpolate(tp1, zp1, "constant")
+    tp1[] <- user()
+    zp1[] <- user()
+    dim(tp1) <- user()
+    dim(zp1) <- length(tp1)
+
+    pulse2 <- interpolate(tp2, zp2, "constant")
+    tp2[] <- user()
+    zp2[] <- user()
+    dim(tp2) <- user()
+    dim(zp2) <- length(tp2)
+  })
+
+  tp1 <- c(-1, 3)
+  zp1 <- c( 0, 1)
+  tp2 <- c(-1, 1, 2)
+  zp2 <- c(0, 1, 0)
+  mod <- gen(tp1 = tp1, zp1 = zp1, tp2 = tp2, zp2 = zp2)
+
+  expect_equal(r6_private(mod)$interpolate_t$critical, c(-1, 1, 2, 3))
+})
