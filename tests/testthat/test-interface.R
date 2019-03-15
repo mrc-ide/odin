@@ -114,4 +114,31 @@ test_that("odin_ir requires sensible object", {
 })
 
 
+## https://github.com/mrc-ide/odin/issues/154
+test_that("delay discrete models with defaults are prevented in C", {
+  expect_error(odin({
+    r <- 3.6
+    update(y) <- r * y * (1 - y)
+    initial(y) <- 0.2
+    x <- delay(y, 2, 1)
+    output(x) <- TRUE
+  }, target = "c"),
+  "Discrete delays with default not yet supported")
+
+  expect_error(odin({
+    r <- 3.6
+    update(y[]) <- r * y[i] * (1 - y[i])
+    initial(y[1]) <- 0.2
+    initial(y[2]) <- 0.4
+    x[] <- delay(y[i], 2, z[i])
+    z[] <- user()
+    output(x[]) <- TRUE
+    dim(y) <- 2
+    dim(x) <- 2
+    dim(z) <- 2
+  }),
+  "Discrete delays with default not yet supported")
+})
+
+
 unload_dlls()
