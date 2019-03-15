@@ -14,9 +14,8 @@ test_that("reference sets are unchanged", {
 
   for (f_j in files) {
     f <- sub(re_ext, ".R", f_j)
-    ir <- as.character(suppressMessages(
-      ir_parse(f, options)))
-    cmp <- trimws(readChar(f_j, file.size(f_j)))
+    ir <- as.character(suppressMessages(ir_parse(f, options)))
+    cmp <- trimws(read_string(f_j))
     expect_equal(ir, cmp)
   }
 })

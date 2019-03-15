@@ -15,6 +15,10 @@ test_that("generate package", {
   y_c <- mod$run(t)
   y_r <- run_model(cmp, t)
   expect_equal(y_c[, 2:4], y_r[, 2:4], check.attributes = FALSE)
+
+  ## Provides a loose check that the ir/coef bits work:
+  expect_setequal(coef(res$env$sir)$name, c("I0", "beta"))
+
   res$cleanup()
   on.exit()
 })

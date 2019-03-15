@@ -191,3 +191,8 @@ to_json <- function(dat, pretty = TRUE) {
 from_json <- function(x) {
   jsonlite::fromJSON(x, simplifyVector = FALSE)
 }
+
+
+read_string <- function(path) {
+  readChar(path, file.info(path, extra_cols = FALSE)$size)
+}

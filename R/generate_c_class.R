@@ -9,7 +9,10 @@
 
 ## TODO: The name here is out-of-sync with other naming conventions
 ## and should be thought about carefully.
-odin_c_class <- function(base, core, user, features, dll, ir) {
+odin_c_class <- function(base, core, user, features, dll, ir, package) {
+  if (package) {
+    ir <- read_string(system.file(ir, package = dll, mustWork = TRUE))
+  }
   R6::R6Class(
     "odin_model",
     parent_env = environment(odin),

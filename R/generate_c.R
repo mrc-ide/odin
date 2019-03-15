@@ -38,8 +38,8 @@ generate_c_model <- function(dat, hash, options) {
 
   env <- new.env(parent = as.environment("package:base"))
   base <- dat$config$base
-  env[[base]] <-
-    odin_c_class(base, core, names(dat$user), dat$features, dll$base, dat$ir)
+  env[[base]] <- odin_c_class(base, core, names(dat$user), dat$features,
+                              dll$base, dat$ir, FALSE)
 
   ## Ensure that the DLL is unloaded when it goes out of scope.
   reg.finalizer(env, function(e) try(dyn.unload(dll$dll), silent = TRUE))
@@ -164,14 +164,16 @@ generate_c_r <- function(dat, core, package) {
   ## believe, because we can end up storing the incorrect path if we
   ## evaluate during package installation.
   ret <- collector()
-  ret$add('%s <- odin:::odin_c_class("%s", %s, %s, %s, "%s", "%s")',
+  ret$add('%s <- odin:::odin_c_class("%s", %s, %s, %s, "%s", "%s", TRUE)',
           class_name, base, core_str, user_str, features_str, package, dat$ir)
 
   ctor <- generate_r_constructor(class_name, dat$features$discrete, dat$user,
-                                 .GlobalEnv)
+                                 dat$ir, NULL)
   ctor <- sub("\\s+$", "", deparse(ctor))
   ctor[[1]] <- sprintf("%s <- %s", base, ctor[[1]])
   ret$add(ctor)
+  ret$add('class(%s) <- "odin_generator"', base)
+  ret$add('attr(%s, "ir") <- %s$public_fields$ir', base, class_name)
 
   ret$get()
 }

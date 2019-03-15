@@ -165,8 +165,11 @@ generate_r_constructor <- function(base, discrete, user, ir, env) {
     args <- c(args, alist(use_dde = FALSE))
   }
 
-  ret <- as_function(args, r_expr_block(list(as.call(call))), env)
-  attr(ret, "ir") <- ir
-  class(ret) <- "odin_generator"
+  ret <- as_function(args, r_expr_block(list(as.call(call))),
+                     env %||% .GlobalEnv)
+  if (!is.null(env)) {
+    attr(ret, "ir") <- ir
+    class(ret) <- "odin_generator"
+  }
   ret
 }
