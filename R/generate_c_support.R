@@ -5,7 +5,7 @@
 ##
 ## The rewriter generate_c_sexp_sum takes care of converting 'from'
 ## into a base-0 index
-generate_c_compiled_sum <- function(rank) {
+generate_c_support_sum <- function(rank) {
   i <- seq_len(rank)
 
   ## TODO: would be nice to avoid use of array_dim_name and INDEX
@@ -51,50 +51,39 @@ generate_c_compiled_sum <- function(rank) {
 }
 
 
-generate_c_ring_support <- function(package) {
-  ## Annoyingly different from the version used in interpolate
+generate_c_support_ring <- function(is_package) {
+  generate_c_support_external("include/ring/ring.h", "include/ring/ring.c",
+                              "ring", is_package)
+}
+
+
+generate_c_support_interpolate <- function(is_package) {
+  generate_c_support_external("include/cinterpolate/cinterpolate.h",
+                              "include/cinterpolate/cinterpolate.c",
+                              "cinterpolate", is_package)
+}
+
+
+## TODO: later on, we should look for LinkingTo within the package
+## DESCRIPTION because if it is found then we can do a different,
+## probably better, approach.  The net effect on compile time and
+## object size will be the same however.
+generate_c_support_external <- function(path_h, path_c, package, is_package) {
   filter_includes <- function(filename) {
     x <- readLines(filename)
     x[!grepl("^#include\\s+", x, perl = TRUE)]
   }
 
-  r_h <- system.file("include/ring/ring.h", package = "ring", mustWork = TRUE)
-  r_c <- system.file("include/ring/ring.c", package = "ring", mustWork = TRUE)
-  if (package) {
-    decl <- filter_includes(r_h)
-    defn <- filter_includes(r_c)
+  filename_h <- system.file(path_h, package = package, mustWork = TRUE)
+  filename_c <- system.file(path_c, package = package, mustWork = TRUE)
+
+  if (is_package) {
+    decl <- filter_includes(filename_h)
+    defn <- filter_includes(filename_c)
   } else {
-    decl <- sprintf('#include "%s"', r_h)
-    defn <- sprintf('#include "%s"', r_c)
+    decl <- sprintf('#include "%s"', filename_h)
+    defn <- sprintf('#include "%s"', filename_c)
   }
+
   list(declarations = decl, definitions = defn)
-}
-
-
-generate_c_interpolate_support <- function() {
-  r_h <- system.file("include/cinterpolate/cinterpolate.h",
-                     package = "cinterpolate", mustWork = TRUE)
-  r_c <- system.file("include/cinterpolate/cinterpolate.c",
-                     package = "cinterpolate", mustWork = TRUE)
-  decl <- sprintf('#include "%s"', r_h)
-  defn <- sprintf('#include "%s"', r_c)
-  list(declarations = decl, definitions = defn)
-}
-
-
-read_user_c <- function(filename) {
-  d <- readLines(filename)
-
-  re1 <- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)"
-  i1 <- grep(re1, d)
-  i2 <- grep("^}$", d)
-  if (length(i1) != length(i2)) {
-    stop("Parse error for ", filename)
-  }
-  name <- sub(re1, "\\1", d[i1])
-  defn <- setNames(vcapply(seq_along(i1), function(k)
-    paste(d[i1[[k]]:i2[[k]]], collapse = "\n")), name)
-  decl <- sub("^([^{]*?)\\s*\\{.*", "\\1;", defn)
-
-  list(declarations = decl, definitions = defn, filename = filename)
 }

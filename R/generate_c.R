@@ -1,6 +1,6 @@
 generate_c <- function(dat, options) {
   skip_cache <- options$skip_cache
-  hash <- hash_string(dat$ir)  
+  hash <- hash_string(dat$ir)
   if (!skip_cache) {
     prev <- .odin$model_cache_c$get(hash)
     if (!is.null(prev)) {
@@ -97,13 +97,13 @@ generate_c_code <- function(dat, options, package) {
   include <- generate_c_compiled_include(dat, is_package)
 
   if (dat$features$has_delay && dat$features$discrete) {
-    ring <- generate_c_ring_support(is_package)
+    ring <- generate_c_support_ring(is_package)
   } else {
     ring <- NULL
   }
 
   if (dat$features$has_interpolate) {
-    interpolate <- generate_c_interpolate_support()
+    interpolate <- generate_c_support_interpolate(is_package)
   } else {
     interpolate <- NULL
   }
@@ -174,18 +174,4 @@ generate_c_r <- function(dat, core, package) {
   ret$add(ctor)
 
   ret$get()
-}
-
-
-c_variable_reference <- function(x, data_info, state, rewrite) {
-  if (data_info$rank == 0L) {
-    sprintf("%s[%s]", state, rewrite(x$offset))
-  } else {
-    sprintf("%s + %s", state, rewrite(x$offset))
-  }
-}
-
-
-c_flatten_eqs <- function(eqs) {
-  unlist(unname(eqs))
 }

@@ -17,3 +17,7 @@ If requested, then the intermediate representation is validated against the sche
 ## IR deserialisation
 
 Before using the IR we deserialise (mostly trivial, but some lists-of-objects aquire names and character vectors are simplified), which happens in `ir_deserialise.R`.
+
+## Generation
+
+There are two paths of generation - into transpiling R and compiling C.  The files for doing this start at `generate_r.R` and `generate_c.R` respectively.  The end point for the the R and C generation is in `generate_r_class.R` and `generate_c_class` respectively which generates an [`R6`](https://cran.r-project.org/package=R6) class and a constructor function.

@@ -173,5 +173,5 @@ generate_r_constructor <- function(base, discrete, user, env) {
     args <- c(args, alist(use_dde = FALSE))
   }
 
-  as_function(args, expr_block(list(as.call(call))), env)
+  as_function(args, r_expr_block(list(as.call(call))), env)
 }

@@ -100,7 +100,7 @@ ir_parse_arrays <- function(eqs, variables, source) {
     eqs[[eq$name]]$array <- eqs[[eq$lhs$name_data]]$array
   }
 
-  ir_parse_array_check_usage2(eqs, source)
+  ir_parse_arrays_check_usage2(eqs, source)
 
   eqs
 }
@@ -173,7 +173,7 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
 }
 
 
-ir_parse_array_check_usage2 <- function(eqs, source) {
+ir_parse_arrays_check_usage2 <- function(eqs, source) {
   ## TODO: this feels really icky, but at least gets there.  What
   ## would be nicer in the longer term perhaps is something that flags
   ## the "canonical" version of a piece of data amongst equations.
@@ -476,7 +476,7 @@ ir_parse_arrays_dims <- function(eq, rank, variables, output) {
 
     ## At this point, modify how we compute total length:
     dims <- lapply(dimnames$dim, as.name)
-    eq_length$rhs$value <- collapse_expr(dims, "*")
+    eq_length$rhs$value <- r_fold_call("*", dims)
     eq_length$depends <- list(functions = character(0),
                               variables = dimnames$dim)
 
@@ -485,13 +485,13 @@ ir_parse_arrays_dims <- function(eq, rank, variables, output) {
       f_eq_mult <- function(i) {
         j <- seq_len(i - 1)
         d <- array_dim_name(nm, paste(j, collapse = ""))
-        value <- collapse_expr(dims[j], "*")
+        value <- r_fold_call("*", dims[j])
         list(
           name = d,
           type = "expression_scalar",
           lhs = list(name_lhs = d, name_data = d, name_equation = d,
                      storage_mode = "int"),
-          rhs = list(value = collapse_expr(dims[j], "*")),
+          rhs = list(value = r_fold_call("*", dims[j])),
           source = eq$source,
           depends = list(functions = character(0),
                          variables = dimnames$dim[j]))

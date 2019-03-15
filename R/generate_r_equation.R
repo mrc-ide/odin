@@ -35,7 +35,7 @@ generate_r_equation_scalar <- function(eq, data_info, dat, rewrite) {
   } else {
     offset <- dat$data[[location]]$contents[[data_info$name]]$offset
     storage <- if (location == "variable") dat$meta$result else dat$meta$output
-    lhs <- call("[[", as.name(storage), offset_to_position(offset))
+    lhs <- call("[[", as.name(storage), r_offset_to_position(offset))
   }
 
   rhs <- rewrite(eq$rhs$value)
@@ -141,7 +141,7 @@ generate_r_equation_copy <- function(eq, data_info, dat, rewrite) {
   storage <- as.name(dat$meta$output)
 
   if (data_info$rank == 0) {
-    lhs <- call("[[", storage, offset_to_position(offset))
+    lhs <- call("[[", storage, r_offset_to_position(offset))
   } else{
     i <- call("seq_len", rewrite(data_info$dimnames$length))
     lhs <- call("[", storage, call("+", offset, i))
@@ -202,8 +202,8 @@ generate_r_equation_delay_index <- function(eq, data_info, dat,
     offset <- dat$data$variable$contents[[v$name]]$offset
     if (d$rank == 0L) {
       call("<-",
-           call("[[", lhs, offset_to_position(v$offset)),
-           offset_to_position(offset))
+           call("[[", lhs, r_offset_to_position(v$offset)),
+           r_offset_to_position(offset))
     } else {
       seq <- call("seq_len", rewrite(d$dimnames$length))
       call("<-",
@@ -227,22 +227,22 @@ generate_r_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
   time_set <- call("<-", time, call("-", time, rewrite(delay$time)))
 
-  lookup_vars <- expr_if(
+  lookup_vars <- r_expr_if(
     rewrite(dat$meta$use_dde),
     call("<-", state, as.call(c(quote(dde::ylag), time, index))),
     call("<-", state, as.call(c(quote(deSolve::lagvalue), time, index))))
   unpack_vars <- lapply(delay$variables$contents,
-                        unpack_variable, dat$data$elements, state, rewrite)
+                        r_unpack_variable, dat$data$elements, state, rewrite)
 
   eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
-  eqs <- flatten_eqs(lapply(eqs_src, generate_r_equation,
+  eqs <- r_flatten_eqs(lapply(eqs_src, generate_r_equation,
                             dat, rewrite))
 
   ## Only used where there is no default:
   unpack_initial <-
     lapply(dat$data$variable$contents[names(delay$variables$contents)],
            function(x) call("<-", as.name(x$name), rewrite(x$initial)))
-  unpack <- expr_if(call("<=", time, initial_time),
+  unpack <- r_expr_if(call("<=", time, initial_time),
                     unpack_initial, c(lookup_vars, unpack_vars))
 
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
@@ -250,13 +250,13 @@ generate_r_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     lhs <- rewrite(eq$lhs)
     rhs <- rewrite(rhs_expr)
     if (is.null(delay$default)) {
-      body <- expr_local(c(time_set, unpack, eqs, rhs))
+      body <- r_expr_local(c(time_set, unpack, eqs, rhs))
       ret <- call("<-", lhs, body)
     } else {
       default <- rewrite(delay$default)
-      body <- expr_local(list(
+      body <- r_expr_local(list(
         time_set,
-        expr_if(
+        r_expr_if(
           call("<=", time, initial_time),
           default,
           c(lookup_vars, unpack_vars, eqs, rhs))))
@@ -271,13 +271,13 @@ generate_r_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     expr <- generate_r_equation_array_rhs(
       rhs_expr, eq$rhs$index, lhs, rewrite)
     if (is.null(delay$default)) {
-      ret <- expr_local(c(time_set, unpack, eqs, expr))
+      ret <- r_expr_local(c(time_set, unpack, eqs, expr))
     } else {
       default <- generate_r_equation_array_rhs(
         delay$default, eq$rhs$index, lhs, rewrite)
-      ret <- expr_local(list(
+      ret <- r_expr_local(list(
         time_set,
-        expr_if(
+        r_expr_if(
           call("<=", time, initial_time),
           default,
           c(lookup_vars, unpack_vars, eqs, expr))))
@@ -299,7 +299,7 @@ generate_r_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
     ## in for the data.
     index <- lapply(eq$rhs$index, function(x) as.name(x$index))
     lhs_i <- as.call(c(list(quote(`[`), rewrite(eq$lhs)), index))
-    push <- expr_local(list(
+    push <- r_expr_local(list(
       generate_r_equation_array_rhs(
         eq$rhs$value, eq$rhs$index, lhs_i, rewrite),
       as.call(list(call("$", ring, quote(push)), lhs))))
@@ -333,7 +333,7 @@ generate_r_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
     call("(", call("-", rewrite(dat$meta$time), rewrite(eq$delay$time))),
     rewrite(dat$meta$initial_time))
 
-  list(push, expr_if(time_check, default, read))
+  list(push, r_expr_if(time_check, default, read))
 }
 
 
@@ -363,7 +363,7 @@ generate_r_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
              call("-", index[[i]], 1L))
       }
     }
-    pos <- collapse_expr(lapply(seq_len(data_info$rank), f), "+")
+    pos <- r_fold_call("+", lapply(seq_len(data_info$rank), f))
     offset <- rewrite(dat$data[[location]]$contents[[data_info$name]]$offset)
     storage <- if (location == "variable") dat$meta$result else dat$meta$output
     lhs <- call("[[", as.name(storage), call("+", offset, pos))

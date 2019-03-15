@@ -484,12 +484,3 @@ generate_c_equation_array_rhs <- function(value, index, lhs, rewrite) {
   }
   ret
 }
-
-
-c_expr_if <- function(condition, a, b) {
-  c(sprintf_safe("if (%s) {", condition),
-    paste0("  ", c_flatten_eqs(a)),
-    "} else {",
-    paste0("  ", c_flatten_eqs(b)),
-    "}")
-}

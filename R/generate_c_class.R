@@ -7,6 +7,8 @@
 ## TODO: all the core/ptr bits need work because we'll probably move
 ## these out to work directly with a native symbols where possible.
 
+## TODO: The name here is out-of-sync with other naming conventions
+## and should be thought about carefully.
 odin_c_class <- function(base, core, user, features, dll, ir) {
   R6::R6Class(
     "odin_model",
@@ -65,7 +67,7 @@ odin_c_class_set_user <- function(features, env = .GlobalEnv) {
   update_metadata <- quote(private$update_metadata())
 
   body <- list(check_user, set_user_c, set_initial, update_metadata)
-  as_function(args, expr_block(body), env)
+  as_function(args, r_expr_block(body), env)
 }
 
 
@@ -81,7 +83,7 @@ odin_c_class_initial <- function(features, env = .GlobalEnv) {
   } else {
     body <- quote(private$init)
   }
-  as_function(args, expr_block(body), env)
+  as_function(args, r_expr_block(body), env)
 }
 
 
@@ -95,7 +97,7 @@ odin_c_class_update <- function(features, env = .GlobalEnv) {
                    quote(as_integer(step)), quote(as_numeric(y)),
                    PACKAGE = quote(private$dll))
     }
-    as_function(args, expr_block(body), env)
+    as_function(args, r_expr_block(body), env)
   } else {
     NULL
   }
@@ -114,7 +116,7 @@ odin_c_class_deriv <- function(features, env = .GlobalEnv) {
                    quote(as_numeric(t)), quote(as_numeric(y)),
                    PACKAGE = quote(private$dll))
     }
-    as_function(args, expr_block(body), env)
+    as_function(args, r_expr_block(body), env)
   }
 }
 
@@ -135,7 +137,7 @@ odin_c_class_run_continuous <- function(features, env = .GlobalEnv) {
   }
 
   check_t <- quote(t <- as_numeric(t))
-  check_y1 <- expr_if(quote(!is.null(y)), quote(y <- as_numeric(y)))
+  check_y1 <- r_expr_if(quote(!is.null(y)), quote(y <- as_numeric(y)))
   if (features$has_delay) {
     set_initial <- call(".Call", quote(private$core$set_initial),
                         quote(private$ptr), quote(t[[1]]), quote(y),
@@ -149,7 +151,7 @@ odin_c_class_run_continuous <- function(features, env = .GlobalEnv) {
   } else {
     check_interpolate <- NULL
   }
-  check_y2 <- expr_if(quote(is.null(y)), quote(y <- self$initial(t[[1]])))
+  check_y2 <- r_expr_if(quote(is.null(y)), quote(y <- self$initial(t[[1]])))
 
   args_dde <- list(
     quote(dde::dopri), quote(y), quote(t),
@@ -168,18 +170,18 @@ odin_c_class_run_continuous <- function(features, env = .GlobalEnv) {
     args_ds <- c(args_ds, list(control = quote(list(mxhist = n_history))))
     args_dde <- c(args_dde, list(n_history = quote(n_history)))
   }
-  run <- expr_if(quote(private$use_dde),
-                 list(call("<-", quote(ret), as.call(args_dde))),
-                 list(call("<-", quote(ret), as.call(args_ds))))
+  run <- r_expr_if(quote(private$use_dde),
+                   list(call("<-", quote(ret), as.call(args_dde))),
+                   list(call("<-", quote(ret), as.call(args_ds))))
 
-  cleanup <- expr_if(
+  cleanup <- r_expr_if(
     quote(use_names),
     quote(colnames(ret) <- private$ynames),
     quote(colnames(ret) <- NULL))
 
   body <- drop_null(list(check_t, check_y1, set_initial, check_interpolate,
                          check_y2, run, cleanup, quote(ret)))
-  as_function(args, expr_block(body), env)
+  as_function(args, r_expr_block(body), env)
 }
 
 
@@ -187,7 +189,7 @@ odin_c_class_run_discrete <- function(features, env = .GlobalEnv) {
   args <- alist(step =, y = NULL, "..." =, use_names = TRUE, replicate = NULL)
 
   check_step <- quote(step <- as_integer(step))
-  check_y <- expr_if(quote(is.null(y)), quote(y <- self$initial(step)))
+  check_y <- r_expr_if(quote(is.null(y)), quote(y <- self$initial(step)))
   if (features$has_interpolate) {
     check_interpolate <-
       quote(support_check_interpolate_t(step, private$interpolate_t, NULL))
@@ -201,17 +203,17 @@ odin_c_class_run_discrete <- function(features, env = .GlobalEnv) {
                    n_out = quote(private$n_out), quote(...))
   run_args1 <- c(list(quote(dde::difeq)), run_args)
   run_args2 <- c(list(quote(dde::difeq_replicate), quote(replicate)), run_args)
-  run <- expr_if(quote(is.null(replicate)),
-                 list(call("<-", quote(ret), as.call(run_args1))),
-                 list(call("<-", quote(ret), as.call(run_args2))))
-  cleanup <- expr_if(
+  run <- r_expr_if(quote(is.null(replicate)),
+                   list(call("<-", quote(ret), as.call(run_args1))),
+                   list(call("<-", quote(ret), as.call(run_args2))))
+  cleanup <- r_expr_if(
     quote(use_names),
     quote(colnames(ret) <- private$ynames),
     quote(colnames(ret) <- NULL))
 
   body <- drop_null(list(check_step, check_y, check_interpolate, run,
                          cleanup, quote(ret)))
-  as_function(args, expr_block(body), env)
+  as_function(args, r_expr_block(body), env)
 }
 
 
@@ -224,10 +226,10 @@ odin_c_class_update_metadata <- function(features, env = .GlobalEnv) {
     quote(private$output_order <- meta$output_order),
     quote(private$n_out <- meta$n_out),
     call("<-", quote(private$ynames),
-          call("make_names", quote(private$variable_order),
-               quote(private$output_order), features$discrete)),
+         call("make_names", quote(private$variable_order),
+              quote(private$output_order), features$discrete)),
     quote(private$interpolate_t <- meta$interpolate_t))
-  as_function(list(), expr_block(body), env)
+  as_function(list(), r_expr_block(body), env)
 }
 
 
@@ -248,21 +250,21 @@ odin_c_class_initialize <- function(features, env = .GlobalEnv) {
     set_use_dde,
     make_ptr,
     quote(self$set_user(user = user))))
-  as_function(args, expr_block(body), env)
+  as_function(args, r_expr_block(body), env)
 }
 
 
 odin_c_class_contents <- function(features, env = .GlobalEnv) {
   body <- call(".Call", quote(private$core$contents), quote(private$ptr),
                PACKAGE = quote(private$dll))
-  as_function(alist(), expr_block(body), env)
+  as_function(alist(), r_expr_block(body), env)
 }
 
 
 odin_c_class_transform <- function(features, env = .GlobalEnv) {
   args <- alist(y =)
   body <- call("support_transform_variables", quote(y), quote(private))
-  as_function(args, expr_block(body), env)
+  as_function(args, r_expr_block(body), env)
 }
 
 
