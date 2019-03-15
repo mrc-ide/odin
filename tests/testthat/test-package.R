@@ -63,6 +63,35 @@ test_that("ring", {
 })
 
 
+test_that("user_c", {
+  path <- c("pkg/inst/odin/pulse.R", "user_fns.c")
+  res <- odin_create_package("pulse", path, verbose = TEST_VERBOSE)
+  on.exit(res$cleanup())
+
+  mod <- res$env$pulse()
+  t <- seq(0, 3, length.out = 301)
+  y <- mod$run(t)
+
+  expect_equal(y[, 3L], as.numeric(t >= 1 & t < 2))
+  cmp <- -1 + t
+  cmp[t < 1] <- 0
+  cmp[t > 2] <- 1
+  expect_equal(y[, 2L], cmp, tolerance = 1e-5)
+})
+
+
+## This could be improved:
+test_that("pathalogical user c", {
+  tmp <- file.path(tempdir(), "pulse2.R")
+  txt <- sub("user_fns.c", "user_fns2.c", readLines("pkg/inst/odin/pulse.R"))
+  writeLines(txt, tmp)
+  path <- c("pkg/inst/odin/pulse.R", tmp, c("user_fns.c", "user_fns2.c"))
+  expect_error(
+    odin_create_package("pulse", path, verbose = TEST_VERBOSE),
+    "Duplicated entries in included C support not allowed")
+})
+
+
 test_that("error cases", {
   name <- "example"
   pkg <- file.path(tempfile(), name)

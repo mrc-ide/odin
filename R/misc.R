@@ -7,6 +7,17 @@ join_library <- function(x) {
 }
 
 
+combine_include <- function(x) {
+  xx <- unique(unlist(x, FALSE))
+  nms <- vcapply(xx, "[[", "name")
+  if (any(duplicated(nms))) {
+    stop("Duplicated entries in included C support not allowed")
+  }
+  list(declarations = lapply(xx, "[[", "declaration"),
+       definitions = lapply(xx, "[[", "definition"))
+}
+
+
 read_user_c <- function(filename) {
   d <- readLines(filename)
 

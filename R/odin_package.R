@@ -68,9 +68,9 @@ odin_package <- function(path_package) {
     interpolate <- interpolate[[1L]]
   }
 
-  include <- lapply(dat, "[[", "include")
-  if (any(lengths(include)) > 0L) {
-    stop("writeme")
+  include <- drop_null(lapply(dat, "[[", "include"))
+  if (length(include) > 0L) {
+    include <- combine_include(include)
   }
 
   lib_used <- unique(unlist(lapply(dat, function(x) x$lib$used)))
@@ -86,10 +86,12 @@ odin_package <- function(path_package) {
     c_flatten_eqs(lapply(dat, "[[", "struct")),
     c_flatten_eqs(lapply(dat, function(x) x$core$declaration)),
     unname(lib$declarations[lib_used]),
+    c_flatten_eqs(include$declarations),
     c_flatten_eqs(lapply(dat, function(x) x$core$definition)),
     c_flatten_eqs(strsplit(lib$definitions[lib_used], "\n")),
     c_flatten_eqs(ring$definitions),
-    c_flatten_eqs(interpolate$definitions))
+    c_flatten_eqs(interpolate$definitions),
+    c_flatten_eqs(include$definitions))
   code_r <- c(paste("##", header), c_flatten_eqs(lapply(dat, "[[", "r")))
 
   dir.create(file.path(path_package, "R"), FALSE)
