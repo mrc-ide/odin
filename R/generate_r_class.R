@@ -94,10 +94,6 @@ generate_r_class <- function(core, dat, env) {
         ## likely we will need to support a period of the argument
         ## going here as well, with deprecation.
         private$use_dde <- use_dde || private$discrete
-        if (private$use_dde) {
-          loadNamespace("dde")
-        }
-
         private$data <- private$core$create()
         self$set_user(user = user)
       },
