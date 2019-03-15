@@ -14,6 +14,7 @@ This does introduce a few user-visible **breaking changes**:
   - `odin_package()` no longer supports multi-file mode (I don't think this was ever used).
   - Argument order in generated functions, as well as variable/output order, is likely to change but this should not generally be relied upon.
   - The methods for a model object have been extensively rationalised.  I don't think that anything has been removed that anyone is using in their code.
+  - The parameters passed as a list `user` are validated and providing additional parameters is an error
 
 # odin 0.1.2
 
