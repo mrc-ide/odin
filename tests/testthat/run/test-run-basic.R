@@ -677,3 +677,30 @@ test_that("multinomial", {
 
   expect_equal(cmp, y)
 })
+
+
+test_that("local scope of loop variables", {
+  gen <- odin({
+    deriv(x[1,]) <- 1
+    deriv(x[2:n,]) <- 2
+
+    deriv(y[1,]) <- 2
+    deriv(y[2:n,]) <- 4
+
+    initial(x[,]) <- 1
+    initial(y[,]) <- 1
+
+    dim(x) <- c(n, m)
+    dim(y) <- c(n, m)
+    n <- 4
+    m <- 2
+  })
+
+  mod <- gen()
+  y0 <- mod$initial()
+  y <- mod$transform_variables(mod$deriv(0, y0))
+
+  cmp <- matrix(rep(1:2, c(2, 6)), 4, 2, TRUE)
+  expect_equal(y$x, cmp)
+  expect_equal(y$y, cmp * 2)
+})

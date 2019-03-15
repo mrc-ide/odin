@@ -472,7 +472,7 @@ generate_c_equation_array_rhs <- function(value, index, lhs, rewrite) {
                ret)
     }
   }
-  if (!seen_range) {
+  if (!seen_range || !index[[1]]$is_range) {
     ret <- c("{", paste("  ", ret), "}")
   }
   ret

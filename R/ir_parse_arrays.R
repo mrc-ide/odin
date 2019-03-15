@@ -365,7 +365,8 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
       err, source)
   }
 
-  join <- function(i, eqs, depend_alloc = TRUE) {
+  join <- function(nms, eqs, depend_alloc = TRUE) {
+    i <- which(names(eqs) %in% nms)
     use <- unname(eqs[i])
     eq_type <- vcapply(use, "[[", "type")
     eq_use <- use[[1]]
@@ -391,6 +392,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
       extra <- c(eq$name, if (depend_alloc) dims$alloc)
       eq_use$depends$variables <- union(eq_use$depends$variables, extra)
     }
+
     eqs[[i[[1L]]]] <- eq_use
     if (length(i) > 1L) {
       eqs <- eqs[-i[-1L]]
@@ -400,10 +402,10 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 
   if (eq$lhs$name_data %in% variables) {
     j <- vcapply(eqs[i], function(x) x$lhs$special) %in% c("deriv", "update")
-    eqs <- join(i[j], eqs, FALSE)
-    eqs <- join(i[!j], eqs, TRUE)
+    eqs <- join(names(i)[j], eqs, FALSE)
+    eqs <- join(names(i)[!j], eqs, FALSE)
   } else {
-    eqs <- join(i, eqs, TRUE)
+    eqs <- join(names(i), eqs, TRUE)
   }
 
   eqs
