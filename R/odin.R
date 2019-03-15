@@ -133,6 +133,11 @@ odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                           compiler_warnings = compiler_warnings)
 
   ir <- odin_parse_(x, options)
+  odin_generate(ir, options)
+}
+
+
+odin_generate <- function(ir, options) {
   dat <- ir_deserialise(ir)
 
   if (options$verbose) {
