@@ -420,6 +420,10 @@ test_that("sums", {
 test_that("some dim() pathologies", {
   expect_error(odin_parse_(ex("a[] <- user(); dim(a) <- user(1)")),
                "Default in user dimension size not handled")
+  expect_error(odin_parse_(ex("a[] <- user(); dim(a) <- user(min = 2)")),
+               "min and max are not supported for user dimensions")
+  expect_error(odin_parse_(ex("a[] <- user(); dim(a) <- user(max = 2)")),
+               "min and max are not supported for user dimensions")
   expect_error(odin_parse_(ex("dim(a) <- 'foo'")),
                "expected numeric, symbol, user or c")
   expect_error(odin_parse_(ex("dim(a) <- NULL")),
@@ -655,4 +659,17 @@ test_that("no variables", {
     x <- 1
   }),
   "Did not find a deriv() or an update() call", fixed = TRUE)
+})
+
+
+test_that("dim on rhs", {
+  expect_error(odin_parse({
+      deriv(y[,]) <- r[i] * y[i, j]
+      initial(y[,]) <- 1
+      r[] <- 0.1
+      n <- 1
+      dim(y) <- c(3, 4)
+      dim(r) <- dim(y, n)
+  }),
+  "Invalid dim call; expected integer second argument")
 })

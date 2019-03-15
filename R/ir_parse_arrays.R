@@ -57,40 +57,10 @@ ir_parse_arrays <- function(eqs, variables, source) {
   ## The approach here should cope with
   ##
   ## dim(x) <- c(dim(a), dim(b))
-  f <- function(x) {
-    if (x$type == "user" && !is.null(x$user$default)) {
-      ir_parse_error("Default in user dimension size not handled",
-                    x$source, source)
-    }
-    if (x$type == "user" || !(c("length", "dim") %in% x$depends$functions)) {
-      character(0)
-    } else if (is_dim_or_length(x$rhs$value)) {
-      if (length(x$rhs$value) != 2L || !is.name(x$rhs$value[[2]])) {
-        stop("FIXME")
-      }
-      array_dim_name(deparse_str(x$rhs$value[[2]]))
-    } else if (is_call(x$rhs$value, "c")) {
-      ok <- vlapply(as.list(x$rhs$value[-1L]), function(x)
-        is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
-      if (!all(ok)) {
-        ir_parse_error(
-          "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
-          x$source, source)
-      }
-      length(ok)
-    } else {
-      ir_parse_error(
-        "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
-        x$source, source)
-    }
-  }
-
-  deps <- lapply(eqs[is_dim], f)
+  dims_nms <- names(eqs[is_dim])
+  deps <- lapply(eqs[is_dim], function(x)
+    intersect(x$depends$variables, dims_nms))
   dims <- topological_order(deps)
-
-  ## If dim() or length() is used on a non-array element this will
-  ## fail.
-  stopifnot(all(dims %in% names(eqs)))
 
   for (eq in eqs[dims]) {
     eqs <- ir_parse_arrays_collect(eq, eqs, variables, source)
@@ -310,6 +280,18 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
         eq$source, source)
     }
 
+    ## Can't write dim(foo) <- user(1) because we'll always have a value
+    if (!is.null(eq$user$default)) {
+      ir_parse_error("Default in user dimension size not handled",
+                     eq$source, source)
+    }
+    ## Constraints on size are not supported (they will not scale well
+    ## to multiple dimensions I suspect).
+    if (!is.null(eq$user$min) || !is.null(eq$user$max)) {
+      ir_parse_error("min and max are not supported for user dimensions",
+                     eq$source, source)
+    }
+
     ## It's an error to use
     ##   dim(foo) <- user()
     ## without specifying
@@ -330,18 +312,11 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     parent <- deparse_str(eq$rhs$value[[2]])
     rank <- 1L
   } else if (is_call(eq$rhs$value, "dim")) {
-    if (length(eq$rhs$value) == 2L) {
-      parent <- deparse_str(eq$rhs$value[[2]])
-      i <- vcapply(eqs, function(x) x$lhs$name_data) == parent
-      rank <- viapply(eqs[i], function(x) x$array$rank)
-      stopifnot(length(unique(rank)) == 1)
-      rank <- rank[[1L]]
-    } else if (length(eq$rhs$value) == 3L) {
-      if (!is_integer_like(eq$rhs$value[[3L]])) {
-        stop("invalid dim call")
-      }
-      rank <- 1L
+    if (!is_integer_like(eq$rhs$value[[3]])) {
+      ir_parse_error("Invalid dim call; expected integer second argument",
+                     eq$source, source)
     }
+    rank <- 1L
   } else {
     if (is.symbol(eq$rhs$value) || is.numeric(eq$rhs$value)) {
       rank <- 1L
@@ -525,9 +500,6 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
     if (!is.recursive(x)) {
       x
     } else if (is_call(x, "sum")) {
-      if (length(x) != 2L) {
-        stop("sum requires two args")
-      }
       target <- x[[2L]]
       if (is.name(target)) {
         return(x)
