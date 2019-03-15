@@ -1,3 +1,18 @@
+# odin 0.2.0
+
+A complete rewrite of the odin engine, designed to increase future maintainability but have few user-visible effects.  In brief, this does add
+
+* Ability to transpile to R (removing the need for a C compiler, though creating code that is necessarily much slower than the compiled verison).  Pass `target = "r"` to use this.
+* A new intermediate representation for odin models that can be used to determine features of a model
+* Better caching ([#64](https://github.com/mrc-ide/odin/issues/64))
+* Delays on discrete time models are much more efficient and work properly with stochastic equations ([#72](https://github.com/mrc-ide/odin/issues/72), [#98](https://github.com/mrc-ide/odin/issues/98))
+
+This does introduce a few user-visible **breaking changes**:
+  - use of array indices outside of an array subset (e.g., `x[] <- i`) produces output that is off-by-one compared with the previous version (see [#136](https://github.com/mrc-ide/odin/issues/136))
+  - The "safe" mode has been removed, at least for now.  This failed to compile for complex models and was not well used.  A better static check mechanism will be introduced ([#148](https://github.com/mrc-ide/odin/issues/148))
+  - Arguments to `odin()` have been modified slightly
+  - `odin_package()` no longer supports multi-file mode (I don't think this was ever used).
+
 # odin 0.1.2
 
 * Validate parameters in input
