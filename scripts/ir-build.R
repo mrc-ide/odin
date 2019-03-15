@@ -6,6 +6,6 @@ files <- dir(path, full.names = TRUE, pattern = re_ext)
 options <- odin_options(pretty = FALSE, validate = TRUE)
 for (f in files) {
   message(f)
-  ir <- suppressMessages(odin_build_ir2(f, options))
+  ir <- suppressMessages(ir_parse(f, options))
   writeLines(ir, sub(re_ext, ".json", f))
 }

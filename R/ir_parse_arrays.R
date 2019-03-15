@@ -59,7 +59,7 @@ ir_parse_arrays <- function(eqs, variables, source) {
   ## dim(x) <- c(dim(a), dim(b))
   f <- function(x) {
     if (x$type == "user" && !is.null(x$user$default)) {
-      ir_odin_error("Default in user dimension size not handled",
+      ir_parse_error("Default in user dimension size not handled",
                     x$source, source)
     }
     if (x$type == "user" || !(c("length", "dim") %in% x$depends$functions)) {
@@ -73,13 +73,13 @@ ir_parse_arrays <- function(eqs, variables, source) {
       ok <- vlapply(as.list(x$rhs$value[-1L]), function(x)
         is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
       if (!all(ok)) {
-        ir_odin_error(
+        ir_parse_error(
           "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
           x$source, source)
       }
       length(ok)
     } else {
-      ir_odin_error(
+      ir_parse_error(
         "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
         x$source, source)
     }
@@ -127,10 +127,10 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   err <- !(is_array | is_inplace | is_dim | is_user | is_copy |
            is_delay_array | is_interpolate) & name_data %in% name_data[is_dim]
   if (any(err)) {
-    ir_odin_error(
+    ir_parse_error(
       sprintf("Array variables must always assign as arrays (%s)",
               paste(unique(name_data[err]), collapse = ", ")),
-      ir_get_lines(eqs[err]), source)
+      ir_parse_error_lines(eqs[err]), source)
   }
 
   ## Prevent:
@@ -148,27 +148,27 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   for (i in names(prevent)) {
     err <- check & prevent[[i]]
     if (any(err)) {
-      ir_odin_error(
+      ir_parse_error(
         sprintf("%s may only be used on a single-line array", i),
-        ir_get_lines(eqs[names(eqs) %in% names_if(err)]), source)
+        ir_parse_error_lines(eqs[names(eqs) %in% names_if(err)]), source)
     }
   }
 
   ## Then, start checking for duplicates:
   err <- is_duplicated(names(eqs)) & !is_array & !is_inplace
   if (any(err)) {
-    ir_odin_error(
+    ir_parse_error(
       sprintf("Duplicate entries must all be array assignments (%s)",
               paste(unique(name_data[err]), collapse = ", ")),
-      ir_get_lines(eqs[err]), source)
+      ir_parse_error_lines(eqs[err]), source)
   }
 
   err <- setdiff(name_data[is_array], name_data[is_dim])
   if (length(err) > 0L) {
-    ir_odin_error(
+    ir_parse_error(
       sprintf("Missing dim() call for %s, assigned as an array",
               paste(unique(err), collapse = ", ")),
-      ir_get_lines(eqs[name_data %in% err]), source)
+      ir_parse_error_lines(eqs[name_data %in% err]), source)
   }
 }
 
@@ -182,7 +182,7 @@ ir_parse_array_check_usage2 <- function(eqs, source) {
   rank <- rank[rank > 0 & !duplicated(names(rank))]
 
   for (eq in eqs) {
-    ir_odin_parse_arrays_check_dim(eq, rank, source)
+    ir_parse_arrays_check_dim(eq, rank, source)
   }
 
   nms_arrays <- names(rank)
@@ -210,11 +210,11 @@ ir_parse_array_check_usage2 <- function(eqs, source) {
 }
 
 
-ir_odin_parse_arrays_check_dim <- function(eq, rank, source) {
+ir_parse_arrays_check_dim <- function(eq, rank, source) {
   ## Now, we need to collect and check all usages of length and check.
   ## If we extract all usages we can check them.
   throw <- function(fmt, ...) {
-    ir_odin_error(sprintf(fmt, ...), eq$source, source)
+    ir_parse_error(sprintf(fmt, ...), eq$source, source)
   }
   check <- function(x) {
     if (is.recursive(x)) {
@@ -304,7 +304,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
   user_dim <- eq$type == "user"
   if (user_dim) {
     if (eq$lhs$name_data %in% variables) {
-      ir_odin_error(
+      ir_parse_error(
         sprintf("Can't specify user-sized variables (for %s)",
                 eq$lhs$name_data),
         eq$source, source)
@@ -318,7 +318,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     ## etc.
     eq_data <- eqs[[eq$lhs$name_data]]
     if (is.null(eq_data) || eq_data$type != "user") {
-      ir_odin_error(
+      ir_parse_error(
         sprintf("No array assignment found for %s, but dim() found",
                 eq$lhs$name_data),
         eq$source, source)
@@ -350,7 +350,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
       ok <- vlapply(value, function(x)
         is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
       if (!all(ok)) {
-        ir_odin_error(
+        ir_parse_error(
           "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
           eq$source, source)
       }
@@ -358,7 +358,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
       eq$depends$functions <- setdiff(eq$depends$functions, "c")
       eq$rhs$value <- if (rank == 1L) value[[1L]] else value
     } else {
-      ir_odin_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
+      ir_parse_error("Invalid dim() rhs; expected numeric, symbol, user or c()",
                     eq$source, source)
     }
   }
@@ -375,7 +375,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     x$type != "copy"))
 
   if (length(i) == 0L) {
-    ir_odin_error(sprintf(
+    ir_parse_error(sprintf(
       "Array variable %s is never assigned; can't work out rank",
       eq$lhs$name_data),
       eq$source, source)
@@ -383,8 +383,8 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 
   rank_used <- viapply(eqs[i], function(el) length(el$lhs$index))
   if (any(rank_used != rank)) {
-    err <- ir_get_lines(eqs[i][rank_used != rank])
-    ir_odin_error(
+    err <- ir_parse_error_lines(eqs[i][rank_used != rank])
+    ir_parse_error(
       sprintf("Array dimensionality is not consistent (expected %d %s)",
               rank, ngettext(rank, "index", "indices")),
       err, source)
@@ -553,7 +553,7 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
         if (!all(ok)) {
           msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"),
                         collapse = "\n")
-          ir_odin_error(sprintf("Invalid array use in sum():\n%s", msg),
+          ir_parse_error(sprintf("Invalid array use in sum():\n%s", msg),
                         line, source)
         }
         f <- function(x) {
@@ -563,7 +563,7 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
         }
         as.call(c(list(quote(odin_sum), target), unlist(lapply(tmp, f))))
       } else {
-        ir_odin_error("Argument to sum must be a symbol or indexed array",
+        ir_parse_error("Argument to sum must be a symbol or indexed array",
                       line, source)
       }
     } else {
@@ -612,8 +612,8 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
       any(TIME %in% x$lhs$depends$variables) ||
       any(TIME %in% x$rhs$depends$variables))]
     if (any(i)) {
-      ir_odin_error("Array indices may not be time",
-                    ir_get_lines(eqs[i]), source)
+      ir_parse_error("Array indices may not be time",
+                    ir_parse_error_lines(eqs[i]), source)
     }
   }
 
@@ -625,9 +625,9 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
   if (length(err) > 0L) {
     i <- which(is_array)[vlapply(eqs[is_array], function(x)
       any(err %in% x$lhs$depends$variables))]
-    ir_odin_error(sprintf("Array indices may not be arrays (%s used)",
+    ir_parse_error(sprintf("Array indices may not be arrays (%s used)",
                           pastec(err)),
-                  ir_get_lines(eqs[i]), source)
+                  ir_parse_error_lines(eqs[i]), source)
   }
 }
 
@@ -656,9 +656,9 @@ ir_parse_arrays_find_integers <- function(eqs, variables, source) {
     ## TODO: this can be relaxed by using an additional variable
     tmp <- eqs[integer_inplace][err]
     rhs <- tmp[[1L]]$lhs$special
-    ir_odin_error(
+    ir_parse_error(
       sprintf("Can't use inplace integer expression in %s", rhs),
-      ir_get_lines(tmp), source)
+      ir_parse_error_lines(tmp), source)
   }
 
   ## TODO: this is not ideal because it has the potential to set too
@@ -717,7 +717,7 @@ ir_parse_arrays_used_as_index <- function(eqs) {
 
 ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
   throw <- function(...) {
-    ir_odin_error(sprintf(...), eq$source, source)
+    ir_parse_error(sprintf(...), eq$source, source)
   }
 
   ## TODO: check that the right number of indices are used when using sum?
@@ -871,7 +871,7 @@ ir_parse_arrays_check_naked_index <- function(eqs, no_check_naked_index,
       "This note will disappear in a version after odin 1.0.0",
       sep = "\n")
     x <- paste(sort(unique(unlist(used, FALSE, FALSE))), collapse = ", ")
-    ir_odin_note(sprintf(msg, x), ir_get_lines(eqs[i]), source)
+    ir_parse_note(sprintf(msg, x), ir_parse_error_lines(eqs[i]), source)
   }
 }
 

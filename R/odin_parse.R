@@ -38,5 +38,5 @@ odin_parse <- function(x, type = NULL, options = NULL) {
 ##' @rdname odin_parse
 odin_parse_ <- function(x, options = NULL, type = NULL) {
   options <- odin_options(options = options)
-  odin_build_ir2(x, options)
+  ir_parse(x, options)
 }

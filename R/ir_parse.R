@@ -1,5 +1,4 @@
-odin_build_ir2 <- function(x, options, type = NULL) {
-  ## TODO: this gets looked at later
+ir_parse <- function(x, options, type = NULL) {
   xp <- odin_preprocess(x, type)
   root <- xp$root
   exprs <- xp$exprs
@@ -10,7 +9,6 @@ odin_build_ir2 <- function(x, options, type = NULL) {
   source <- dat$source
 
   ## Data elements:
-
   config <- ir_parse_config(eqs, base, root, source)
   features <- ir_parse_features(eqs, config, source)
 
@@ -112,8 +110,8 @@ ir_parse_packing <- function(eqs, variables, source) {
   if (length(err) > 0L) {
     k <- which(i | j)
     k <- k[vlapply(eqs[k], function(x) x$lhs$name_data %in% err)]
-    ir_odin_error("output() name cannot be the same as variable name",
-                  ir_get_lines(eqs[k]), source)
+    ir_parse_error("output() name cannot be the same as variable name",
+                   ir_parse_error_lines(eqs[k]), source)
   }
 
   list(variables = pack_variables,
@@ -214,19 +212,19 @@ ir_parse_find_variables <- function(eqs, discrete, source) {
               rhs_fun, paste(msg_vars, collapse = ", "))
     }
     tmp <- eqs[is_var | is_initial]
-    ir_odin_error(sprintf(
+    ir_parse_error(sprintf(
       "%s() and initial() must contain same set of equations:\n%s\n",
       rhs_fun, paste(msg$get(), collapse = "\n")),
-      ir_get_lines(tmp), source)
+      ir_parse_error_lines(tmp), source)
   }
 
   err <- names(eqs) %in% vars
   if (any(err)) {
-    ir_odin_error(
+    ir_parse_error(
       sprintf("variables on lhs must be within %s() or initial() (%s)",
               rhs_fun,
               paste(intersect(vars, names(eqs)), collapse = ", ")),
-      ir_get_lines(eqs[err]), source)
+      ir_parse_error_lines(eqs[err]), source)
   }
 
   unique(unname(vars))
@@ -270,8 +268,8 @@ ir_parse_dependencies <- function(eqs, variables, time_name, source) {
     msg <- sort(unique(unlist(msg)))
     ## TODO: this is not *variable* as such.
     fmt <- ngettext(length(msg), "Unknown variable %s",  "Unknown variables %s")
-    ir_odin_error(sprintf(fmt, paste(msg, collapse = ", ")),
-                  ir_get_lines(eqs[i]), source)
+    ir_parse_error(sprintf(fmt, paste(msg, collapse = ", ")),
+                   ir_parse_error_lines(eqs[i]), source)
   }
 
   order <- topological_order(deps)
@@ -323,9 +321,9 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name, source) {
   err <- stage[len] == STAGE_TIME
 
   if (any(err)) {
-    ir_odin_error(
+    ir_parse_error(
       "Array extent is determined by time",
-      ir_get_lines(eqs[len[err]]), source)
+      ir_parse_error_lines(eqs[len[err]]), source)
   }
 
   stage
@@ -419,12 +417,12 @@ ir_parse_features <- function(eqs, config, source) {
 
   if (any(is_update) && any(is_deriv)) {
     tmp <- eqs[is_deriv | is_update]
-    ir_odin_error("Cannot mix deriv() and update()",
-                  ir_get_lines(tmp), source)
+    ir_parse_error("Cannot mix deriv() and update()",
+                   ir_parse_error_lines(tmp), source)
   }
   if (!any(is_update | is_deriv)) {
-    ir_odin_error("Did not find a deriv() or an update() call",
-                  NULL, NULL)
+    ir_parse_error("Did not find a deriv() or an update() call",
+                   NULL, NULL)
   }
 
   list(discrete = any(is_update),
@@ -483,9 +481,9 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     ## But at this point all of these can be ripped out so we'll just
     ## report them all:
     what <- ngettext(length(unused), "equation", "equations")
-    ir_odin_note(sprintf("Unused %s: %s",
-                         what, paste(sort(unused), collapse = ", ")),
-                 ir_get_lines(eqs[unused]), source)
+    ir_parse_note(sprintf("Unused %s: %s",
+                          what, paste(sort(unused), collapse = ", ")),
+                  ir_parse_error_lines(eqs[unused]), source)
   }
 
   list(
@@ -524,8 +522,8 @@ ir_parse_exprs <- function(exprs) {
   }
   err <- which(!vlapply(exprs, expr_is_assignment))
   if (length(err) > 0L) {
-    ir_odin_error("Every line must contain an assignment",
-                  unlist(lines[err]), src)
+    ir_parse_error("Every line must contain an assignment",
+                   unlist(lines[err]), src)
   }
 
   eqs <- Map(ir_parse_expr, exprs, lines, MoreArgs = list(source = src))
@@ -562,8 +560,8 @@ ir_parse_expr <- function(expr, line, source) {
   ## Below here uses both the lhs and rhs:
   if (type == "user") {
     if (!is.null(lhs$special) && !identical(lhs$special, "dim")) {
-      ir_odin_error("user() only valid for non-special variables",
-                    line, source)
+      ir_parse_error("user() only valid for non-special variables",
+                     line, source)
     }
     if (rhs$user$integer) {
       lhs$storage_mode <- "int"
@@ -574,8 +572,8 @@ ir_parse_expr <- function(expr, line, source) {
   ## could be delayed dzdt but that seems unlikely.  Definitely cannot
   ## be most of the others.
   if (type == "delay" && !is.null(lhs$special)) {
-    ir_odin_error("delay() only valid for non-special variables",
-                  line, source)
+    ir_parse_error("delay() only valid for non-special variables",
+                   line, source)
   }
 
   if (identical(lhs$special, "output")) {
@@ -609,7 +607,7 @@ ir_parse_expr <- function(expr, line, source) {
     !identical(lhs$special, "update") &&
     type != "copy"
   if (is_self_ref) {
-    ir_odin_error(
+    ir_parse_error(
       "Self referencing expressions not allowed (except for arrays)",
       line, source)
   }
@@ -631,7 +629,7 @@ ir_parse_expr_lhs <- function(lhs, line, source) {
     fun <- deparse_str(lhs[[1L]])
     if (fun %in% SPECIAL_LHS) {
       if (length(lhs) != 2L) {
-        ir_odin_error("Invalid length special function on lhs", line, source)
+        ir_parse_error("Invalid length special function on lhs", line, source)
       }
       is_special <- TRUE
       special <- fun
@@ -641,8 +639,8 @@ ir_parse_expr_lhs <- function(lhs, line, source) {
 
   if (is_call(lhs, "[")) {
     if (is_special && special %in% c("dim", "config")) {
-      ir_odin_error("dim() must be applied to a name only (not an array)",
-                    line, source)
+      ir_parse_error("dim() must be applied to a name only (not an array)",
+                     line, source)
     }
     is_array <- TRUE
     tmp <- ir_parse_expr_lhs_index(lhs, line, source)
@@ -683,7 +681,7 @@ ir_parse_expr_lhs <- function(lhs, line, source) {
 
 ir_parse_expr_lhs_index <- function(lhs, line, source) {
   if (!is.name(lhs[[2L]])) {
-    ir_odin_error("array lhs must be a name", line, source)
+    ir_parse_error("array lhs must be a name", line, source)
   }
 
   index <- as.list(lhs[-(1:2)])
@@ -723,15 +721,15 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
     is_range <- !vlapply(extent_min, is.null)
   } else {
     msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse = "\n")
-    ir_odin_error(sprintf("Invalid array use on lhs:\n%s", msg),
-                  line, source)
+    ir_parse_error(sprintf("Invalid array use on lhs:\n%s", msg),
+                   line, source)
   }
 
   name <- deparse(lhs[[2L]])
   deps <- find_symbols(index)
   err <- intersect(INDEX, deps$variables)
   if (length(err) > 0L) {
-    ir_odin_error(
+    ir_parse_error(
       sprintf("Special index variable %s may not be used on array lhs",
               pastec(err)), line, source)
   }
@@ -760,29 +758,29 @@ ir_parse_expr_check_lhs_name <- function(lhs, special, line, source) {
     } else {
       msg <- sprintf("Unhandled expression %s on lhs", fun)
     }
-    ir_odin_error(msg, line, source)
+    ir_parse_error(msg, line, source)
   }
 
   ## things like atomic will raise here: 1 <- 2
   if (!is.name(lhs)) {
     if (is.null(special)) {
-      ir_odin_error("Invalid left hand side", line, source)
+      ir_parse_error("Invalid left hand side", line, source)
     } else {
-      ir_odin_error(sprintf("Argument to %s must be a symbol", special),
-                    line, source)
+      ir_parse_error(sprintf("Argument to %s must be a symbol", special),
+                     line, source)
     }
   }
 
   name <- deparse(lhs)
 
   if (name %in% RESERVED) {
-    ir_odin_error("Reserved name for lhs", line, source)
+    ir_parse_error("Reserved name for lhs", line, source)
   }
   re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse = "|"))
   if (grepl(re, name)) {
-    ir_odin_error(sprintf("Variable name cannot start with '%s_'",
-                          sub(re, "\\1", name)),
-                  line, source)
+    ir_parse_error(sprintf("Variable name cannot start with '%s_'",
+                           sub(re, "\\1", name)),
+                   line, source)
   }
 
   name
@@ -807,13 +805,13 @@ ir_parse_expr_rhs_expression <- function(rhs, line, source) {
   depends <- find_symbols(rhs)
   err <- intersect(setdiff(SPECIAL_LHS, "dim"), depends$functions)
   if (length(err) > 0L) {
-    ir_odin_error(sprintf("Function %s is disallowed on rhs",
-                          paste(unique(err), collapse = ", ")), line, source)
+    ir_parse_error(sprintf("Function %s is disallowed on rhs",
+                           paste(unique(err), collapse = ", ")), line, source)
   }
   err <- intersect(SPECIAL_RHS, depends$functions)
   if (length(err) > 0L) {
-    ir_odin_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
-                  line, source)
+    ir_parse_error(sprintf("%s() must be the only call on the rhs", err[[1]]),
+                   line, source)
   }
   err <- intersect(c(SPECIAL_LHS, SPECIAL_RHS), depends$variables)
   if (length(err) > 0L) {
@@ -822,7 +820,7 @@ ir_parse_expr_rhs_expression <- function(rhs, line, source) {
     ## pretty niche.
     ##
     ## NOTE: could expand this to all allowed functions?
-    ir_odin_error(sprintf(
+    ir_parse_error(sprintf(
       "Function '%s' is disallowed as symbol on rhs", err[[1L]]),
       line, source)
   }
@@ -837,7 +835,7 @@ ir_parse_expr_rhs_expression <- function(rhs, line, source) {
   }
 
   if (":" %in% depends$functions) {
-    ir_odin_error("Range operator ':' may not be used on rhs", line, source)
+    ir_parse_error("Range operator ':' may not be used on rhs", line, source)
   }
 
   stochastic <- any(depends$functions %in% names(FUNCTIONS_STOCHASTIC))
@@ -853,16 +851,16 @@ ir_parse_expr_rhs_user <- function(rhs, line, source) {
 
   nms <- names(args) %||% rep("", length(args))
   if (any(!nzchar(nms[-1]))) {
-    ir_odin_error("Only first argument to user() may be unnamed", line, source)
+    ir_parse_error("Only first argument to user() may be unnamed", line, source)
   }
 
   m <- match.call(function(default, integer, min, max, ...) NULL, rhs, FALSE)
   extra <- m[["..."]]
   if (!is.null(extra)) {
-    ir_odin_error(sprintf("Unknown %s to user(): %s",
-                          ngettext(length(extra), "argument", "arguments"),
-                          paste(squote(names(extra))), collapse = ", "),
-                  line, source)
+    ir_parse_error(sprintf("Unknown %s to user(): %s",
+                           ngettext(length(extra), "argument", "arguments"),
+                           paste(squote(names(extra))), collapse = ", "),
+                   line, source)
   }
 
   ## This looks through default, integer, min, max
@@ -873,10 +871,10 @@ ir_parse_expr_rhs_user <- function(rhs, line, source) {
   ## don't want to relax that until it's clear enough how arrays
   ## get treated here.
   if (length(deps$functions) > 0L) {
-    ir_odin_error("user() call must not use functions", line, source)
+    ir_parse_error("user() call must not use functions", line, source)
   }
   if (length(deps$variables) > 0L) {
-    ir_odin_error("user() call must not reference variables", line, source)
+    ir_parse_error("user() call must not reference variables", line, source)
   }
   ## TODO: the 'dim' part here is not actually known yet!
   user <- list(default = m$default,
@@ -891,30 +889,30 @@ ir_parse_expr_rhs_user <- function(rhs, line, source) {
 ir_parse_expr_rhs_interpolate <- function(rhs, line, source) {
   na <- length(rhs) - 1L
   if (na < 2L || na > 3L) {
-    ir_odin_error("interpolate() requires two or three arguments",
-                  line, source)
+    ir_parse_error("interpolate() requires two or three arguments",
+                   line, source)
   }
 
   m <- match.call(function(t, y, type) NULL, rhs, FALSE)
 
   type <- m$type %||% "spline"
   if (!is.character(type)) {
-    ir_odin_error("Expected a string constant for interpolation type",
-                  line, source)
+    ir_parse_error("Expected a string constant for interpolation type",
+                   line, source)
   }
   if (!(type %in% INTERPOLATION_TYPES)) {
-    ir_odin_error(sprintf(
+    ir_parse_error(sprintf(
       "Invalid interpolation type; must be one: of %s",
       paste(INTERPOLATION_TYPES, collapse = ", ")),
       line, source)
   }
   if (!is.symbol(m$t)) {
-    ir_odin_error("interpolation time argument must be a symbol",
-                  line, source)
+    ir_parse_error("interpolation time argument must be a symbol",
+                   line, source)
   }
   if (!is.symbol(m$y)) {
-    ir_odin_error("interpolation target argument must be a symbol",
-                  line, source)
+    ir_parse_error("interpolation target argument must be a symbol",
+                   line, source)
   }
   t <- as.character(m$t)
   y <- as.character(m$y)
@@ -927,8 +925,8 @@ ir_parse_expr_rhs_interpolate <- function(rhs, line, source) {
 ir_parse_expr_rhs_delay <- function(rhs, line, source) {
   na <- length(rhs) - 1L
   if (na < 2L || na > 3L) {
-    ir_odin_error("delay() requires two or three arguments",
-                  line, source)
+    ir_parse_error("delay() requires two or three arguments",
+                   line, source)
   }
 
   delay_expr <- rhs[[2L]]
@@ -946,7 +944,7 @@ ir_parse_expr_rhs_delay <- function(rhs, line, source) {
            delay_default$depends$functions)
 
   if ("delay" %in% fns) {
-    ir_odin_error("delay() may not be nested", line, source)
+    ir_parse_error("delay() may not be nested", line, source)
   }
 
   if (TIME %in% deps_delay_expr$variables) {
@@ -962,8 +960,8 @@ ir_parse_expr_rhs_delay <- function(rhs, line, source) {
     ## because "time" there should probably be the original time
     ## not the delayed time (so t - delay).  Can probably just
     ## mask the variables.
-    ir_odin_error("delay() may not refer to time as that's confusing",
-                  line, source)
+    ir_parse_error("delay() may not refer to time as that's confusing",
+                   line, source)
   }
 
   depends <- join_deps(list(deps_delay_time, delay_default$depends))
@@ -1014,8 +1012,8 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
     ## TODO: duplicates main dependency checking errors
     fmt <-
       ngettext(length(msg), "Unknown variable %s", "Unknown variables %s")
-    ir_odin_error(sprintf(fmt, paste(msg, collapse = ", ")),
-                  eq$source, source)
+    ir_parse_error(sprintf(fmt, paste(msg, collapse = ", ")),
+                   eq$source, source)
   }
 
   eq_t <- eqs[[eq_alloc$interpolate$t]]
@@ -1027,16 +1025,16 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
 
   if (eq_t$array$rank != 1L) {
     ## TODO: These error messages should reflect both equations
-    ir_odin_error(sprintf("Expected %s to be a vector for interpolation",
-                          eq_t$name),
-                  eq_t$source, source)
+    ir_parse_error(sprintf("Expected %s to be a vector for interpolation",
+                           eq_t$name),
+                   eq_t$source, source)
   }
 
   if (eq_y$array$rank != rank_z + 1L) {
     type <-
       if (rank_z == 0L) "vector" else paste(rank_z + 1, "dimensional array")
-    ir_odin_error(sprintf("Expected %s to be a %s", eq_y$name, type),
-                  eq_y$source, source)
+    ir_parse_error(sprintf("Expected %s to be a %s", eq_y$name, type),
+                   eq_y$source, source)
   }
 
   eq_alloc$interpolate$equation <- nm
@@ -1059,45 +1057,6 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
 
   stopifnot(sum(names(eqs) == eq$name) == 1)
   c(eqs[names(eqs) != eq$name], extra)
-}
-
-
-## We're going to need to wrap this up like testthat I think, so that
-## we can catch these and group them together.  But leaving that for
-## now.
-ir_odin_error <- function(msg, line, source) {
-  ret <- ir_odin_info_data(msg, unique(line), source, "error")
-  class(ret) <- c("odin_error", "error", "condition")
-  stop(ret)
-}
-
-
-ir_odin_note <- function(msg, line, source) {
-  announce <- .odin$note_function %||% function(x) message(x$message)
-  ret <- ir_odin_info_data(msg, unique(line), source, "message")
-  announce(ret)
-}
-
-
-ir_odin_info_data <- function(msg, line, source, type) {
-  if (length(line) > 0L) {
-    expr <- source[line]
-    str <- sprintf(ifelse(is.na(line), "%s", "%s # (line %s)"), expr, line)
-    message <- paste0(msg, paste0("\n\t", str, collapse = ""))
-  } else {
-    expr <- NULL
-    message <- msg
-  }
-  list(message = message,
-       msg = msg,
-       line = line,
-       expr = expr,
-       type = type)
-}
-
-
-ir_get_lines <- function(eqs) {
-  unlist(unname(lapply(eqs, "[[", "source")))
 }
 
 
@@ -1130,10 +1089,10 @@ ir_parse_check_functions <- function(eqs, discrete, include, source) {
     err <- intersect(all_used_functions, names(FUNCTIONS_STOCHASTIC))
     if (length(err) > 0L) {
       tmp <- eqs[vlapply(used_functions, function(x) any(x %in% err))]
-      ir_odin_error(sprintf(
+      ir_parse_error(sprintf(
         "Stochastic functions not allowed in ODE models (used: %s)",
         pastec(err)),
-        ir_get_lines(tmp), source)
+        ir_parse_error_lines(tmp), source)
     }
   }
 
@@ -1148,10 +1107,10 @@ ir_parse_check_functions <- function(eqs, discrete, include, source) {
   err <- setdiff(all_used_functions, allowed)
   if (length(err) > 0L) {
     tmp <- eqs[vlapply(used_functions, function(x) any(x %in% err))]
-    ir_odin_error(sprintf("Unsupported %s: %s",
-                       ngettext(length(err), "function", "functions"),
-                       pastec(err)),
-                  ir_get_lines(tmp), source)
+    ir_parse_error(sprintf("Unsupported %s: %s",
+                           ngettext(length(err), "function", "functions"),
+                           pastec(err)),
+                   ir_parse_error_lines(tmp), source)
   }
 }
 
@@ -1358,7 +1317,8 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
       msg <- sprintf("Missing %s in delay expression: %s (for delay %s)",
                      ngettext(length(err), "variable", "variables"),
                      paste(err, collapse = ", "), eq$name)
-      ir_odin_error(msg, ir_get_lines(eqs[union(pos, eq$name)]), source)
+      ir_parse_error(msg, ir_parse_error_lines(eqs[union(pos, eq$name)]),
+                     source)
     }
     tmp <- lapply(eqs[v], function(x) x$depends$variables)
     deps <- c(deps, tmp)
@@ -1401,7 +1361,7 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
            setNames(FUNCTIONS[FUNCTIONS_RENAME], names(FUNCTIONS_RENAME)))
 
   throw <- function(...) {
-    ir_odin_error(sprintf(...), line, source)
+    ir_parse_error(sprintf(...), line, source)
   }
 
   check_usage <- function(x) {
@@ -1450,12 +1410,12 @@ ir_parse_expr_rhs_check_inplace <- function(lhs, rhs, line, source) {
 
   ## Start strict, liberalise later
   if (!(fn %in% names(FUNCTIONS_INPLACE)) || length(depends$functions) > 0L) {
-    ir_odin_error(sprintf(
+    ir_parse_error(sprintf(
       "At present, inplace function '%s' must use no functions", fn),
       line, source)
   }
   if (is.null(lhs$index)) {
-    ir_odin_error(sprintf(
+    ir_parse_error(sprintf(
       "Expected an array on the lhs of inplace function '%s'", fn),
       line, source)
   }

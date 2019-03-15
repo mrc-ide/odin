@@ -1,5 +1,4 @@
-##' @importFrom stats na.omit setNames
-##' @importFrom utils modifyList
+##' @importFrom stats setNames
 vlapply <- function(X, FUN, ...) {
   vapply(X, FUN, logical(1), ...)
 }
