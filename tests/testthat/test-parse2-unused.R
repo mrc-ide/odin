@@ -69,3 +69,12 @@ test_that("dimension names get cleaned", {
       config(base) <- "mod"
     }), "Unused equation: y0")
 })
+
+
+test_that("don't be too noisy", {
+  expect_silent(odin_parse({
+    initial(y[, , ]) <- 1
+    deriv(y[, , ]) <- y[i, j, k] * 0.1
+    dim(y) <- c(2, 3, 4)
+  }))
+})

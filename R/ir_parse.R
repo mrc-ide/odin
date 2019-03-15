@@ -371,6 +371,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
     eq_offset <- function(name, value) {
       list(name = name,
            type = "expression_scalar",
+           implicit = TRUE,
            source = integer(0),
            depends = find_symbols(value),
            lhs = list(name_data = name, name_equation = name, name_lhs = name,
@@ -472,7 +473,8 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
   core <- c(core, names(eqs)[type %in% ignore])
 
   used <- unique(c(core, unlist(dependencies[core], FALSE, FALSE)))
-  unused <- setdiff(names(eqs), used)
+  check <- names_if(vlapply(eqs, function(x) !isTRUE(x$implicit)))
+  unused <- setdiff(check, used)
 
   if (length(unused) > 0L) {
     ## NOTE: at this point it would be nicest to unravel the

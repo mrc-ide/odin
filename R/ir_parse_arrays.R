@@ -445,6 +445,7 @@ ir_parse_arrays_dims <- function(eq, rank, variables, output) {
         lhs = list(name_lhs = d, name_data = d, name_equation = d,
                    storage_mode = "int"),
         rhs = list(value = eq$rhs$value[[i]]),
+        implicit = TRUE,
         source = eq$source,
         depends = depends_dim)
     }
@@ -469,6 +470,7 @@ ir_parse_arrays_dims <- function(eq, rank, variables, output) {
           lhs = list(name_lhs = d, name_data = d, name_equation = d,
                      storage_mode = "int"),
           rhs = list(value = r_fold_call("*", dims[j])),
+          implicit = TRUE,
           source = eq$source,
           depends = list(functions = character(0),
                          variables = dimnames$dim[j]))
