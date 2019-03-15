@@ -180,3 +180,14 @@ sprintf_safe <- function(fmt, ...) {
 hash_string <- function(x) {
   digest::digest(charToRaw(x), serialize = FALSE)
 }
+
+
+## Wrappers around jsonlite
+to_json <- function(dat, pretty = TRUE) {
+  jsonlite::toJSON(dat, null = "null", pretty = pretty, digits = NA)
+}
+
+
+from_json <- function(x) {
+  jsonlite::fromJSON(x, simplifyVector = FALSE)
+}
