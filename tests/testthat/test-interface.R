@@ -109,4 +109,9 @@ test_that("force a vector of strings (parse)", {
 })
 
 
+test_that("odin_ir requires sensible object", {
+  expect_error(odin_ir(NULL), "Expected an odin_generator or odin_model object")
+})
+
+
 unload_dlls()
