@@ -1,7 +1,7 @@
 context("model cache")
 
 test_that("model_cache", {
-  obj <- R6_cache$new(10)
+  obj <- R6_ring_cache$new(10)
 
   expect_equal(obj$list(), character())
   expect_null(obj$get("a"))

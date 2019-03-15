@@ -11,8 +11,8 @@
 ## (and we depend on it already!)
 ##
 ## The other way of doing this would be to order the access times
-R6_cache <- R6::R6Class(
-  "cache",
+R6_ring_cache <- R6::R6Class(
+  "ring_cache",
 
   public = list(
     capacity = NULL,
