@@ -83,6 +83,8 @@ The \code{odin_} version is a "standard evaluation" escape hatch.
 \emph{Do not use \code{odin::odin} in a package; you almost
 certainly want to use \code{\link{odin_package}} instead; see the
 \code{odin_package} vignette for more information.}
+
+A generated model can return information about itself; \code{\link{odin_ir}}
 }
 \section{Delay equations with dde}{
 

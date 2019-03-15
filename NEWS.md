@@ -12,6 +12,8 @@ This does introduce a few user-visible **breaking changes**:
   - The "safe" mode has been removed, at least for now.  This failed to compile for complex models and was not well used.  A better static check mechanism will be introduced ([#148](https://github.com/mrc-ide/odin/issues/148))
   - Arguments to `odin()` have been modified slightly
   - `odin_package()` no longer supports multi-file mode (I don't think this was ever used).
+  - Argument order in generated functions, as well as variable/output order, is likely to change but this should not generally be relied upon.
+  - The methods for a model object have been extensively rationalised.  I don't think that anything has been removed that anyone is using in their code.
 
 # odin 0.1.2
 
