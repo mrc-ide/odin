@@ -372,12 +372,9 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
   if (!is.null(eq$delay$default)) {
     stop("Discrete delays with default not yet supported [odin bug]")
   }
-  if (data_info$storage_type != "double") {
-    ## TODO: this will all go wrong if we're delaying an integer, but
-    ## it will not be hard to fix.  Also needs work up in the
-    ## allocation.
-    stop("writeme")
-  }
+
+  ## This can't currently be false I believe:
+  stopifnot(data_info$storage_type == "double")
 
   head <- sprintf("%s_head", eq$delay$ring)
   tail <- sprintf("%s_tail", eq$delay$ring)
@@ -410,12 +407,8 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
     tail, ring, rewrite(eq$delay$time))
 
   if (data_info$rank == 0L) {
-    if (data_info$location == "transient") {
-      fmt <- "double %s = %s[0];"
-    } else {
-      fmt <- "%s = %s[0];"
-    }
-    assign <- sprintf(fmt, lhs, tail)
+    ## always transient, so needs declaration:
+    assign <- sprintf("double %s = %s[0];", lhs, tail)
   } else {
     assign <- sprintf("memcpy(%s, %s, %s * sizeof(double));",
                       lhs, tail, rewrite(data_info$dimnames$length))
