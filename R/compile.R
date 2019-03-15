@@ -1,6 +1,5 @@
-## NOTE: this is similar to rcmdshlib but we have a peculiar use case
-## here of needing to work with many versions of a dll.  To do this we
-## add a (shortened) hash to the filename.
+## NOTE: this is similar to rcmdshlib, and if I ever send that to CRAN
+## we might work with it.
 compile <- function(filename, verbose = TRUE, preclean = FALSE,
                     compiler_warnings = NULL, base = NULL) {
   compiler_warnings <- compiler_warnings %||%
@@ -30,7 +29,7 @@ compile <- function(filename, verbose = TRUE, preclean = FALSE,
     args <- c("CMD", "SHLIB", source,
               "-o", dll, if (preclean) c("--preclean", "--clean"))
     output <- suppressWarnings(system2(R, args, stdout = TRUE, stderr = TRUE))
-    handle_compiler_output(output, verbose, compiler_warnings)
+    compiler_output_handle(output, verbose, compiler_warnings)
   }
 
   list(path = path,
@@ -39,10 +38,11 @@ compile <- function(filename, verbose = TRUE, preclean = FALSE,
        dll = normalizePath(dll, mustWork = TRUE))
 }
 
+
 ## TODO: an extension of this will be to work out where the code that
 ## *generated* a warning error comes from in the R and report that
 ## too.
-classify_compiler_output <- function(x) {
+compiler_output_classify <- function(x) {
   if (length(x) > 0) {
     compiler <- sub("^(.+?)\\s.*$", "\\1", x[[1]])
   } else {
@@ -94,6 +94,7 @@ classify_compiler_output <- function(x) {
   ret
 }
 
+
 ##' @export
 format.compiler_output <- function(x, ...) {
   cols <- c(error = "red",
@@ -137,8 +138,9 @@ format.compiler_output <- function(x, ...) {
   paste(sprintf("%s\n", str$get()), collapse = "")
 }
 
-handle_compiler_output <- function(output, verbose, compiler_warnings) {
-  out <- classify_compiler_output(output)
+
+compiler_output_handle <- function(output, verbose, compiler_warnings) {
+  out <- compiler_output_classify(output)
 
   ok <- attr(output, "status")
   error <- !is.null(ok) && ok != 0L

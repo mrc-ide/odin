@@ -23,7 +23,7 @@ test_that("warnings", {
   str <- capture.output(
     tmp <- odin_(code, verbose = TRUE, compiler_warnings = FALSE,
                  skip_cache = TRUE, workdir = tempfile()))
-  out <- classify_compiler_output(str)
+  out <- compiler_output_classify(str)
 
   ## This will only give a warning with -Wall or greater.
   has_warning <- any(vlapply(seq_along(out$type), function(i)
