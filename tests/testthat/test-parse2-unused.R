@@ -13,6 +13,12 @@ test_that("one unused variable", {
     initial(y) <- 0
     a <- 1
   }), "Unused equation: a")
+
+  expect_silent(odin_parse({
+    deriv(y) <- 1
+    initial(y) <- 0
+    a <- 1
+  }, options = odin_options(no_check_unused_equations = TRUE)))
 })
 
 test_that("more than one unused variable", {

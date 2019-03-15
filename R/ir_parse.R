@@ -71,7 +71,7 @@ ir_parse <- function(x, options, type = NULL) {
   }
 
   components <- ir_parse_components(eqs, dependencies, variables, stage,
-                                    features$discrete, source)
+                                    features$discrete, source, options)
   equations <- ir_parse_equations(eqs)
 
   ## TODO: it's a bit unclear where this best belongs
@@ -439,7 +439,7 @@ ir_parse_features <- function(eqs, config, source) {
 
 
 ir_parse_components <- function(eqs, dependencies, variables, stage,
-                                discrete, source) {
+                                discrete, source, options) {
   eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
   eqs_user <- intersect(names_if(stage == STAGE_USER), names(eqs))
   eqs_time <- intersect(names_if(stage == STAGE_TIME), names(eqs))
@@ -472,20 +472,22 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
   ignore <- c("config", "null", "delay_index", "alloc")
   core <- c(core, names(eqs)[type %in% ignore])
 
-  used <- unique(c(core, unlist(dependencies[core], FALSE, FALSE)))
-  check <- names_if(vlapply(eqs, function(x) !isTRUE(x$implicit)))
-  unused <- setdiff(check, used)
+  if (!options$no_check_unused_equations) {
+    used <- unique(c(core, unlist(dependencies[core], FALSE, FALSE)))
+    check <- names_if(vlapply(eqs, function(x) !isTRUE(x$implicit)))
+    unused <- setdiff(check, used)
 
-  if (length(unused) > 0L) {
-    ## NOTE: at this point it would be nicest to unravel the
-    ## dependency graph a bit to find the variables that are really
-    ## never used; these are the ones that that the others come from.
-    ## But at this point all of these can be ripped out so we'll just
-    ## report them all:
-    what <- ngettext(length(unused), "equation", "equations")
-    ir_parse_note(sprintf("Unused %s: %s",
-                          what, paste(sort(unused), collapse = ", ")),
-                  ir_parse_error_lines(eqs[unused]), source)
+    if (length(unused) > 0L) {
+      ## NOTE: at this point it would be nicest to unravel the
+      ## dependency graph a bit to find the variables that are really
+      ## never used; these are the ones that that the others come from.
+      ## But at this point all of these can be ripped out so we'll just
+      ## report them all:
+      what <- ngettext(length(unused), "equation", "equations")
+      ir_parse_note(sprintf("Unused %s: %s",
+                            what, paste(sort(unused), collapse = ", ")),
+                    ir_parse_error_lines(eqs[unused]), source)
+    }
   }
 
   list(

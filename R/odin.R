@@ -70,6 +70,10 @@
 ##'   may not work on all platforms.  Defaults to the option
 ##'   \code{odin.compiler_warnings} or \code{FALSE} otherwise.
 ##'
+##' @param no_check_unused_equations If \code{TRUE}, then don't print
+##'   messages about unused variables.  Defaults to the option
+##'   \code{odin.no_check_unused_equations} or \code{FALSE} otherwise.
+##'
 ##' @param no_check_naked_index If \code{TRUE}, then if an index
 ##'   variable (\code{i}, \code{j}, ...) is used outside of an array
 ##'   subset (e.g., \code{x[] <- i}) then a notice is printed.  The
@@ -107,7 +111,8 @@
 ##' plot(y, xlab = "Time", ylab = "y", main = "", las = 1)
 odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                  validate = NULL, pretty = NULL, skip_cache = NULL,
-                 compiler_warnings = NULL, no_check_naked_index = NULL) {
+                 compiler_warnings = NULL, no_check_unused_equations = NULL,
+                 no_check_naked_index = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -116,7 +121,7 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
     xx <- force(x)
   }
   odin_(xx, verbose, target, workdir, validate, pretty, skip_cache,
-        compiler_warnings, no_check_naked_index)
+        compiler_warnings, no_check_unused_equations, no_check_naked_index)
 }
 
 
@@ -124,13 +129,15 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 ##' @rdname odin
 odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                   validate = NULL, pretty = NULL, skip_cache = NULL,
-                  compiler_warnings = NULL, no_check_naked_index = NULL) {
+                  compiler_warnings = NULL, no_check_unused_equations = NULL,
+                  no_check_naked_index = NULL) {
   options <- odin_options(verbose = verbose,
                           target = target,
                           workdir = workdir,
                           validate = validate,
                           pretty = pretty,
                           skip_cache = skip_cache,
+                          no_check_unused_equations = no_check_unused_equations,
                           no_check_naked_index = no_check_naked_index,
                           compiler_warnings = compiler_warnings)
 

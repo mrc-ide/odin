@@ -7,11 +7,13 @@
 \usage{
 odin(x, verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,
-  compiler_warnings = NULL, no_check_naked_index = NULL)
+  compiler_warnings = NULL, no_check_unused_equations = NULL,
+  no_check_naked_index = NULL)
 
 odin_(x, verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,
-  compiler_warnings = NULL, no_check_naked_index = NULL)
+  compiler_warnings = NULL, no_check_unused_equations = NULL,
+  no_check_naked_index = NULL)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -62,6 +64,10 @@ odin with \code{-Wall -Wextra -pedantic} and still see warnings
 with both gcc and clang.  The compiler output is very simple and
 may not work on all platforms.  Defaults to the option
 \code{odin.compiler_warnings} or \code{FALSE} otherwise.}
+
+\item{no_check_unused_equations}{If \code{TRUE}, then don't print
+messages about unused variables.  Defaults to the option
+\code{odin.no_check_unused_equations} or \code{FALSE} otherwise.}
 
 \item{no_check_naked_index}{If \code{TRUE}, then if an index
 variable (\code{i}, \code{j}, ...) is used outside of an array
