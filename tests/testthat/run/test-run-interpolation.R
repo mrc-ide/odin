@@ -305,3 +305,37 @@ test_that("critical times", {
 
   expect_equal(r6_private(mod)$interpolate_t$critical, c(-1, 1, 2, 3))
 })
+
+
+test_that("corner case", {
+  skip("needs fixing")
+  ## So here there is the same issue as in Lily's model; we generate
+  ## an offset that that requires knowledge of 'pulse' but that causes
+  ## general failure because that's time sensitive.
+  gen <- odin({
+    deriv(y[]) <- pulse[i]
+    initial(y[]) <- 0
+    ##
+    pulse[] <- interpolate(tp, zp, "constant")
+    ##
+    tp[] <- user()
+    zp[,] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    dim(pulse) <- user()
+    dim(y) <- 2
+    output(time) <- t
+    output(pulse) <- TRUE
+    output(zp) <- TRUE
+  })
+
+  ## The offset depends on dim_pulse but that "depends" on pulse
+  ## itself which is time dependent.
+
+  ## This is generally just a bit of a weird problm.
+
+  ## What *should* happen is that we should recognise a user dim
+  ## interpolation more gracefully and take the y value dimensions as
+  ## the correct dimensions, which would put a dependency in quite a
+  ## different place on the graph.
+})

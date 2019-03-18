@@ -299,7 +299,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     ##   foo[,] <- user()
     ## etc.
     eq_data <- eqs[[eq$lhs$name_data]]
-    if (is.null(eq_data) || eq_data$type != "user") {
+    if (is.null(eq_data) || !(eq_data$type %in% c("user", "interpolate"))) {
       ir_parse_error(
         sprintf("No array assignment found for %s, but dim() found",
                 eq$lhs$name_data),
