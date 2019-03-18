@@ -692,3 +692,28 @@ test_that("skip sum in naked index check", {
       dim(v) <- 4
     }))
 })
+
+
+test_that("skip some equality operations in naked index check", {
+  ## This turns up in lily's model
+  expect_silent(odin_parse({
+    deriv(y) <- 1
+    initial(y) <- sum(m)
+    m[, ] <- if (i == j) 1 else 0
+    dim(m) <- c(4, 4)
+  }))
+
+  expect_message(odin_parse({
+    deriv(y) <- 1
+    initial(y) <- sum(m)
+    m[, ] <- if (i == 1) 1 else 0
+    dim(m) <- c(4, 4)
+  }), "Equations use index variables i on the rhs outside of an index")
+
+  expect_message(odin_parse({
+    deriv(y) <- 1
+    initial(y) <- sum(m)
+    m[, ] <- if (i == j + 0) 1 else 0
+    dim(m) <- c(4, 4)
+  }), "Equations use index variables i, j on the rhs outside of an index")
+})

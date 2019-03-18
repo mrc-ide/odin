@@ -869,6 +869,14 @@ ir_parse_arrays_uses_naked_index <- function(eq) {
       if (fn %in% c("[", "odin_sum")) {
         return()
       }
+      if (fn == "==") {
+        ok <-
+          is.symbol(expr[[2]]) && as.character(expr[[2]]) %in% INDEX &&
+          is.symbol(expr[[3]]) && as.character(expr[[3]]) %in% INDEX
+        if (ok) {
+          return()
+        }
+      }
       unlist(lapply(expr, check_expr))
     }
   }
