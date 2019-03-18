@@ -2,7 +2,7 @@ context("package")
 
 test_that("generate package", {
   files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
-  res <- odin_create_package("example", files, verbose = TEST_VERBOSE)
+  res <- odin_create_package("example", files)
   on.exit(res$cleanup())
 
   mod <- res$env$lorenz_odin()
@@ -24,8 +24,7 @@ test_that("generate package", {
 })
 
 test_that("interpolation", {
-  res <- odin_create_package("interpolation", "examples/interpolate_odin.R",
-                             verbose = TEST_VERBOSE)
+  res <- odin_create_package("interpolation", "examples/interpolate_odin.R")
   on.exit(res$cleanup())
 
   flux_t <- c(1, 11, 21, 41, 73, 83, 93, 103, 113, 123, 133, 143, 153,
@@ -57,7 +56,7 @@ test_that("interpolation", {
 
 test_that("ring", {
   path <- "pkg/inst/odin/discretedelay.R"
-  res <- odin_create_package("discretedelay", path, verbose = TEST_VERBOSE)
+  res <- odin_create_package("discretedelay", path)
   on.exit(res$cleanup())
 
   mod <- res$env$discretedelay()
@@ -69,7 +68,7 @@ test_that("ring", {
 
 test_that("user_c", {
   path <- c("pkg/inst/odin/pulse.R", "user_fns.c")
-  res <- odin_create_package("pulse", path, verbose = TEST_VERBOSE)
+  res <- odin_create_package("pulse", path)
   on.exit(res$cleanup())
 
   mod <- res$env$pulse()
@@ -91,7 +90,7 @@ test_that("pathalogical user c", {
   writeLines(txt, tmp)
   path <- c("pkg/inst/odin/pulse.R", tmp, c("user_fns.c", "user_fns2.c"))
   expect_error(
-    odin_create_package("pulse", path, verbose = TEST_VERBOSE),
+    odin_create_package("pulse", path),
     "Duplicated entries in included C support not allowed")
 })
 

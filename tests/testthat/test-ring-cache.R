@@ -39,7 +39,7 @@ test_that("reused cached model", {
   code <- c("deriv(y) <- 0.5",
             "initial(y) <- 1")
 
-  gen <- odin(code, verbose = TEST_VERBOSE)
+  gen <- odin(code)
   expect_equal(.odin$model_cache_c$list(),
                hash_string(gen()$ir))
   expect_message(odin(code, verbose = TRUE),
@@ -55,7 +55,7 @@ test_that("reuse shared library", {
 
   path <- tempfile()
   dir.create(path)
-  gen <- odin(code, verbose = TEST_VERBOSE, skip_cache = TRUE, workdir = path)
+  gen <- odin(code, skip_cache = TRUE, workdir = path)
   expect_message(
     odin(code, verbose = TRUE, skip_cache = TRUE, workdir = path),
     "Using previously compiled shared library")

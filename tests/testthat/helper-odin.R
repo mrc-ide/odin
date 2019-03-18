@@ -1,5 +1,3 @@
-TEST_VERBOSE <- FALSE
-
 options(odin.verbose = FALSE,
         odin.validate = TRUE,
         odin.target = NULL)
