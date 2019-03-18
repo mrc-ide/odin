@@ -1063,14 +1063,19 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
     deps <- c(eq$array$dimnames$length, eq$interpolate$t, eq$interpolate$y)
     eq$depends <- ir_parse_depends(variables = deps)
 
-    eqs[[eq$array$dimnames$length]]$type <- "expression_scalar"
+    nm_length <- eq$array$dimnames$length
+    eqs[[nm_length]]$type <- "expression_scalar"
     ## eqs[[eq$array$dimnames$length]]$implicit <- TRUE
 
-    if (rank_z > 1L) {
+    if (rank_z == 1L) {
+      len <- eq_y$array$dimnames$dim[[2]]
+      eqs[[nm_length]]$rhs$value <- as.name(len)
+      eqs[[nm_length]]$depends <- ir_parse_depends(variables = len)
+    } else {
       for (j in seq_along(eq$array$dimnames$dim)) {
         nm <- eq$array$dimnames$dim[[j]]
         eqs[[nm]]$type <- "expression_scalar"
-        eqs[[nm]]$rhs$value <- eq_y$array$dimnames$dim[[j + 1]]
+        eqs[[nm]]$rhs$value <- as.name(eq_y$array$dimnames$dim[[j + 1]])
         eqs[[nm]]$depends$variables <- eq_y$array$dimnames$dim[[j + 1]]
       }
     }

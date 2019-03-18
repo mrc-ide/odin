@@ -307,11 +307,7 @@ test_that("critical times", {
 })
 
 
-test_that("corner case", {
-  skip("needs fixing")
-  ## So here there is the same issue as in Lily's model; we generate
-  ## an offset that that requires knowledge of 'pulse' but that causes
-  ## general failure because that's time sensitive.
+test_that("user sized interpolation, 1d", {
   gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
@@ -329,15 +325,17 @@ test_that("corner case", {
     output(zp) <- TRUE
   })
 
-  ## The offset depends on dim_pulse but that "depends" on pulse
-  ## itself which is time dependent.
+  tp <- c(0, 1, 2)
+  zp <- cbind(c(0, 1, 0),
+              c(0, 2, 0))
+  mod <- gen(tp = tp, zp = zp)
 
-  ## This is generally just a bit of a weird problm.
-
-  ## What *should* happen is that we should recognise a user dim
-  ## interpolation more gracefully and take the y value dimensions as
-  ## the correct dimensions, which would put a dependency in quite a
-  ## different place on the graph.
+  tt <- seq(0, 3, length.out = 301)
+  yy <- mod$run(tt)
+  zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
+  zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
+  expect_equal(yy[, 2], zz1, tolerance = 1e-5)
+  expect_equal(yy[, 3], zz2, tolerance = 1e-5)
 })
 
 
@@ -361,7 +359,7 @@ test_that("user sized interpolation, 2d", {
                 c(0, 2, 0),
                 c(0, 3, 0),
                 c(0, 4, 0)), c(length(tp), 2, 2))
-  mod <- gen1(tp = tp, zp = zp)
+  mod <- gen(tp = tp, zp = zp)
   dat <- mod$contents()
 
   tt <- seq(0, 3, length.out = 301)
