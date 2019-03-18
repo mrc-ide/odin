@@ -673,3 +673,22 @@ test_that("dim on rhs", {
   }),
   "Invalid dim call; expected integer second argument")
 })
+
+
+test_that("skip sum in naked index check", {
+  ## In the first version of the naked index check, this produced a
+  ## note because the sum expression expands out to
+  ##
+  ##   odin_sum(m, i, i, 1, dim(m, 2))
+  ##
+  ## which looks like a naked index.
+  expect_silent(
+    odin_parse({
+      deriv(y) <- sum(v)
+      initial(y) <- 1
+      m[,] <- user()
+      v[] <- sum(m[i, ])
+      dim(m) <- c(4, 4)
+      dim(v) <- 4
+    }))
+})

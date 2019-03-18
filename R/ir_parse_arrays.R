@@ -307,7 +307,6 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     }
 
     rank <- length(eq_data$lhs$index)
-    ## - see odin_parse_arrays_nd
   } else if (is_call(eq$rhs$value, "length")) {
     parent <- deparse_str(eq$rhs$value[[2]])
     rank <- 1L
@@ -865,7 +864,11 @@ ir_parse_arrays_uses_naked_index <- function(eq) {
       if (symbol %in% INDEX) {
         found$add(symbol)
       }
-    } else if (!is_call(expr, "[")) {
+    } else {
+      fn <- as.character(expr[[1]])
+      if (fn %in% c("[", "odin_sum")) {
+        return()
+      }
       unlist(lapply(expr, check_expr))
     }
   }
