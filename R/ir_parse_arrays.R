@@ -338,7 +338,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
   }
 
   output <- ir_parse_find_exclusive_output(eqs, source)
-  dims <- ir_parse_arrays_dims(eq, rank, variables, output)
+  dims <- ir_parse_arrays_dims(eq, eqs, rank, variables, output)
 
   ## Eject the original dim() call and add our new equations
   eqs <- c(eqs[names(eqs) != eq$name], dims$eqs)
@@ -411,7 +411,7 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
 }
 
 
-ir_parse_arrays_dims <- function(eq, rank, variables, output) {
+ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
   nm <- eq$lhs$name_data
   user_dim <- eq$type == "user"
 
@@ -479,7 +479,11 @@ ir_parse_arrays_dims <- function(eq, rank, variables, output) {
     dimnames$mult <- c("", dimnames$dim[[1]], vcapply(eq_mult, "[[", "name"))
   }
 
-  if (user_dim || nm %in% output) {
+  no_alloc <-
+    (user_dim && eqs[[eq$lhs$name_data]]$type != "interpolate") ||
+    nm %in% output
+
+  if (no_alloc) {
     eq_alloc <- NULL
   } else {
     nm_alloc <- if (nm %in% variables) initial_name(nm) else nm

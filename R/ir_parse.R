@@ -1056,6 +1056,26 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
     max = if (type != "constant") eq_t$name,
     critical = if (type == "constant") eq_t$name)
 
+  if (isTRUE(eq$user$dim)) {
+    deps_alloc <- union(eq_alloc$depends$variables, eq$array$dimnames$length)
+    eq_alloc$depends <- ir_parse_depends(variables = deps_alloc)
+
+    deps <- c(eq$array$dimnames$length, eq$interpolate$t, eq$interpolate$y)
+    eq$depends <- ir_parse_depends(variables = deps)
+
+    eqs[[eq$array$dimnames$length]]$type <- "expression_scalar"
+    ## eqs[[eq$array$dimnames$length]]$implicit <- TRUE
+
+    if (rank_z > 1L) {
+      for (j in seq_along(eq$array$dimnames$dim)) {
+        nm <- eq$array$dimnames$dim[[j]]
+        eqs[[nm]]$type <- "expression_scalar"
+        eqs[[nm]]$rhs$value <- eq_y$array$dimnames$dim[[j + 1]]
+        eqs[[nm]]$depends$variables <- eq_y$array$dimnames$dim[[j + 1]]
+      }
+    }
+  }
+
   extra <- list(eq_alloc, eq_use)
   names(extra) <- vcapply(extra, "[[", "name")
 

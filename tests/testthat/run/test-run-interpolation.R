@@ -339,3 +339,34 @@ test_that("corner case", {
   ## the correct dimensions, which would put a dependency in quite a
   ## different place on the graph.
 })
+
+
+test_that("user sized interpolation, 2d", {
+  gen <- odin({
+    deriv(y[,]) <- pulse[i,j]
+    initial(y[,]) <- 0
+    ##
+    pulse[,] <- interpolate(tp, zp, "constant")
+    ##
+    tp[] <- user()
+    zp[,,] <- user()
+    dim(tp) <- user()
+    dim(zp) <- user()
+    dim(pulse) <- user()
+    dim(y) <- c(2, 2)
+  })
+
+  tp <- c(0, 1, 2)
+  zp <- array(c(c(0, 1, 0),
+                c(0, 2, 0),
+                c(0, 3, 0),
+                c(0, 4, 0)), c(length(tp), 2, 2))
+  mod <- gen1(tp = tp, zp = zp)
+  dat <- mod$contents()
+
+  tt <- seq(0, 3, length.out = 301)
+  yy <- mod$run(tt)
+  cmp <- sapply(1:4, function(i)
+    ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
+  expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
+})
