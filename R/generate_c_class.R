@@ -11,7 +11,9 @@
 ## and should be thought about carefully.
 odin_c_class <- function(base, core, user, features, dll, ir, package) {
   if (package) {
-    ir <- read_string(system.file(ir, package = dll, mustWork = TRUE))
+    ## TODO: better would be to register a promise to read the ir on
+    ## demand pehaps so that odin can organie a global cache?
+    ir <- package_odin_path(ir, dll)
   }
   R6::R6Class(
     "odin_model",

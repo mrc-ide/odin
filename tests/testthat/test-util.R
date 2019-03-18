@@ -64,3 +64,26 @@ test_that("sprintf_safe throws on empty arguments", {
 test_that("onload can be rerun safely", {
   expect_silent(.onLoad())
 })
+
+
+test_that("find package root", {
+  path <- tempfile()
+  p1 <- file.path(path, "odin/a.json")
+  p2 <- file.path(path, "inst/odin/a.json")
+  p3 <- file.path(path, "inst/odin/b.json")
+
+  dir.create(dirname(p1), FALSE, TRUE)
+  dir.create(dirname(p2), FALSE, TRUE)
+  file.create(p1)
+  file.create(p2)
+  file.create(p3)
+
+  expect_equal(package_odin_path("odin/a.json", NULL, path), p2)
+  expect_equal(package_odin_path("odin/b.json", NULL, path), p3)
+
+  unlink(p2)
+  expect_equal(package_odin_path("odin/a.json", NULL, path), p1)
+  unlink(p1)
+  expect_error(package_odin_path("odin/a.json", NULL, path),
+               "Could not find odin ir")
+})
