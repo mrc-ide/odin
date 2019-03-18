@@ -36,7 +36,7 @@ test_that("bug #75", {
   })
 
   dat <- gen()$contents()
-  expect_equal(dat$S, 94)
-  expect_equal(dat$I, 1)
-  expect_equal(dat$R, 5)
+  expect_equal(dat$initial_S, 94)
+  expect_equal(dat$initial_I, 1)
+  expect_equal(dat$initial_R, 5)
 })
