@@ -355,6 +355,7 @@ generate_c_compiled_initmod_desolve <- function(dat) {
 
 
 generate_c_compiled_contents <- function(dat, rewrite) {
+  n_arrays_allocated <- 0L
   extract <- function(x, i, body) {
     if (x$storage_type %in% c("ring_buffer", "interpolate_data")) {
       ## nothing for now at least - later we'll return something more
@@ -367,6 +368,7 @@ generate_c_compiled_contents <- function(dat, rewrite) {
     } else {
       body$add("SEXP %s = PROTECT(allocVector(%s, %s));",
                x$name, info$sexp_name, rewrite(x$dimnames$length))
+      n_arrays_allocated <<- n_arrays_allocated + 1L
       body$add("memcpy(%s(%s), %s, %s * sizeof(%s));",
                info$sexp_access, x$name, rewrite(x$name),
                rewrite(x$dimnames$length), info$c_name)
@@ -381,7 +383,6 @@ generate_c_compiled_contents <- function(dat, rewrite) {
 
   i <- vcapply(dat$data$elements, "[[", "location") == "internal"
   contents <- dat$data$elements[i]
-  n_arrays <- sum(viapply(contents, "[[", "rank") > 0)
 
   body <- collector()
   body$add("%s *%s = %s(%s, 1);",
@@ -396,7 +397,7 @@ generate_c_compiled_contents <- function(dat, rewrite) {
   body$add('SET_STRING_ELT(nms, %d, mkChar("%s"));',
           seq_along(contents) - 1L, names(contents))
   body$add("setAttrib(contents, R_NamesSymbol, nms);")
-  body$add("UNPROTECT(%d);", 2 + n_arrays)
+  body$add("UNPROTECT(%d);", 2 + n_arrays_allocated)
   body$add("return contents;")
 
   args <- c(SEXP = dat$meta$c$ptr)
