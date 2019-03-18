@@ -140,7 +140,7 @@ ir_parse_data <- function(eqs, packing, stage, source) {
 ir_parse_data_element <- function(x, stage) {
   name <- x$lhs$name_data
 
-  storage_type <- x$lhs$storage_mode %||% "double"
+  storage_type <- x$lhs$storage_type %||% "double"
   if (is.null(x$array)) {
     rank <- 0L
     dimnames <- NULL
@@ -375,7 +375,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
            source = integer(0),
            depends = find_symbols(value),
            lhs = list(name_data = name, name_equation = name, name_lhs = name,
-                      storage_mode = "int"),
+                      storage_type = "int"),
            rhs = list(value = value))
     }
     offset_name <- sprintf("offset_%s_%s", offset_prefix, names[i])
@@ -568,7 +568,7 @@ ir_parse_expr <- function(expr, line, source) {
                      line, source)
     }
     if (rhs$user$integer) {
-      lhs$storage_mode <- "int"
+      lhs$storage_type <- "int"
     }
   }
 
@@ -1009,7 +1009,7 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
   eq_alloc$lhs$name_lhs <- nm_alloc
   eq_alloc$lhs$name_data <- nm_alloc
   eq_alloc$lhs$name_equation <- nm_alloc
-  eq_alloc$lhs$storage_mode <- "interpolate_data"
+  eq_alloc$lhs$storage_type <- "interpolate_data"
 
   msg <- setdiff(c(eq_alloc$interpolate$t, eq_alloc$interpolate$y), names(eqs))
   if (length(msg) > 0L) {
@@ -1182,7 +1182,7 @@ ir_parse_delay <- function(eqs, discrete, variables, source) {
     name = initial_time,
     type = "null",
     lhs = list(name_data = initial_time, name_equation = initial_time,
-               special = "initial", storage_mode = initial_time_type),
+               special = "initial", storage_type = initial_time_type),
     line = integer(0),
     depends = NULL))
   names(eq_initial_time) <- initial_time
@@ -1198,7 +1198,7 @@ ir_parse_delay_discrete <- function(eq, eqs, source) {
   depends_ring <- list(functions = character(0),
                        variables = eq$array$dimnames$length %||% character(0))
   lhs_ring <- list(name_data = nm_ring, name_equation = nm_ring,
-                   name_lhs = nm_ring, storage_mode = "ring_buffer")
+                   name_lhs = nm_ring, storage_type = "ring_buffer")
   eq_ring <- list(
     name = nm_ring,
     type = "alloc_ring",
@@ -1258,7 +1258,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
     source = eq$source,
     depends = find_symbols(graph$packing$length),
     lhs = list(name_data = nm_dim, name_equation = nm_dim, name_lhs = nm_dim,
-               storage_mode = "int"),
+               storage_type = "int"),
     rhs = list(value = graph$packing$length))
 
   lhs_use <- eq$lhs[c("name_data", "name_equation", "name_lhs", "special")]
@@ -1289,7 +1289,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
                 rank = 1L)
   lhs_index <-
     list(name_data = nm_index, name_equation = nm_index, name_lhs = nm_index,
-         storage_mode = "int")
+         storage_type = "int")
 
   ##
   offsets <- lapply(variables$contents[match(graph$variables, variable_names)],
@@ -1307,7 +1307,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
 
   lhs_state <-
     list(name_data = nm_state, name_equation = nm_state, name_lhs = nm_state,
-         storage_mode = "double")
+         storage_type = "double")
   eq_state <- list(
     name = nm_state,
     type = "null",

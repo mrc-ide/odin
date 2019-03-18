@@ -157,7 +157,7 @@ ir_parse_arrays_check_usage2 <- function(eqs, source) {
 
   nms_arrays <- names(rank)
 
-  is_int <- vlapply(eqs, function(x) identical(x$lhs$storage_mode, "int"))
+  is_int <- vlapply(eqs, function(x) identical(x$lhs$storage_type, "int"))
   int_arrays <- intersect(nms_arrays, vcapply(eqs[is_int], function(x)
     x$lhs$name_data))
 
@@ -428,7 +428,7 @@ ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
                     lhs = list(name_lhs = eq$name,
                                name_data = eq$name,
                                name_equation = eq$name,
-                               storage_mode = "int"),
+                               storage_type = "int"),
                     rhs = eq$rhs,
                     depends = depends_dim,
                     source = eq$source)
@@ -442,7 +442,7 @@ ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
         name = d,
         type = type,
         lhs = list(name_lhs = d, name_data = d, name_equation = d,
-                   storage_mode = "int"),
+                   storage_type = "int"),
         rhs = list(value = eq$rhs$value[[i]]),
         implicit = TRUE,
         source = eq$source,
@@ -467,7 +467,7 @@ ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
           name = d,
           type = "expression_scalar",
           lhs = list(name_lhs = d, name_data = d, name_equation = d,
-                     storage_mode = "int"),
+                     storage_type = "int"),
           rhs = list(value = r_fold_call("*", dims[j])),
           implicit = TRUE,
           source = eq$source,
@@ -646,7 +646,7 @@ ir_parse_arrays_find_integers <- function(eqs, variables, source) {
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
   for (i in which(name_data %in% integer_vars)) {
     if (!identical(eqs[[i]]$lhs$special, "dim")) {
-      eqs[[i]]$lhs$storage_mode <- "int"
+      eqs[[i]]$lhs$storage_type <- "int"
     }
   }
 
