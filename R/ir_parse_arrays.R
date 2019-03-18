@@ -62,8 +62,9 @@ ir_parse_arrays <- function(eqs, variables, source) {
     intersect(x$depends$variables, dims_nms))
   dims <- topological_order(deps)
 
+  output <- ir_parse_find_exclusive_output(eqs, source)
   for (eq in eqs[dims]) {
-    eqs <- ir_parse_arrays_collect(eq, eqs, variables, source)
+    eqs <- ir_parse_arrays_collect(eq, eqs, variables, output, source)
   }
 
   for (eq in eqs[vcapply(eqs, "[[", "type") == "copy"]) {
@@ -270,7 +271,7 @@ ir_parse_arrays_check_dim <- function(eq, rank, source) {
 ## We don't currently deal with user-sized arrays at all yet, nor
 ## dependent arrays (dim(x) <- dim(y); and these chains could run
 ## arbitrarily deep).
-ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
+ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
   user_dim <- eq$type == "user"
   if (user_dim) {
     if (eq$lhs$name_data %in% variables) {
@@ -337,7 +338,6 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, source) {
     }
   }
 
-  output <- ir_parse_find_exclusive_output(eqs, source)
   dims <- ir_parse_arrays_dims(eq, eqs, rank, variables, output)
 
   ## Eject the original dim() call and add our new equations
