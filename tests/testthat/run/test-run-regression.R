@@ -18,3 +18,25 @@ test_that("bug #78", {
   expect_equal(mod$deriv(0, mod$initial(0)),
                c(4, rep(0, 4)))
 })
+
+
+## 75
+test_that("bug #75", {
+  gen <- odin({
+    deriv(S) <- 1
+    deriv(I) <- 2
+    deriv(R) <- 3
+
+    initial(S) <- N - I - R
+    initial(I) <- I0
+    initial(R) <- 5
+
+    N <- 100
+    I0 <- 1
+  })
+
+  dat <- gen()$contents()
+  expect_equal(dat$S, 94)
+  expect_equal(dat$I, 1)
+  expect_equal(dat$R, 5)
+})
