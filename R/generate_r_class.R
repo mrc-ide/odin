@@ -13,29 +13,25 @@ generate_r_class <- function(core, dat, env) {
     loadNamespace("cinterpolate")
   }
 
-
-  ## This bit needs thinking about carefully - there are two
-  ## user-focussed changes here that change between
-  ## discrete/nondiscrete.  This is unfortunately affected by the
-  ## delays too because if there are delays then we need to keep track
-  ## of history size.
   if (dat$features$discrete) {
-    run <- function(step, y = NULL, ..., use_names = TRUE, replicate = NULL) {
-      private$core$run(private$data, step, y, private$n_out,
-                       if (use_names) private$ynames else NULL,
-                       ...,
-                       replicate = replicate,
-                       interpolate_t = private$interpolate_t)
-    }
+    args <- alist(step =, y = NULL, "..." =, use_names = TRUE,
+                  replicate = NULL)
+    call <- list(quote(private$core$run), quote(private$data),
+                 quote(step), quote(y), quote(private$n_out),
+                 quote(if (use_names) private$ynames else NULL),
+                 quote(...),
+                 replicate = quote(replicate),
+                 interpolate_t = quote(private$interpolate_t))
   } else {
-    run <- function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
-      private$core$run(private$data, t, y, private$n_out,
-                       if (use_names) private$ynames else NULL,
-                       tcrit = tcrit, ...,
-                       use_dde = private$use_dde,
-                       interpolate_t = private$interpolate_t)
-    }
+    args <- alist(t =, y = NULL, "..." =, use_names = TRUE, tcrit = NULL)
+    call <- list(quote(private$core$run), quote(private$data),
+                 quote(t), quote(y), quote(private$n_out),
+                 quote(if (use_names) private$ynames else NULL),
+                 tcrit = quote(tcrit), quote(...),
+                 use_dde = quote(private$use_dde),
+                 interpolate_t = quote(private$interpolate_t))
   }
+  run <- as.function(c(args, list(call("{", as.call(call)))), .GlobalEnv)
 
   if (dat$features$initial_time_dependent) {
     set_user <- function(..., user = list(...)) {
