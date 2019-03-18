@@ -513,6 +513,9 @@ test_that("cyclic dependency", {
   expect_error(
     odin_parse_(ex("x <- y; y <- x")),
     "A cyclic dependency detected")
+  expect_error(
+    odin_parse_(ex("x <- y; y <- z; z <- x")),
+    "A cyclic dependency detected")
 })
 
 test_that("range operator on RHS", {
