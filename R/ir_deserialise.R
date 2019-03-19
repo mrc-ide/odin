@@ -1,5 +1,21 @@
-## TODO: we should be able to see in the schema all the cases that are
-## character vectors.
+##' Deserialise odin's intermediate model representation from a json
+##' string into an R object.  Unlike the json, there is no schema for
+##' this representation.  This function provides access to the same
+##' deserialisation that odin uses internally so may be useful in
+##' applications.
+##'
+##' @title Deserialise odin's IR
+##' @param x An intermediate representation as a json string
+##' @return A named list
+##' @export
+odin_ir_deserialise <- function(x) {
+  if (!inherits(x, "json")) {
+    stop("Expected a json string")
+  }
+  ir_deserialise(x)
+}
+
+
 ir_deserialise <- function(ir) {
   dat <- from_json(ir)
   dat$version <- numeric_version(dat$version)
