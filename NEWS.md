@@ -17,7 +17,29 @@ This does introduce a few user-visible **breaking changes**:
   - The parameters passed as a list `user` are validated and providing additional parameters is an error
 
 Fixes many outstanding issues:
-[#139](https://github.com/mrc-ide/odin/issues/139), [#136](https://github.com/mrc-ide/odin/issues/136), [#132](https://github.com/mrc-ide/odin/issues/132), [#130](https://github.com/mrc-ide/odin/issues/130), [#129](https://github.com/mrc-ide/odin/issues/129), [#127](https://github.com/mrc-ide/odin/issues/127), [#123](https://github.com/mrc-ide/odin/issues/123), [#122](https://github.com/mrc-ide/odin/issues/122), [#121](https://github.com/mrc-ide/odin/issues/121), [#120](https://github.com/mrc-ide/odin/issues/120), [#117](https://github.com/mrc-ide/odin/issues/117), [#115](https://github.com/mrc-ide/odin/issues/1115), [#106](https://github.com/mrc-ide/odin/issues/1106), [#99](https://github.com/mrc-ide/odin/issues/99), [#98](https://github.com/mrc-ide/odin/issues/98), [#84](https://github.com/mrc-ide/odin/issues/84), [#72](https://github.com/mrc-ide/odin/issues/72), [#64](https://github.com/mrc-ide/odin/issues/64), [#57](https://github.com/mrc-ide/odin/issues/57), [#52](https://github.com/mrc-ide/odin/issues/52), [#12](https://github.com/mrc-ide/odin/issues/12), [#4](https://github.com/mrc-ide/odin/issues/4)
+[#139](https://github.com/mrc-ide/odin/issues/139),
+[#136](https://github.com/mrc-ide/odin/issues/136),
+[#132](https://github.com/mrc-ide/odin/issues/132),
+[#130](https://github.com/mrc-ide/odin/issues/130),
+[#129](https://github.com/mrc-ide/odin/issues/129),
+[#127](https://github.com/mrc-ide/odin/issues/127),
+[#123](https://github.com/mrc-ide/odin/issues/123),
+[#122](https://github.com/mrc-ide/odin/issues/122),
+[#121](https://github.com/mrc-ide/odin/issues/121),
+[#120](https://github.com/mrc-ide/odin/issues/120),
+[#117](https://github.com/mrc-ide/odin/issues/117),
+[#115](https://github.com/mrc-ide/odin/issues/115),
+[#112](https://github.com/mrc-ide/odin/issues/112),
+[#106](https://github.com/mrc-ide/odin/issues/106),
+[#99](https://github.com/mrc-ide/odin/issues/99),
+[#98](https://github.com/mrc-ide/odin/issues/98),
+[#84](https://github.com/mrc-ide/odin/issues/84),
+[#72](https://github.com/mrc-ide/odin/issues/72),
+[#64](https://github.com/mrc-ide/odin/issues/64),
+[#57](https://github.com/mrc-ide/odin/issues/57),
+[#52](https://github.com/mrc-ide/odin/issues/52),
+[#12](https://github.com/mrc-ide/odin/issues/12),
+[#4](https://github.com/mrc-ide/odin/issues/4)
 
 # odin 0.1.2
 

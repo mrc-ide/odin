@@ -1404,6 +1404,10 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
       n <- len[[nm]]
       nargs <- length(x) - 1L
 
+      if (nm == "function") {
+        throw("Cannot define R functions in odin model")
+      }
+
       if (length(n) > 1L) {
         if (nargs < n[[1L]] || nargs > n[[2L]]) {
           if (is.finite(n[[2L]])) {

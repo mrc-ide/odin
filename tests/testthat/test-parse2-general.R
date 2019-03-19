@@ -720,3 +720,15 @@ test_that("skip some equality operations in naked index check", {
     dim(m) <- c(4, 4)
   }), "Equations use index variables i, j on the rhs outside of an index")
 })
+
+
+## issue #112
+test_that("sensible error message with invalid input", {
+  expect_error(
+    odin_parse({
+      update(x) <- 1
+      initial(x) <- 1
+      fn <- function(x) x + 1
+    }),
+    "Cannot define R functions in odin model")
+})
