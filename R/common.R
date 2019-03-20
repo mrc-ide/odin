@@ -7,7 +7,7 @@ STAGE_NULL <- 0L
 STAGE_CONSTANT <- 1L
 STAGE_USER <- 2L
 STAGE_TIME <- 3L
-STAGES <- c("constant", "user", "time", "output")
+
 TIME <- "t"
 STEP <- "step"
 STATE <- "state"
@@ -24,8 +24,8 @@ SPECIAL_LHS <- c("initial", "deriv", "update", "output", "dim", "config")
 SPECIAL_RHS <- c("user", "interpolate", "delay")
 INDEX <- c("i", "j", "k", "l", "i5", "i6", "i7", "i8") # TODO: make open
 INTERNAL <- "internal"
-RESERVED <- c(INDEX, TIME, STEP,STATE, DSTATEDT, USER, SPECIAL_LHS,
-              "delay", "dde", INTERNAL)
+RESERVED <- c(INDEX, TIME, STEP, STATE, DSTATEDT, STATE_NEXT, USER,
+              SPECIAL_LHS, "delay", "dde", INTERNAL)
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
