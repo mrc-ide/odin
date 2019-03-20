@@ -68,7 +68,7 @@ test_that("user variables on models with none", {
   mod <- gen()
   ## NOTE: This is a change of behaviour, but that's probably OK
   expect_silent(mod$set_user())
-  expect_error(mod$set_user(a = 1), "Unknown user parameters: a")
+  expect_warning(mod$set_user(a = 1), "Unknown user parameters: a")
 })
 
 test_that("non-numeric time", {
@@ -1187,4 +1187,61 @@ test_that("user sized dependent variables are allowed", {
   mod <- gen(r = r)
   expect_identical(mod$contents()$r, r)
   expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
+})
+
+
+test_that("user parameter validation", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- user()
+  })
+
+  ## Honour all the options:
+  expect_error(
+    gen(user = list(r = 1, a = 1), unused_user_action = "stop"),
+    "Unknown user parameters: a")
+  expect_warning(
+    gen(user = list(r = 1, a = 1), unused_user_action = "warning"),
+    "Unknown user parameters: a")
+  expect_message(
+    gen(user = list(r = 1, a = 1), unused_user_action = "message"),
+    "Unknown user parameters: a")
+  expect_silent(
+    gen(user = list(r = 1, a = 1), unused_user_action = "ignore"))
+
+  ## Sensible error message for invalid option
+  expect_error(
+    gen(user = list(r = 1, a = 1), unused_user_action = "other"),
+    "Unknown user parameters: a (and invalid value for unused_user_action)",
+    fixed = TRUE)
+
+  ## Inherit action from option
+  with_options(
+    list(odin.unused_user_action = "message"),
+    expect_message(
+      gen(user = list(r = 1, a = 1)),
+      "Unknown user parameters: a"))
+
+  ## Override option
+  with_options(
+    list(odin.unused_user_action = "message"),
+    expect_error(
+      gen(user = list(r = 1, a = 1), unused_user_action = "error"),
+      "Unknown user parameters: a"))
+
+  ## System default:
+  with_options(
+    list(odin.unused_user_action = NULL),
+    expect_warning(
+      gen(user = list(r = 1, a = 1)),
+      "Unknown user parameters: a"))
+
+  ## set_user:
+  mod <- gen(r = 1)
+  expect_silent(
+    mod$set_user(user = list(x = 1), unused_user_action = "ignore"))
+  expect_error(
+    mod$set_user(user = list(x = 1), unused_user_action = "error"),
+    "Unknown user parameters: x")
 })

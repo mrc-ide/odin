@@ -25,11 +25,11 @@ test_that("duplicate user parameters are not allowed", {
 
 
 test_that("unknown user parameters are not allowed", {
-  expect_error(support_check_user(list(a = 1), "b"),
+  expect_error(support_check_user(list(a = 1), "b", "stop"),
                "Unknown user parameters: a")
-  expect_error(support_check_user(list(a = 1, b = 2), "b"),
+  expect_error(support_check_user(list(a = 1, b = 2), "b", "stop"),
                "Unknown user parameters: a")
-  expect_error(support_check_user(list(a = 1, b = 2, c = 3), "b"),
+  expect_error(support_check_user(list(a = 1, b = 2, c = 3), "b", "stop"),
                "Unknown user parameters: a, c")
 })
 

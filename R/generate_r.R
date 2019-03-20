@@ -13,6 +13,7 @@ generate_r <- function(dat, options) {
   dat$meta$support <-
     list(get_user_double = "_get_user_double",
          get_user_dim = "_get_user_dim",
+         check_user = "_check_user",
          check_interpolate_y = "_check_interpolate_y",
          check_interpolate_t = "_check_interpolate_t")
 
@@ -31,6 +32,7 @@ generate_r <- function(dat, options) {
     env[[dat$meta$support$get_user_double]] <- support_get_user_double
     env[[dat$meta$support$get_user_dim]] <- support_get_user_dim
   }
+  env[[dat$meta$support$check_user]] <- support_check_user
   if (dat$features$has_interpolate) {
     env[[dat$meta$support$check_interpolate_y]] <- support_check_interpolate_y
     env[[dat$meta$support$check_interpolate_t]] <- support_check_interpolate_t
@@ -110,22 +112,16 @@ generate_r_ic <- function(eqs, dat, env, rewrite) {
 
 generate_r_set_user <- function(eqs, dat, env) {
   eqs_user <- r_flatten_eqs(eqs[dat$components$user$equations])
-  args <- alist(user =, internal =)
+  args <- alist(user =, internal =, unused_user_action =)
   names(args)[[1]] <- dat$meta$user
   names(args)[[2]] <- dat$meta$internal
 
-  user <- vcapply(dat$user, "[[", "name")
-  unknown <- call("<-", quote(unknown),
-                  call("setdiff",
-                       call("names", as.name(dat$meta$user)),
-                       as.call(c(quote(c), user))))
-  check <- call(
-    "if",
-    quote(length(unknown) > 0L),
-    r_expr_block(quote(stop("Unknown user parameters: ",
-                          paste(unknown, collapse = ", ")))))
+  user <- vcapply(dat$user, "[[", "name", USE.NAMES = FALSE)
+  user_args <- if (length(user) == 1L) user else as.call(c(quote(c), user))
+  check <- call(dat$meta$support$check_user,
+                as.name(dat$meta$user), user_args, quote(unused_user_action))
 
-  body <- r_expr_block(c(list(unknown, check, eqs_user)))
+  body <- r_expr_block(c(list(check, eqs_user)))
   as_function(args, body, env)
 }
 

@@ -53,10 +53,12 @@ odin_c_class <- function(base, core, user, features, dll, ir, package) {
 
 
 odin_c_class_set_user <- function(features, env = .GlobalEnv) {
-  args <- alist("..." =, user = )
+  args <- alist("..." =, user = , unused_user_action = NULL)
   args[[2]] <- quote(list(...))
 
-  check_user <- quote(support_check_user(user, private$user))
+  check_user <- quote(
+    support_check_user(
+      user, private$user, unused_user_action))
   set_user_c <- call(".Call", quote(private$core$set_user), quote(private$ptr),
                      quote(user), PACKAGE = quote(private$dll))
   if (features$initial_time_dependent) {
@@ -238,7 +240,7 @@ odin_c_class_update_metadata <- function(features, env = .GlobalEnv) {
 
 
 odin_c_class_initialize <- function(features, env = .GlobalEnv) {
-  args <- alist(user = NULL)
+  args <- alist(user = NULL, unused_user_action = NULL)
   if (features$discrete) {
     set_use_dde <- NULL
   } else {
@@ -253,7 +255,7 @@ odin_c_class_initialize <- function(features, env = .GlobalEnv) {
   body <- drop_null(list(
     set_use_dde,
     make_ptr,
-    quote(self$set_user(user = user)),
+    quote(self$set_user(user = user, unused_user_action = unused_user_action)),
     quote(lockBinding("ir", self))))
   as_function(args, r_expr_block(body), env)
 }

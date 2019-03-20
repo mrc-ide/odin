@@ -44,7 +44,6 @@ ir_parse <- function(x, options, type = NULL) {
   ir_parse_arrays_check_naked_index(eqs, options$no_check_naked_index, source)
 
   meta <- ir_parse_meta(features$discrete)
-  ## TODO: determine the base here based on filenames
 
   ## If we have arrays, then around this point we will also be
   ## generating a number of additional offset and dimension length

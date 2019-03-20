@@ -90,8 +90,24 @@ The \code{odin_} version is a "standard evaluation" escape hatch.
 certainly want to use \code{\link{odin_package}} instead; see the
 \code{odin_package} vignette for more information.}
 
-A generated model can return information about itself; \code{\link{odin_ir}}
+A generated model can return information about itself;
+\code{\link{odin_ir}}
 }
+\section{User parameters}{
+
+
+If the model accepts user parameters, then the parameter to the
+constructor or the \code{set_user} method can be used to control
+the behaviour when unknown user actions are passed into the
+model.Possible values are the strings \code{stop} (throw an
+error), \code{warning} (issue a warning but keep going),
+\code{message} (print a message and keep going) or \code{ignore}
+(do nothing).  Defaults to the option
+\code{odin.unused_user_action}, or \code{warning} otherwise.  The
+default behaviour prior to odin version 0.2.0 was equivalent to
+\code{ignore}.
+}
+
 \section{Delay equations with dde}{
 
 

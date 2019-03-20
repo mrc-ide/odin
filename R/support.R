@@ -97,7 +97,7 @@ support_transform_variables <- function(y, private) {
 }
 
 
-support_check_user <- function(user, allowed) {
+support_check_user <- function(user, allowed, unused_user_action) {
   given <- names(user)
   if (length(user) > 0 && (is.null(given) || !all(nzchar(given)))) {
     stop("All user parameters must be named", call. = FALSE)
@@ -109,8 +109,17 @@ support_check_user <- function(user, allowed) {
   }
   err <- setdiff(given, allowed)
   if (length(err) > 0L) {
-    stop("Unknown user parameters: ", paste(err, collapse = ", "),
-         call. = FALSE)
+    unused_user_action <- unused_user_action %||%
+      getOption("odin.unused_user_action", "warning")
+
+    msg <- paste("Unknown user parameters:", paste(err, collapse = ", "))
+    switch(unused_user_action,
+           ignore = NULL,
+           message = message(msg),
+           warning = warning(msg, call. = FALSE, immediate. = TRUE),
+           stop = stop(msg, call. = FALSE),
+           stop(paste(msg, "(and invalid value for unused_user_action)"),
+                call. = FALSE))
   }
 }
 

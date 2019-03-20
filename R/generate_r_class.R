@@ -34,8 +34,8 @@ generate_r_class <- function(core, dat, env) {
   run <- as.function(c(args, list(call("{", as.call(call)))), .GlobalEnv)
 
   if (dat$features$initial_time_dependent) {
-    set_user <- function(..., user = list(...)) {
-      private$core$set_user(user, private$data)
+    set_user <- function(..., user = list(...), unused_user_action = NULL) {
+      private$core$set_user(user, private$data, unused_user_action)
       private$core$metadata(self, private)
     }
     ## TODO: we need to have 't' become 'step' for discrete time models
@@ -43,8 +43,8 @@ generate_r_class <- function(core, dat, env) {
       private$core$ic(t, private$data)
     }
   } else {
-    set_user <- function(..., user = list(...)) {
-      private$core$set_user(user, private$data)
+    set_user <- function(..., user = list(...), unused_user_action = NULL) {
+      private$core$set_user(user, private$data, unused_user_action)
       private$init <- private$core$ic(NA_real_, private$data)
       private$core$metadata(self, private)
     }
@@ -83,7 +83,8 @@ generate_r_class <- function(core, dat, env) {
       ir = dat$ir,
 
       ## Methods:
-      initialize = function(user = NULL, use_dde = FALSE) {
+      initialize = function(user = NULL, unused_user_action = NULL,
+                            use_dde = FALSE) {
         ## TODO: why is 'use_dde' here in the initialiser and not in
         ## the run function?  We could take this as a default?
         ## Nothing looks like that would would be impossible.  Most
@@ -91,7 +92,7 @@ generate_r_class <- function(core, dat, env) {
         ## going here as well, with deprecation.
         private$use_dde <- use_dde || private$discrete
         private$data <- private$core$create()
-        self$set_user(user = user)
+        self$set_user(user = user, unused_user_action = unused_user_action)
         lockBinding("ir", self)
       },
 
@@ -148,14 +149,18 @@ generate_r_constructor <- function(base, discrete, user, ir, env) {
     args[[name_user]] <-
       as.call(c(list(quote(list)),
                 set_names(lapply(nms, as.name), nms)))
+    args["unused_user_action"] <- list(NULL)
     user_value <- as.name(name_user)
+    unused_user_action <- quote(unused_user_action)
   } else {
     args <- alist()
     user_value <- NULL
+    unused_user_action <- NULL
   }
 
+
   cl_init <- call("$", as.name(base), quote(new))
-  call <- list(cl_init, user_value)
+  call <- list(cl_init, user_value, unused_user_action)
   if (!discrete) {
     call <- c(call, list(quote(use_dde)))
     args <- c(args, alist(use_dde = FALSE))
