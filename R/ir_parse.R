@@ -1263,7 +1263,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
   lhs_use <- eq$lhs[c("name_data", "name_equation", "name_lhs", "special")]
   subs_from <- vcapply(substitutions, "[[", "to")
   depends_use <- join_deps(list(
-    eq$depends, ir_parse_depends(variables = c(nm_dim, subs_from))))
+    eq$depends, ir_parse_depends(variables = c(nm_dim, subs_from, TIME))))
 
   eq_use <- list(
     name = nm,
@@ -1360,13 +1360,23 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
   ## Duplicate some of the stage logic here to determine things that
   ## are time dependent.
   include <- set_names(logical(length(used_eqs)), used_eqs)
+
+  ## NOTE: there is a special case here for delay equations because we
+  ## are still in the middle of processing them so their
+  ## time-dependence is not totally obvious.  That can't easily be
+  ## done in the initial parse because of the time/step name split.
+  ##
+  ## NOTE: the intersect below ejects all orhapsn dependencies (e.g.,
+  ## indices)
   for (v in used_eqs) {
     d <- deps[[v]]
     include[[v]] <-
       any(d %in% used_vars) ||
       any(d == TIME) ||
+      eqs[[v]]$type == "delay" ||
       any(include[intersect(d, names(deps))])
   }
+
   used_eqs <- used_eqs[include]
 
   ## Then we need to compute a packing for each variable, which

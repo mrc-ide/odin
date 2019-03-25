@@ -318,3 +318,27 @@ test_that("overlapping array storage", {
     expect_equal(zz$b, real_b, tolerance = 1e-6)
   }
 })
+
+
+test_that("delayed delays", {
+  gen <- odin({
+    deriv(y) <- y
+    initial(y) <- 1
+
+    b <- delay(c, 3)
+    c <- a + 1
+    a <- delay(y + 1, 2)
+    output(a) <- TRUE
+    output(b) <- TRUE
+  })
+
+  tt <- seq(0, 7, length.out = 51)
+  yy <- gen()$run(tt)
+
+  ## First delay
+  a <- ifelse(tt > 2, exp(tt - 2) + 1, exp(0) + 1)
+  b <- ifelse(tt > 5, exp(tt - 5) + 2, exp(0) + 2)
+
+  expect_equal(yy[, "a"], a, tolerance = 1e-6)
+  expect_equal(yy[, "b"], b, tolerance = 1e-6)
+})
