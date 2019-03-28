@@ -243,7 +243,7 @@ generate_r_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     lapply(dat$data$variable$contents[names(delay$variables$contents)],
            function(x) call("<-", as.name(x$name), rewrite(x$initial)))
   unpack <- r_expr_if(call("<=", time, initial_time),
-                    unpack_initial, c(lookup_vars, unpack_vars))
+                      unpack_initial, c(lookup_vars, unpack_vars))
 
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
   if (data_info$rank == 0L) {

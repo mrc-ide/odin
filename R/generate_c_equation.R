@@ -322,16 +322,6 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
   decl <- c_flatten_eqs(lapply(delay$variables$contents, decl1))
 
-  ## Only used where there is no default:
-  unpack_initial <-
-    lapply(dat$data$variable$contents[names(delay$variables$contents)],
-           unpack_initial1)
-  unpack <- c(decl,
-              c_expr_if(
-                sprintf_safe("%s <= %s", time, initial_time),
-                c_flatten_eqs(unpack_initial),
-                c(lookup_vars, unpack_vars)))
-
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
   if (data_info$rank == 0L) {
     lhs <- rewrite(eq$lhs)
@@ -341,7 +331,20 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     expr <- generate_c_equation_array_rhs(rhs_expr, eq$rhs$index, lhs, rewrite)
   }
 
+  needs_variables <- length(delay$variables$contents) > 0L
   if (is.null(delay$default)) {
+    if (needs_variables) {
+      unpack_initial <-
+        lapply(dat$data$variable$contents[names(delay$variables$contents)],
+               unpack_initial1)
+      unpack <- c(decl,
+                  c_expr_if(
+                    sprintf_safe("%s <= %s", time, initial_time),
+                    c_flatten_eqs(unpack_initial),
+                    c(lookup_vars, unpack_vars)))
+    } else {
+      unpack <- NULL
+    }
     body <- c(time_set, unpack, eqs, expr)
   } else {
     if (data_info$rank == 0L) {
@@ -350,11 +353,16 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
       default <- generate_c_equation_array_rhs(delay$default, eq$rhs$index,
                                                lhs, rewrite)
     }
+    if (needs_variables) {
+      unpack <- c(lookup_vars, unpack_vars)
+    } else {
+      unpack <- NULL
+    }
     body <- c(time_set,
               c_expr_if(
                 sprintf_safe("%s <= %s", time, initial_time),
                 default,
-                c(decl, lookup_vars, unpack_vars, eqs, expr)))
+                c(decl, unpack, eqs, expr)))
   }
 
   if (data_info$location == "transient") {

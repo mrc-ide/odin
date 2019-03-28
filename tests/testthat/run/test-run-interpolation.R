@@ -277,6 +277,35 @@ test_that("interpolation in a delay", {
 })
 
 
+test_that("interpolation in a delay, with default", {
+  gen <- odin({
+    deriv(y) <- ud
+    initial(y) <- 0
+    deriv(z) <- u
+    initial(z) <- 0
+    output(u) <- TRUE
+    output(ud) <- TRUE
+
+    u <- interpolate(ut, uy, "linear")
+
+    ud <- delay(u, 2, 3)
+
+    ut[] <- user()
+    uy[] <- user()
+    dim(ut) <- user()
+    dim(uy) <- length(ut)
+  })
+
+  tt <- seq(0, 10, length.out = 11)
+  u <- seq(-10, 20, length.out = 301)
+  mod <- gen(ut = u, uy = u)
+  yy <- mod$run(tt)
+
+  expect_equal(yy[, "ud"], c(3, 3, 3, seq(1, 8)))
+  expect_equal(yy[, "u"], seq(0, 10))
+})
+
+
 test_that("critical times", {
   ## this is only done for the R generation so far:
   skip_for_target("c")
