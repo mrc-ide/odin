@@ -371,7 +371,9 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     setup <- NULL
   }
 
-  c(setup, "{", paste0("  ", body), "}")
+  header <- sprintf_safe("// delay block for %s", eq$name)
+
+  c(header, setup, "{", paste0("  ", body), "}")
 }
 
 
