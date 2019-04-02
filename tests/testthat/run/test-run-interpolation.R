@@ -397,3 +397,37 @@ test_that("user sized interpolation, 2d", {
     ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
   expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
 })
+
+
+test_that("double delayed interpolation function", {
+  gen <- odin({
+    deriv(y) <- ud
+    initial(y) <- 0
+    deriv(z) <- u
+    initial(z) <- 0
+    output(u) <- TRUE
+    output(ud) <- TRUE
+    output(udd) <- TRUE
+
+    u <- interpolate(ut, uy, "constant")
+
+    ud <- delay(u, 2)
+    udd <- delay(ud * 0.5, 1)
+
+    ut[] <- user()
+    uy[] <- user()
+    dim(ut) <- user()
+    dim(uy) <- length(ut)
+  })
+
+  tt <- seq(0, 10, length.out = 1001)
+  u <- seq(-10, 20, length.out = 301)
+
+  ut <- c(-20, 2)
+  uy <- c(0, 1)
+
+  mod <- gen(ut = ut, uy = uy)
+  yy <- mod$run(tt)
+
+  expect_equal(yy[, "udd"], ifelse(tt < 5, 0, 0.5))
+})
