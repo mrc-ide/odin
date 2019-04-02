@@ -430,4 +430,12 @@ test_that("double delayed interpolation function", {
   yy <- mod$run(tt)
 
   expect_equal(yy[, "udd"], ifelse(tt < 5, 0, 0.5))
+
+  ## Check error (still not done for R - probably do with #160)
+  skip_for_target("r")
+  expect_error(gen(ut = c(0, 2), uy = uy)$run(tt),
+               "interpolation failed as -2.* is out of range")
+  expect_error(gen(ut = c(-2, 2), uy = uy)$run(tt),
+               "interpolation failed as -3.* is out of range")
+  expect_equal(gen(ut = c(-3, 2), uy = uy)$run(tt), yy)
 })

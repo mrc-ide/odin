@@ -137,9 +137,15 @@ generate_c_equation_alloc_interpolate <- function(eq, data_info, dat, rewrite) {
 generate_c_equation_interpolate <- function(eq, data_info, dat, rewrite) {
   if (data_info$rank == 0L) {
     lhs <- rewrite(eq$lhs)
-    ret <- sprintf_safe("cinterpolate_eval(%s, %s, &%s);",
-                        dat$meta$time, rewrite(eq$interpolate),
-                        rewrite(eq$lhs))
+    ## TODO: this should be pushed into a check just before running,
+    ## but that requires a little more work (odin #160)
+    ret <- c(
+      sprintf_safe("if (cinterpolate_eval(%s, %s, &%s) != 0) {",
+                   dat$meta$time, rewrite(eq$interpolate), rewrite(eq$lhs)),
+      sprintf_safe(
+        '  Rf_error("interpolation failed as %%f is out of range", %s);',
+        dat$meta$time),
+      "}")
     if (data_info$location == "transient") {
       ret <- c(sprintf_safe("double %s = 0.0;", eq$lhs), ret)
     }
