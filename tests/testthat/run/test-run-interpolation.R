@@ -156,12 +156,12 @@ test_that("linear", {
   cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit = 2)
   expect_equal(yy[, 2], cmp[, 2])
 
-  ## We'll set this correctly by default
-  expect_error(mod$run(tt, tcrit = 3),
-               "interpolation failed as .+ is out of range")
-
   expect_error(mod$run(c(tt, max(tp) + 1)),
                "Integration times do not span interpolation range")
+
+  skip_for_target("r")
+  expect_error(mod$run(tt, tcrit = 3),
+               "interpolation failed as .+ is out of range")
 })
 
 
