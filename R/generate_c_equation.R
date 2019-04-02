@@ -196,10 +196,6 @@ generate_c_equation_copy <- function(eq, data_info, dat, rewrite) {
 
 
 generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
-  min <- rewrite(eq$user$min)
-  max <- rewrite(eq$user$max)
-  integer <- data_info$storage_type == "int"
-
   user <- dat$meta$user
   rank <- data_info$rank
 
