@@ -157,8 +157,8 @@ test_that("linear", {
   expect_equal(yy[, 2], cmp[, 2])
 
   ## We'll set this correctly by default
-  yy <- mod$run(tt, tcrit = 3)
-  expect_true(is.na(yy[nrow(yy), 2]))
+  expect_error(mod$run(tt, tcrit = 3),
+               "interpolation failed as .+ is out of range")
 
   expect_error(mod$run(c(tt, max(tp) + 1)),
                "Integration times do not span interpolation range")
