@@ -60,5 +60,8 @@ vignettes/discrete.Rmd: vignettes/src/discrete.R
 vignettes: vignettes/odin.Rmd vignettes/discrete.Rmd
 	${RSCRIPT} -e 'library(methods); devtools::build_vignettes()'
 
+ir_reference:
+	${RSCRIPT} scripts/ir-build.R
+
 # No real targets!
 .PHONY: all test document install vignettes build

@@ -21,6 +21,7 @@ plain_output <- function(x) lang_output(x, "plain")
 knitr::opts_chunk$set(
   fig.width = 7,
   fig.height = 5)
+options(odin.verbose = FALSE)
 ```
 
 # Single variable: Logistic growth
@@ -54,7 +55,7 @@ session would throw an error
 To compile this as a standalone model (not suitable for inclusion
 in a package) use `odin::odin`;
 ``` {r }
-generator <- odin::odin(path_logistic, verbose = FALSE)
+generator <- odin::odin(path_logistic)
 ```
 
 This returns a function that will generate an instance of the model:
@@ -76,7 +77,7 @@ mod$init
 
 dN/dt evaluated at the time zero, with the initial conditions:
 ``` {r }
-mod$deriv(0, mod$init)
+mod$deriv(0, mod$initial())
 ```
 
 or with arbitrary conditions:
@@ -119,7 +120,7 @@ generator <- odin::odin({
   N0 <- user(1)
   K <- user(100)
   r <- user()
-}, verbose = FALSE)
+})
 ```
 
 when used as `user(1)` (as for `N` and `K`) it means we allow a
@@ -165,12 +166,6 @@ lines(y3, col = "red")
 lines(y4, col = "blue")
 ```
 
-Note that it is not (currently) an error to set unknown parameters.
-This will be fixed in a future version:
-``` {r }
-mod$set_user(whatever = 1)
-```
-
 # More than one variable: the Lorenz attractor
 
 Once more than one variable is involved, there is a bit more
@@ -196,7 +191,7 @@ different realisations).
 Building the generator, and from that a system, is the same as the
 above:
 ``` {r }
-generator <- odin::odin(path_lorenz, verbose = FALSE)
+generator <- odin::odin(path_lorenz)
 mod <- generator()
 ```
 
@@ -338,65 +333,6 @@ t <- seq(0, 2000, length.out = 10001)
 y <- mod$run(t)
 pairs(y[, -1], panel = lines, col = "#00000055", lwd = 0.2)
 ```
-
-## Debugging array models
-
-Compared with models where everything is a scalar, array models
-make it much easier to crash R.  If you read off the end of an
-array you'll get junk, and if you write off the end of an array
-you'll do something terrible and quite probably crash R.  This is
-quite hard to debug, especially on windows.  But even on Linux/OSX
-where
-[gdb](https://cran.r-project.org/doc/manuals/R-exts.html#Debugging-compiled-code)
-and
-[lldb](http://kevinushey.github.io/blog/2015/04/13/debugging-with-lldb)
-are available, relating the generated odin code to the input R code
-is a challenge.
-
-To work around this, `odin` can compile your model in "safe" mode.
-This will check at _every_ array access (both read and write) that
-you are not trying to read outside the bounds of the array.
-
-For example, here's a simplified version of a real case where this
-might happen:
-``` {r }
-gen <- odin::odin({
-  deriv(y[]) <- r[i] * y[i]
-  initial(y[]) <- 1
-  r[] <- user()
-
-  len <- user()
-  dim(r) <- user()
-  dim(y) <- len
-}, safe = TRUE, verbose = FALSE)
-```
-
-The vector `r` is entirely supplied by the user and the length of
-`y` is also provided.  However, the code assumes that the vectors
-`r` and `y` are the same length.
-
-If `r` and `y` have the same length, everything is fine:
-``` {r }
-mod <- gen(r = runif(5), len = 5)
-mod$run(c(0, 10))
-```
-
-But if they differ then odin (in safe mode) will detect this and
-throw an R error:
-``` {r error = TRUE}
-mod <- gen(r = runif(5), len = 10)
-mod$run(c(0, 10))
-```
-
-The error indicates the offending line and the variable that was
-being read (it stops at the first error so there may be several!).
-(If you are thinking in C, note that the indexes reported are
-base-1 R indexes *not* base-0 C indexes; the same as the way that
-odin treats indices when writing models).
-
-Using safe mode will make your model much slower because array
-indexing is usually a fast operation in C and this replaces it with
-a much slower function that checks at every access.
 
 # Interpolating functions
 

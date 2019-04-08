@@ -21,7 +21,7 @@ plain_output <- function(x) lang_output(x, "plain")
 knitr::opts_chunk$set(
   fig.width = 7,
   fig.height = 5)
-
+options(odin.verbose = FALSE)
 
 ## # Discrete compartmental models in a nutshell
 
@@ -185,7 +185,7 @@ r_output(readLines(path_sir_model))
 ## session will trigger errors.
 
 ## We then use `odin` to compile this model:
-sir_generator <- odin::odin(path_sir_model, verbose = FALSE)
+sir_generator <- odin::odin(path_sir_model)
 sir_generator
 
 ## **Note**: this is the slow part (generation and then compilation of
@@ -227,7 +227,7 @@ r_output(readLines(path_sir_model_s))
 
 ## We can use the same workflow as before to run the model, using 10
 ## initial infected individuals (`I_ini = 10`):
-sir_s_generator <- odin::odin(path_sir_model_s, verbose = FALSE)
+sir_s_generator <- odin::odin(path_sir_model_s)
 sir_s_generator
 x <- sir_s_generator(I_ini = 10)
 
@@ -250,7 +250,7 @@ path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R", p
 r_output(readLines(path_sir_model_s_a))
 
 ##+ echo = TRUE
-sir_s_a_generator <- odin::odin(path_sir_model_s_a, verbose = FALSE)
+sir_s_a_generator <- odin::odin(path_sir_model_s_a)
 sir_s_a_generator
 x <- sir_s_a_generator()
 
@@ -333,7 +333,7 @@ path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", packag
 r_output(readLines(path_seirds_model))
 
 ##+ seirds
-seirds_generator <- odin::odin(path_seirds_model, verbose = FALSE)
+seirds_generator <- odin::odin(path_seirds_model)
 seirds_generator
 x <- seirds_generator()
 

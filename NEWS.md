@@ -1,3 +1,46 @@
+# odin 0.2.0
+
+A complete rewrite of the odin engine, designed to increase future maintainability but have few user-visible effects.  In brief, this does add
+
+* Ability to transpile to R (removing the need for a C compiler, though creating code that is necessarily much slower than the compiled verison).  Pass `target = "r"` to use this.
+* A new intermediate representation for odin models that can be used to determine features of a model
+* Better caching ([#64](https://github.com/mrc-ide/odin/issues/64))
+* Delays on discrete time models are much more efficient and work properly with stochastic equations ([#72](https://github.com/mrc-ide/odin/issues/72), [#98](https://github.com/mrc-ide/odin/issues/98))
+
+This does introduce a few user-visible **breaking changes**:
+  - use of array indices outside of an array subset (e.g., `x[] <- i`) produces output that is off-by-one compared with the previous version (see [#136](https://github.com/mrc-ide/odin/issues/136))
+  - The "safe" mode has been removed, at least for now.  This failed to compile for complex models and was not well used.  A better static check mechanism will be introduced ([#148](https://github.com/mrc-ide/odin/issues/148))
+  - Arguments to `odin()` have been modified slightly
+  - `odin_package()` no longer supports multi-file mode (I don't think this was ever used).
+  - Argument order in generated functions, as well as variable/output order, is likely to change but this should not generally be relied upon.
+  - The methods for a model object have been extensively rationalised.  I don't think that anything has been removed that anyone is using in their code.
+  - The parameters passed as a list `user` are validated and providing additional parameters is a warning (by default; this can be configured to be more or less strict as desired).
+
+Fixes many outstanding issues:
+[#139](https://github.com/mrc-ide/odin/issues/139),
+[#136](https://github.com/mrc-ide/odin/issues/136),
+[#132](https://github.com/mrc-ide/odin/issues/132),
+[#130](https://github.com/mrc-ide/odin/issues/130),
+[#129](https://github.com/mrc-ide/odin/issues/129),
+[#127](https://github.com/mrc-ide/odin/issues/127),
+[#123](https://github.com/mrc-ide/odin/issues/123),
+[#122](https://github.com/mrc-ide/odin/issues/122),
+[#121](https://github.com/mrc-ide/odin/issues/121),
+[#120](https://github.com/mrc-ide/odin/issues/120),
+[#117](https://github.com/mrc-ide/odin/issues/117),
+[#115](https://github.com/mrc-ide/odin/issues/115),
+[#112](https://github.com/mrc-ide/odin/issues/112),
+[#106](https://github.com/mrc-ide/odin/issues/106),
+[#99](https://github.com/mrc-ide/odin/issues/99),
+[#98](https://github.com/mrc-ide/odin/issues/98),
+[#84](https://github.com/mrc-ide/odin/issues/84),
+[#72](https://github.com/mrc-ide/odin/issues/72),
+[#64](https://github.com/mrc-ide/odin/issues/64),
+[#57](https://github.com/mrc-ide/odin/issues/57),
+[#52](https://github.com/mrc-ide/odin/issues/52),
+[#12](https://github.com/mrc-ide/odin/issues/12),
+[#4](https://github.com/mrc-ide/odin/issues/4)
+
 # odin 0.1.2
 
 * Validate parameters in input

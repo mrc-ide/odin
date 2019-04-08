@@ -1,44 +1,17 @@
 context("interface")
 
-test_that("text", {
-  src <- c("deriv(y) <- 0.5",
-           "initial(y) <- 1")
-  f <- function(x) lapply(x$exprs, identity)
-  cmp <- lapply(parse(text = src), identity)
-
-  ## Accept the source as a string:
-  expect_equal(odin_preprocess_detect(src), "text")
-  expect_equal(f(odin_preprocess(src)), cmp)
-  expect_equal(odin_preprocess_detect(paste(src, collapse = "\n")), "text")
-  expect_equal(odin_preprocess_detect(paste(src, collapse = ";")), "text")
-  expect_equal(f(odin_preprocess(paste(src, collapse = "\n"))), cmp)
-  expect_equal(f(odin_preprocess(paste(src, collapse = ";"))), cmp)
-
-  dest <- tempfile()
-  writeLines(src, dest)
-  expect_equal(odin_preprocess_detect(dest), "file")
-  expect_equal(f(odin_preprocess(dest)), cmp)
-
-  expect_error(odin_preprocess(tempfile()),
-               "looks like a filename, but file does not exist")
-
-  expect_error(odin_preprocess(1L), "Invalid type")
-  expect_error(odin_preprocess(pi), "Invalid type")
-  expect_error(odin_preprocess(sin), "Invalid type")
-  expect_error(odin_preprocess(1.0), "Invalid type")
-})
-
 test_that("NSE and SE defaults are the same", {
   expect_equal(formals(odin), formals(odin_))
 })
 
 test_that("verbose", {
-  expect_output(odin::odin({
-    initial(x) <- 0
-    update(x) <- x + norm_rand()
-    config(base) <- "mycrazymodel"
-  }, verbose = TRUE),
-  "mycrazymodel.o", fixed = TRUE)
+  expect_output(
+    odin({
+      initial(x) <- 0
+      update(x) <- x + norm_rand()
+      config(base) <- "mycrazymodel"
+    }, target = "c", workdir = tempfile(), skip_cache = TRUE, verbose = TRUE),
+    "mycrazymodel_[[:xdigit:]]{8}\\.c")
 })
 
 test_that("warnings", {
@@ -48,38 +21,40 @@ test_that("warnings", {
   })
 
   str <- capture.output(
-    tmp <- odin::odin_(code, verbose = TRUE, compiler_warnings = FALSE))
-  out <- classify_compiler_output(str)
+    tmp <- odin_(code, verbose = TRUE, compiler_warnings = FALSE,
+                 skip_cache = TRUE, workdir = tempfile()))
+  out <- compiler_output_classify(str)
+
   ## This will only give a warning with -Wall or greater.
   has_warning <- any(vlapply(seq_along(out$type), function(i)
     out$type[i] == "info" && attr(out$value[[i]], "type") == "warning"))
   if (has_warning) {
-    model_cache_clear()
     re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
-    expect_warning(odin::odin_(code, compiler_warnings = TRUE), re)
+    expect_warning(
+      odin_(code, compiler_warnings = TRUE, skip_cache = TRUE,
+            workdir = tempfile()),
+      re)
 
-    oo <- options(odin.compiler_warnings = FALSE)
-    on.exit(options(oo))
-
-    model_cache_clear()
-    expect_warning(odin::odin_(code, verbose = FALSE), NA)
-    options(odin.compiler_warnings = TRUE)
-
-    model_cache_clear()
-    expect_warning(odin::odin_(code, verbose = FALSE), re)
+    with_options(
+      list(odin.compiler_warnings = FALSE),
+      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
+                           workdir = tempfile()), NA))
+    with_options(
+      list(odin.compiler_warnings = TRUE),
+      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
+                           workdir = tempfile()), re))
   } else {
-    model_cache_clear()
-    expect_warning(odin::odin_(code, compiler_warnings = TRUE,
-                               verbose = FALSE), NA) # none
+    expect_warning(odin_(code, compiler_warnings = TRUE, verbose = FALSE,
+                         skip_cache = TRUE, workdir = tempfile()), NA) # none
   }
 })
 
 test_that("n_history is configurable", {
-  gen <- odin::odin({
+  gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-  }, verbose = TEST_VERBOSE)
+  })
 
   mod <- gen(use_dde = TRUE)
   expect_true("n_history" %in% names(formals(mod$run)))
@@ -94,27 +69,75 @@ test_that("n_history is configurable", {
 })
 
 
-test_that("type detection avoids unlikely filenames", {
-  expect_error(odin_preprocess_detect("x"), "looks like a filename")
-  expect_equal(odin_preprocess_detect("x <- y"), "text")
-  expect_equal(odin_preprocess_detect("x = y"), "text")
-  expect_equal(odin_preprocess_detect("deriv(x)"), "text")
-})
-
-
-test_that("type detection can skip filenames", {
-  expect_error(odin_preprocess_detect("x", NULL), "looks like a filename")
-  expect_equal(odin_preprocess_detect("x", "text"), "text")
-  expect_error(odin_preprocess_detect("x", "file"), "does not exist")
-})
-
-
 test_that("sensible error on empty input", {
   path <- tempfile()
   writeLines("", path)
-  expect_error(odin_(path), "Empty input: no expressions were provided")
+  expect_error(odin_(path),
+               "Did not find a deriv() or an update() call",
+               fixed = TRUE)
   writeLines("# some comment", path)
-  expect_error(odin_(path), "Empty input: no expressions were provided")
+  expect_error(odin_(path),
+               "Did not find a deriv() or an update() call",
+               fixed = TRUE)
+})
+
+
+test_that("prevent unknown target", {
+  expect_error(odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- 2
+  }, target = "fortran"),
+  "Unknown target 'fortran'", fixed = TRUE)
+})
+
+
+## issue #88
+test_that("force a vector of strings (compile)", {
+  gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"), target = "r")
+  mod <- gen()
+  y <- mod$run(0:10)[, "y"]
+  expect_equal(y, seq(1, by = 0.5, length.out = 11))
+})
+
+
+## issue #88
+test_that("force a vector of strings (parse)", {
+  ir <- odin_parse(c("deriv(y) <- 0.5", "initial(y) <- 1"))
+  dat <- ir_deserialise(ir)
+  expect_equal(names(dat$data$variable$contents), "y")
+})
+
+
+test_that("odin_ir requires sensible object", {
+  expect_error(odin_ir(NULL), "Expected an odin_generator or odin_model object")
+})
+
+
+## https://github.com/mrc-ide/odin/issues/154
+test_that("delay discrete models with defaults are prevented in C", {
+  expect_error(odin({
+    r <- 3.6
+    update(y) <- r * y * (1 - y)
+    initial(y) <- 0.2
+    x <- delay(y, 2, 1)
+    output(x) <- TRUE
+  }, target = "c"),
+  "Discrete delays with default not yet supported")
+
+  expect_error(odin({
+    r <- 3.6
+    update(y[]) <- r * y[i] * (1 - y[i])
+    initial(y[1]) <- 0.2
+    initial(y[2]) <- 0.4
+    x[] <- delay(y[i], 2, z[i])
+    z[] <- user()
+    output(x[]) <- TRUE
+    dim(y) <- 2
+    dim(x) <- 2
+    dim(z) <- 2
+  }),
+  "Discrete delays with default not yet supported")
 })
 
 

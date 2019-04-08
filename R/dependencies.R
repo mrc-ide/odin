@@ -62,37 +62,46 @@ join_deps <- function(x) {
 ## and assumes that the graph is expressed as a *named* list.  The
 ## daughters of an element are its dependencies.
 topological_order <- function(graph) {
-  no_dep <- lengths(graph) == 0L
-  graph_sorted <- names(no_dep[no_dep])
-  graph <- graph[!no_dep]
+  m <- matrix(FALSE, length(graph), length(graph))
+  for (i in seq_along(graph)) {
+    m[, i] <- unname(names(graph) %in% graph[[i]])
+  }
 
-  while (length(graph) > 0L) {
-    acyclic <- FALSE
-    for (i in seq_along(graph)) {
-      edges <- graph[[i]]
-      if (!any(edges %in% names(graph))) {
-        acyclic <- TRUE
-        graph_sorted <- c(graph_sorted, names(graph[i]))
-        graph <- graph[-i]
-        break
-      }
-    }
-    if (!acyclic) {
-      f <- function(x) {
+  pending <- rep(TRUE, length(graph))
+  graph_sorted <- integer(0)
+  while (any(pending)) {
+    i <- which(pending)[colSums(m[, pending, drop = FALSE]) == 0]
+    if (length(i) > 0L) {
+      graph_sorted <- c(graph_sorted, i)
+      pending[i] <- FALSE
+      m[i, ] <- FALSE
+    } else {
+      f <- function(i) {
         ## Note that this is not going to give the right answer here
         ## but it might still be useful (dim_x -> dim(x), initial_x ->
         ## initial(x) etc.)  Could swap these around with
         ## RESERVED_PREFIX perhaps.
-        y <- graph[[x]]
-        i <- vlapply(graph[y], function(el) x %in% el)
-        sprintf("\t%s: depends on %s", x, y[i])
+        sprintf("\t%s: depends on %s",
+                names(graph)[[i]], paste(err[m[pending, i]], collapse = ", "))
       }
-      err <- intersect(edges, names(graph))
+      err <- names(graph)[pending]
+      detail <- paste(vcapply(which(pending), f), collapse = "\n")
       stop(sprintf("A cyclic dependency detected for %s:\n%s",
-                   paste(err, collapse = ", "),
-                   paste(vcapply(err, f), collapse = "\n")), call. = FALSE)
+                   paste(names(graph)[pending], collapse = ", "),
+                   detail), call. = FALSE)
     }
   }
 
-  graph_sorted
+  names(graph)[graph_sorted]
+}
+
+
+recursive_dependencies <- function(order, deps, vars) {
+  deps_rec <- setNames(vector("list", length(order)), order)
+  for (i in order) {
+    j <- as.character(unlist(deps[i]))
+    deps_rec[[i]] <-
+      c(j, unique(as.character(unlist(deps_rec[j], use.names = FALSE))))
+  }
+  deps_rec
 }

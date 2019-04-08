@@ -1,0 +1,861 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "odin intermediate representation",
+    "description": "Intermediate representation of odin's equations",
+
+    "definitions": {
+        "basic": {
+            "character_vector": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
+
+            "integer_vector": {
+                "type": "array",
+                "items": {
+                    "type": "integer"
+                }
+            },
+
+            "boolean_vector": {
+                "type": "array",
+                "items": {
+                    "type": "boolean"
+                }
+            },
+
+            "source_reference": {
+                "type": "array",
+                "items": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+
+        "enum": {
+            "storage_type": {
+                "type": "string",
+                "enum": ["double", "int", "bool", "interpolate_data",
+                         "ring_buffer"]
+            },
+
+            "location": {
+                "type": "string",
+                "enum": ["transient", "internal", "variable", "output"]
+            },
+
+            "equation_type": {
+                "type": "string",
+                "enum": [
+                    "alloc",
+                    "alloc_interpolate",
+                    "alloc_ring",
+                    "copy",
+                    "delay_index",
+                    "delay_continuous",
+                    "delay_discrete",
+                    "interpolate",
+                    "user",
+                    "expression_array",
+                    "expression_inplace",
+                    "expression_scalar"
+                ],
+                "comment": "This duplicates different equation types"
+            },
+
+            "interpolate_type": {
+                "type": "string",
+                "enum": ["constant", "linear", "spline"]
+            },
+
+            "stage": {
+                "type": "string",
+                "enum": ["constant", "user", "time", "output"]
+            },
+
+            "index": {
+                "type": "string",
+                "enum": ["i", "j", "k", "l", "i5", "i6", "i7", "i8"]
+            }
+        },
+
+        "sexpression": {
+            "comment": "this should be tightened up; the first element must really be an enum of supported functions",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/sexpression"
+                    }
+                }
+            ]
+        },
+
+        "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+
+        "sexpression_or_null": {
+            "oneOf": [
+                {"type": "null"},
+                {"$ref": "#/definitions/sexpression"}
+            ]
+        },
+
+        "sexpression_vector": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/sexpression"
+            }
+        },
+
+        "dependencies": {
+            "oneOf": [
+                {
+                    "type": "null"
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "functions": {
+                            "$ref": "#/definitions/basic/character_vector"
+                        },
+                        "variables": {
+                            "$ref": "#/definitions/basic/character_vector"
+                        }
+                    },
+                    "required": ["functions", "variables"],
+                    "additionalProperties": false
+                }
+            ]
+        },
+
+        "config": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "type": "string"
+                },
+                "include": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/include"
+                    }
+                }
+            },
+            "required": ["base", "include"],
+            "additionalProperties": false
+        },
+
+        "include": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "definition": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "declaration": {
+                    "$ref": "#/definitions/basic/character_vector"
+                }
+            },
+            "required": ["name", "definition", "declaration"],
+            "additionalProperties": false
+        },
+
+        "meta": {
+            "type": "object",
+            "properties": {
+                "internal": {"type": "string"},
+                "user": {"type": "string"},
+                "state": {"type": "string"},
+                "result": {"type": "string"},
+                "output": {"type": "string"},
+                "time": {"type": "string"},
+                "initial_time": {"type": "string"}
+            },
+            "required": [],
+            "additionalProperties": false
+        },
+
+        "features": {
+            "type": "object",
+            "properties": {
+                "discrete": { "type": "boolean" },
+                "has_array": { "type": "boolean" },
+                "has_output": { "type": "boolean" },
+                "has_user": { "type": "boolean" },
+                "has_delay": { "type": "boolean" },
+                "has_interpolate": { "type": "boolean" },
+                "has_stochastic": { "type": "boolean" },
+                "has_include": { "type": "boolean" },
+                "initial_time_dependent": { "type": "boolean" }
+            },
+            "required": ["discrete", "has_array", "has_output", "has_user",
+                         "has_delay", "has_interpolate", "has_stochastic",
+                         "has_include", "initial_time_dependent"],
+            "additionalProperties": false
+        },
+
+        "data": {
+            "type": "object",
+            "properties": {
+                "elements": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data_element"
+                    }
+                },
+                "variable": {
+                    "$ref": "#/definitions/data_variable"
+                },
+                "output": {
+                    "$ref": "#/definitions/data_output"
+                }
+            },
+            "required": ["elements", "variable", "output"],
+            "additionalProperties": false
+        },
+
+        "data_element": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/enum/location"
+                },
+                "storage_type": {
+                    "$ref": "#/definitions/enum/storage_type"
+                },
+                "rank": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 8
+                },
+                "dimnames": {
+                    "$ref": "#/definitions/dimnames"
+                }
+            },
+            "required": ["name", "location", "storage_type", "rank",
+                         "dimnames"],
+            "additionalProperties": false
+        },
+
+        "data_variable": {
+            "type": "object",
+            "properties": {
+                "length": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "contents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data_variable_element"
+                    }
+                }
+            },
+            "required": ["length", "contents"],
+            "additionalProperties": false
+        },
+
+        "data_variable_element": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "offset": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "initial": {
+                    "type": "string"
+                }
+            },
+            "required": ["name", "offset", "initial"],
+            "additionalProperties": false
+        },
+
+        "data_output": {
+            "type": "object",
+            "comment": "Almost identical to data_variable, but the contents elements do not have an 'initial' property",
+            "properties": {
+                "length": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "contents": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/data_output_element"
+                    }
+                }
+            },
+            "required": ["length", "contents"],
+            "additionalProperties": false
+        },
+
+        "data_output_element": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "offset": {
+                    "$ref": "#/definitions/sexpression"
+                }
+            },
+            "required": ["name", "offset"],
+            "additionalProperties": false
+        },
+
+        "equations": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/equation"
+            }
+        },
+
+        "equation": {
+            "allOf": [
+                {"$ref": "#/definitions/equation_base"},
+                {
+                    "oneOf": [
+                        {"$ref": "#/definitions/equation_copy"},
+                        {"$ref": "#/definitions/equation_alloc"},
+                        {"$ref": "#/definitions/equation_alloc_interpolate"},
+                        {"$ref": "#/definitions/equation_alloc_ring"},
+                        {"$ref": "#/definitions/equation_user"},
+                        {"$ref": "#/definitions/equation_expression_array"},
+                        {"$ref": "#/definitions/equation_expression_inplace"},
+                        {"$ref": "#/definitions/equation_expression_scalar"},
+                        {"$ref": "#/definitions/equation_interpolate"},
+                        {"$ref": "#/definitions/equation_delay_index"},
+                        {"$ref": "#/definitions/equation_delay_continuous"},
+                        {"$ref": "#/definitions/equation_delay_discrete"}
+                    ]
+                }
+            ]
+        },
+
+        "equation_lhs": {
+            "type": "string",
+            "comment": "The equation name is often the same as the target of the lhs but that's not the case for things like deriv(x), output(x) and some allocation commands.  To avoid any logic, this always holds the name of the symbol that the assignment is really to"
+        },
+
+        "equation_rhs_scalar": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "$ref": "#/definitions/sexpression"
+                }
+            },
+            "required": ["value"],
+            "additionalProperties": false
+        },
+
+        "equation_rhs_array": {
+            "type": "array",
+            "TODO": "Factor out element definition for reuse",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "$ref": "#/definitions/sexpression"
+                    },
+                    "index": {
+                        "$ref": "#/definitions/equation_rhs_array_index"
+                    }
+                },
+                "required": ["value", "index"],
+                "additionalProperties": false
+            },
+            "minItems": 1
+        },
+
+        "equation_rhs_delay_continuous": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "index": {
+                    "comment": "Note that this is optional, in contrast with non-delayed array expressions.  These are much simpler equations than full array equations because the primary equation must be only one line",
+                    "$ref": "#/definitions/equation_rhs_array_index"
+                }
+            },
+            "required": ["value"],
+            "additionalProperties": false
+        },
+
+        "equation_delay_data": {
+            "type": "object",
+            "properties": {
+                "state": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "string"
+                },
+                "substitutions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "from": {"type": "string"},
+                            "to": {"type": "string"}
+                        },
+                        "required": ["from", "to"],
+                        "additionalProperties": false
+                    }
+                },
+                "variables": {
+                    "$ref": "#/definitions/data_output"
+                },
+                "equations": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "default": {
+                    "$ref": "#/definitions/sexpression_or_null"
+                },
+                "time": {
+                    "$ref": "#/definitions/sexpression"
+                }
+            },
+            "required": ["state", "index", "substitutions", "variables",
+                         "equations", "default", "time"],
+            "additionalProperties": false
+        },
+
+        "equation_rhs_array_index": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "$ref": "#/definitions/sexpression"
+                    },
+                    "is_range": {
+                        "type": "boolean"
+                    },
+                    "index": {
+                        "$ref": "#/definitions/enum/index"
+                    }
+                },
+                "required": ["value", "is_range", "index"],
+                "additionalProperties": false
+            }
+        },
+
+        "equation_base": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/enum/equation_type"
+                },
+                "source": {
+                    "$ref": "#/definitions/basic/source_reference"
+                },
+                "depends": {
+                    "$ref": "#/definitions/dependencies"
+                },
+                "lhs": {
+                    "$ref": "#/definitions/equation_lhs"
+                }
+            },
+            "required": ["name", "type", "source", "depends", "lhs"]
+        },
+
+        "equation_alloc": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "alloc"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {}
+            },
+            "required": ["type"],
+            "additionalProperties": false
+        },
+
+        "equation_delay_index": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "delay_index"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "delay": {
+                    "comment": "Refers back to the equation that the delay is for; that equation contains information about the required variables and their order that make up this index",
+                    "type": "string"
+                }
+            },
+            "required": ["type", "delay"],
+            "additionalProperties": false
+        },
+
+        "equation_copy": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "copy"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {}
+            },
+            "required": ["type"],
+            "additionalProperties": false
+        },
+
+        "equation_expression_scalar": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "expression_scalar"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {
+                    "$ref": "#/definitions/equation_rhs_scalar"
+                }
+            },
+            "required": ["type", "rhs"],
+            "additionalProperties": false
+        },
+
+        "equation_expression_inplace": {
+            "type": "object",
+            "comment": "This will probably change",
+            "properties": {
+                "type": {"const": "expression_inplace"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {
+                    "$ref": "#/definitions/equation_rhs_scalar"
+                }
+            },
+            "required": ["type", "rhs"],
+            "additionalProperties": false
+        },
+
+        "equation_expression_array": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "expression_array"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {"$ref": "#/definitions/equation_rhs_array"}
+            },
+            "required": ["type", "rhs"],
+            "additionalProperties": false
+        },
+
+        "equation_alloc_interpolate": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "alloc_interpolate"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "interpolate": {
+                    "type": "object",
+                    "properties": {
+                        "t": {
+                            "type": "string"
+                        },
+                        "y": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "$ref": "#/definitions/enum/interpolate_type"
+                        },
+                        "equation": {
+                            "type": "string"
+                        }
+                    },
+                    "required": ["t", "y", "type", "equation"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["type", "interpolate"],
+            "additionalProperties": false
+        },
+
+        "equation_alloc_ring": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "alloc_ring"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "delay": {
+                    "type": "string"
+                }
+            },
+            "required": ["type", "delay"],
+            "additionalProperties": false
+        },
+
+        "equation_user": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "user"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "default": {
+                            "oneOf": [
+                                {"type": "null"},
+                                {"type": "number"}
+                            ]
+                        },
+                        "dim": {
+                            "type": "boolean"
+                        },
+                        "min": {
+                            "$ref": "#/definitions/sexpression_or_null"
+                        },
+                        "max": {
+                            "$ref": "#/definitions/sexpression_or_null"
+                        }
+                    },
+                    "required": ["default", "dim", "min", "max"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["type", "user"],
+            "additionalProperties": false
+        },
+
+        "equation_delay_continuous": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "delay_continuous"
+                },
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {
+                    "$ref": "#/definitions/equation_rhs_delay_continuous"
+                },
+                "delay": {
+                    "$ref": "#/definitions/equation_delay_data"
+                }
+            },
+            "required": ["type", "rhs", "delay"],
+            "additionalProperties": false
+        },
+
+        "equation_delay_discrete": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "delay_discrete"
+                },
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {
+                    "TODO": "rename this if it holds true",
+                    "$ref": "#/definitions/equation_rhs_delay_continuous"
+                },
+                "delay": {
+                    "type": "object",
+                    "properties": {
+                        "ring": {
+                            "type": "string"
+                        },
+                        "default": {
+                            "oneOf": [
+                                {"type": "null"},
+                                {"$ref": "#/definitions/sexpression"}
+                            ]
+                        },
+                        "time": {
+                            "$ref": "#/definitions/sexpression"
+                        }
+                    },
+                    "required": ["ring", "default", "time"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["type", "rhs", "delay"],
+            "additionalProperties": false
+        },
+
+        "equation_interpolate": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "interpolate"
+                },
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "interpolate": {
+                    "type": "string"
+                }
+            },
+            "required": ["type", "interpolate"],
+            "additionalProperties": false
+        },
+
+        "components": {
+            "type": "object",
+            "properties": {
+                "create": { "$ref": "#/definitions/component" },
+                "user": { "$ref": "#/definitions/component" },
+                "initial": { "$ref": "#/definitions/component" },
+                "rhs": { "$ref": "#/definitions/component" },
+                "output": { "$ref": "#/definitions/component" }
+            },
+            "required": ["create", "user", "initial", "rhs", "output"],
+            "additionalProperties": false
+        },
+
+        "component": {
+            "type": "object",
+            "properties": {
+                "variables": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "equations": {
+                    "$ref": "#/definitions/basic/character_vector"
+                }
+            },
+            "required": ["variables", "equations"],
+            "additionalProperties": false
+        },
+
+        "user": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "has_default": {
+                        "type": "boolean"
+                    }
+                },
+                "required": ["name", "has_default"],
+                "additionalProperties": false
+            }
+        },
+
+        "dimnames": {
+            "oneOf": [
+                {"type": "null"},
+                {"$ref": "#/definitions/dimnames_used"}
+            ]
+        },
+
+        "dimnames_used": {
+            "type": "object",
+            "properties": {
+                "length": {
+                    "type": "string"
+                },
+                "dim": {
+                    "oneOf": [
+                        {"$ref": "#/definitions/basic/character_vector"},
+                        {"type": "null"}
+                    ]
+                },
+                "mult": {
+                    "oneOf": [
+                        {"$ref": "#/definitions/basic/character_vector"},
+                        {"type": "null"}
+                    ]
+                }
+            },
+            "required": ["length", "dim", "mult"],
+            "additionalProperties": false
+        },
+
+        "interpolate": {
+            "type": "object",
+            "properties": {
+                "min": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "max": {
+                    "$ref": "#/definitions/basic/character_vector"
+                },
+                "critical": {
+                    "$ref": "#/definitions/basic/character_vector"
+                }
+            },
+            "required": ["min", "max", "critical"],
+            "additionalProperties": false
+        }
+    },
+
+    "type": "object",
+    "properties": {
+        "version": {
+            "$ref": "#/definitions/version"
+        },
+        "config": {
+            "$ref": "#/definitions/config"
+        },
+        "meta": {
+            "$ref": "#/definitions/meta"
+        },
+        "features": {
+            "$ref": "#/definitions/features"
+        },
+        "data": {
+            "$ref": "#/definitions/data"
+        },
+        "equations": {
+            "$ref": "#/definitions/equations"
+        },
+        "components": {
+            "$ref": "#/definitions/components"
+        },
+        "user": {
+            "$ref": "#/definitions/user"
+        },
+        "interpolate": {
+            "$ref": "#/definitions/interpolate"
+        },
+        "source": {
+            "$ref": "#/definitions/basic/character_vector"
+        }
+    },
+    "required": ["version", "config", "features", "data", "equations",
+                 "components", "user", "interpolate", "source"],
+    "additionalProperties": false
+}

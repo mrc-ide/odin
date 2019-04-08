@@ -1,5 +1,4 @@
-##' @importFrom stats na.omit setNames
-##' @importFrom utils modifyList
+##' @importFrom stats setNames
 vlapply <- function(X, FUN, ...) {
   vapply(X, FUN, logical(1), ...)
 }
@@ -22,37 +21,11 @@ collector <- function(init = character(0)) {
   res <- init
   add <- function(x, ..., literal = FALSE) {
     res <<- c(res,
-              if (literal) x else sprintf(x, ...))
+              if (literal) x else sprintf_safe(x, ...))
   }
   list(add = add,
        length = function(x) length(res), # used only in debugging below
        get = function() res)
-}
-
-## We'll use this in the main loop.  This could quite happily get out
-## of whack, so there are some checks here that can be removed in
-## eventual production.
-collector_named <- function(required = FALSE) {
-  data <- collector()
-  names <- collector()
-  list(
-    add = function(..., name = "") {
-      n <- max(lengths(list(...)))
-      nms <- rep_len(name, n)
-      if (required && !all(nzchar(nms))) {
-        stop("required names are missing [odin bug]") # nocov
-      }
-      names$add(nms)
-      n_prev <- data$length()
-      data$add(...)
-      if (data$length() != n_prev + n) {
-        stop("odin bug") # nocov
-      }
-    },
-    get = function() {
-      setNames(data$get(), names$get())
-    }
-  )
 }
 
 collector_list <- function(init = list()) {
@@ -65,29 +38,6 @@ pastec <- function(..., collapse = ", ") {
   paste(..., collapse = collapse)
 }
 
-indent <- function(x, n = 2, skip_first = FALSE, collapse = FALSE) {
-  if (length(x) == 0L && is.character(x)) {
-    return(x)
-  } else {
-    x <- unlist(strsplit(x, "\n", fixed = TRUE), use.names = FALSE)
-    if (length(x) > 0L) {
-      if (skip_first) {
-        if (length(x) > 1L) {
-          x[-1] <- paste0(strrep(n), x[-1])
-        }
-      } else {
-        x <- paste0(strrep(n), x)
-      }
-    } else {
-      stop("should never happen [odin bug]")
-    }
-  }
-  if (collapse && length(x) > 1L) {
-    x <- paste(x, collapse = "\n")
-  }
-  x
-}
-
 strrep <- function(n, x = " ") {
   paste(rep(x, n), collapse = "")
 }
@@ -97,6 +47,9 @@ is_integer_like <- function(x, tol = sqrt(.Machine$double.eps)) {
 }
 
 is_call <- function(expr, symbol) {
+  if (is.character(symbol)) {
+    symbol <- as.name(symbol)
+  }
   is.recursive(expr) && identical(expr[[1L]], symbol)
 }
 
@@ -104,9 +57,6 @@ is_directory <- function(path) {
   file.exists(path) && file.info(path, extra_cols = FALSE)$isdir
 }
 
-basename_no_ext <- function(path) {
-  tools::file_path_sans_ext(basename(path))
-}
 
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
@@ -132,40 +82,8 @@ names_if <- function(x) {
   names(x)[x]
 }
 
-rbind_as_df <- function(x) {
-  do.call("rbind",
-          lapply(x, as.data.frame, stringsAsFactors = FALSE),
-          quote = TRUE)
-}
-
-## Abstract the hashing away in case we go for something like openssl.
-hash_object <- function(object) {
-  digest::digest(object)
-}
-
-
-hash_files <- function(filenames, named = FALSE) {
-  if (length(filenames) == 0L) {
-    return(NULL)
-  }
-  hash <- tools::md5sum(filenames)
-  if (any(is.na(hash))) {
-    stop("Files missing")
-  }
-  if (named) hash else unname(hash)
-}
-
 short_hash <- function(x) {
   substr(x, 1L, 8L)
-}
-
-## This is going to be used to keep track of dlls that we load
-.dlls <- collector()
-
-dyn_load <- function(dll) {
-  dll_full <- normalizePath(dll, mustWork = TRUE)
-  dyn.load(dll_full)
-  .dlls$add(dll_full)
 }
 
 dllname <- function(base) {
@@ -176,9 +94,8 @@ dquote <- function(x) {
   sprintf('"%s"', x)
 }
 
-escape_printf <- function(x) {
-  gsub('"', '\"',
-       gsub("%", "%%", x, fixed = TRUE))
+squote <- function(x) {
+  sprintf("'%s'", x)
 }
 
 odin_version <- function() {
@@ -214,4 +131,92 @@ adrop <- function(x, i) {
 set_names <- function(x, nms) {
   names(x) <- nms
   x
+}
+
+
+scalar <- function(x) {
+  jsonlite::unbox(x)
+}
+
+
+drop_null <- function(x) {
+  x[!vlapply(x, is.null)]
+}
+
+
+list_to_character <- function(x) {
+  vcapply(x, identity)
+}
+
+
+sort_list <- function(x) {
+  x[order(names(x))]
+}
+
+
+substitute_ <- function(expr, env) {
+  eval(substitute(substitute(y, env), list(y = expr)))
+}
+
+
+as_function <- function(args, body, env) {
+  as.function(c(args, body), env)
+}
+
+
+sprintf_safe <- function(fmt, ...) {
+  dots <- list(...)
+  if (any(vlapply(dots, is.null))) {
+    stop("Passed empty format parameter to formatter")
+  }
+  if (length(dots) == 0) {
+    fmt
+  } else {
+    sprintf(fmt, ...)
+  }
+}
+
+
+hash_string <- function(x) {
+  digest::digest(charToRaw(x), serialize = FALSE)
+}
+
+
+## Wrappers around jsonlite
+to_json <- function(dat, pretty = TRUE) {
+  jsonlite::toJSON(dat, null = "null", pretty = pretty, digits = NA)
+}
+
+
+from_json <- function(x) {
+  jsonlite::fromJSON(x, simplifyVector = FALSE)
+}
+
+
+read_string <- function(path) {
+  readChar(path, file.info(path, extra_cols = FALSE)$size)
+}
+
+
+## This is required to work around devtools no longer shimming
+## system.file reliably, again, apparently.  If users want to use
+## devtools::load_all() with an odin-generated package it won't work.
+## This was a problem a few versions of devtools ago, seemed to have
+## been fixed, and is broken again.
+##
+## This can be removed once we get a better way of loading the ir into
+## the model, I think.
+package_odin_path <- function(path, package, root = NULL) {
+  if (is.null(root)) {
+    root <- system.file(package = package, mustWork = TRUE)
+  }
+  p1 <- file.path(root, "inst", path)
+  if (file.exists(p1)) {
+    return(p1)
+  }
+  p2 <- file.path(root, path)
+  if (file.exists(p2)) {
+    return(p2)
+  }
+  stop("Could not find odin ir")
 }

@@ -1,473 +1,449 @@
-## Generate an interface.  This is a bit tricky as we want to generate
-## very slightly different interfaces based on the options in info.
-## For now this is done sub-optimally but I think it's fine for now at
-## least.
-##
-## TODO: Consider an option here to return either the generator or the
-## function that tries to collect the variables up and skip $new.
-##
-## TODO: Do we also want something that will act as "destroy" and
-## unload the DLL and void all the pointers?  That requires that we
-## keep a pointer cache here, but that's easy enough.  We can register
-## this for eventual garbage collection too, so that's nice.
-##
-## When doing codegen we can build out interfaces that don't include
-## much R switching, can get the code bits dealt with correctly.
-
-
-## OK, this step here is the only part that generates *R* code.
-odin_generate_r <- function(info, dll) {
-  discrete <- info$discrete
-  base <- info$base
-
-  ## TODO: Need to get dll into this, which is a right pain because I
-  ## don't know that we know it at this point...
-  ##
-  ## TODO: decide if we're using DDE at which stage?
-  ret <- collector()
-  ret$add(".R6_%s <- R6::R6Class(", base)
-  ret$add('  "odin_model",')
-  ## This is needed to access some internal odin functions; I think
-  ## that's OK though?  From odin the main thing we use is
-  ## odin_prepare(), which in turn uses some nasty bits in
-  ## make_translate.  I need to see if the package will load with odin
-  ## not loaded though.
-  ret$add("  parent_env = environment(odin::odin),")
-  ret$add("  public = list(")
-  ret$add('    name = "%s",', base)
-  ret$add("    ptr = NULL,")
-  if (!discrete) {
-    ret$add("    use_dde = NULL,")
-  }
-  ret$add("    ## Cache:")
-  ret$add("    init = NULL,")
-  ret$add("    variable_order = NULL,")
-  if (info$has_output) {
-    ret$add("    output_order = NULL,")
-    ret$add("    output_length = NULL,")
-  }
-  ret$add("    names = NULL,")
-  ret$add("    transform_variables = NULL,")
-  if (info$has_interpolate) {
-    ret$add("    interpolate_t = NULL,")
-  }
-  ret$add("    ## Methods:")
-  methods <- list(
-    odin_generate_r_initialize(info, dll),
-    if (info$has_user) odin_generate_r_set_user(info, dll),
-    odin_generate_r_update_cache(info, dll),
-    if (!discrete && !info$has_delay) odin_generate_r_deriv(info, dll),
-    if ( discrete && !info$has_delay) odin_generate_r_update(info, dll),
-    odin_generate_r_initial(info, dll),
-    odin_generate_r_run(info, dll),
-    odin_generate_r_contents(info, dll),
-    odin_generate_r_user_info(info),
-    odin_generate_r_graph_data(info))
-  methods <- methods[!vlapply(methods, is.null)]
-  methods <-
-    paste(vcapply(methods, function(x) paste(indent(x, 4), collapse = "\n")),
-          collapse = ",\n\n")
-  ret$add(methods, literal = TRUE)
-  ret$add("  ))")
-  ret$add(odin_generate_r_constructor(info, dll))
-  ret$get()
-}
-
-odin_generate_r_constructor <- function(info, dll) {
-  ret <- collector()
-  base <- info$base
-  if (info$has_user) {
-    collector <- sprintf("list(%s)",
-                         pastec(sprintf("%s = %s",
-                                        info$user$name, info$user$name)))
-    args <- vcapply(info$user$has_default, function(x) if (x) "NULL" else "")
-    names(args) <- info$user$name
-    args <- c(args, c(user = collector))
-    constrain <- generate_user_constraints(info$user)
-    if (is.null(constrain)) {
-      args_use <- "user = user"
-    } else {
-      args_use <- sprintf("user = validate_user(user, %s)", constrain)
-    }
-  } else {
-    args <- args_use <- character(0)
-  }
-  if (!info$discrete) {
-    args <- c(args, c(use_dde = "FALSE"))
-    args_use <- c(args_use, "use_dde = use_dde")
+generate_r <- function(dat, options) {
+  if (dat$features$has_delay) {
+    ## We're going to need an additional bit of internal data here,
+    ## but this sits outside the core odin ir
+    dat$meta$use_dde <- "odin_use_dde"
+    dat$data$elements[[dat$meta$use_dde]] <- list(name = dat$meta$use_dde,
+                                                  location = "internal",
+                                                  storage_type = "bool",
+                                                  rank = 0L,
+                                                  dimnames = NULL)
   }
 
-  ## TODO: This will need to go through a parse/deparse step to get
-  ## nicely formatted probably?  Not sure.  Not really worth stressing
-  ## about for now though.
-  i <- nzchar(args)
-  args_list <- names(args)
-  args_list[i] <- sprintf("%s = %s", args_list[i], args[i])
-  ret$add("%s <- function(%s) {", base, pastec(args_list))
-  ret$add("  .R6_%s$new(%s)", base, pastec(args_use))
-  ret$add("}")
-  ## Once #96 is solved this might change and we might move to a
-  ## generic over odin objects which implements this.
-  ret$add('attr(%s, "user_info") <- .R6_%s$public_methods$user_info',
-          base, base)
-  ret$add('attr(%s, "graph_data") <- .R6_%s$public_methods$graph_data',
-          base, base)
-  ret$add('class(%s) <- "odin_generator"', base)
-  ret$add(base)
-  ret$get()
-}
+  dat$meta$support <-
+    list(get_user_double = "_get_user_double",
+         get_user_dim = "_get_user_dim",
+         check_user = "_check_user",
+         check_interpolate_y = "_check_interpolate_y",
+         check_interpolate_t = "_check_interpolate_t")
 
-odin_generate_r_update_cache <- function(info, dll) {
-  ret <- collector()
-  base <- info$base
-  ret$add("update_cache = function() {")
-  ret$add("  self$variable_order <- %s",
-          dot_call(base, dll, "%s_variable_order", "self$ptr"))
-  ## TODO: don't generate output_order if no output
-  if (info$has_output) {
-    ret$add("  self$output_order <- %s",
-            dot_call(base, dll, "%s_output_order", "self$ptr"))
-  }
-  if (info$has_interpolate) {
-    ret$add("      self$interpolate_t <- %s",
-            dot_call(base, dll, "%s_interpolate_t", "self$ptr"))
-  }
-  ## The mechanics by which this happen I don't know; at the moment
-  ## this is OK via the parent env flag but this could cause trouble
-  ## with R CMD check in generated packages which I would rather
-  ## avoid.
-  ret$add("  odin_prepare(self, %s)", info$discrete)
-  ret$add("}")
-  ret$get()
-}
-
-odin_generate_r_initialize <- function(info, dll) {
-  ret <- collector()
-  base <- info$base
-  args <- c(character(),
-            if (info$has_user) setNames("NULL", USER),
-            if (!info$discrete) c(use_dde = "FALSE"))
-
-  ret$add("initialize = function(%s) {",
-          pastec(sprintf("%s = %s", names(args), unname(args))))
-  ret$add("  self$ptr <- %s",
-          dot_call(base, dll, "%s_create", args = names(args)))
-  if (!info$discrete) {
-    ret$add("  self$use_dde <- use_dde")
-  }
-  if (info$initial_stage < STAGE_TIME) {
-    ret$add("  self$init <- %s",
-            dot_call(base, dll, "%s_initialise", "self$ptr", "NA_real_"))
-  }
-  ## Until I cave and make dde/ring a proper dependency, try and be
-  ## well behaved here.
-  if (info$discrete) {
-    ret$add('  loadNamespace("dde")')
-  } else {
-    ret$add("  if (use_dde) {")
-    ret$add('    loadNamespace("dde")')
-    ret$add("  }")
-  }
-  ret$add("  self$update_cache()")
-  ret$add("}")
-  ret$get()
-}
-
-odin_generate_r_set_user <- function(info, dll) {
-  ret <- collector()
-  base <- info$base
-  ## TODO: generate full interface here with the bits above, once
-  ## they're written?
-  ret$add("set_user = function(..., user = list(...)) {")
-
-  constrain <- generate_user_constraints(info$user)
-  if (is.null(constrain)) {
-    user <- "user"
-  } else {
-    user <- sprintf("validate_user(user, %s)", constrain)
-  }
-  ret$add("  %s", dot_call(base, dll, "r_%s_set_user", "self$ptr", user))
-
-  if (info$initial_stage == STAGE_USER) {
-      ret$add("  self$init <- %s",
-              dot_call(base, dll, "%s_initialise", "self$ptr", "NA_real_"))
-  }
-  if (info$dim_stage == STAGE_USER) {
-    ret$add("  self$update_cache()")
-  }
-  ret$add("  invisible(self$init)")
-  ret$add("}")
-  ret$get()
-}
-
-odin_generate_r_deriv <- function(info, dll) {
-  ret <- collector()
-  ret$add("deriv = function(%s, y) {", TIME)
-  ret$add("  %s", dot_call(info$base, dll,
-                           "%s_deriv_r", "self$ptr", TIME, "y"))
-  ret$add("}")
-  ret$get()
-}
-
-odin_generate_r_initial <- function(info, dll) {
-  ret <- collector()
-  time <- if (info$discrete) STEP else TIME
-  ret$add("initial = function(%s) {", time)
-  if (info$initial_stage < STAGE_TIME) {
-    ret$add("  self$init")
-  } else {
-    time_use <-
-      sprintf("as.%s(%s)", if (info$discrete) "integer" else "numeric", time)
-    ## TODO: Consider a better name here?
-    ret$add("  %s",
-            dot_call(info$base, dll, "%s_initialise", "self$ptr", time_use))
-  }
-  ret$add("}")
-}
-
-odin_generate_r_update <- function(info, dll) {
-  ## TODO: also rewrite STATE?  Here and everywhere where 'y' occurs?
-  ret <- collector()
-  ret$add("update = function(%s, y) {", STEP)
-  ret$add("  %s", dot_call(info$base, dll,
-                           "%s_update_r", "self$ptr", STEP, "y"))
-  ret$add("}")
-  ret$get()
-}
-
-odin_generate_r_run <- function(info, dll) {
-  ret <- collector()
-  discrete <- info$discrete
-  base <- info$base
-  has_interpolate <- info$has_interpolate
-  has_delay <- info$has_delay
-  time <- if (discrete) STEP else TIME
-  time_name <- if (discrete) STEP else TIME
-
-  ## TODO: move to a more flexible model of building argument lists.
-  args <- c(time_name, y = "NULL", "...", use_names = "TRUE")
-  if (discrete) {
-    args <- c(args, replicate = "NULL")
-  }
-  if (has_interpolate) {
-    args <- c(args, c(tcrit = "NULL"))
-  }
-  if (has_delay) {
-    args <- c(args, c(n_history = "1000L"))
+  ## This is our little rewriter - we'll tidy this up later
+  rewrite <- function(x) {
+    generate_r_sexp(x, dat$data, dat$meta)
   }
 
-  args <- pastec(ifelse(nzchar(names(args)),
-                        paste(names(args), args, sep = " = "),
-                        args))
-  ret$add("run = function(%s) {", args)
+  eqs <- generate_r_equations(dat, rewrite)
 
-  ret$add("  if (is.null(y)) {")
-  if (info$initial_stage < STAGE_TIME) {
-    ret$add("    y <- self$init")
-  } else {
-    ret$add("    y <- self$initial(%s[[1L]])", time_name)
-  }
-  if (info$has_delay) {
-    ret$add("  } else {")
-    ret$add("    %s",
-            dot_call(base, dll, "%s_set_initial", "self$ptr", time, "y"))
-  }
-  ret$add("  }")
-  if (info$has_interpolate) {
-    ret$add(indent(odin_generate_r_run_interpolate_check(info), 2))
-  }
-  if (discrete) {
-    ## Two possible calls:
-    args <- list(quote(y), as.symbol(time), sprintf("%s_update_dde", base),
-                 quote(self$ptr), dllname = dll,
-                 parms_are_real = FALSE, ynames = FALSE, quote(...))
-    if (info$has_output) {
-      args <- c(args, list(n_out = quote(self$output_length)))
-    }
-    if (info$has_delay) {
-      args <- c(args,
-                list(n_history = quote(n_history), return_history = FALSE))
-    }
-    call1 <- as.call(c(list(quote(dde::difeq)), args))
-    call2 <- as.call(c(list(quote(dde::difeq_replicate), quote(replicate)),
-                       args))
-    ret$add("  if (is.null(replicate)) {")
-    ret$add("    ret <- %s", deparse_str(call1))
-    ret$add("  } else {")
-    ret$add("    ret <- %s", deparse_str(call2))
-    ret$add("}")
-  } else {
-    ## OK throughout here I think I'll break this up a little and do
-    ## it as argument collection / formatting.
-    ret$add("  if (self$use_dde) {")
-    ret$add('    ret <- dde::dopri(y, %s, "%s_deriv_dde", self$ptr,',
-            time, base)
-    ret$add(indent(sprintf('dllname = "%s",', dll), 22))
-    if (info$has_output) {
-      ret$add(indent(sprintf(
-        'n_out = self$output_length, output = "%s_output_dde",',
-        base), 22))
-    }
-    if (info$has_delay) {
-      ret$add(indent("n_history = n_history, return_history = FALSE,", 22))
-    }
-    ret$add(indent("parms_are_real = FALSE, ynames = FALSE, ...)", 22))
-    ret$add("  } else {")
-    len <- if (info$has_delay) 25 else 24
-    ret$add('    ret <- deSolve::%s(y, %s, "%s_deriv_ds", self$ptr,',
-            if (info$has_delay) "dede" else "ode", time, base)
-    ret$add(indent(sprintf('initfunc = "%s_initmod_ds", dllname = "%s",',
-                           base, dll), len))
-    if (info$has_output) {
-      ret$add(indent("nout = self$output_length,", len))
-    }
-    if (info$has_interpolate) {
-      ret$add(indent("tcrit = tcrit,", len))
-    }
-    if (info$has_delay) {
-      ret$add(indent("control = list(mxhist = n_history),", len))
-    }
-    ret$add(indent("...)", len))
-    ret$add("  }")
-  }
-  ret$add("  if (use_names) {")
-  ret$add("    colnames(ret) <- self$names")
-  ret$add("  } else {")
-  ret$add("    colnames(ret) <- NULL")
-  ret$add("  }")
-  ret$add("  ret")
-  ret$add("}")
-  ret$get()
-}
+  ## Then start putting together the initial conditions
+  env <- new.env(parent = odin_base_env())
 
-## NOTE: factored out mostly because of really terrible line length issues
-##
-## TODO: it's possible we could haul the code in directly and deparse?
-##
-## TODO: Some care will be needed when dealing with discrete
-## models here
-odin_generate_r_run_interpolate_check <- function(info) {
-  time_name <- if (info$discrete) STEP else TIME
-  ret <- collector()
-  ret$add("r <- self$interpolate_t")
-  ret$add("if (%s[[1L]] < r[[1L]]) {", time_name)
-  ret$add('  stop("Integration times do not span interpolation range; min: ",')
-  ret$add("        r[[1L]])")
-  ret$add("}")
-  ## TODO: we can look at the max order of the interpolation and
-  ## decide whether this clause needs to be added.
-  ret$add("if (!is.na(r[[2L]]) && %s[[length(%s)]] > r[[2L]]) {",
-          time_name, time_name)
-  ret$add('  stop("Integration times do not span interpolation range; max: ",')
-  ret$add("        r[[2L]])")
-  ret$add("}")
-  if (!info$discrete) {
-    ret$add("if (is.null(tcrit) && !is.na(r[[2L]]) && !self$use_dde) {")
-    ret$add("  tcrit <- r[[2L]]")
-    ret$add("}")
+  ## Support functions will come in this way:
+  if (dat$features$has_user) {
+    env[[dat$meta$support$get_user_double]] <- support_get_user_double
+    env[[dat$meta$support$get_user_dim]] <- support_get_user_dim
   }
-  ret$get()
-}
-
-odin_generate_r_contents <- function(info, dll) {
-  ret <- collector()
-  ret$add("contents = function() {")
-  ret$add('  %s', dot_call(info$base, dll, "%s_contents", "self$ptr"))
-  ret$add("}")
-  ret$get()
-}
-
-## This could go in as either a function or as a method.  Neither are
-## hugely different but I think a function is more like others
-odin_generate_r_user_info <- function(info) {
-  ret <- collector()
-  ret$add("user_info = function() {")
-  if (info$has_user) {
-    default_value <- vcapply(info$user$default_value, function(x)
-      if (is.null(x)) "NULL" else deparse_str(x), USE.NAMES = FALSE)
-    ret$add("  data.frame(")
-    ret$add("    name = c(%s),", pastec(dquote(info$user$name)))
-    ret$add("    has_default = c(%s),", pastec(info$user$has_default))
-    ret$add("    default_value = I(list(%s)),", pastec(default_value))
-    ret$add("    rank = c(%s),", pastec(info$user$rank))
-    ret$add("    min = c(%s),", pastec(info$user$min))
-    ret$add("    max = c(%s),", pastec(info$user$max))
-    ret$add("    integer = c(%s),", pastec(info$user$integer))
-    ret$add("    stringsAsFactors = FALSE)")
-  } else {
-    ret$add("  data.frame(name = character(), ")
-    ret$add("             has_default = logical(),")
-    ret$add("             default_value = I(list()),")
-    ret$add("             rank = integer(),")
-    ret$add("             min = numeric(),")
-    ret$add("             max = numeric(),")
-    ret$add("             integer = logical(),")
-    ret$add("             stringsAsFactors = FALSE)")
+  env[[dat$meta$support$check_user]] <- support_check_user
+  if (dat$features$has_interpolate) {
+    env[[dat$meta$support$check_interpolate_y]] <- support_check_interpolate_y
+    env[[dat$meta$support$check_interpolate_t]] <- support_check_interpolate_t
   }
-  ret$add("}")
-  ret$get()
+
+  core <- generate_r_core(eqs, dat, env, rewrite)
+  generate_r_class(core, dat, env)
 }
 
 
-odin_generate_r_graph_data <- function(info) {
-  vec <- function(x) {
-    if (is.character(x)) {
-      x <- dquote(x)
-    }
-    sprintf("c(%s)", paste(x, collapse = ", "))
-  }
-  df <- function(d, indent = 8) {
-    cols <- vcapply(d, vec, USE.NAMES = FALSE)
-    indent <- strrep(indent, " ")
-    sprintf("data.frame(\n%s\n%sstringsAsFactors = FALSE)",
-            paste(sprintf("%s%s = %s,", indent, names(d), cols),
-                  collapse = "\n"),
-            indent)
-  }
-
-  ret <- collector()
-  ret$add("graph_data = function() {")
-  ret$add("  structure(")
-  ret$add("    list(")
-  ret$add("      discrete = %s,", deparse(info$discrete))
-  ret$add("      stochastic = %s,", deparse(info$has_stochastic))
-  ret$add("      nodes = %s,", df(info$graph$nodes))
-  ret$add("      edges = %s),", df(info$graph$edges))
-  ret$add('    class = "odin_graph_data")')
-  ret$add("}")
-  ret$get()
+generate_r_core <- function(eqs, dat, env, rewrite) {
+  core <- list(
+    create = generate_r_create(eqs, dat, env),
+    ic = generate_r_ic(eqs, dat, env, rewrite),
+    set_user = generate_r_set_user(eqs, dat, env),
+    rhs_desolve = generate_r_rhs(eqs, dat, env, rewrite, "desolve"),
+    rhs_dde = generate_r_rhs(eqs, dat, env, rewrite, "dde"),
+    output = generate_r_rhs(eqs, dat, env, rewrite,"output"),
+    interpolate_t = generate_r_interpolate_t(dat, env, rewrite),
+    set_initial = generate_r_set_initial(dat, env, rewrite),
+    run = generate_r_run(dat, env, rewrite),
+    metadata = generate_r_metadata(dat, rewrite))
+  list2env(core, env)
+  core
 }
 
 
-dot_call <- function(base, dll, fmt, ..., args = c(...)) {
-  args <- c(args, sprintf('PACKAGE = "%s"', dll))
-  sprintf('.Call("%s", %s)', sprintf(fmt, base), paste(args, collapse = ", "))
+generate_r_create <- function(eqs, dat, env) {
+  alloc <- call("<-", as.name(dat$meta$internal),
+                quote(new.env(parent = emptyenv())))
+  eqs_create <- r_flatten_eqs(eqs[dat$components$create$equations])
+  ret <- as.name(dat$meta$internal)
+  body <- as.call(c(list(quote(`{`)), c(alloc, eqs_create, ret)))
+  as_function(alist(), body, env)
 }
 
 
-generate_user_constraints <- function(info_user) {
-  integer <- info_user$name[info_user$integer]
-  if (length(integer) > 0L) {
-    integer <- sprintf("c(%s)", dquote(integer))
-  } else {
-    integer <- NULL
-  }
+## TODO: 'ic' ==> 'initial'
+generate_r_ic <- function(eqs, dat, env, rewrite) {
+  ## Equations to run before initial conditions are computed:
+  eqs_initial <- r_flatten_eqs(eqs[dat$components$initial$equations])
 
+  ## We need a little fiction here because any use of a variable must
+  ## use its "initial" name at this point.  We could filter through
+  ## dependencies and work out if this is necessary, but this should
+  ## be fairly harmless, and at the moment we don't report this well.
+  subs <- lapply(dat$data$variable$contents, function(x) rewrite(x$initial))
+  eqs_initial <- lapply(eqs_initial, substitute_, as.environment(subs))
+
+  ## Allocate space for the state vector
+  state <- as.name(dat$meta$state)
+  var_length <- rewrite(dat$data$variable$length)
+  alloc <- call("<-", state, call("numeric", var_length))
+
+  ## Assign into the state vector
   f <- function(x) {
-    ret <- set_names(x[is.finite(x)], info_user$name[is.finite(x)])
-    if (length(ret) > 0L) {
-      sprintf("c(%s)", pastec(sprintf("%s = %s", names(ret), unname(ret))))
+    d <- dat$data$elements[[x$name]]
+    if (d$rank == 0L) {
+      target <- call("[[", state, r_offset_to_position(x$offset))
     } else {
-      NULL
+      offset <- rewrite(x$offset)
+      seq <- call("seq_len", rewrite(d$dimnames$length))
+      target <- call("[", state, call("+", offset, seq))
+    }
+    call("<-", target, rewrite(x$initial))
+  }
+  assign <- lapply(dat$data$variable$contents, f)
+
+  ## Build the function:
+  body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, state))
+  args <- alist(time =, internal =)
+  names(args)[[1]] <- dat$meta$time
+  names(args)[[2]] <- dat$meta$internal
+  as_function(args, body, env)
+}
+
+
+generate_r_set_user <- function(eqs, dat, env) {
+  eqs_user <- r_flatten_eqs(eqs[dat$components$user$equations])
+  args <- alist(user =, internal =, unused_user_action =)
+  names(args)[[1]] <- dat$meta$user
+  names(args)[[2]] <- dat$meta$internal
+
+  user <- vcapply(dat$user, "[[", "name", USE.NAMES = FALSE)
+  user_args <- if (length(user) == 1L) user else as.call(c(quote(c), user))
+  check <- call(dat$meta$support$check_user,
+                as.name(dat$meta$user), user_args, quote(unused_user_action))
+
+  body <- r_expr_block(c(list(check, eqs_user)))
+  as_function(args, body, env)
+}
+
+
+generate_r_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
+  discrete <- dat$features$discrete
+  has_output <- dat$features$has_output
+
+  if (rhs_type == "output" && !has_output) {
+    return(NULL)
+  }
+  if (discrete && rhs_type != "dde") {
+    return(NULL)
+  }
+
+  ## This bit is surprisingly hard:
+  if (discrete || rhs_type == "desolve") {
+    use <- c("rhs", "output")
+  } else {
+    use <- if (rhs_type == "dde") "rhs" else "output"
+  }
+  join <- function(x, nm) {
+    if (length(x) == 1L) x[[1]][[nm]] else union(x[[1]][[nm]], x[[2]][[nm]])
+  }
+  use_vars <- join(dat$components[use], "variables")
+  use_eqs <- join(dat$components[use], "equations")
+
+  ## NOTE: this is really similar to code in ic but that goes the
+  ## other way, into the state vector.
+  f <- function(x) {
+    d <- dat$data$elements[[x$name]]
+    state <- as.name(dat$meta$state)
+    if (d$rank == 0L) {
+      extract <- call("[[", state, r_offset_to_position(x$offset))
+    } else {
+      seq <- call("seq_len", rewrite(d$dimnames$length))
+      extract <- call("[", state, call("+", rewrite(x$offset), seq))
+      if (d$rank > 1L) {
+        extract <- call("array", extract, generate_r_dim(d, rewrite))
+      }
+    }
+    call("<-", as.name(x$name), extract)
+  }
+
+  vars <- unname(drop_null(lapply(dat$data$variable$contents[use_vars], f)))
+
+  ## NOTE: There are two reasonable things to do here - we can look up
+  ## the length of the variable (dat$data$variable$length) or we can
+  ## just make this a vector the same length as the incoming state (as
+  ## dydt is always the same length as y).  Neither seems much better
+  ## than the other, so going with the same length approach here as it
+  ## is less logic and will work for variable-length cases.
+  alloc_result <- call("<-", as.name(dat$meta$result),
+                       call("numeric", call("length", as.name(dat$meta$state))))
+
+  ## For output_length we have no real choice but to look up the
+  ## length each time.
+  alloc_output <- call("<-", as.name(dat$meta$output),
+                       call("numeric", rewrite(dat$data$output$length)))
+  alloc <- list(rhs = alloc_result, output = alloc_output)[use]
+
+  result <- as.name(dat$meta$result)
+  output <- as.name(dat$meta$output)
+
+  if (rhs_type == "desolve") {
+    if (has_output) {
+      ret <- call("list", result, output)
+    } else {
+      ret <- call("list", result)
+    }
+  } else if (rhs_type == "output") {
+    ret <- output
+  } else {
+    if (discrete && has_output) {
+      ret <- list(
+        call("<-", call("attr", result, "output"), output),
+        result)
+    } else {
+      ret <- result
     }
   }
-  ret <- list(integer = integer,
-              min = f(info_user$min),
-              max = f(info_user$max))
-  ret <- ret[lengths(ret) > 0L]
-  if (length(ret) > 0L) {
-    sprintf("list(%s)", pastec(sprintf("%s = %s", names(ret), unname(ret))))
+
+  eqs_include <- r_flatten_eqs(eqs[use_eqs])
+  body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_include, ret)))
+  args <- alist(t = , y =, parms = )
+  names(args)[[1]] <- dat$meta$time
+  names(args)[[2]] <- dat$meta$state
+  names(args)[[3]] <- dat$meta$internal
+  as_function(args, body, env)
+}
+
+
+generate_r_metadata <- function(dat, rewrite) {
+  ord <- function(location) {
+    contents <- dat$data$elements[names(dat$data[[location]]$contents)]
+    len <- lapply(contents, generate_r_dim, rewrite)
+    as.call(c(list(quote(list)), len))
+  }
+
+  ynames <- call(
+    "make_names",
+    quote(private$variable_order), quote(private$output_order),
+    dat$features$discrete)
+  n_out <- quote(support_n_out(private$output_order))
+
+  env <- new.env(parent = environment(odin))
+
+  body <- list(
+    call("<-", as.name(dat$meta$internal), quote(private$data)),
+    call("<-", quote(private$variable_order), ord("variable")),
+    call("<-", quote(private$output_order), ord("output")),
+    call("<-", call("$", quote(private), quote(ynames)), ynames),
+    call("<-", call("$", quote(private), quote(n_out)), n_out))
+
+  if (dat$features$has_interpolate) {
+    body <- c(
+      body,
+      quote(private$interpolate_t <- private$core$interpolate_t(private$data)))
+  }
+
+  args <- alist(self =, private =)
+  body <- as.call(c(list(as.name("{")), body))
+
+  as_function(args, body, env)
+}
+
+
+generate_r_interpolate_t <- function(dat, env, rewrite) {
+  if (!dat$features$has_interpolate) {
+    return(function(...) NULL)
+  }
+
+  args_min <- lapply(dat$interpolate$min, function(x)
+    call("[[", rewrite(x), 1L))
+  if (length(args_min) == 1L) {
+    min <- args_min[[1L]]
   } else {
+    min <- as.call(c(list(quote(max)), args_min))
+  }
+
+  args_max <- lapply(dat$interpolate$max, function(x)
+    call("[[", rewrite(x), call("length", rewrite(x))))
+  if (length(args_max) == 0L) {
+    max <- Inf
+  } else if (length(args_max) == 1L) {
+    max <- args_max[[1L]]
+  } else {
+    max <- as.call(c(list(quote(min)), args_max))
+  }
+
+  args_critical <- lapply(dat$interpolate$critical, rewrite)
+  if (length(args_critical) == 0L) {
+    critical <- numeric(0)
+  } else if (length(args_critical) == 1L) {
+    critical <- args_critical[[1L]]
+  } else {
+    critical <-
+      call("sort", call("unique", as.call(c(list(quote(c)), args_critical))))
+  }
+
+  args <- set_names(alist(internal = ), dat$meta$internal)
+  body <- call("{",
+               call("list",
+                    min = min, max = max, critical = critical))
+  as_function(args, body, env)
+}
+
+
+generate_r_set_initial <- function(dat, env, rewrite) {
+  if (!dat$features$has_delay) {
+    return(function(...) NULL)
+  }
+
+  set_y <- call(
+    "if", call("!", call("is.null", as.name(dat$meta$state))),
+    r_expr_block(lapply(dat$data$variable$contents, function(x)
+      call("<-", rewrite(x$initial),
+           r_extract_variable(x, dat$data$elements, as.name(dat$meta$state),
+                              rewrite)))))
+  set_t <- call("<-", rewrite(dat$meta$initial_time), as.name(dat$meta$time))
+
+  body <- list(set_y, set_t)
+  args <- set_names(
+    alist(, , ),
+    c(dat$meta$time, dat$meta$state, dat$meta$internal))
+
+  if (!dat$features$discrete) {
+    args <- c(args, set_names(alist(x = ), dat$meta$use_dde))
+    body <- c(body, list(call("<-", rewrite(dat$meta$use_dde),
+                              as.name(dat$meta$use_dde))))
+  }
+
+  as_function(args, r_expr_block(body), env)
+}
+
+
+## Thos feels pretty messy, but I think we can clean it up later.
+## It's quite likely that we'd be better off with two separate
+## generators - one for discrete and one for continuous models.
+generate_r_run <- function(dat, env, rewrite) {
+  args <- alist(data =, t =, y = , n_out =, ynames =, ...=,
+                  ## These are only used in some cases!
+                  interpolate_t =)
+  if (dat$features$discrete) {
+    args <- c(args, alist(replicate =))
+  } else {
+    args <- c(args, alist(use_dde =, tcrit =))
+  }
+  if (!dat$features$discrete && dat$features$has_delay) {
+    args <- c(args, alist(n_history = 1000L))
+  }
+
+  names(args)[[1L]] <- dat$meta$internal
+  names(args)[[2L]] <- dat$meta$time
+  names(args)[[3L]] <- dat$meta$state
+  ## for now at least, quote these - we might have to fix this up
+  ## later by having a second (non-ir driven) meta list.
+  n_out <- quote(n_out)
+  ynames <- quote(ynames)
+  tcrit <- if (dat$features$discrete) NULL else quote(tcrit)
+
+  replicate <- quote(replicate)
+  use_dde <- quote(use_dde)
+  n_history <- quote(n_history)
+  interpolate_t <- quote(interpolate_t)
+
+  ret <- quote(ret)
+
+  t0 <- call("[[", as.name(dat$meta$time), 1L)
+
+  if (dat$features$has_delay) {
+    set_initial <- list(quote(set_initial), t0, as.name(dat$meta$state),
+                        as.name(dat$meta$internal))
+    if (!dat$features$discrete) {
+      set_initial <- c(set_initial, list(use_dde))
+    }
+    set_initial <- as.call(set_initial)
+  } else {
+    set_initial <- NULL
+  }
+
+  if (dat$features$has_interpolate) {
+    check_interpolate_t <-
+      call(dat$meta$support$check_interpolate_t,
+           as.name(dat$meta$time), interpolate_t, tcrit)
+    if (!dat$features$discrete) {
+      check_interpolate_t <- call("<-", tcrit, check_interpolate_t)
+    }
+  } else {
+    check_interpolate_t <- NULL
+  }
+
+  compute_initial <-
+    call("if", call("is.null", as.name(dat$meta$state)),
+         r_expr_block(call("<-", as.name(dat$meta$state),
+                         call("ic", t0, as.name(dat$meta$internal)))))
+
+  output <- if (dat$features$has_output) quote(output) else NULL
+
+  run_args_dde <- list(as.name(dat$meta$state), as.name(dat$meta$time),
+                       quote(rhs_dde), as.name(dat$meta$internal),
+                       ynames = FALSE, quote(`...`))
+  run_args_desolve <- list(as.name(dat$meta$state), as.name(dat$meta$time),
+                           quote(rhs_desolve), as.name(dat$meta$internal),
+                           quote(`...`))
+  if (!dat$features$discrete) {
+    run_args_desolve <- c(run_args_desolve, tcrit = tcrit)
+  }
+  if (dat$features$has_output) {
+    run_args_dde <- c(run_args_dde, list(n_out = n_out))
+    if (!dat$features$discrete) {
+      run_args_dde <- c(run_args_dde, list(output = quote(output)))
+    }
+  }
+  if (!dat$features$discrete && dat$features$has_delay) {
+    run_args_dde <- c(run_args_dde, list(n_history = n_history))
+    run_args_desolve <- c(run_args_desolve,
+                          list(control = call("list", mxhist = n_history)))
+  }
+
+  if (dat$features$discrete) {
+    run_replicate <-
+      as.call(c(list(quote(dde::difeq_replicate), replicate), run_args_dde))
+    run_single <-
+      as.call(c(list(quote(dde::difeq)), run_args_dde))
+    run <- r_expr_if(
+      call("is.null", replicate),
+      call("<-", ret, run_single),
+      call("<-", ret, run_replicate))
+  } else {
+    run_fn_dde <- quote(dde::dopri)
+    if (dat$features$has_delay) {
+      run_fn_desolve <- quote(deSolve::dede)
+    } else {
+      run_fn_desolve <- quote(deSolve::ode)
+    }
+    run <- r_expr_if(
+      use_dde,
+      call("<-", ret, as.call(c(list(run_fn_dde), run_args_dde))),
+      call("<-", ret, as.call(c(list(run_fn_desolve), run_args_desolve))))
+  }
+
+  set_names <- r_expr_if(
+    call("is.null", ynames),
+    list(call("<-", call("colnames", ret), NULL),
+         call("<-", call("class", ret), "matrix")),
+    call("<-", call("colnames", ret), ynames))
+
+
+  body <- drop_null(list(set_initial, check_interpolate_t, compute_initial, run,
+                         set_names, ret))
+
+  as_function(args, r_expr_block(body), env)
+}
+
+
+generate_r_dim <- function(data_info, rewrite) {
+  if (data_info$rank == 0L) {
     NULL
+  } else if (data_info$rank == 1L) {
+    rewrite(data_info$dimnames$length)
+  } else {
+    as.call(c(list(quote(c)), lapply(data_info$dimnames$dim, rewrite)))
   }
 }

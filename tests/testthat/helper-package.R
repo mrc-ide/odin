@@ -1,5 +1,5 @@
-odin_create_package <- function(name, filenames, single_file = TRUE,
-                                build = TRUE, verbose = TRUE) {
+odin_create_package <- function(name, filenames) {
+  verbose <- odin_options()$verbose
   pkg <- file.path(tempfile(), name)
   dir.create(pkg, FALSE, TRUE)
   for (f in c("DESCRIPTION", "NAMESPACE")) {
@@ -8,19 +8,17 @@ odin_create_package <- function(name, filenames, single_file = TRUE,
   }
   dir.create(file.path(pkg, "inst", "odin"), FALSE, TRUE)
   file.copy(filenames, file.path(pkg, "inst", "odin"))
-  odin_package(pkg, single_file = single_file)
-  if (build) {
-    build_package(pkg, verbose)
-  } else {
-    pkg
-  }
+  odin_package(pkg)
+  build_package(pkg, verbose)
 }
+
 
 unload_package <- function(name) {
   if (name %in% loadedNamespaces()) {
     unloadNamespace(name)
   }
 }
+
 
 build_package <- function(path, verbose = TRUE) {
   name <- read.dcf(file.path(path, "DESCRIPTION"), "Package")[[1]]
