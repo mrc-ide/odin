@@ -105,7 +105,8 @@ generate_r_equation_alloc_interpolate <- function(eq, data_info,
                rewrite(eq$interpolate$t),
                rewrite(eq$interpolate$y),
                eq$interpolate$type,
-               scalar = TRUE)
+               scalar = TRUE,
+               fail_on_extrapolate = TRUE)
   rhs <- as.call(args)
   list(check, call("<-", lhs, rhs))
 }
