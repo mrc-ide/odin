@@ -160,10 +160,8 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
     body$add(user)
   }
 
-  if (dat$features$has_delay) {
-    body$add("%s = %s;",
-             rewrite(dat$meta$initial_time),
-             if (dat$features$discrete) "NA_INTEGER" else "NA_REAL")
+  if (dat$features$has_delay && !dat$features$discrete) {
+    body$add("%s = NA_REAL;", rewrite(dat$meta$initial_time))
   }
 
   body$add("SEXP %s = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
