@@ -45,7 +45,7 @@ generate_r <- function(dat, options) {
 
 generate_r_core <- function(eqs, dat, env, rewrite) {
   core <- list(
-    create = generate_r_create(eqs, dat, env),
+    create = generate_r_create(eqs, dat, env, rewrite),
     ic = generate_r_ic(eqs, dat, env, rewrite),
     set_user = generate_r_set_user(eqs, dat, env),
     rhs_desolve = generate_r_rhs(eqs, dat, env, rewrite, "desolve"),
@@ -60,12 +60,18 @@ generate_r_core <- function(eqs, dat, env, rewrite) {
 }
 
 
-generate_r_create <- function(eqs, dat, env) {
+generate_r_create <- function(eqs, dat, env, rewrite) {
   alloc <- call("<-", as.name(dat$meta$internal),
                 quote(new.env(parent = emptyenv())))
   eqs_create <- r_flatten_eqs(eqs[dat$components$create$equations])
+  if (dat$features$has_delay) {
+    na <- if (dat$features$discrete) NA_integer_ else NA_real_
+    initial_time <- call("<-", rewrite(dat$meta$initial_time), na)
+  } else {
+    initial_time <- NULL
+  }
   ret <- as.name(dat$meta$internal)
-  body <- as.call(c(list(quote(`{`)), c(alloc, eqs_create, ret)))
+  body <- r_expr_block(list(alloc, eqs_create, initial_time, ret))
   as_function(alist(), body, env)
 }
 

@@ -109,8 +109,9 @@ generate_r_class <- function(core, dat, env) {
 
       deriv = if (!dat$features$discrete) {
         function(t, y) {
-          if (private$delay) {
-            stop("Can't call deriv() on delay models")
+          if (private$delay && is.na(private$data$initial_t)) {
+            private$data$initial_t <- t[[1]]
+            on.exit(private$data$initial_t <- NA_real_)
           }
           ret <- private$core$rhs_dde(t, y, private$data)
           if (!is.null(private$core$output)) {
