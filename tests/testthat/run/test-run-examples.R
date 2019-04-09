@@ -38,24 +38,19 @@ test_that("basic interface", {
     priv <- r6_private(mod_c)
     has_output <- priv$n_out > 0
 
-    if (has_delay) {
-      expect_error(mod_c$deriv(t0, mod_c$init),
-                   "Can't call deriv() on delay models", fixed = TRUE)
-    } else {
-      deriv_c <- mod_c$deriv(t0, mod_c$initial(t0))
-      deriv_r <- mod_r$derivs(t0, mod_c$initial(t0))
-      expect_equal(deriv_c, deriv_r[[1L]], check.attributes = FALSE)
+    deriv_c <- mod_c$deriv(t0, mod_c$initial(t0))
+    deriv_r <- mod_r$derivs(t0, mod_c$initial(t0))
+    expect_equal(deriv_c, deriv_r[[1L]], check.attributes = FALSE)
 
-      if (has_output) {
-        ## The check.attributes is necessary because otherwise testthat
-        ## gives entirely meaningless error messages on attribute
-        ## differences (as it looks for differences in the values
-        ## themselves).
-        expect_equal(attr(deriv_c, "output", exact = TRUE), deriv_r[[2L]],
-                     check.attributes = FALSE)
-      } else {
-        expect_null(attr(deriv_c, "output"))
-      }
+    if (has_output) {
+      ## The check.attributes is necessary because otherwise testthat
+      ## gives entirely meaningless error messages on attribute
+      ## differences (as it looks for differences in the values
+      ## themselves).
+      expect_equal(attr(deriv_c, "output", exact = TRUE), deriv_r[[2L]],
+                   check.attributes = FALSE)
+    } else {
+      expect_null(attr(deriv_c, "output"))
     }
 
     ## These tolerances work for me locally on OSX, Windows and Linux,
