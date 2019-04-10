@@ -481,6 +481,7 @@ ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
 
   no_alloc <-
     (user_dim && eqs[[eq$lhs$name_data]]$type != "interpolate") ||
+    identical(eqs[[eq$lhs$name_data]]$type, "user") ||
     nm %in% output
 
   if (no_alloc) {
