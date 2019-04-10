@@ -268,9 +268,8 @@ test_that("time dependent initial conditions", {
   mod <- gen()
 
   ## Initial conditions get through here:
-  expect_equal(mod$initial(0), 1, check.attributes = FALSE)
-  expect_equal(mod$initial(1), cos(1) * 2,
-               check.attributes = FALSE)
+  expect_equivalent(mod$initial(0), 1)
+  expect_equivalent(mod$initial(1), cos(1) * 2)
 
   t <- seq(0, 4 * pi, length.out = 101)
   y <- mod$run(t, atol = 1e-8, rtol = 1e-8)
@@ -780,7 +779,7 @@ test_that("overlapping graph", {
     list(y * p, p + p2)
   }
   cmp <- deSolve::ode(1, tt, f, NULL)
-  expect_equal(mod$run(tt), cmp, check.attributes = FALSE)
+  expect_equivalent(mod$run(tt), cmp)
 })
 
 test_that("sum over one dimension", {

@@ -32,23 +32,21 @@ test_that("basic interface", {
 
     ## expect_equal(mod_c$init,
     ##              if (has_delay) NULL else unname(mod_r$initial(t0)))
-    expect_equal(mod_c$initial(t0), unname(mod_r$initial(t0)),
-                 check.attributes = FALSE)
+    expect_equivalent(mod_c$initial(t0), unname(mod_r$initial(t0)))
 
     priv <- r6_private(mod_c)
     has_output <- priv$n_out > 0
 
     deriv_c <- mod_c$deriv(t0, mod_c$initial(t0))
     deriv_r <- mod_r$derivs(t0, mod_c$initial(t0))
-    expect_equal(deriv_c, deriv_r[[1L]], check.attributes = FALSE)
+    expect_equivalent(deriv_c, deriv_r[[1L]])
 
     if (has_output) {
-      ## The check.attributes is necessary because otherwise testthat
-      ## gives entirely meaningless error messages on attribute
-      ## differences (as it looks for differences in the values
-      ## themselves).
-      expect_equal(attr(deriv_c, "output", exact = TRUE), deriv_r[[2L]],
-                   check.attributes = FALSE)
+      ## Using expect_equivalent to skip attributes is necessary
+      ## because otherwise testthat gives entirely meaningless error
+      ## messages on attribute differences (as it looks for
+      ## differences in the values themselves).
+      expect_equivalent(attr(deriv_c, "output", exact = TRUE), deriv_r[[2L]])
     } else {
       expect_null(attr(deriv_c, "output"))
     }
@@ -60,7 +58,7 @@ test_that("basic interface", {
     res_r <- run_model(mod_r, t)
     res_c <- mod_c$run(t)
     if (!on_appveyor()) {
-      expect_equal(res_c, res_r, check.attributes = FALSE, tolerance = tol)
+      expect_equivalent(res_c, res_r, tolerance = tol)
     }
 
     y <- mod_c$transform_variables(res_c)
@@ -186,7 +184,7 @@ test_that("lv", {
   res_r <- run_model(mod_r, t, pars)
   res_c <- mod_c$run(t)
 
-  expect_equal(res_c, res_r, check.attributes = FALSE)
+  expect_equivalent(res_c, res_r)
   y <- mod_c$transform_variables(res_c)
   expect_is(y, "list")
   expect_equal(names(y), c(TIME, "y"))

@@ -64,9 +64,8 @@ generate_r_create <- function(eqs, dat, env, rewrite) {
   alloc <- call("<-", as.name(dat$meta$internal),
                 quote(new.env(parent = emptyenv())))
   eqs_create <- r_flatten_eqs(eqs[dat$components$create$equations])
-  if (dat$features$has_delay) {
-    na <- if (dat$features$discrete) NA_integer_ else NA_real_
-    initial_time <- call("<-", rewrite(dat$meta$initial_time), na)
+  if (dat$features$has_delay && !dat$features$discrete) {
+    initial_time <- call("<-", rewrite(dat$meta$initial_time), NA_real_)
   } else {
     initial_time <- NULL
   }
