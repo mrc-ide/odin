@@ -1,3 +1,7 @@
+# odin 0.2.1
+
+* Fix two memory leaks ([#163](https://github.com/mrc-ide/odin/issues/163)); these leaked once per model creation.
+
 # odin 0.2.0
 
 A complete rewrite of the odin engine, designed to increase future maintainability but have few user-visible effects.  In brief, this does add
