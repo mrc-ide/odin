@@ -85,7 +85,7 @@ generate_c_compiled_finalise <- function(dat, rewrite) {
     body$add("  %s = NULL;", vcapply(i, rewrite))
   }
 
-  if (dat$features$has_array) {
+  if (dat$features$has_array || dat$features$has_delay) {
     for (el in dat$data$elements) {
       if (el$rank > 0 && el$location == "internal" &&
           el$storage_type %in% c("int", "double")) {
