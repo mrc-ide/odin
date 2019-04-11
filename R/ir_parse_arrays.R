@@ -364,6 +364,17 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
       err, source)
   }
 
+  excl <- INDEX[-seq_len(rank)]
+  err <- lapply(eqs[i], function(el) intersect(excl, el$depends$variables))
+  if (any(lengths(err) > 0)) {
+    used <- paste(squote(unique(sort(unlist(err, TRUE, FALSE)))),
+                  collapse = ", ")
+    ir_parse_error(
+      sprintf("Index variable %s not possible for array of rank %d",
+              used, rank),
+      ir_parse_error_lines(eqs[i][lengths(err) > 0]), source)
+  }
+
   join <- function(nms, eqs, depend_alloc = TRUE) {
     i <- which(names(eqs) %in% nms)
     use <- unname(eqs[i])
