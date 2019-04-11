@@ -115,13 +115,9 @@ odin_c_class_deriv <- function(features, env = .GlobalEnv) {
     NULL
   } else {
     args <- alist(t =, y =)
-    if (features$has_delay) {
-      body <- quote(stop("Can't call deriv() on delay models"))
-    } else {
-      body <- call(".Call", quote(private$core$rhs_r), quote(private$ptr),
-                   quote(as_numeric(t)), quote(as_numeric(y)),
-                   PACKAGE = quote(private$dll))
-    }
+    body <- call(".Call", quote(private$core$rhs_r), quote(private$ptr),
+                 quote(as_numeric(t)), quote(as_numeric(y)),
+                 PACKAGE = quote(private$dll))
     as_function(args, r_expr_block(body), env)
   }
 }

@@ -160,6 +160,10 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
     body$add(user)
   }
 
+  if (dat$features$has_delay && !dat$features$discrete) {
+    body$add("%s = NA_REAL;", rewrite(dat$meta$initial_time))
+  }
+
   body$add("SEXP %s = PROTECT(R_MakeExternalPtr(%s, R_NilValue, R_NilValue));",
            ptr, internal)
   body$add("R_RegisterCFinalizer(%s, %s);", ptr, dat$meta$c$finalise)
@@ -263,7 +267,13 @@ generate_c_compiled_deriv_dde <- function(dat) {
 
 generate_c_compiled_rhs_r <- function(dat, rewrite) {
   discrete <- dat$features$discrete
-  time_access <- if (discrete) "INTEGER" else "REAL"
+  if (discrete) {
+    time_access <- "INTEGER"
+    time_type <- "int"
+  } else {
+    time_access <- "REAL"
+    time_type <- "double"
+  }
   body <- collector()
   body$add("SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
           dat$meta$result, dat$meta$state)
@@ -286,9 +296,32 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
     body$add("GetRNGstate();")
   }
 
-  body$add("%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
-           dat$meta$c$rhs, dat$meta$internal, time_access, dat$meta$time,
-           dat$meta$state, dat$meta$result, dat$meta$output)
+  eval_rhs <- sprintf_safe(
+    "%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
+    dat$meta$c$rhs, dat$meta$internal, time_access, dat$meta$time,
+    dat$meta$state, dat$meta$result, dat$meta$output)
+
+  ## In order to run the derivative calculation safely, we have to set
+  ## the initial time.  But in order to make this safe, we need to put
+  ## that back later (because otherwise after the first evaluation of
+  ## the derivative it might look like we have the ability to compute
+  ## derivatives with history but that history does not actually exist
+  ## yet).
+  if (dat$features$has_delay) {
+    initial_time <- rewrite(dat$meta$initial_time)
+    set_initial_time <- c(
+      sprintf_safe("const %s %s = %s;",
+                   time_type, dat$meta$initial_time, initial_time),
+      c_expr_if(sprintf_safe("ISNA(%s)", dat$meta$initial_time),
+                sprintf_safe("%s = %s(%s)[0];",
+                             initial_time, time_access, dat$meta$time)))
+    reset_initial_time <-
+      c_expr_if(sprintf_safe("ISNA(%s)", dat$meta$initial_time),
+                sprintf_safe("%s = %s;", initial_time, dat$meta$initial_time))
+    body$add(c(set_initial_time, eval_rhs, reset_initial_time))
+  } else {
+    body$add(eval_rhs)
+  }
 
   if(dat$features$has_stochastic) {
     body$add("PutRNGstate();")

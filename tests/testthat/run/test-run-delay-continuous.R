@@ -342,3 +342,75 @@ test_that("delayed delays", {
   expect_equal(yy[, "a"], a, tolerance = 1e-6)
   expect_equal(yy[, "b"], b, tolerance = 1e-6)
 })
+
+
+test_that("compute derivative", {
+  gen <- odin({
+    deriv(a) <- sin(t)
+    initial(a) <- -1
+
+    pi <- asin(1) * 2
+    x <- delay(a, pi / 4)
+    deriv(b) <- x
+    initial(b) <- 0
+    output(x) <- TRUE
+  })
+
+  ## The analytic solution here is:
+  ##   a = -cos(t)
+  ##   b = if t <= pi / 4 => -t
+  ##       else           => cos(t + pi / 4) - pi / 4
+  ##   x = if t <= pi / 4 => -1
+  ##       else           => -cos(t - pi / 4)
+  ##
+  ## The derivative calculations are:
+  ##
+  ##   da/dt = sin(t)
+  ##   db/dt = if initialised => -cos(t)
+  ##           else           => -1
+  mod <- gen()
+  expect_identical(mod$contents()$initial_t, NA_real_)
+
+  ## First, uninitialised:
+  t0 <- 0
+  y0 <- mod$initial(t0)
+  expect_equal(y0, c(-1, 0))
+  expect_equal(mod$deriv(t0, y0),
+               structure(c(0, -1), output = -1))
+  expect_identical(mod$contents()$initial_t, NA_real_)
+
+  ## end of the delay
+  t1 <- pi / 4
+  y1 <- c(-cos(t1), -t1)
+  expect_equal(mod$deriv(t1, y1),
+               structure(c(sin(t1), -1), output = -1))
+  expect_identical(mod$contents()$initial_t, NA_real_)
+
+  ## after the delay
+  t2 <- pi / 2
+  y2 <- c(-cos(t2), -t2)
+  expect_equal(mod$deriv(t2, y2),
+               structure(c(sin(t2), -1), output = -1))
+  expect_identical(mod$contents()$initial_t, NA_real_)
+
+  ## Then run the model
+  t <- seq(0, 4 * pi, length.out = 101)
+  y <- mod$run(t)
+
+  ## First, uninitialised:
+  expect_equal(mod$deriv(t0, y0),
+               structure(c(0, -1), output = -1))
+  expect_identical(mod$contents()$initial_t, 0)
+
+  ## end of the delay
+  expect_equal(mod$deriv(t1, y1),
+               structure(c(sin(t1), -1), output = -1))
+  expect_identical(mod$contents()$initial_t, 0)
+
+  ## after the delay
+  y2 <- c(-cos(t2), cos(t2 + pi / 4) - pi / 4)
+  expect_equal(mod$deriv(t2, y2),
+               structure(c(sin(t2), -cos(t2 - pi / 4)),
+                         output = -cos(t2 - pi / 4)),
+               tolerance = 1e-5)
+})

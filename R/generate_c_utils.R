@@ -76,12 +76,18 @@ c_type_info <- function(storage_type) {
 }
 
 
-c_expr_if <- function(condition, a, b) {
-  c(sprintf_safe("if (%s) {", condition),
-    paste0("  ", c_flatten_eqs(a)),
-    "} else {",
-    paste0("  ", c_flatten_eqs(b)),
-    "}")
+c_expr_if <- function(condition, a, b = NULL) {
+  if (is.null(b)) {
+    c(sprintf_safe("if (%s) {", condition),
+      paste0("  ", c_flatten_eqs(a)),
+      "}")
+  } else {
+    c(sprintf_safe("if (%s) {", condition),
+      paste0("  ", c_flatten_eqs(a)),
+      "} else {",
+      paste0("  ", c_flatten_eqs(b)),
+      "}")
+  }
 }
 
 

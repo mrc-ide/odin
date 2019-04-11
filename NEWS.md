@@ -1,3 +1,7 @@
+# odin 0.2.1
+
+* Continuous time models with delays can now return derivatives ([#161](https://github.com/mrc-ide/odin/issues/161), [#162](https://github.com/mrc-ide/odin/issues/162))
+
 # odin 0.2.0
 
 A complete rewrite of the odin engine, designed to increase future maintainability but have few user-visible effects.  In brief, this does add
