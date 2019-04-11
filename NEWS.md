@@ -1,6 +1,10 @@
-# odin 0.2.1
+# odin 0.2.2
 
 * Fix two memory leaks ([#163](https://github.com/mrc-ide/odin/issues/163)); these leaked once per model creation.
+
+# odin 0.2.1
+
+* Continuous time models with delays can now return derivatives ([#161](https://github.com/mrc-ide/odin/issues/161), [#162](https://github.com/mrc-ide/odin/issues/162))
 
 # odin 0.2.0
 
