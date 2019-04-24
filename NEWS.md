@@ -1,3 +1,7 @@
+# odin 0.2.3
+
+* Better error messages for some invalid uses of array indices that previously manifested as compiler errors [#166](https://github.com/mrc-ide/odin/issues/166)
+
 # odin 0.2.2
 
 * Fix two memory leaks ([#163](https://github.com/mrc-ide/odin/issues/163)); these leaked once per model creation.

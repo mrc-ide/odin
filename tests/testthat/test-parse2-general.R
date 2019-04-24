@@ -732,3 +732,34 @@ test_that("sensible error message with invalid input", {
     }),
     "Cannot define R functions in odin model")
 })
+
+
+## issue #166
+test_that("can't use array indices that exceed the rank of the lhs", {
+  expect_error(
+    odin_parse({
+      ## A simplified version of Anne's problem:
+      m[,] <- user()
+      r[] <- m[i, 1] + m[1, j]
+      dim(m) <- user()
+      dim(r) <- 5
+      ## Just here because we need something:
+      initial(x) <- 1
+      update(x) <- 1
+    }),
+    "Index variable 'j' not possible for array of rank 1",
+    fixed = TRUE)
+
+  expect_error(
+    odin_parse({
+      m[,] <- user()
+      r[] <- m[k, 1] + m[1, j]
+      dim(m) <- user()
+      dim(r) <- 5
+      ## Just here because we need something:
+      initial(x) <- 1
+      update(x) <- 1
+    }),
+    "Index variable 'j', 'k' not possible for array of rank 1",
+    fixed = TRUE)
+})
