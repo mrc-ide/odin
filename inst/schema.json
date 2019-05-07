@@ -53,6 +53,7 @@
                     "alloc",
                     "alloc_interpolate",
                     "alloc_ring",
+                    "constraint",
                     "copy",
                     "delay_index",
                     "delay_continuous",
@@ -333,6 +334,7 @@
                 {
                     "oneOf": [
                         {"$ref": "#/definitions/equation_copy"},
+                        {"$ref": "#/definitions/equation_constraint"},
                         {"$ref": "#/definitions/equation_alloc"},
                         {"$ref": "#/definitions/equation_alloc_interpolate"},
                         {"$ref": "#/definitions/equation_alloc_ring"},
@@ -507,6 +509,20 @@
                 }
             },
             "required": ["type", "delay"],
+            "additionalProperties": false
+        },
+
+        "equation_constraint": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "constraint"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "constraint": {"$ref": "#/definitions/constraint"}
+            },
+            "required": ["type", "constraint"],
             "additionalProperties": false
         },
 
@@ -740,6 +756,23 @@
                 "output": { "$ref": "#/definitions/component" }
             },
             "required": ["create", "user", "initial", "rhs", "output"],
+            "additionalProperties": false
+        },
+
+        "constraint": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "representation": {
+                    "type": "string"
+                },
+                "purpose": {
+                    "type": "string"
+                }
+            },
+            "required": ["value", "representation", "purpose"],
             "additionalProperties": false
         },
 

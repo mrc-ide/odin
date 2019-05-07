@@ -118,6 +118,7 @@ ir_serialise_equation <- function(eq) {
     alloc = ir_serialise_equation_alloc(eq),
     alloc_interpolate = ir_serialise_equation_alloc_interpolate(eq),
     alloc_ring = ir_serialise_equation_alloc_ring(eq),
+    constraint = ir_serialise_equation_constraint(eq),
     copy = ir_serialise_equation_copy(eq),
     delay_continuous = ir_serialise_delay_continuous(eq),
     delay_discrete = ir_serialise_delay_discrete(eq),
@@ -145,6 +146,16 @@ ir_serialise_equation_alloc_interpolate <- function(eq) {
 
 ir_serialise_equation_alloc_ring <- function(eq) {
   list(delay = scalar(eq$delay))
+}
+
+
+ir_serialise_equation_constraint <- function(eq) {
+  value <- ir_serialise_expression(eq$constraint$value)
+  representation <- scalar(deparse_str(eq$constraint$representation))
+  purpose <- scalar(eq$constraint$purpose)
+  list(constraint = list(value = value,
+                         representation = representation,
+                         purpose = purpose))
 }
 
 

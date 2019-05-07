@@ -26,7 +26,8 @@ INDEX <- c("i", "j", "k", "l", "i5", "i6", "i7", "i8") # TODO: make open
 INTERNAL <- "internal"
 RESERVED <- c(INDEX, TIME, STEP, STATE, DSTATEDT, STATE_NEXT, USER,
               SPECIAL_LHS, "delay", "dde", INTERNAL)
-RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
+RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate",
+                     "constraint")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 SPECIAL_DATA_TYPES <- c("void", "ring_buffer")
@@ -132,8 +133,14 @@ FUNCTIONS_STOCHASTIC <- list(
 FUNCTIONS_REWRITE_RF <-
   grep("_rand$", names(FUNCTIONS_STOCHASTIC), invert = TRUE, value = TRUE)
 
+## Some care is required here - the second argument of each constraint
+## pair must not exceed the rank of that argument.
 FUNCTIONS_INPLACE <- list(
-  rmultinom = list(len = 3L, dest = 4L, type = "int"))
+  rmultinom = list(type = "int",
+                   rank_output = 1L, # output rank
+                   rank_args = c(0L, 1L),
+                   constraints = list(
+                     list(c(0L, 1L), c(2L, 1L)))))
 
 ## Here we need to do a bit of a faff because unary functions need
 ## adding.  This may get tightened up later to either use local() or

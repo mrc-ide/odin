@@ -39,6 +39,9 @@ ir_parse <- function(x, options, type = NULL) {
     eqs <- ir_parse_delay(eqs, features$discrete, packing$variables, source)
   }
 
+  eqs <- ir_parse_inplace(eqs, source)
+  eqs <- ir_parse_constraints(eqs)
+
   eqs <- eqs[order(names(eqs))]
 
   ir_parse_arrays_check_naked_index(eqs, options$no_check_naked_index, source)
@@ -123,7 +126,7 @@ ir_parse_data <- function(eqs, packing, stage, source) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
   is_alloc <- vlapply(eqs, function(x)
     x$type == "alloc" && x$name != x$lhs$name_lhs)
-  i <- !(is_alloc | type %in% c("copy", "config"))
+  i <- !(is_alloc | type %in% c("copy", "config", "constraint"))
 
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
@@ -594,7 +597,7 @@ ir_parse_expr <- function(expr, line, source) {
     type <- "expression_inplace"
     ## TODO: should check here that the lhs is really complete, but
     ## that requires being able to see empty indices.
-    ir_parse_expr_rhs_check_inplace(lhs, rhs, line, source)
+    rhs <- ir_parse_expr_rhs_inplace(lhs, rhs, line, source)
   }
 
   ## NOTE: arrays are the only case where self referential variables
@@ -1446,19 +1449,117 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
 }
 
 
-ir_parse_expr_rhs_check_inplace <- function(lhs, rhs, line, source) {
+ir_parse_expr_rhs_inplace <- function(lhs, rhs, line, source) {
   fn <- deparse(rhs$rhs$value[[1]])
-  depends <- join_deps(lapply(rhs$rhs$value[-1], find_symbols))
+  args <- as.list(rhs$rhs$value[-1])
 
-  ## Start strict, liberalise later
-  if (!(fn %in% names(FUNCTIONS_INPLACE)) || length(depends$functions) > 0L) {
-    ir_parse_error(sprintf(
-      "At present, inplace function '%s' must use no functions", fn),
-      line, source)
+  ## Utility function for converting an argument to its name, while
+  ## validating that it is used appropriately.
+  arg_data_name <- function(arg) {
+    if (is.numeric(arg)) {
+      NA_character_
+    } else if (is.symbol(arg)) {
+      as.character(arg)
+    } else if (is_call(arg, "[")) {
+      as.character(arg[[2]])
+    } else {
+      ir_parse_error(sprintf(
+        "At present, inplace function '%s' must use no functions", fn),
+        line, source)
+    }
   }
-  if (is.null(lhs$index)) {
+
+  rhs$inplace <- list(
+    fn = fn,
+    args_value = args,
+    args_name = vcapply(args, arg_data_name, USE.NAMES = FALSE),
+    info = FUNCTIONS_INPLACE[[fn]])
+
+  rhs
+}
+
+
+ir_parse_inplace <- function(eqs, source) {
+  i <- vcapply(eqs, "[[", "type", USE.NAMES = FALSE) == "expression_inplace"
+  eqs[i] <- lapply(eqs[i], ir_parse_inplace1, eqs, source)
+  eqs
+}
+
+
+ir_parse_inplace1 <- function(eq, eqs, source) {
+  fn <- eq$inplace$fn
+  info <- eq$inplace$info
+
+  arr_arg <- lapply(eqs[eq$inplace$args_name], function(x) x$array)
+  arr_lhs <- eq$array
+  nm_all <- c(eq$lhs$name_data, eq$inplace$args_name)
+  arr_all <- c(list(arr_lhs), arr_arg)
+
+  rank_arg <- viapply(arr_arg, function(x) x$rank %||% 0L)
+  rank_lhs <- arr_lhs$rank
+
+  ## TODO: once we support the '.' syntax then we'll check that here
+  ## always, including a warning for *not* using it.
+  if (rank_lhs != info$rank_output) {
     ir_parse_error(sprintf(
-      "Expected an array on the lhs of inplace function '%s'", fn),
-      line, source)
+      "Expected an array of rank %d the lhs of inplace function '%s'",
+      rank_lhs, fn),
+      eq$source, source)
   }
+
+  for (i in seq_along(args)) {
+    if (rank_arg[[i]] != info$rank_args[[i]]) {
+      ir_parse_error(sprintf(
+        "Expected an array of rank %d for argument %d of '%s' (recieved %d)",
+        info$rank_args[[i]], i, fn, rank_arg[[i]]),
+        eq$source, source)
+    }
+  }
+
+  ## This will likely lift out into a helper function because we'll
+  ## need it for interpolation functions too.
+  constraint_dim <- function(ij) {
+    d <- arr_all[[ij[[1]] + 1]]
+    nm <- as.name(nm_all[[ij[[1]] + 1]])
+    if (d$rank == 1L) {
+      symbol <- d$dimnames$length
+      expr <- call("length", nm)
+    } else {
+      symbol <- d$dimnames$dim[[ij[[2]]]]
+      expr <- call("dim", nm, ij[[2]])
+    }
+    list(symbol = symbol, expr = expr)
+  }
+  ## We need to get unique names in here for the constraints, though
+  ## the actual names don't matter.
+  i <- 0L
+  constraint <- function(x) {
+    a <- constraint_dim(x[[1]])
+    b <- constraint_dim(x[[2]])
+    i <<- i + 1L
+    value <- call("==", as.name(a$symbol), as.name(b$symbol))
+    representation <- call("==", a$expr, b$expr)
+    list(name = sprintf("constraint_%s_%d", eq$name, i),
+         type = "constraint",
+         lhs = list(name_lhs = ""),
+         constraint = list(value = value,
+                           purpose = sprintf("inplace operation '%s'", fn),
+                           representation = representation),
+         source = eq$source,
+         implicit = TRUE,
+         depends = ir_parse_depends(variables = c(a$symbol, b$symbol)))
+  }
+
+  eq$constraints <- lapply(info$constraints, constraint)
+  eq$depends$variables <- c(eq$depends$variables,
+                            vcapply(eq$constraints, "[[", "name"))
+
+  eq
+}
+
+
+ir_parse_constraints <- function(eqs) {
+  constraints <- unlist(lapply(eqs, function(eq) eq$constraints), FALSE, FALSE)
+  names(constraints) <- vcapply(constraints, "[[", "name")
+  c(eqs, constraints)
 }
