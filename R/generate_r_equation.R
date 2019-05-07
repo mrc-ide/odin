@@ -12,6 +12,7 @@ generate_r_equation <- function(eq, dat, rewrite) {
     alloc = generate_r_equation_alloc,
     alloc_interpolate = generate_r_equation_alloc_interpolate,
     alloc_ring = generate_r_equation_alloc_ring,
+    constraint = generate_r_equation_constraint,
     copy = generate_r_equation_copy,
     interpolate = generate_r_equation_interpolate,
     user = generate_r_equation_user,
@@ -21,7 +22,9 @@ generate_r_equation <- function(eq, dat, rewrite) {
     stop("Unknown type"))
 
   data_info <- dat$data$elements[[eq$lhs]]
-  stopifnot(!is.null(data_info))
+  if (eq$type != "constraint") {
+    stopifnot(!is.null(data_info))
+  }
 
   f(eq, data_info, dat, rewrite)
 }
@@ -133,6 +136,18 @@ generate_r_equation_alloc_ring <- function(eq, data_info, dat,
   rhs <- as.call(args)
 
   call("<-", lhs, rhs)
+}
+
+
+generate_r_equation_constraint <- function(eq, data_info, dat, rewrite) {
+  condition <- call("!", call("(", rewrite(eq$constraint$value)))
+  msg <- sprintf_safe(
+    "Constraint failure; \'%s\' not satisfied for %s (line %s)",
+    eq$constraint$representation,
+    eq$constraint$purpose,
+    eq$source[[1]])
+  error <- call("stop", msg)
+  r_expr_if(condition, error)
 }
 
 

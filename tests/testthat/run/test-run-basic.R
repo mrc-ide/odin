@@ -660,8 +660,8 @@ test_that("multinomial", {
     initial(x[]) <- 0
     update(x[]) <- y[i]
     y[] <- rmultinom(5, p)
-    dim(p) <- 5
-    dim(q) <- 5
+    dim(p) <- length(q)
+    dim(q) <- user()
     dim(x) <- 5
     dim(y) <- 5
   })
@@ -676,6 +676,12 @@ test_that("multinomial", {
   cmp <- drop(rmultinom(1, 5, p))
 
   expect_equal(cmp, y)
+
+  ## We can validate inputs here using the constraint approach:
+  expect_error(
+    gen(runif(6)),
+    "Constraint failure; 'length(y) == length(p)' not satisfied for inplace operation 'rmultinom' (line 5)",
+    fixed = TRUE)
 })
 
 
