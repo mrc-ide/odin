@@ -1560,6 +1560,9 @@ ir_parse_inplace1 <- function(eq, eqs, source) {
 
 ir_parse_constraints <- function(eqs) {
   constraints <- unlist(lapply(eqs, function(eq) eq$constraints), FALSE, FALSE)
+  if (length(constraints) == 0L) {
+    return(eqs)
+  }
   names(constraints) <- vcapply(constraints, "[[", "name")
   c(eqs, constraints)
 }
