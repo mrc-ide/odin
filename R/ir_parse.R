@@ -1496,23 +1496,30 @@ ir_parse_inplace1 <- function(eq, eqs, source) {
   arr_all <- c(list(arr_lhs), arr_arg)
 
   rank_arg <- viapply(arr_arg, function(x) x$rank %||% 0L)
-  rank_lhs <- arr_lhs$rank
+  rank_lhs <- arr_lhs$rank %||% 0L
 
   ## TODO: once we support the '.' syntax then we'll check that here
   ## always, including a warning for *not* using it.
   if (rank_lhs != info$rank_output) {
     ir_parse_error(sprintf(
       "Expected an array of rank %d the lhs of inplace function '%s'",
-      rank_lhs, fn),
+      info$rank_output, fn),
       eq$source, source)
   }
 
-  for (i in seq_along(args)) {
+  for (i in seq_along(rank_arg)) {
     if (rank_arg[[i]] != info$rank_args[[i]]) {
-      ir_parse_error(sprintf(
-        "Expected an array of rank %d for argument %d of '%s' (recieved %d)",
-        info$rank_args[[i]], i, fn, rank_arg[[i]]),
-        eq$source, source)
+      if (info$rank_args[[i]] == 0L) {
+        ir_parse_error(sprintf(
+          "Expected a scalar for argument %d of '%s' (got array of rank %d)",
+          i, fn, rank_arg[[i]]),
+          eq$source, source)
+      } else {
+        ir_parse_error(sprintf(
+          "Expected an array of rank %d for argument %d of '%s' (got rank %d)",
+          info$rank_args[[i]], i, fn, rank_arg[[i]]),
+          eq$source, source)
+      }
     }
   }
 

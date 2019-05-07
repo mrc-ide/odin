@@ -163,7 +163,7 @@ ir_parse_arrays_check_usage2 <- function(eqs, source) {
     x$lhs$name_data))
 
   for (eq in eqs) {
-    if (eq$type == "expression_scalar" || eq$type == "expression_inplace") {
+    if (eq$type == "expression_scalar") {
       ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
     } else if (eq$type == "expression_array") {
       for (el in eq$rhs) {
@@ -172,7 +172,7 @@ ir_parse_arrays_check_usage2 <- function(eqs, source) {
     } else if (eq$type == "delay") {
       ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
       ir_parse_arrays_check_rhs(eq$delay$default, rank, int_arrays, eq, source)
-    } else {
+    } else if (eq$type != "expression_inplace") {
       ## TODO: not sure what comes through here, or if this is correct
       ## at all.
       ir_parse_arrays_check_rhs(eq, rank, int_arrays, source)
@@ -713,7 +713,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
 
   ## TODO: check that the right number of indices are used when using sum?
   array_special_function <-
-    c("sum", "odin_sum", "length", "dim", "interpolate", "rmultinom")
+    c("sum", "odin_sum", "length", "dim", "interpolate")
   nms <- names(rank)
 
   check <- function(e, array_special) {
