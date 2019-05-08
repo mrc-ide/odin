@@ -14,7 +14,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
     dim(pulse) <- 2
     dim(y) <- 2
   }),
-  "Expected zp to be a 2 dimensional array")
+  "Expected zp to be a 2 dimensional array", class = "odin_error")
 
   expect_error(odin_parse({
     deriv(y[]) <- pulse[i]
@@ -29,7 +29,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
     dim(pulse) <- 2
     dim(y) <- 2
   }),
-  "Expected zp to be a 2 dimensional array")
+  "Expected zp to be a 2 dimensional array", class = "odin_error")
 
   expect_error(odin_parse({
     deriv(y[]) <- pulse[i]
@@ -44,7 +44,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
     dim(pulse) <- 2
     dim(y) <- 2
   }),
-  "Expected tp to be a vector")
+  "Expected tp to be a vector", class = "odin_error")
 })
 
 
@@ -60,7 +60,7 @@ test_that("unknown interpolation variable", {
     dim(pulse) <- 2
     dim(y) <- 2
   }),
-  "Unknown variable zp")
+  "Unknown variable zp", class = "odin_error")
 })
 
 
@@ -77,5 +77,6 @@ test_that("interpolation array assignment error", {
     dim(pulse) <- 2
     dim(y) <- 2
   }),
-  "interpolate() may only be used on a single-line array", fixed = TRUE)
+  "interpolate() may only be used on a single-line array",
+  fixed = TRUE, class = "odin_error")
 })

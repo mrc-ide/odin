@@ -238,7 +238,8 @@ test_that("user c in subdir", {
   test <- file.path(dest, "test.R")
   writeLines(expr, test)
 
-  expect_error(odin_(test), "Could not find file 'myfuns.c'")
+  expect_error(odin_(test), "Could not find file 'myfuns.c'",
+               class = "odin_error")
 
   file.copy("user_fns.c", file.path(dest, "myfuns.c"))
   gen <- odin_(test)
