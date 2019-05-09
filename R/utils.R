@@ -196,27 +196,3 @@ from_json <- function(x) {
 read_string <- function(path) {
   readChar(path, file.info(path, extra_cols = FALSE)$size)
 }
-
-
-## This is required to work around devtools no longer shimming
-## system.file reliably, again, apparently.  If users want to use
-## devtools::load_all() with an odin-generated package it won't work.
-## This was a problem a few versions of devtools ago, seemed to have
-## been fixed, and is broken again.
-##
-## This can be removed once we get a better way of loading the ir into
-## the model, I think.
-package_odin_path <- function(path, package, root = NULL) {
-  if (is.null(root)) {
-    root <- system.file(package = package, mustWork = TRUE)
-  }
-  p1 <- file.path(root, "inst", path)
-  if (file.exists(p1)) {
-    return(p1)
-  }
-  p2 <- file.path(root, path)
-  if (file.exists(p2)) {
-    return(p2)
-  }
-  stop("Could not find odin ir")
-}

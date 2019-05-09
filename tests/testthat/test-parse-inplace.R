@@ -10,7 +10,8 @@ test_that("can't use integer inplace for update()", {
     dim(q) <- 5
     dim(x) <- 5
   }),
-  "Can't use inplace integer expression in update")
+  "Can't use inplace integer expression in update",
+  class = "odin_error")
 })
 
 
@@ -27,7 +28,8 @@ test_that("can't use multiline inplace", {
     dim(x) <- 5
     dim(y) <- 5
   }),
-  "in-place equations may only be used on a single-line array")
+  "in-place equations may only be used on a single-line array",
+  class = "odin_error")
 })
 
 
@@ -58,7 +60,8 @@ test_that("rmultinom argument validation", {
     dim(y) <- 5
     y[] <- rmultinom(p, 5)
   }),
-  "Function 'rmultinom' requires array as argument 2")
+  "Function 'rmultinom' requires array as argument 2",
+  class = "odin_error")
 })
 
 
@@ -69,7 +72,8 @@ test_that("in place expressions must be simple", {
       initial(x) <- 1
       y <- rmultinom(5 + 2, x)
     }),
-    "At present, inplace function 'rmultinom' must use no functions")
+    "At present, inplace function 'rmultinom' must use no functions",
+    class = "odin_error")
 })
 
 
@@ -80,5 +84,6 @@ test_that("in place expressions must return an array", {
       initial(x) <- 1
       y <- rmultinom(2, x)
     }),
-    "Expected an array on the lhs of inplace function 'rmultinom'")
+    "Expected an array on the lhs of inplace function 'rmultinom'",
+    class = "odin_error")
 })

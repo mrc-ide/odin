@@ -26,3 +26,5 @@
 ^scripts$
 ^TODO\.md$
 ^development\.md$
+^docker$
+^\.dockerignore$

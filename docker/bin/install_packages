@@ -1,0 +1,15 @@
+#!/usr/bin/env Rscript
+'Usage:
+install_packages [--repo=REPO...] <package>...' -> usage
+opts <- docopt::docopt(usage)
+
+repos <- opts$repo
+packages <- opts$package
+
+options(repos = c(repos, getOption("repos")))
+install.packages(packages)
+
+msg <- setdiff(packages, .packages(TRUE))
+if (length(msg) > 0L) {
+  stop("Failed to install: ", paste(msg, collapse = ", "))
+}

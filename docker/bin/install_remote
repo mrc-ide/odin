@@ -1,0 +1,9 @@
+#!/usr/bin/env Rscript
+'Usage:
+install_remote [--repos=REPO...] <spec>...' -> usage
+opts <- docopt::docopt(usage)
+
+options(repos = c(opts$repos, getOption("repos")))
+spec <- opts$spec
+
+remotes::install_github(spec)

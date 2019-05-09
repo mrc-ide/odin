@@ -1,5 +1,7 @@
-odin_create_package <- function(name, filenames) {
-  verbose <- odin_options()$verbose
+odin_create_package <- function(name, filenames, verbose = NULL) {
+  ## Likely to be too platform dependent for safe CRAN use
+  testthat::skip_on_cran()
+  verbose <- odin_options(verbose = verbose)$verbose
   pkg <- file.path(tempfile(), name)
   dir.create(pkg, FALSE, TRUE)
   for (f in c("DESCRIPTION", "NAMESPACE")) {

@@ -74,11 +74,11 @@ test_that("sensible error on empty input", {
   writeLines("", path)
   expect_error(odin_(path),
                "Did not find a deriv() or an update() call",
-               fixed = TRUE)
+               fixed = TRUE, class = "odin_error")
   writeLines("# some comment", path)
   expect_error(odin_(path),
                "Did not find a deriv() or an update() call",
-               fixed = TRUE)
+               fixed = TRUE, class = "odin_error")
 })
 
 

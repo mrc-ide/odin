@@ -19,6 +19,10 @@ test_that("generate package", {
   ## Provides a loose check that the ir/coef bits work:
   expect_setequal(coef(res$env$sir)$name, c("I0", "beta"))
 
+  ## Check we can get the ir out:
+  expect_is(odin_ir(res$env$lorenz_odin), "json")
+  expect_is(odin_ir(mod), "json")
+
   res$cleanup()
   on.exit()
 })

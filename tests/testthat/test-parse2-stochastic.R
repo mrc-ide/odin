@@ -5,7 +5,7 @@ test_that("disallow stochastic functions in ODEs", {
   expect_error(odin_parse({
     initial(x) <- 0
     deriv(x) <- x + norm_rand()
-  }), "Stochastic functions not allowed in ODE models")
+  }), "Stochastic functions not allowed in ODE models", class = "odin_error")
 })
 
 
@@ -18,5 +18,5 @@ test_that("disallow stochastic functions on array rhs", {
       dim(x) <- 10
       update(x[runif(1, 10)]) <- 2
     }),
-    "Invalid array use on lhs")
+    "Invalid array use on lhs", class = "odin_error")
 })

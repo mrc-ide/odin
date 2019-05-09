@@ -31,6 +31,14 @@ odin_ir <- function(x, parsed = FALSE) {
   } else {
     stop("Expected an odin_generator or odin_model object")
   }
+
+  if (!inherits(ir, "json")) {
+    if (length(ir) == 2L) {
+      ir <- system.file(ir[[2]], package = ir[[1]], mustWork = TRUE)
+    }
+    ir <- read_string(ir)
+    class(ir) <- "json"
+  }
   if (parsed) {
     ir <- ir_deserialise(ir)
   }
