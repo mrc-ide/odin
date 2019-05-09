@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -e
+HERE=$(dirname $0)
+ODIN_ROOT=$(realpath $HERE/..)
+
+GIT_SHA=$(git rev-parse --short=7 HEAD)
+GIT_BRANCH=$(git symbolic-ref --short HEAD)
+if [ $GIT_BRANCH == "master" ]; then
+   GIT_BRANCH="latest"
+fi
+
+TAG_SHA="mrcide/odin:${GIT_SHA}"
+TAG_BRANCH="mrcide/odin:${GIT_BRANCH}"
+
+docker build \
+       -f docker/Dockerfile \
+       -t "$TAG_SHA" \
+       -t "$TAG_BRANCH" \
+       $ODIN_ROOT

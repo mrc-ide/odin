@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+mkdir -p /work
+(cd /work && R CMD build /src)
+ODIN=$(ls -1 /work)
+export _R_CHECK_CRAN_INCOMING_REMOTE_=FALSE
+(cd /work && R CMD check --as-cran --no-manual $ODIN)
