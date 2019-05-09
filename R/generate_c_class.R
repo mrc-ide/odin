@@ -10,11 +10,6 @@
 ## TODO: The name here is out-of-sync with other naming conventions
 ## and should be thought about carefully.
 odin_c_class <- function(base, core, user, features, dll, ir, package) {
-  if (package) {
-    ## TODO: better would be to register a promise to read the ir on
-    ## demand pehaps so that odin can organie a global cache?
-    ir <- package_odin_path(ir, dll)
-  }
   R6::R6Class(
     "odin_model",
     parent_env = environment(odin),
@@ -40,7 +35,7 @@ odin_c_class <- function(base, core, user, features, dll, ir, package) {
       update_metadata = odin_c_class_update_metadata(features)
     ),
     public = drop_null(list(
-      ir = ir,
+      ir = if (package) c(dll, ir) else ir,
       initialize = odin_c_class_initialize(features),
       set_user = odin_c_class_set_user(features),
       initial = odin_c_class_initial(features),

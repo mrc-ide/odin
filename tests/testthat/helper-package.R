@@ -1,5 +1,5 @@
-odin_create_package <- function(name, filenames) {
-  verbose <- odin_options()$verbose
+odin_create_package <- function(name, filenames, verbose = NULL) {
+  verbose <- odin_options(verbose = verbose)$verbose
   pkg <- file.path(tempfile(), name)
   dir.create(pkg, FALSE, TRUE)
   for (f in c("DESCRIPTION", "NAMESPACE")) {
