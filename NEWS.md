@@ -1,3 +1,7 @@
+# odin 0.2.4
+
+* `odin_package` now works with R staged installation as introduced in 3.6.0 ([#170](https://github.com/mrc-ide/odin/pull/170), `mrc-257`)
+
 # odin 0.2.3
 
 * Better error messages for some invalid uses of array indices that previously manifested as compiler errors [#166](https://github.com/mrc-ide/odin/issues/166)
