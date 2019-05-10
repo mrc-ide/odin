@@ -659,7 +659,7 @@ test_that("multinomial", {
     p[] <- q[i] / sum(q)
     initial(x[]) <- 0
     update(x[]) <- y[i]
-    y[] <- rmultinom(5, p)
+    y[.] <- rmultinom(5, p)
     dim(p) <- length(q)
     dim(q) <- user()
     dim(x) <- 5

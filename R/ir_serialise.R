@@ -170,7 +170,8 @@ ir_serialise_equation_expression_scalar <- function(eq) {
 
 
 ir_serialise_equation_expression_inplace <- function(eq) {
-  list(rhs = list(value = ir_serialise_expression(eq$rhs$value)))
+  list(rhs = list(value = ir_serialise_expression(eq$rhs$value)),
+       index = eq$index)
 }
 
 

@@ -39,7 +39,7 @@ test_that("rmultinom is integer", {
     p[] <- q[i] / sum(q)
     initial(x[]) <- 0
     update(x[]) <- y[i]
-    y[] <- rmultinom(5, p)
+    y[.] <- rmultinom(5, p)
     dim(p) <- 5
     dim(q) <- 5
     dim(x) <- 5
@@ -56,7 +56,7 @@ test_that("validate input arrays to inplace expressions", {
     odin_parse({
       update(x) <- 1
       initial(x) <- 1
-      y[] <- rmultinom(2, x)
+      y[.] <- rmultinom(2, x)
       dim(y) <- 2
     }),
     "Expected an array of rank 1 for argument 2 of 'rmultinom' (got rank 0)",
@@ -82,7 +82,10 @@ test_that("in place expressions must be simple", {
     odin_parse({
       update(x) <- 1
       initial(x) <- 1
-      y <- rmultinom(5 + 2, x)
+      dim(p) <- 2
+      dim(y) <- 2
+      p[] <- user()
+      y[.] <- rmultinom(5 + 2, p)
     }),
     "At present, inplace function 'rmultinom' must use no functions",
     class = "odin_error")
@@ -98,6 +101,6 @@ test_that("in place expressions must return an array", {
       dim(p) <- 2
       y <- rmultinom(2, p)
     }),
-    "Expected an array of rank 1 the lhs of inplace function 'rmultinom'",
+    "Expected rank 1 for lhs of inplace function 'rmultinom'",
     class = "odin_error")
 })

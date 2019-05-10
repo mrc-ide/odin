@@ -592,11 +592,10 @@ ir_parse_expr <- function(expr, line, source) {
     }
   }
 
-  ## There is heaps of work required here, unfortunately
+  ## There is heaps of work required here, unfortunately.  Most is
+  ## done later though, after the ranks of everything are determined.
   if (any(names(FUNCTIONS_INPLACE) %in% depends$functions)) {
     type <- "expression_inplace"
-    ## TODO: should check here that the lhs is really complete, but
-    ## that requires being able to see empty indices.
     rhs <- ir_parse_expr_rhs_inplace(lhs, rhs, line, source)
   }
 
@@ -747,7 +746,7 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
   deps$functions <- setdiff(deps$functions, ":")
 
   list(
-    index = Map(list, value = index, is_range = is_range,
+    index = Map(list, value = index, is_range = is_range, is_empty = is_empty,
                 index = INDEX[seq_along(index)]),
     depends = deps)
 }
@@ -1452,29 +1451,7 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
 ir_parse_expr_rhs_inplace <- function(lhs, rhs, line, source) {
   fn <- deparse(rhs$rhs$value[[1]])
   args <- as.list(rhs$rhs$value[-1])
-
-  ## Utility function for converting an argument to its name, while
-  ## validating that it is used appropriately.
-  arg_data_name <- function(arg) {
-    if (is.numeric(arg)) {
-      NA_character_
-    } else if (is.symbol(arg)) {
-      as.character(arg)
-    } else if (is_call(arg, "[")) {
-      as.character(arg[[2]])
-    } else {
-      ir_parse_error(sprintf(
-        "At present, inplace function '%s' must use no functions", fn),
-        line, source)
-    }
-  }
-
-  rhs$inplace <- list(
-    fn = fn,
-    args_value = args,
-    args_name = vcapply(args, arg_data_name, USE.NAMES = FALSE),
-    info = FUNCTIONS_INPLACE[[fn]])
-
+  rhs$inplace <- list(fn = fn, args = args, index = lhs$index)
   rhs
 }
 
@@ -1488,7 +1465,11 @@ ir_parse_inplace <- function(eqs, source) {
 
 ir_parse_inplace1 <- function(eq, eqs, source) {
   fn <- eq$inplace$fn
-  info <- eq$inplace$info
+  info <- FUNCTIONS_INPLACE[[fn]]
+  index <- eq$inplace$index
+
+  lhs_empty <- vlapply(index, function(x) x$is_empty)
+  lhs_dot <- vlapply(index, function(x) identical(x$value, quote(.)))
 
   arr_arg <- lapply(eqs[eq$inplace$args_name], function(x) x$array)
   arr_lhs <- eq$array
@@ -1498,55 +1479,121 @@ ir_parse_inplace1 <- function(eq, eqs, source) {
   rank_arg <- viapply(arr_arg, function(x) x$rank %||% 0L)
   rank_lhs <- arr_lhs$rank %||% 0L
 
-  ## TODO: once we support the '.' syntax then we'll check that here
-  ## always, including a warning for *not* using it.
-  if (rank_lhs != info$rank_output) {
-    ir_parse_error(sprintf(
-      "Expected an array of rank %d the lhs of inplace function '%s'",
-      info$rank_output, fn),
+  if (any(!lhs_empty & !lhs_dot)) {
+    ## TODO: provide information about specific violations?
+    ir_parse_error(
+      "All left-hand-side array indices must be empty or a dot",
       eq$source, source)
   }
 
-  for (i in seq_along(rank_arg)) {
-    if (rank_arg[[i]] != info$rank_args[[i]]) {
-      if (info$rank_args[[i]] == 0L) {
+  ## Checking and filling this in simplifies things later.
+  if (rank_lhs == info$rank_output) {
+    if (any(!lhs_dot)) {
+      ir_parse_note("Please use dots to indicate destination",
+                    eq$source, source)
+    }
+    lhs_dot[] <- TRUE
+  }
+
+  if (sum(lhs_dot) != info$rank_output) {
+    ir_parse_error(sprintf(
+      "Expected rank %d for lhs of inplace function '%s', but got %d",
+      info$rank_output, fn, sum(lhs_dot)),
+      eq$source, source)
+  }
+
+  index_vars_disallowed <- INDEX[which(lhs_dot)]
+
+  ## TODO: This is just a big hot mess at the moment - we'll come back
+  ## and tidy it up before merging.  If you're reviewing this code
+  ## please have a good look here if this message persists...
+  find_arg_rank <- function(x) {
+    if (is.numeric(x)) {
+      rank <- 0
+      index <- integer(0)
+      name <- NA_character_
+    } else if (is.symbol(x)) {
+      name <- as.character(x)
+      rank <- eqs[[name]]$array$rank %||% 0
+      index <- seq_len(rank)
+    } else if (is_call(x, "[")) {
+      name <- as.character(x[[2]])
+      arg_index <- x[-(1:2)]
+      arg_index_empty <- vlapply(arg_index, identical, quote(expr = ))
+      ## TODO: empty indices must be adjacent
+      ## TODO: general index checking here (should be doable)
+      ## TODO: check correct number of index entries (that goes
+      ## elsewhere but might be skipped over here)
+      deps <- lapply(arg_index[!arg_index_empty], find_symbols)
+      vars <- join_deps(deps)$variables
+      err <- intersect(vars, index_vars_disallowed)
+      if (length(err) > 0L) {
+        ir_parse_error(sprintf(
+          "Index %s may not be used on rhs for this inplace expression",
+          paste(err, collapse = ", ")),
+          eq$source, source)
+      }
+      if ("." %in% vars) {
+        ## TODO: check this elsewhere too
+        ir_parse_error(sprintf(
+          "The '.' index marker is only valid on the left hand side",
+          paste(err, collapse = ", ")),
+          eq$source, source)
+      }
+      rank <- sum(arg_index_empty)
+      index <- which(arg_index_empty)
+    } else {
+      ir_parse_error(sprintf(
+        "At present, inplace function '%s' must use no functions", fn),
+        eq$source, source)
+    }
+    list(name = name, rank = rank, index = index)
+  }
+
+  ## The arguments are a bit nastier - we need to see what is _left_
+  ## after indexing.
+  info_rhs <- lapply(eq$inplace$args, find_arg_rank)
+  info_lhs <- list(name = eq$name, index = which(lhs_empty))
+
+  for (i in seq_along(eq$inplace$args)) {
+    rank_expected <- info$rank_args[[i]]
+    rank_recieved <- length(info_rhs[[i]]$index)
+    if (rank_recieved != rank_expected) {
+      if (rank_expected == 0L) {
         ir_parse_error(sprintf(
           "Expected a scalar for argument %d of '%s' (got array of rank %d)",
-          i, fn, rank_arg[[i]]),
+          i, fn, rank_recieved),
           eq$source, source)
       } else {
         ir_parse_error(sprintf(
           "Expected an array of rank %d for argument %d of '%s' (got rank %d)",
-          info$rank_args[[i]], i, fn, rank_arg[[i]]),
+          rank_expected, i, fn, rank_recieved),
           eq$source, source)
       }
     }
   }
 
-  ## This will likely lift out into a helper function because we'll
-  ## need it for interpolation functions too.
   constraint_dim <- function(ij) {
-    d <- arr_all[[ij[[1]] + 1]]
-    nm <- as.name(nm_all[[ij[[1]] + 1]])
+    d_info <- if (ij[[1]] == 0L) info_lhs else info_rhs[[ij[[1]]]]
+    d <- eqs[[d_info$name]]$array
     if (d$rank == 1L) {
       symbol <- d$dimnames$length
-      expr <- call("length", nm)
+      expr <- call("length", as.name(d_info$name))
     } else {
-      symbol <- d$dimnames$dim[[ij[[2]]]]
-      expr <- call("dim", nm, ij[[2]])
+      i <- d_info$index[[ij[[2]]]]
+      symbol <- d$dimnames$dim[[i]]
+      expr <- call("dim", as.name(d_info$name), i)
     }
     list(symbol = symbol, expr = expr)
   }
   ## We need to get unique names in here for the constraints, though
   ## the actual names don't matter.
-  i <- 0L
-  constraint <- function(x) {
+  constraint <- function(x, i) {
     a <- constraint_dim(x[[1]])
     b <- constraint_dim(x[[2]])
-    i <<- i + 1L
     value <- call("==", as.name(a$symbol), as.name(b$symbol))
     representation <- call("==", a$expr, b$expr)
-    list(name = sprintf("constraint_%s_%d", eq$name, i),
+    list(name = sprintf("constraint_%s_%d", eq$name, i()),
          type = "constraint",
          lhs = list(name_lhs = ""),
          constraint = list(value = value,
@@ -1557,9 +1604,11 @@ ir_parse_inplace1 <- function(eq, eqs, source) {
          depends = ir_parse_depends(variables = c(a$symbol, b$symbol)))
   }
 
-  eq$constraints <- lapply(info$constraints, constraint)
+  eq$constraints <- lapply(info$constraints, constraint, counter()$add)
   eq$depends$variables <- c(eq$depends$variables,
                             vcapply(eq$constraints, "[[", "name"))
+  eq$index <- vcapply(eq$inplace$index[lhs_empty], "[[", "index")
+  eq$depends$variables <- setdiff(eq$depends$variables, ".")
 
   eq
 }

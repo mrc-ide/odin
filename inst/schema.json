@@ -566,9 +566,12 @@
                 "lhs": {},
                 "rhs": {
                     "$ref": "#/definitions/equation_rhs_scalar"
+                },
+                "index": {
+                    "$ref": "#/definitions/basic/character_vector"
                 }
             },
-            "required": ["type", "rhs"],
+            "required": ["type", "rhs", "index"],
             "additionalProperties": false
         },
 
