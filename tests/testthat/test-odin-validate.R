@@ -38,3 +38,13 @@ test_that("invalid R", {
   expect_is(res$error, "error")
   expect_equal(res$messages, list())
 })
+
+
+test_that("type is passed along", {
+  expect_equal(odin_validate("", "text")$error$message,
+               "Did not find a deriv() or an update() call",
+               fixed = TRUE)
+  expect_equal(odin_validate(character(0), "text")$error$message,
+               "Did not find a deriv() or an update() call",
+               fixed = TRUE)
+})
