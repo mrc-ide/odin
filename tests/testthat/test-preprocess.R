@@ -52,3 +52,9 @@ test_that("detect invalid type", {
   expect_error(odin_preprocess_detect(quote(x), "file"),
                "Invalid input for odin - expected file")
 })
+
+
+test_that("handle empty input", {
+  ## Previously errored
+  expect_equal(odin_preprocess_detect(character(0)), "text")
+})

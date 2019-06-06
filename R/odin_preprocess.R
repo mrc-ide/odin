@@ -64,7 +64,7 @@ odin_preprocess_detect <- function(x, type = NULL) {
         }
       }
       as <- type
-    } else if (length(x) > 1L || grepl("([\n;=()]|<-)", x)) {
+    } else if (length(x) != 1L || grepl("([\n;=()]|<-)", x)) {
       as <- "text"
     } else if (file.exists(x)) {
       as <- "file"
