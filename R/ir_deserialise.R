@@ -7,7 +7,16 @@
 ##' @title Deserialise odin's IR
 ##' @param x An intermediate representation as a json string
 ##' @return A named list
+##' @seealso \code{\link{odin_parse}}
 ##' @export
+##' @examples
+##' # Parse a model of exponential decay
+##' ir <- odin::odin_parse({
+##'   deriv(y) <- -0.5 * y
+##'   initial(y) <- 1
+##' })
+##' # Convert the representation to an R object
+##' odin::ir_deserialise(ir)
 odin_ir_deserialise <- function(x) {
   if (!inherits(x, "json")) {
     stop("Expected a json string")
