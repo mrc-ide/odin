@@ -8,6 +8,27 @@
 ##' \code{\link{odin_validate}} and then pass the result to
 ##' \code{odin_build}.
 ##'
+##' The return value of this function includes information about how
+##' long the compilation took, if it was successful, etc, in the same
+##' style as \code{\link{orderly_validate}}:
+##'
+##' \description{
+##' \item{success}{Logical, indicating if compilation was successful}
+##'
+##' \item{elapsed}{Time taken to compile the model, as a
+##' \code{proc_time} object, as returned by \code{\link{proc.time}}.}
+##'
+##' \item{output}{Any output produced when compiling the model (only
+##' present if compling to C, and if the cache was not hit.}
+##'
+##' \item{model}{The model itself, as an \code{odin_generator} object,
+##' as returned by \code{\link{odin}}.}
+##'
+##' \item{ir}{The intermediate representation.}
+##'
+##' \code{error}{Any error thrown during compilation}
+##' }
+##'
 ##' @title Build an odin model generator from its IR
 ##'
 ##' @param x An odin ir (json) object or output from
@@ -17,6 +38,27 @@
 ##'   \code{\link{odin_options}}
 ##'
 ##' @export
+##'
+##' @seealso \code{\link{odin_parse}}, which creates intermediate
+##'   representations used by this function.
+##'
+##' @examples
+##' ##' # Parse a model of exponential decay
+##' ir <- odin::odin_parse({
+##'   deriv(y) <- -0.5 * y
+##'   initial(y) <- 1
+##' })
+##'
+##' # Compile the model:
+##' options <- odin::odin_options(target = "r")
+##' res <- odin::odin_build(ir, options)
+##'
+##' # All results:
+##' res
+##'
+##' # The model:
+##' mod <- res$model()
+##' mod$run(0:10)
 odin_build <- function(x, options = NULL) {
   options <- odin_options(options = options)
 
