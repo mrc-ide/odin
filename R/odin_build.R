@@ -10,7 +10,7 @@
 ##'
 ##' The return value of this function includes information about how
 ##' long the compilation took, if it was successful, etc, in the same
-##' style as \code{\link{orderly_validate}}:
+##' style as \code{\link{odin_validate}}:
 ##'
 ##' \describe{
 ##' \item{success}{Logical, indicating if compilation was successful}
