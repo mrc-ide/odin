@@ -69,7 +69,7 @@
 ##'   warnings should be converted to R warnings.  If this is
 ##'   \code{TRUE}, then if any compiler warnings are generated, the
 ##'   compiler output will be displayed (regardless of the value of
-##'   \code{verbose}) within an R warning (suppressable via
+##'   \code{verbose}) within an R warning (suppressible via
 ##'   \code{suppressWarnings} and catchable via \code{tryCatch}).  The
 ##'   default is to default to \code{FALSE} unless the global option
 ##'   \code{odin.compiler_warnings} is set to \code{TRUE} (set with

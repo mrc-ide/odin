@@ -14,7 +14,7 @@ contains \code{DESCRIPTION})}
 Create an odin model within an existing package.
 }
 \details{
-I am resisiting the urge to actually create the package here.
+I am resisting the urge to actually create the package here.
 There are better options than I can come up with; for example
 \code{devtools::create}, \code{pkgkitten::kitten},
 \code{mason::mason}, or creating \code{DESCRIPTION} files using

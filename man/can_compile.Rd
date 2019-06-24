@@ -22,7 +22,7 @@ should be fast to rely on.
 }
 \details{
 If this function believes you can't compile, and if \code{gcc}
-can't be found on the path, a diagnostc message will be printed.
+can't be found on the path, a diagnostic message will be printed.
 This will of course not be very interesting if you use a different
 compiler to gcc!  But the most likely people affected here are
 Windows users; if you get this ensure that you have rtools

@@ -54,6 +54,6 @@ odin::odin_parse_(code)
 }
 \seealso{
 \code{\link{odin_validate}}, which wraps this function
-  where parsinfg might fail, and \code{\link{odin_build}} for
+  where parsing might fail, and \code{\link{odin_build}} for
   building odin models from an intermediate representation.
 }

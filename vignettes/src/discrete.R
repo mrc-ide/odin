@@ -43,7 +43,7 @@ options(odin.verbose = FALSE)
 ## $$
 
 ## Where $\beta$ is an infection rate and $\gamma$ a removal rate,
-## assuming 'R' stands for 'reconvered', which can mean recovery or
+## assuming 'R' stands for 'recovered', which can mean recovery or
 ## death.
 
 ## For discrete time equivalent, we take a small time step $t$
@@ -97,7 +97,7 @@ options(odin.verbose = FALSE)
 ## probability $p$
 
 ## As a example, let us consider transition $S \rightarrow I$ in the
-## SIR model. The overal rate at which this change happens is $\beta
+## SIR model. The overall rate at which this change happens is $\beta
 ## \frac{S_t I_t}{N_t}$. The corresponding *per susceptible* rate is
 ## $\beta \frac{I_t}{N_t}$. Therefore, the probability for an
 ## individual to move from *S* to *I* at time $t$ is $p_{(S
@@ -147,7 +147,7 @@ options(odin.verbose = FALSE)
 ## individuals end up in each compartment. Let us assume that
 ## individuals move from a compartment $X$ to compartments $A$, $B$,
 ## and $C$, at rates $\lambda_A$, $\lambda_B$ and $\lambda_C$. The
-## worflow to handle these transitions will be:
+## workflow to handle these transitions will be:
 
 ## 1. determine the total number of individuals leaving $X$; this is
 ## done by summing the rates ($\lambda = \lambda_A + \lambda_B +
@@ -158,7 +158,7 @@ options(odin.verbose = FALSE)
 ## \rightarrow ...))$
 
 ## 2. compute relative probabilities of moving to the different
-## compartments (using $i$ as a placeolder for $A$, $B$, $C$): $p_i =
+## compartments (using $i$ as a placeholder for $A$, $B$, $C$): $p_i =
 ## \frac{\lambda_i}{\sum_i \lambda_i}$
 
 ## 3. determine the numbers of individuals moving to $A$, $B$ and $C$

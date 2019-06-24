@@ -1,4 +1,4 @@
-##' Parse an odin model, returning an intermediate representation.
+#' Parse an odin model, returning an intermediate representation.
 ##' The \code{odin_parse_} version is a "standard evaluation" escape
 ##' hatch.
 ##'
@@ -23,7 +23,7 @@
 ##' @export
 ##'
 ##' @seealso \code{\link{odin_validate}}, which wraps this function
-##'   where parsinfg might fail, and \code{\link{odin_build}} for
+##'   where parsing might fail, and \code{\link{odin_build}} for
 ##'   building odin models from an intermediate representation.
 ##'
 ##' @examples

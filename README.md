@@ -9,7 +9,7 @@
 
 `odin` implements a high-level language for describing and implementing ordinary differential equations in R.  It provides a "domain specific language" (DSL) which _looks_ like R but is compiled directly to C.  The actual solution of the differential equations is done with the deSolve package, giving access to the excellent Livermore solvers (`lsoda`, `lsode`, etc).
 
-* The DSL is _declarative_ reflecting the mathematical nature of the equations (typically ODEs are simple mathematical relationships, so the order should not matter).
+* The DSL is _declarative_ reflecting the mathematical nature of the equations (typically ordinary differential equations are simple mathematical relationships, so the order should not matter).
 * It includes support for equations that involve vectors, matrices and higher dimensional arrays (up to 8!), including a high-level array indexing notation that removes the need for explicit looping.
 * Delay differential equations are supported, including when the delayed quantities are expressions of variables.
 * Interpolation functions can be used to include time-varying quantities into the model
@@ -25,7 +25,7 @@ In addition, the same machinery can be used to generate discrete-time models tha
 
 The "deSolve" package for R is the de-facto way of solving differential equations in R; it provides excellent solvers and has remained stable for over a decade.  However, users must implement equations in R and suffer a large speed cost, or implement their equations in C which is (depending on the complexity of the system) either routine and a bit boring, or complicated and error prone.  This translation can be especially complicated with delay differential equations, or with models where the variables are more naturally stored as variable sized arrays.
 
-Apparently not many people know that `deSolve` can use target functions written in C rather than just in R.  This is described in detail in the excellent "compiledCode" vignette (`vignette("compiledCode")` or [online](https://cran.r-project.org/web/packages/deSolve/vignettes/compiledCode.pdf).
+Apparently not many people know that `deSolve` can use target functions written in C rather than just in R.  This is described in detail in the excellent "compiledCode" vignette (`vignette("compiledCode")` or [online](https://cran.r-project.org/package=deSolve/vignettes/compiledCode.pdf).
 
 While the `deSolve` authors are bearish on the benefits of this, I have often seen performance improvements of over 100x.  Where an ODE is being used in application where it is called repeatedly (e.g., an optimisation or MCMC) the cost of rewriting the system pays itself back.
 
@@ -92,9 +92,9 @@ lorenz <- odin::odin({
 })
 ```
 
-The connection to the R and C versions in the section above should be fairly clear.  The code above is never actually evaluated though; intead it is parsed and used to build up C code for the model.
+The connection to the R and C versions in the section above should be fairly clear.  The code above is never actually evaluated though; instead it is parsed and used to build up C code for the model.
 
-Note that this includes initial conditions; all odin models include specifications for initial conditions because the ordering of the varaibles is arbitrary and may be re-ordered.
+Note that this includes initial conditions; all odin models include specifications for initial conditions because the ordering of the variables is arbitrary and may be re-ordered.
 
 This generates an object that can be used to integrate the set of differential equations, by default starting at the initial conditions specified above (though custom initial conditions can be given).  The equations are translated into C, compiled, loaded, and bundled into an object.  `lorenz` here is a function that generates an instance of the model.
 
@@ -104,13 +104,13 @@ t <- seq(0, 100, length.out = 50000)
 y <- mod$run(t)
 ```
 
-For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [vignette](https://mrc-ide.github.io/odin/vignettes/odin.html)
+For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [vignette](https://mrc-ide.github.io/odin/articles/odin.html)
 
 # Limitations
 
 Writing this has given me a much greater appreciation of the difficulties of writing compiler error messages.
 
-This does not attempt to _generally_ translate R into C (though very simple expressions are handled) but only a small subset that follows the sterotyped way that R+C ODE models tend to be written.  It tries to do things like minimise the number of memory allocations while preventing leaks.  The generated code is designed to be straightforward to read, leaving any really funky optimisation to the compiler.
+This does not attempt to _generally_ translate R into C (though very simple expressions are handled) but only a small subset that follows the stereotyped way that R+C ODE models tend to be written.  It tries to do things like minimise the number of memory allocations while preventing leaks.  The generated code is designed to be straightforward to read, leaving any really funky optimisation to the compiler.
 
 Because this relies on code generation, and the approach is partly textual, some oddities will appear in the generated code (things like `n + 0`).  Over time I'll remove the most egregious of these.  It's probable that there will be some unused variables, and unused elements in the parameters struct.
 

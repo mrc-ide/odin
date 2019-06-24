@@ -10,7 +10,7 @@
 ##' \item{success}{A boolean, \code{TRUE} if validation was successful}
 ##'
 ##' \item{result}{The intermediate representation, as returned by
-##' \code{\link{odin_parse_}}, if the valiation was successful,
+##' \code{\link{odin_parse_}}, if the validation was successful,
 ##' otherwise \code{NULL}}
 ##'
 ##' \item{error}{An error object if the validation was unsuccessful,

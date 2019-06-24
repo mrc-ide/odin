@@ -36,7 +36,7 @@ style as \code{\link{odin_validate}}:
 \code{proc_time} object, as returned by \code{\link{proc.time}}.}
 
 \item{output}{Any output produced when compiling the model (only
-present if compling to C, and if the cache was not hit.}
+present if compiling to C, and if the cache was not hit.}
 
 \item{model}{The model itself, as an \code{odin_generator} object,
 as returned by \code{\link{odin}}.}
