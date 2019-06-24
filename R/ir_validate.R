@@ -19,7 +19,5 @@ ir_validate_create_validator <- function() {
   ## that the json is valid.
   jsonlite::fromJSON(schema)
 
-  jsonvalidate_version <- utils::packageVersion("jsonvalidate")
-  engine <- if (jsonvalidate_version > "1.0.0") "ajv" else "imjv"
-  jsonvalidate::json_validator(schema, engine)
+  jsonvalidate::json_validator(schema, engine = "ajv")
 }

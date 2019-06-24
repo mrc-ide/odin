@@ -1,5 +1,11 @@
+can_validate_ir <- function() {
+  requireNamespace("jsonvalidate", quietly = TRUE) &&
+    packageVersion("jsonvalidate") >= numeric_version("1.1.0")
+}
+
+
 options(odin.verbose = FALSE,
-        odin.validate = requireNamespace("jsonvalidate", quietly = TRUE),
+        odin.validate = can_validate_ir(),
         odin.target = NULL)
 
 on_appveyor <- function() {
