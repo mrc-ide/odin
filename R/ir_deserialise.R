@@ -16,7 +16,7 @@
 ##'   initial(y) <- 1
 ##' })
 ##' # Convert the representation to an R object
-##' odin::ir_deserialise(ir)
+##' odin::odin_ir_deserialise(ir)
 odin_ir_deserialise <- function(x) {
   if (!inherits(x, "json")) {
     stop("Expected a json string")

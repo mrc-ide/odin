@@ -26,7 +26,7 @@ ir <- odin::odin_parse({
   initial(y) <- 1
 })
 # Convert the representation to an R object
-odin::ir_deserialise(ir)
+odin::odin_ir_deserialise(ir)
 }
 \seealso{
 \code{\link{odin_parse}}
