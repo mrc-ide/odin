@@ -34,4 +34,33 @@ Point this function at the package root (the directory containing
 \code{DESCRIPTION} and it will write out files \code{src/odin.c}
 and \code{odin.R}.  These files will be overwritten without
 warning by running this again.
+
+There are a few unresolved issues with this approach, notably
+activating "native symbol registration", and the interaction with
+packages such as Rcpp that automatically collate a list of
+symbols.  The mechanism may change in a future version, though the
+interface (with source files in \code{inst/odin} will remain the
+same.
+}
+\examples{
+path <- tempfile()
+dir.create(path)
+
+src <- system.file("examples/package", package = "odin", mustWork = TRUE)
+file.copy(src, path, recursive = TRUE)
+pkg <- file.path(path, "package")
+
+# The package is minimal:
+dir(pkg)
+
+# But contains odin files in inst/odin
+dir(file.path(pkg, "inst/odin"))
+
+# Compile the odin code in the package
+odin::odin_package(pkg)
+
+# Which creates the rest of the package structure
+dir(pkg)
+dir(file.path(pkg, "R"))
+dir(file.path(pkg, "src"))
 }
