@@ -1,6 +1,5 @@
 can_validate_ir <- function() {
-  requireNamespace("jsonvalidate", quietly = TRUE) &&
-    packageVersion("jsonvalidate") >= numeric_version("1.1.0")
+  tryCatch(check_jsonvalidate_version(), error = function(e) FALSE)
 }
 
 
