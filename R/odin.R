@@ -162,11 +162,7 @@ odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 
 odin_generate <- function(ir, options) {
   dat <- ir_deserialise(ir)
-
-  if (options$verbose) {
-    message("target: ", options$target)
-  }
-
+  odin_message(paste("Generating model in", options$target), options$verbose)
   switch(options$target,
          "r" = generate_r(dat, options),
          "c" = generate_c(dat, options),

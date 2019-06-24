@@ -196,3 +196,10 @@ from_json <- function(x) {
 read_string <- function(path) {
   readChar(path, file.info(path, extra_cols = FALSE)$size)
 }
+
+
+odin_message <- function(msg, verbose) {
+  if (verbose) {
+    message(msg)
+  }
+}
