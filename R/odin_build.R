@@ -12,7 +12,7 @@
 ##' long the compilation took, if it was successful, etc, in the same
 ##' style as \code{\link{orderly_validate}}:
 ##'
-##' \description{
+##' \describe{
 ##' \item{success}{Logical, indicating if compilation was successful}
 ##'
 ##' \item{elapsed}{Time taken to compile the model, as a
