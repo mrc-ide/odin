@@ -96,7 +96,7 @@ options(odin.verbose = FALSE)
 ## using a *Binomial* distribution, with one draw per individual and a
 ## probability $p$
 
-## As a example, let us consider transition $S \rightarrow I$ in the
+## As an example, let us consider transition $S \rightarrow I$ in the
 ## SIR model. The overall rate at which this change happens is $\beta
 ## \frac{S_t I_t}{N_t}$. The corresponding *per susceptible* rate is
 ## $\beta \frac{I_t}{N_t}$. Therefore, the probability for an
