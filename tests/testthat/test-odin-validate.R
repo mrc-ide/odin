@@ -48,13 +48,3 @@ test_that("type is passed along", {
                "Did not find a deriv() or an update() call",
                fixed = TRUE)
 })
-
-
-test_that("jsonvalidate check", {
-  expect_error(
-    check_jsonvalidate_version(numeric_version("1.0.1")),
-    "jsonvalidate >= 1.1.0 is required to validate odin's ir",
-    fixed = TRUE)
-  expect_silent(
-    check_jsonvalidate_version(numeric_version("1.1.0")))
-})
