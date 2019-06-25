@@ -48,7 +48,7 @@ options(odin.verbose = FALSE)
 
 ## For discrete time equivalent, we take a small time step $t$
 ## (typically a day), and write the changes of individuals in each
-## compartments as:
+## compartment as:
 
 ## $$
 ## S_{t+1} = S_t - \beta \frac{S_t I_t}{N_t}
@@ -115,7 +115,7 @@ options(odin.verbose = FALSE)
 
 ## This case is simple to handle: one just needs to draw new
 ## individuals entering the compartment from a Poisson distribution
-## with the rate directly coming form the equations.
+## with the rate directly coming from the equations.
 
 ## For instance, let us now consider a variant of the SIR model where
 ## new infectious cases are imported at a constant rate
@@ -242,7 +242,7 @@ legend("topright", lwd = 1, col = sir_col, legend = c("S", "I", "R"), bty = "n")
 
 ## This gives us a single stochastic realisation of the model, which
 ## is of limited interest. As an alternative, we can generate a large
-## number of replicates using arrays for each compartments:
+## number of replicates using arrays for each compartment:
 
 path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
 
