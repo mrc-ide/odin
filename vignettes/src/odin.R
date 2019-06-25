@@ -168,7 +168,7 @@ pairs(y[, -1L], panel = lines, lwd = .2, col = "#00000055")
 ## # Delay models
 
 ## Models with lags and delays represent a challenge in solving and
-## representing the system see [this wikipedia
+## representing the system, see [this wikipedia
 ## article](https://en.wikipedia.org/wiki/Delay_differential_equation)
 ## for some of the issues.  In the general case this gives a set of
 ## partial differential equations, which are much harder to solve
@@ -196,7 +196,7 @@ dde <- gen()
 ## ylag <- delay(y, tau)
 ## ```
 ##
-## Specifies the delay; it says that `ylag` should be equal to `y`
+## specifies the delay; it says that `ylag` should be equal to `y`
 ## from `tau` ago.  Or; `ylag(t) = y(t - tau)`.
 ##
 ## `delay` expressions must be the only expressions on the rhs of an
@@ -366,7 +366,7 @@ pairs(y[, -1], panel = lines, col = "#00000055", lwd = 0.2)
 ## to indicate constant interpolation and `"linear"` to indicate
 ## linear interpolation.
 ##
-## All modes of interpolation uses a fast lookup (bisection search
+## All modes of interpolation use a fast lookup (bisection search
 ## that remembers where it started from on the last lookup) to try and
 ## make interpolation as fast as possible.  Performance should be
 ## *O(log(n))* in the number of points used to create the
