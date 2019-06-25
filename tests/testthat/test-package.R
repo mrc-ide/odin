@@ -52,7 +52,7 @@ test_that("interpolation", {
 
   ## On appveyor, these don't agree, and I can't replicate on a local
   ## windows machine.
-  if (!on_appveyor()) {
+  if (!on_appveyor() && !on_cran()) {
     expect_equal(y_c[, 2], y_r[, 2])
   }
 })
