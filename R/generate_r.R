@@ -336,7 +336,7 @@ generate_r_run <- function(dat, env, rewrite) {
     args <- c(args, alist(use_dde =, tcrit =))
   }
   if (!dat$features$discrete && dat$features$has_delay) {
-    args <- c(args, alist(n_history = 1000L))
+    args <- c(args, alist(n_history = DEFAULT_HISTORY_SIZE))
   }
 
   names(args)[[1L]] <- dat$meta$internal

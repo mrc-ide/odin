@@ -122,7 +122,7 @@ generate_r_equation_alloc_ring <- function(eq, data_info, dat,
   ## use_dde I think.  However, it's a little more complex because it
   ## needs to be done on *create* and set into the internal data quite
   ## early.
-  n_history <- 1000
+  n_history <- DEFAULT_HISTORY_SIZE
   if (data_info_contents$rank == 0L) {
     len <- 1L
   } else {
