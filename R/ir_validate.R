@@ -25,7 +25,7 @@ ir_validate_create_validator <- function() {
 
 
 check_jsonvalidate_version <- function(version = NULL) {
-  version <- version %||% packageVersion("jsonvalidate")
+  version <- version %||% utils::packageVersion("jsonvalidate")
   if (version < numeric_version("1.1.0")) {
     stop("jsonvalidate >= 1.1.0 is required to validate odin's ir",
          call. = FALSE)
