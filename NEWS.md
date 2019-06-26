@@ -1,3 +1,7 @@
+# odin 1.0.0
+
+* Initial release to CRAN
+
 # odin 0.2.6
 
 * Default history size is back to 10,000 steps (not 1,000) as in pre-0.2.0 (`mrc-327`, #176)
