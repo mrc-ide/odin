@@ -21,9 +21,55 @@ and \code{pretty}.}
 }
 \description{
 Validate an odin model.  This function is closer to
-\code{\link{odin_}} than \code{\link{odin}} because it does not do
-any quoting of the code.  It is primarily intended for use within
-other applications.
+\code{\link{odin_parse_}} than \code{\link{odin_parse}} because it
+does not do any quoting of the code.  It is primarily intended for
+use within other applications.
+}
+\details{
+\code{odin_validate} will always return a list with the same
+elements:
+
+\describe{
+\item{success}{A boolean, \code{TRUE} if validation was successful}
+
+\item{result}{The intermediate representation, as returned by
+\code{\link{odin_parse_}}, if the validation was successful,
+otherwise \code{NULL}}
+
+\item{error}{An error object if the validation was unsuccessful,
+otherwise \code{NULL}.  This may be a classed odin error, in which
+case it will contain source location information - see the
+examples for details.}
+
+\item{messages}{A list of messages, if the validation returned
+any.  At present this is only non-fatal information about unused
+variables.}
+}
+}
+\examples{
+
+# A successful validation:
+odin::odin_validate(c("deriv(x) <- 1", "initial(x) <- 1"))
+
+# A complete failure:
+odin::odin_validate("")
+
+# A more interesting failure
+code <- c("deriv(x) <- a", "initial(x) <- 1")
+res <- odin::odin_validate(code)
+res
+
+# The object 'res$error' is an 'odin_error' object:
+res$error
+
+# It contains information that might be used to display to a
+# user information about the error:
+unclass(res$error)
+
+# Notes are raised in a similar way:
+code <- c("deriv(x) <- 1", "initial(x) <- 1", "a <- 1")
+res <- odin::odin_validate(code)
+res$messages[[1]]
 }
 \author{
 Rich FitzJohn

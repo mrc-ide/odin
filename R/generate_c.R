@@ -4,9 +4,7 @@ generate_c <- function(dat, options) {
   if (!skip_cache) {
     prev <- .odin$model_cache_c$get(hash)
     if (!is.null(prev)) {
-      if (options$verbose) {
-        message("Using cached model")
-      }
+      odin_message("Using cached model", options$verbose)
       return(prev)
     }
   }

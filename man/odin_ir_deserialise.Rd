@@ -19,3 +19,15 @@ this representation.  This function provides access to the same
 deserialisation that odin uses internally so may be useful in
 applications.
 }
+\examples{
+# Parse a model of exponential decay
+ir <- odin::odin_parse({
+  deriv(y) <- -0.5 * y
+  initial(y) <- 1
+})
+# Convert the representation to an R object
+odin::odin_ir_deserialise(ir)
+}
+\seealso{
+\code{\link{odin_parse}}
+}

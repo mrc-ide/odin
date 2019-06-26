@@ -25,7 +25,7 @@ options(odin.verbose = FALSE)
 
 ## # Single variable: Logistic growth
 
-## We'll first start with a very simple model; logisitic growth.  We
+## We'll first start with a very simple model; logistic growth.  We
 ## have one variable `N` which grows towards a carrying capacity `K`.
 ## The growth rate is `r` when `N` is very small (note that this
 ## equation can be easily solved analytically and it's only included
@@ -59,7 +59,7 @@ mod
 ## This is an `ode_system` object and can be used to run the system of
 ## differential equations, query the internal state, and so on.  Most
 ## of the listed elements above do not need to be accessed ever (I
-## would make them private but that incurrs a very slight performance
+## would make them private but that incurs a very slight performance
 ## cost).
 
 ## The initial conditions:
@@ -168,7 +168,7 @@ pairs(y[, -1L], panel = lines, lwd = .2, col = "#00000055")
 ## # Delay models
 
 ## Models with lags and delays represent a challenge in solving and
-## representing the system see [this wikipedia
+## representing the system, see [this wikipedia
 ## article](https://en.wikipedia.org/wiki/Delay_differential_equation)
 ## for some of the issues.  In the general case this gives a set of
 ## partial differential equations, which are much harder to solve
@@ -196,7 +196,7 @@ dde <- gen()
 ## ylag <- delay(y, tau)
 ## ```
 ##
-## Specifies the delay; it says that `ylag` should be equal to `y`
+## specifies the delay; it says that `ylag` should be equal to `y`
 ## from `tau` ago.  Or; `ylag(t) = y(t - tau)`.
 ##
 ## `delay` expressions must be the only expressions on the rhs of an
@@ -221,14 +221,14 @@ plot(y2[, -1L], xlab = "y", ylab = "ylag", mfrow = NULL, type = "l")
 ## Much of the above, especially the non-delay equations, can be
 ## expressed easily in deSolve.  Even where the target functions are
 ## written in R they will tend to be fast enough to solve (unless
-## strongly nonlinear) so that the gains for writing out in C become
+## strongly non-linear) so that the gains for writing out in C become
 ## small.  `odin` was really designed for cases where the variables
 ## involved are _arrays_, used here to mean vectors, matrices or 3d
 ## matrices.
 
 ## There are quite a few restrictions on how arrays are used, how
 ## indexing works, etc.  Some of the current implementation requires
-## creation ofintermediate variables to make everything work (and
+## creation of intermediate variables to make everything work (and
 ## naming things is one of the [two hard problems in computer
 ## science](https://www.quora.com/Why-is-naming-things-hard-in-computer-science-and-how-can-it-can-be-made-easier).
 ## Hopefully in future versions some of these restrictions can be
@@ -242,7 +242,7 @@ plot(y2[, -1L], xlab = "y", ylab = "ylag", mfrow = NULL, type = "l")
 ## page](https://en.wikipedia.org/wiki/Competitive_Lotka%E2%80%93Volterra_equations#4-dimensional_example),
 ## in turn from [Vano et al
 ## 2006](http://sprott.physics.wisc.edu/pubs/paper288.pdf).  This
-## model has four nonlinear differential equations that have chaotic
+## model has four non-linear differential equations that have chaotic
 ## behaviour in fairly low dimension.
 gen <- odin::odin({
   deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))
@@ -366,7 +366,7 @@ pairs(y[, -1], panel = lines, col = "#00000055", lwd = 0.2)
 ## to indicate constant interpolation and `"linear"` to indicate
 ## linear interpolation.
 ##
-## All modes of interpolation uses a fast lookup (bisection search
+## All modes of interpolation use a fast lookup (bisection search
 ## that remembers where it started from on the last lookup) to try and
 ## make interpolation as fast as possible.  Performance should be
 ## *O(log(n))* in the number of points used to create the
