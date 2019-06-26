@@ -1,3 +1,7 @@
+# odin 0.2.6
+
+* Default history size is back to 10,000 steps (not 1,000) as in pre-0.2.0 (`mrc-327`, #176)
+
 # odin 0.2.4
 
 * `odin_package` now works with R staged installation as introduced in 3.6.0 ([#170](https://github.com/mrc-ide/odin/pull/170), `mrc-257`)

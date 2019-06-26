@@ -130,7 +130,7 @@ odin_c_class_run <- function(features, env = .GlobalEnv) {
 odin_c_class_run_continuous <- function(features, env = .GlobalEnv) {
   args <- alist(t =, y = NULL, "..." =, use_names = TRUE, tcrit = NULL)
   if (features$has_delay) {
-    args <- c(args, alist(n_history = 1000))
+    args <- c(args, alist(n_history = DEFAULT_HISTORY_SIZE))
   }
 
   check_t <- quote(t <- as_numeric(t))
