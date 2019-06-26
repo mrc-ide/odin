@@ -178,9 +178,6 @@ pairs(y[, -1L], panel = lines, lwd = .2, col = "#00000055")
 ## using the machinery available in `deSolve`.  One can specify a lag
 ## in a state variable or an expression.  The lag times can also be
 ## variables.
-
-## **NOTE** the current version supports only scalar delays; delays
-## that involve arrays are not currently handled, but will be soon.
 gen <- odin::odin({
   ylag <- delay(y, tau)
   initial(y) <- 0.5
