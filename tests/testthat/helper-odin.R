@@ -1,15 +1,36 @@
-options(odin.verbose = FALSE,
-        odin.validate = requireNamespace("jsonvalidate", quietly = TRUE),
-        odin.target = NULL)
-
 on_appveyor <- function() {
   identical(Sys.getenv("APPVEYOR"), "True")
+}
+
+
+on_travis <- function() {
+  identical(Sys.getenv("TRAVIS"), "true")
 }
 
 
 on_cran <- function() {
   !identical(Sys.getenv("NOT_CRAN"), "true")
 }
+
+
+validate_ir <- function() {
+  ## Not worth the faff, and not expected to fail anyway
+  if (on_cran()) {
+    FALSE
+  }
+  ## Not sure why this is failing, or why, but seems related to V8.  I
+  ## can't replicate easily, valgrind reports no issues, and it was
+  ## introduced with an update to the jsonvalidate package.
+  if (on_travis() && getRversion() < numeric_version("3.6.0")) {
+    FALSE
+  }
+  requireNamespace("jsonvalidate", quietly = TRUE)
+}
+
+
+options(odin.verbose = FALSE,
+        odin.validate = validate_ir(),
+        odin.target = NULL)
 
 
 unload_dlls <- function() {
