@@ -1,0 +1,3 @@
+# exportPattern("^[^\\.]")
+useDynLib(odin.example)
+importFrom("odin", "odin")

@@ -69,7 +69,7 @@
 ##'   warnings should be converted to R warnings.  If this is
 ##'   \code{TRUE}, then if any compiler warnings are generated, the
 ##'   compiler output will be displayed (regardless of the value of
-##'   \code{verbose}) within an R warning (suppressable via
+##'   \code{verbose}) within an R warning (suppressible via
 ##'   \code{suppressWarnings} and catchable via \code{tryCatch}).  The
 ##'   default is to default to \code{FALSE} unless the global option
 ##'   \code{odin.compiler_warnings} is set to \code{TRUE} (set with
@@ -162,11 +162,7 @@ odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 
 odin_generate <- function(ir, options) {
   dat <- ir_deserialise(ir)
-
-  if (options$verbose) {
-    message("target: ", options$target)
-  }
-
+  odin_message(paste("Generating model in", options$target), options$verbose)
   switch(options$target,
          "r" = generate_r(dat, options),
          "c" = generate_c(dat, options),

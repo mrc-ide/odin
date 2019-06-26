@@ -1,6 +1,6 @@
 ##' Create an odin model within an existing package.
 ##'
-##' I am resisiting the urge to actually create the package here.
+##' I am resisting the urge to actually create the package here.
 ##' There are better options than I can come up with; for example
 ##' \code{devtools::create}, \code{pkgkitten::kitten},
 ##' \code{mason::mason}, or creating \code{DESCRIPTION} files using
@@ -21,11 +21,39 @@
 ##' and \code{odin.R}.  These files will be overwritten without
 ##' warning by running this again.
 ##'
+##' There are a few unresolved issues with this approach, notably
+##' activating "native symbol registration", and the interaction with
+##' packages such as Rcpp that automatically collate a list of
+##' symbols.  The mechanism may change in a future version, though the
+##' interface (with source files in \code{inst/odin} will remain the
+##' same.
+##'
 ##' @title Create odin model in a package
 ##' @param path_package Path to the package root (the directory that
 ##'   contains \code{DESCRIPTION})
 ##'
 ##' @export
+##' @examples
+##' path <- tempfile()
+##' dir.create(path)
+##'
+##' src <- system.file("examples/package", package = "odin", mustWork = TRUE)
+##' file.copy(src, path, recursive = TRUE)
+##' pkg <- file.path(path, "package")
+##'
+##' # The package is minimal:
+##' dir(pkg)
+##'
+##' # But contains odin files in inst/odin
+##' dir(file.path(pkg, "inst/odin"))
+##'
+##' # Compile the odin code in the package
+##' odin::odin_package(pkg)
+##'
+##' # Which creates the rest of the package structure
+##' dir(pkg)
+##' dir(file.path(pkg, "R"))
+##' dir(file.path(pkg, "src"))
 odin_package <- function(path_package) {
   desc <- file.path(path_package, "DESCRIPTION")
   if (!file.exists(desc)) {

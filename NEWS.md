@@ -1,3 +1,7 @@
+# odin 0.2.6
+
+* Default history size is back to 10,000 steps (not 1,000) as in pre-0.2.0 (`mrc-327`, #176)
+
 # odin 0.2.4
 
 * `odin_package` now works with R staged installation as introduced in 3.6.0 ([#170](https://github.com/mrc-ide/odin/pull/170), `mrc-257`)
@@ -18,7 +22,7 @@
 
 A complete rewrite of the odin engine, designed to increase future maintainability but have few user-visible effects.  In brief, this does add
 
-* Ability to transpile to R (removing the need for a C compiler, though creating code that is necessarily much slower than the compiled verison).  Pass `target = "r"` to use this.
+* Ability to transpile to R (removing the need for a C compiler, though creating code that is necessarily much slower than the compiled version).  Pass `target = "r"` to use this.
 * A new intermediate representation for odin models that can be used to determine features of a model
 * Better caching ([#64](https://github.com/mrc-ide/odin/issues/64))
 * Delays on discrete time models are much more efficient and work properly with stochastic equations ([#72](https://github.com/mrc-ide/odin/issues/72), [#98](https://github.com/mrc-ide/odin/issues/98))

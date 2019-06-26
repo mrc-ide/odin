@@ -1,6 +1,6 @@
 Package: odin
 Title: Ode Generation and Integration
-Version: 0.2.5
+Version: 0.2.6
 Authors@R: person("Rich", "FitzJohn", role = c("aut", "cre"),
                   email = "rich.fitzjohn@gmail.com")
 Description: Generate systems of ODEs and integrate them.
@@ -10,14 +10,14 @@ URL: https://github.com/mrc-ide/odin
 BugReports: https://github.com/mrc-ide/odin/issues
 Imports:
     R6,
-    cinterpolate (>= 0.9.3),
+    cinterpolate (>= 1.0.0),
     crayon,
     deSolve,
     digest,
     jsonlite,
     ring
 Suggests:
-    dde (>= 0.0.6),
+    dde (>= 1.0.0),
     jsonvalidate (>= 1.1.0),
     knitr,
     rmarkdown,
@@ -25,3 +25,4 @@ Suggests:
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
 Encoding: UTF-8
+Language: en-GB

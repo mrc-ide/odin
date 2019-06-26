@@ -119,3 +119,25 @@ test_that("error cases", {
   expect_error(odin_package(pkg),
                "Failed to get package name from DESCRIPTION")
 })
+
+
+## Same as the example:
+test_that("example package", {
+  skip_on_cran()
+  path <- tempfile()
+  dir.create(path)
+
+  src <- system.file("examples/package", package = "odin", mustWork = TRUE)
+  file.copy(src, path, recursive = TRUE)
+  pkg <- file.path(path, "package")
+
+  odin_package(pkg)
+  res <- build_package(pkg)
+  on.exit(res$cleanup())
+
+  expect_is(res$env$lorenz, "odin_generator")
+  mod <- res$env$lorenz()
+  expect_equal(mod$initial(0), c(10, 1, 1))
+  expect_equal(mod$deriv(0, c(10, 1, 1)),
+               c(-90, 269, 22/3))
+})

@@ -18,13 +18,9 @@ compile <- function(filename, verbose = TRUE, preclean = FALSE,
 
   ## But then here we can assume a new filename means a new dll
   if (file.exists(dll)) {
-    if (verbose) {
-      message("Using previously compiled shared library")
-    }
+    odin_message("Using previously compiled shared library", verbose)
   } else {
-    if (verbose) {
-      message("Compiling shared library")
-    }
+    odin_message("Compiling shared library", verbose)
     R <- file.path(R.home(), "bin", "R")
     args <- c("CMD", "SHLIB", source,
               "-o", dll, if (preclean) c("--preclean", "--clean"))

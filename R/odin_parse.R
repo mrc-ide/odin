@@ -1,4 +1,4 @@
-##' Parse an odin model, returning an intermediate representation.
+#' Parse an odin model, returning an intermediate representation.
 ##' The \code{odin_parse_} version is a "standard evaluation" escape
 ##' hatch.
 ##'
@@ -21,7 +21,30 @@
 ##'   makes validating user input easier.
 ##'
 ##' @export
-##' @author Rich FitzJohn
+##'
+##' @seealso \code{\link{odin_validate}}, which wraps this function
+##'   where parsing might fail, and \code{\link{odin_build}} for
+##'   building odin models from an intermediate representation.
+##'
+##' @examples
+##' # Parse a model of exponential decay
+##' ir <- odin::odin_parse({
+##'   deriv(y) <- -0.5 * y
+##'   initial(y) <- 1
+##' })
+##'
+##' # This is odin's intermediate representation of the model
+##' ir
+##'
+##' # If parsing odin models programmatically, it is better to use
+##' # odin_parse_; construct the model as a string, from a file, or as a
+##' # quoted expression:
+##' code <- quote({
+##'   deriv(y) <- -0.5 * y
+##'   initial(y) <- 1
+##' })
+##'
+##' odin::odin_parse_(code)
 odin_parse <- function(x, type = NULL, options = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
