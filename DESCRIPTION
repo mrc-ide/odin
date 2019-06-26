@@ -18,7 +18,7 @@ Imports:
     ring
 Suggests:
     dde (>= 1.0.0),
-    jsonvalidate,
+    jsonvalidate (>= 1.1.0),
     knitr,
     rmarkdown,
     testthat

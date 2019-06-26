@@ -9,9 +9,6 @@ test_that("build from validate", {
   res <- odin_build(x, options)
   expect_is(res$model, "odin_generator")
   expect_is(res$output, "character")
-  if (!on_appveyor()) {
-    expect_gte(length(res$output), 1L)
-  }
   expect_identical(res$ir, x$result)
   expect_true(res$success)
   expect_null(res$error)
@@ -27,9 +24,6 @@ test_that("build from ir", {
   res <- odin_build(x, options)
   expect_is(res$model, "odin_generator")
   expect_is(res$output, "character")
-  if (!on_appveyor()) {
-    expect_gte(length(res$output), 1L)
-  }
   expect_identical(res$ir, x)
   expect_true(res$success)
   expect_null(res$error)
