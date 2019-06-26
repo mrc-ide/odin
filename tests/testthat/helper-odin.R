@@ -1,5 +1,5 @@
 options(odin.verbose = FALSE,
-        odin.validate = requireNamespace("jsonvalidate", quietly = TRUE),
+        odin.validate = FALSE,
         odin.target = NULL)
 
 on_appveyor <- function() {
