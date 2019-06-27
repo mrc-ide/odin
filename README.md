@@ -7,12 +7,12 @@
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Odin_%28Manual_of_Mythology%29.jpg/250px-Odin_%28Manual_of_Mythology%29.jpg)
 
-`odin` implements a high-level language for describing and implementing ordinary differential equations in R.  It provides a "domain specific language" (DSL) which _looks_ like R but is compiled directly to C.  The actual solution of the differential equations is done with the deSolve package, giving access to the excellent Livermore solvers (`lsoda`, `lsode`, etc).
+`odin` implements a high-level language for describing and implementing ordinary differential equations in R.  It provides a "domain specific language" (DSL) which _looks_ like R but is compiled directly to C.  The actual solution of the differential equations is done with the [`deSolve`](https://cran.r-project.org/package=deSolve) package, giving access to the excellent Livermore solvers (`lsoda`, `lsode`, etc), or with [`dde`](https://cran.r-project.org/package=dde) for use with delay differential equations.
 
 * The DSL is _declarative_ reflecting the mathematical nature of the equations (typically ordinary differential equations are simple mathematical relationships, so the order should not matter).
 * It includes support for equations that involve vectors, matrices and higher dimensional arrays (up to 8!), including a high-level array indexing notation that removes the need for explicit looping.
-* Delay differential equations are supported, including when the delayed quantities are expressions of variables.
-* Interpolation functions can be used to include time-varying quantities into the model
+* Delay differential equations are supported, including when the delayed quantities are arbitrarily complicated expressions of variables.
+* Interpolation functions can be used to include time-varying quantities into the model (piecewise constant, linear and spline interpolation is supported, using [`cinterpolate`](https://cran.r-project.org/package=cinterpolate).
 * The equations are analysed before compilation so that parts that do not depend on time are not included in the final derivative calculations.
 * Supports user-supplied parameters for any part of the system.
 * Supports a large number of mathematical functions
@@ -106,7 +106,7 @@ y <- mod$run(t)
 
 For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [vignette](https://mrc-ide.github.io/odin/articles/odin.html)
 
-# Limitations
+## Limitations
 
 Writing this has given me a much greater appreciation of the difficulties of writing compiler error messages.
 
@@ -114,7 +114,7 @@ This does not attempt to _generally_ translate R into C (though very simple expr
 
 Because this relies on code generation, and the approach is partly textual, some oddities will appear in the generated code (things like `n + 0`).  Over time I'll remove the most egregious of these.  It's probable that there will be some unused variables, and unused elements in the parameters struct.
 
-# Prior work
+## Prior work
 
 ODEs seem particularly suitable for code generation, perhaps because of the relative simplicity of the code.  As such, there is a lot of prior work in this area.  Many of these tools are heavily tailored to suit a particular domain.
 
@@ -131,7 +131,7 @@ In other languages:
 * [`VFGEN`](https://github.com/WarrenWeckesser/vfgen) in C++
 * [`pygom`](https://github.com/PublicHealthEngland/pygom) in Python for solving compartmental models
 
-# Installation
+## Installation
 
 Install odin from CRAN with
 
@@ -155,12 +155,6 @@ The development version of the package can be installed directly from github if 
 
 ```r
 devtools::install_github("mrc-ide/odin", upgrade = FALSE)
-```
-
-You will also need to install [`dde`](https://github.com/mrc-ide/dde)
-
-```r
-devtools::install_github("mrc-ide/dde", upgrade = FALSE)
 ```
 
 ## License
