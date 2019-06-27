@@ -5,15 +5,23 @@ Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     email = "rich.fitzjohn@gmail.com"),
              person("Imperial College of Science, Technology and Medicine",
                     role = "cph"))
-Description: Generate systems of ODEs and integrate them, using a
-    domain specific language ('DSL').  The 'DSL' uses R's syntax, but
-    compiles to C in order to efficiently solve the system.  A solver
-    is not provided, but instead interfaces to the packages 'deSolve'
-    and 'dde' are generated.  With these, while solving the
-    differential equations, no allocations are done and the
-    calculations remain entirely in compiled code.  Alternatively, a
-    model can be transpiled to R for use in contexts where a C
-    compiler is not present.
+Description: Generate systems of ordinary differential equations
+    ('ODE') and integrate them, using a domain specific language
+    ('DSL').  The 'DSL' uses R's syntax, but compiles to C in order to
+    efficiently solve the system.  A solver is not provided, but
+    instead interfaces to the packages 'deSolve' and 'dde' are
+    generated.  With these, while solving the differential equations,
+    no allocations are done and the calculations remain entirely in
+    compiled code.  Alternatively, a model can be transpiled to R for
+    use in contexts where a C compiler is not present.  After
+    compilation, models can be inspected to return information about
+    parameters and outputs, or intermediate values after calculations.
+    'odin' is not targeted at any particular domain and is suitable
+    for any system that can be expressed primarily as mathematical
+    expressions.  Additional support is provided for working with
+    delays (delay differential equations, 'DDE'), using interpolated
+    functions during interpolation, and for integrating quantities
+    that represent arrays.
 License: MIT + file LICENSE
 LazyData: true
 URL: https://github.com/mrc-ide/odin
