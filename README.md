@@ -162,3 +162,7 @@ You will also need to install [`dde`](https://github.com/mrc-ide/dde)
 ```r
 devtools::install_github("mrc-ide/dde", upgrade = FALSE)
 ```
+
+## License
+
+MIT © Imperial College of Science, Technology and Medicine
