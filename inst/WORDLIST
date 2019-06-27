@@ -1,6 +1,8 @@
 AppVeyor
 Deserialise
 Dormand
+FitzJohn
+Jombart
 Lotka
 ODEs
 Poisson
@@ -8,7 +10,11 @@ R's
 Rcpp
 Rtools
 SEIRDS
+Thibaut
 Vano
+VignetteEncoding
+VignetteEngine
+VignetteIndexEntry
 Volterra
 WIP
 autogeneration
@@ -30,10 +36,12 @@ github
 io
 ir
 json
+knitr
 lorenz
 mathcal
 odin's
 rightarrow
+rmarkdown
 roxygen
 rtools
 sim
@@ -41,4 +49,5 @@ standalone
 struct
 susceptibles
 th
+toc
 wikipedia
