@@ -114,6 +114,23 @@ This does not attempt to _generally_ translate R into C (though very simple expr
 
 Because this relies on code generation, and the approach is partly textual, some oddities will appear in the generated code (things like `n + 0`).  Over time I'll remove the most egregious of these.  It's probable that there will be some unused variables, and unused elements in the parameters struct.
 
+# Prior work
+
+ODEs seem particularly suitable for code generation, perhaps because of the relative simplicity of the code.  As such, there is a lot of prior work in this area.  Many of these tools are heavily tailored to suit a particular domain.
+
+In R:
+
+* [`RxODE`](https://cran.r-project.org/package=RxODE) - focussed on pharmacokinetic models, but suitable in the same domain as many odin models.  Does not include support for delay equations, automatic arrays or discrete/stochastic systems and uses it's own solvers rather than interfacing with existing ones.  Notably it also uses R as the host language for the DSL rather than requiring the user to write code in strings or in a custom language.
+* [`rodeo`](https://cran.r-project.org/package=rodeo) focussed on biochemical reactions based around the [Petersen matrix](https://en.wikipedia.org/wiki/Petersen_matrix).  Creates code for use with [`deSolve`](https://cran.r-project.org/package=deSolve)
+* [`cOde`](https://cran.r-project.org/package=deSolve) creates code for use with [`deSolve`](https://cran.r-project.org/package=deSolve) and [`bvpSolve`](https://cran.r-project.org/package=deSolve).  Models are entered as vector of strings which resembles C or R code.  Automatic generation of Jacobian matrices is supported.
+* [`mrgsolve`](https://cran.r-project.org/package=mrgsolve) is focussed on models in quantitative pharmacology and systems biology.  It bundles its own solvers, and uses it's own `PKMODEL` language ([example](https://github.com/metrumresearchgroup/mrgsolve/blob/master/inst/models/pk1.cpp)).
+
+In other languages:
+
+* [`Paraiso`](https://hackage.haskell.org/package/Paraiso) in Haskell
+* [`VFGEN`](https://github.com/WarrenWeckesser/vfgen) in C++
+* [`pygom`](https://github.com/PublicHealthEngland/pygom) in Python for solving compartmental models
+
 # Installation
 
 Install odin from CRAN with
