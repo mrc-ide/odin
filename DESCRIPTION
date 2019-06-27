@@ -1,9 +1,19 @@
 Package: odin
-Title: Ode Generation and Integration
-Version: 0.2.6
-Authors@R: person("Rich", "FitzJohn", role = c("aut", "cre"),
-                  email = "rich.fitzjohn@gmail.com")
-Description: Generate systems of ODEs and integrate them.
+Title: ODE Generation and Integration
+Version: 1.0.0
+Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
+                    email = "rich.fitzjohn@gmail.com"),
+             person("Imperial College of Science, Technology and Medicine",
+                    role = "cph"))
+Description: Generate systems of ODEs and integrate them, using a
+    domain specific language ('DSL').  The 'DSL' uses R's syntax, but
+    compiles to C in order to efficiently solve the system.  A solver
+    is not provided, but instead interfaces to the packages 'deSolve'
+    and 'dde' are generated.  With these, while solving the
+    differential equations, no allocations are done and the
+    calculations remain entirely in compiled code.  Alternatively, a
+    model can be transpiled to R for use in contexts where a C
+    compiler is not present.
 License: MIT + file LICENSE
 LazyData: true
 URL: https://github.com/mrc-ide/odin
