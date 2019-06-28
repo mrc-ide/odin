@@ -1125,7 +1125,6 @@ test_that("ir is read-only", {
 
 
 test_that("multiline string", {
-  skip("TODO: remove this skip")
   ## Literal multiline string:
   gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"))
   expect_is(gen(), "odin_model")
