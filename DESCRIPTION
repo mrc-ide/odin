@@ -3,6 +3,7 @@ Title: ODE Generation and Integration
 Version: 1.0.0
 Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     email = "rich.fitzjohn@gmail.com"),
+             person("Thibaut", "Jombart", role = c("ctb")),
              person("Imperial College of Science, Technology and Medicine",
                     role = "cph"))
 Description: Generate systems of ordinary differential equations
