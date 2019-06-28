@@ -47,7 +47,7 @@ odin_c_class <- function(base, core, user, features, dll, ir, package) {
 }
 
 
-odin_c_class_set_user <- function(features, env = .GlobalEnv) {
+odin_c_class_set_user <- function(features, env = emptyenv()) {
   args <- alist("..." =, user = , unused_user_action = NULL)
   args[[2]] <- quote(list(...))
 
@@ -72,7 +72,7 @@ odin_c_class_set_user <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_initial <- function(features, env = .GlobalEnv) {
+odin_c_class_initial <- function(features, env = emptyenv()) {
   time <- if (features$discrete) STEP else TIME
   args <- alist(time =)
   names(args) <- time
@@ -88,7 +88,7 @@ odin_c_class_initial <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_update <- function(features, env = .GlobalEnv) {
+odin_c_class_update <- function(features, env = emptyenv()) {
   if (features$discrete) {
     args <- alist(step =, y =)
     if (features$has_delay) {
@@ -105,7 +105,7 @@ odin_c_class_update <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_deriv <- function(features, env = .GlobalEnv) {
+odin_c_class_deriv <- function(features, env = emptyenv()) {
   if (features$discrete) {
     NULL
   } else {
@@ -118,7 +118,7 @@ odin_c_class_deriv <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_run <- function(features, env = .GlobalEnv) {
+odin_c_class_run <- function(features, env = emptyenv()) {
   if (features$discrete) {
     odin_c_class_run_discrete(features, env)
   } else {
@@ -127,7 +127,7 @@ odin_c_class_run <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_run_continuous <- function(features, env = .GlobalEnv) {
+odin_c_class_run_continuous <- function(features, env = emptyenv()) {
   args <- alist(t =, y = NULL, "..." =, use_names = TRUE, tcrit = NULL)
   if (features$has_delay) {
     args <- c(args, alist(n_history = DEFAULT_HISTORY_SIZE))
@@ -182,7 +182,7 @@ odin_c_class_run_continuous <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_run_discrete <- function(features, env = .GlobalEnv) {
+odin_c_class_run_discrete <- function(features, env = emptyenv()) {
   args <- alist(step =, y = NULL, "..." =, use_names = TRUE, replicate = NULL)
 
   check_step <- quote(step <- as_integer(step))
@@ -214,7 +214,7 @@ odin_c_class_run_discrete <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_update_metadata <- function(features, env = .GlobalEnv) {
+odin_c_class_update_metadata <- function(features, env = emptyenv()) {
   body <- list(
     call("<-", quote(meta),
          call(".Call", quote(private$core$metadata), quote(private$ptr),
@@ -230,7 +230,7 @@ odin_c_class_update_metadata <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_initialize <- function(features, env = .GlobalEnv) {
+odin_c_class_initialize <- function(features, env = emptyenv()) {
   args <- alist(user = NULL, unused_user_action = NULL)
   if (features$discrete) {
     set_use_dde <- NULL
@@ -252,14 +252,14 @@ odin_c_class_initialize <- function(features, env = .GlobalEnv) {
 }
 
 
-odin_c_class_contents <- function(features, env = .GlobalEnv) {
+odin_c_class_contents <- function(features, env = emptyenv()) {
   body <- call(".Call", quote(private$core$contents), quote(private$ptr),
                PACKAGE = quote(private$dll))
   as_function(alist(), r_expr_block(body), env)
 }
 
 
-odin_c_class_transform <- function(features, env = .GlobalEnv) {
+odin_c_class_transform <- function(features, env = emptyenv()) {
   args <- alist(y =)
   body <- call("support_transform_variables", quote(y), quote(private))
   as_function(args, r_expr_block(body), env)

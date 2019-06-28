@@ -31,7 +31,7 @@ generate_r_class <- function(core, dat, env) {
                  use_dde = quote(private$use_dde),
                  interpolate_t = quote(private$interpolate_t))
   }
-  run <- as.function(c(args, list(call("{", as.call(call)))), .GlobalEnv)
+  run <- as_function(args, r_expr_block(as.call(call)), emptyenv())
 
   if (dat$features$initial_time_dependent) {
     set_user <- function(..., user = list(...), unused_user_action = NULL) {
@@ -167,8 +167,7 @@ generate_r_constructor <- function(base, discrete, user, ir, env) {
     args <- c(args, alist(use_dde = FALSE))
   }
 
-  ret <- as_function(args, r_expr_block(list(as.call(call))),
-                     env %||% .GlobalEnv)
+  ret <- as_function(args, r_expr_block(list(as.call(call))), env)
   if (!is.null(env)) {
     attr(ret, "ir") <- ir
     class(ret) <- "odin_generator"
