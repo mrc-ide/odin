@@ -68,7 +68,11 @@ prepare_run_tests <- function() {
   files <- dir(path, pattern = re)
   pat <- "%TARGET%"
 
-  targets <- c("r", "c")
+  if (on_cran()) {
+    target <- c("r")
+  } else {
+    targets <- c("r", "c")
+  }
   header_fmt <- "## Automatically generated from %s/%s - do not edit!"
 
   for (f in files) {
