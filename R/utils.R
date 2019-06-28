@@ -18,20 +18,30 @@ deparse_str <- function(x) {
 }
 
 collector <- function(init = character(0)) {
-  res <- init
+  env <- new_empty_env()
+  env$res <- init
   add <- function(x, ..., literal = FALSE) {
-    res <<- c(res,
+    env$res <- c(env$res,
               if (literal) x else sprintf_safe(x, ...))
   }
   list(add = add,
-       length = function(x) length(res), # used only in debugging below
-       get = function() res)
+       length = function(x) length(env$res), # used only in debugging below
+       get = function() env$res)
 }
 
 collector_list <- function(init = list()) {
-  res <- init
-  list(add = function(x) res <<- c(res, list(x)),
-       get = function() res)
+  env <- new_empty_env()
+  env$res <- init
+  list(add = function(x) env$res <- c(env$res, list(x)),
+       get = function() env$res)
+}
+
+counter <- function() {
+  env <- new_empty_env()
+  env$n <- 0L
+  list(add = function() env$n <- env$n + 1L,
+       get = function() env$n,
+       reset = function(n) env$n <- 0L)
 }
 
 pastec <- function(..., collapse = ", ") {
@@ -202,4 +212,9 @@ odin_message <- function(msg, verbose) {
   if (verbose) {
     message(msg)
   }
+}
+
+
+new_empty_env <- function() {
+  new.env(parent = emptyenv())
 }

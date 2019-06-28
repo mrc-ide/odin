@@ -793,7 +793,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
 
 
 ir_parse_expr_lhs_check_index <- function(x) {
-  seen <- FALSE
+  seen <- counter()
   err <- collector()
   valid <- setdiff(VALID_ARRAY, ":")
 
@@ -801,10 +801,10 @@ ir_parse_expr_lhs_check_index <- function(x) {
     if (is.recursive(x)) {
       nm <- as.character(x[[1L]])
       if (identical(nm, ":")) {
-        if (seen) {
+        if (seen$get() > 0) {
           err$add("Multiple calls to ':' are not allowed")
         } else {
-          seen <<- TRUE
+          seen$add()
         }
         if (max) {
           f(x[[3L]], max)
@@ -829,8 +829,8 @@ ir_parse_expr_lhs_check_index <- function(x) {
   }
 
   value_max <- f(x, TRUE)
-  if (seen) { # check minimum branch
-    seen <- FALSE
+  if (seen$get() > 0) { # check minimum branch
+    seen$reset()
     value_min <- f(x, FALSE)
   } else {
     value_min <- NULL

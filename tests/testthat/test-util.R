@@ -64,3 +64,38 @@ test_that("sprintf_safe throws on empty arguments", {
 test_that("onload can be rerun safely", {
   expect_silent(.onLoad())
 })
+
+
+test_that("collector works", {
+  obj <- collector()
+  expect_equal(obj$get(), character(0))
+  expect_equal(obj$length(), 0L)
+  obj$add("a")
+  expect_equal(obj$get(), "a")
+  expect_equal(obj$length(), 1L)
+  obj$add(c("b", "c"))
+  expect_equal(obj$get(), c("a", "b", "c"))
+  expect_equal(obj$length(), 3L)
+})
+
+
+test_that("collector_list works", {
+  obj <- collector_list()
+  expect_equal(obj$get(), list())
+  obj$add("a")
+  expect_equal(obj$get(), list("a"))
+  obj$add(c("b", "c"))
+  expect_equal(obj$get(), list("a", c("b", "c")))
+})
+
+
+test_that("counter works", {
+  obj <- counter()
+  expect_equal(obj$get(), 0L)
+  obj$add()
+  expect_equal(obj$get(), 1L)
+  obj$add()
+  expect_equal(obj$get(), 2L)
+  obj$reset()
+  expect_equal(obj$get(), 0L)
+})

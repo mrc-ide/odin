@@ -2,14 +2,15 @@ find_symbols <- function(expr, hide_errors = TRUE) {
   if (is.list(expr)) {
     return(join_deps(lapply(expr, find_symbols)))
   }
-  functions <- variables <- character(0)
+  functions <- collector()
+  variables <- collector()
 
   f <- function(e) {
     if (!is.recursive(e)) {
       if (!is.symbol(e)) { # A literal of some type
         return()
       }
-      variables <<- c(variables, deparse(e))
+      variables$add(deparse(e))
     } else {
       nm <- deparse(e[[1L]])
       if (nm %in% c("dim", "length")) {
@@ -19,13 +20,13 @@ find_symbols <- function(expr, hide_errors = TRUE) {
         if (length(e) >= 2L) {
           ## The if here avoids an invalid parse, e.g. length(); we'll
           ## pick that up later on.
-          variables <<- c(variables, array_dim_name(deparse(e[[2L]])))
+          variables$add(array_dim_name(deparse(e[[2L]])))
         }
         ## Still need to declare the function as used because we'll
         ## want to check that later.
-        functions <<- c(functions, nm)
+        functions$add(nm)
       } else {
-        functions <<- c(functions, deparse(e[[1]]))
+        functions$add(deparse(e[[1]]))
         for (a in as.list(e[-1])) {
           if (!missing(a)) {
             f(a)
@@ -36,8 +37,8 @@ find_symbols <- function(expr, hide_errors = TRUE) {
   }
 
   f(expr)
-  list(functions = unique(functions),
-       variables = unique(variables))
+  list(functions = unique(functions$get()),
+       variables = unique(variables$get()))
 }
 
 join_deps <- function(x) {
