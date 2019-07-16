@@ -1,9 +1,12 @@
 # odin
 
+<!-- badges: start -->
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Travis-CI Build Status](https://travis-ci.org/mrc-ide/odin.svg?branch=master)](https://travis-ci.org/mrc-ide/odin)
 [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/wmdbqbgrqw26xan5/branch/master?svg=true)](https://ci.appveyor.com/project/richfitz/odin-hpgj3/branch/master)
 [![codecov.io](https://codecov.io/github/mrc-ide/odin/coverage.svg?branch=master)](https://codecov.io/github/mrc-ide/odin?branch=master)
+[![](http://www.r-pkg.org/badges/version/odin)](https://cran.r-project.org/package=odin)
+<!-- badges: end -->
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Odin_%28Manual_of_Mythology%29.jpg/250px-Odin_%28Manual_of_Mythology%29.jpg)
 
