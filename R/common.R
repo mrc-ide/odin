@@ -90,7 +90,7 @@ FUNCTIONS <- list(
   lchoose = 2L,
   sign = 1L,
   ## Rounding
-  round = 1L,
+  round = c(1L, 2L),
   trunc = 1L,
   floor = 1L,
   ceil = 1L,

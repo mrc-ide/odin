@@ -34,6 +34,10 @@ generate_c_sexp <- function(x, data, meta, supported) {
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     } else if (fn == "log" && length(values) == 2L) {
       ret <- sprintf("(log(%s) / log(%s))", values[[1L]], values[[2L]])
+    } else if (fn == "round") {
+      ## ensures same rounding behaviour of 0.5 as R:
+      digits <- if (length(values) == 2L) values[[2L]] else 0
+      ret <- sprintf("fround(%s, %s)", values[[1L]], digits)
     } else if (fn == "min" || fn == "max") {
       ret <- c_fold_call(paste0("f", fn), values)
     } else if (fn == "sum" || fn == "odin_sum") {
