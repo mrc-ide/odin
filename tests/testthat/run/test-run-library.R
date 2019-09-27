@@ -106,3 +106,33 @@ test_that("%/%", {
   expect_equal(res[, "q3"],  tt %/% -q)
   expect_equal(res[, "q4"], -tt %/% -q)
 })
+
+
+test_that("2-arg round", {
+  gen <- odin({
+    deriv(x) <- 1
+    initial(x) <- 1
+    output(y) <- TRUE
+    output(z) <- TRUE
+    n <- user(0)
+    y <- round(t, n)
+    z <- round(t)
+  })
+
+  mod0 <- gen(0)
+  mod1 <- gen(1)
+  mod2 <- gen(2)
+
+  tt <- seq(0, 1, length.out = 101)
+  yy0 <- mod0$run(tt)
+  yy1 <- mod1$run(tt)
+  yy2 <- mod2$run(tt)
+
+  expect_equal(yy0[, "z"], round(tt))
+  expect_equal(yy1[, "z"], round(tt))
+  expect_equal(yy2[, "z"], round(tt))
+
+  expect_equal(yy0[, "y"], round(tt, 0))
+  expect_equal(yy1[, "y"], round(tt, 1))
+  expect_equal(yy2[, "y"], round(tt, 2))
+})
