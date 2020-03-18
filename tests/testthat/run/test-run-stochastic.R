@@ -269,6 +269,7 @@ test_that("rexp parametrisation", {
 
 
 test_that("out-of-bounds probabilities can raise errors", {
+  skip_for_target("r")
   code <- quote({
     size <- user()
     p <- user()
