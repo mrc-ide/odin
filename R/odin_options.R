@@ -16,7 +16,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          validate = NULL, pretty = NULL, skip_cache = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
-                         no_check_naked_index = NULL,
+                         no_check_naked_index = NULL, safe = NULL,
                          options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
@@ -29,7 +29,8 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     skip_cache = FALSE,
     no_check_unused_equations = FALSE,
     no_check_naked_index = FALSE,
-    compiler_warnings = FALSE)
+    compiler_warnings = FALSE,
+    safe = FALSE)
   if (is.null(options)) {
     options <- list(validate = validate,
                  verbose = verbose,
@@ -39,7 +40,8 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                  skip_cache = skip_cache,
                  no_check_unused_equations = no_check_unused_equations,
                  no_check_naked_index = no_check_naked_index,
-                 compiler_warnings = compiler_warnings)
+                 compiler_warnings = compiler_warnings,
+                 safe = safe)
   }
   stopifnot(setequal(names(defaults), names(options)))
 

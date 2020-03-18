@@ -27,7 +27,8 @@ test_that("output", {
     dim(x0) <- user()
     dim(x) <- length(x0)
     dim(r) <- length(x)
-    output(total) <- sum(x)
+    total <- sum(x)
+    output(total) <- TRUE
   })
 
   x0 <- runif(10)

@@ -728,6 +728,12 @@ generate_c_compiled_library <- function(dat, is_package) {
     }
   }
 
+  if (dat$meta$c$options$safe) {
+    if ("rbinom" %in% used) {
+      v <- c("safe_rbinom", v)
+    }
+  }
+
   v <- unique(v)
   msg <- setdiff(v, names(lib$declarations))
   if (length(msg) > 0L) {

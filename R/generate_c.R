@@ -71,6 +71,7 @@ generate_c_meta <- function(base, internal) {
 
 generate_c_code <- function(dat, options, package) {
   dat$meta$c <- generate_c_meta(dat$config$base, dat$meta$internal)
+  dat$meta$c$options <- list(safe = options$safe)
 
   if (dat$features$has_delay) {
     dat$data$elements[[dat$meta$c$use_dde]] <-

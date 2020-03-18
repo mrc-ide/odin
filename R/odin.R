@@ -97,6 +97,10 @@
 ##'   for more information.  Defaults to the option
 ##'   \code{odin.no_check_naked_index} or \code{FALSE} otherwise.
 ##'
+##' @param safe If \code{TRUE}, then try to make some of the generated
+##'   code safer, at the cost of speed.  Only supported for the C
+##'   target.
+##'
 ##' @return A function that can generate the model
 ##'
 ##' @author Rich FitzJohn
@@ -126,7 +130,7 @@
 odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                  validate = NULL, pretty = NULL, skip_cache = NULL,
                  compiler_warnings = NULL, no_check_unused_equations = NULL,
-                 no_check_naked_index = NULL) {
+                 no_check_naked_index = NULL, safe = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -135,7 +139,8 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
     xx <- force(x)
   }
   odin_(xx, verbose, target, workdir, validate, pretty, skip_cache,
-        compiler_warnings, no_check_unused_equations, no_check_naked_index)
+        compiler_warnings, no_check_unused_equations, no_check_naked_index,
+        safe = safe)
 }
 
 
@@ -144,7 +149,7 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                   validate = NULL, pretty = NULL, skip_cache = NULL,
                   compiler_warnings = NULL, no_check_unused_equations = NULL,
-                  no_check_naked_index = NULL) {
+                  no_check_naked_index = NULL, safe = NULL) {
   options <- odin_options(verbose = verbose,
                           target = target,
                           workdir = workdir,
@@ -153,7 +158,8 @@ odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                           skip_cache = skip_cache,
                           no_check_unused_equations = no_check_unused_equations,
                           no_check_naked_index = no_check_naked_index,
-                          compiler_warnings = compiler_warnings)
+                          compiler_warnings = compiler_warnings,
+                          safe = safe)
 
   ir <- odin_parse_(x, options)
   odin_generate(ir, options)

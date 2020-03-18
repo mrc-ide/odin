@@ -59,6 +59,13 @@ generate_c_sexp <- function(x, data, meta, supported) {
       } else if (!any(c(names(FUNCTIONS), supported) == fn)) {
         stop(sprintf("unsupported function '%s' [odin bug]", fn)) # nocov
       }
+
+      if (meta$c$options$safe) {
+        ## Eventually more things will be added here.
+        if (fn == "Rf_rbinom") {
+          fn <- "safe_rbinom"
+        }
+      }
       ret <- sprintf("%s(%s)", fn, paste(values, collapse = ", "))
     }
     ret

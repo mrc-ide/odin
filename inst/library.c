@@ -346,3 +346,10 @@ void interpolate_check_y(size_t nx, size_t ny, size_t i, const char *name_arg, c
     }
   }
 }
+
+double safe_rbinom(double n, double p) {
+  if (p < 0 || p > 1) {
+    Rf_error("Binomial probability is outside of [0, 1]");
+  }
+  Rf_rbinom(n, p);
+}

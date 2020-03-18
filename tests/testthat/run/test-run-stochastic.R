@@ -129,7 +129,7 @@ test_that("round & rbinom", {
     p <- user()
     update(x) <- 0
     initial(x) <- rbinom(size, p)
-  })
+  }, safe = TRUE)
 
   mod <- gen(p = 1, size = 0.4)
   expect_equal(mod$initial(0), 0)
@@ -265,4 +265,27 @@ test_that("rexp parametrisation", {
 
   set.seed(1)
   expect_equal(y, rexp(10, 10))
+})
+
+
+test_that("out-of-bounds probabilities can raise errors", {
+  code <- quote({
+    size <- user()
+    p <- user()
+    update(x) <- 0
+    initial(x) <- rbinom(size, p)
+  })
+
+  gen <- odin(code)
+  expect_equal(gen(p = 2, size = 2)$initial(0), NaN)
+  expect_equal(gen(p = -1, size = 2)$initial(0), NaN)
+
+  ## TODO: safe should always skip cache
+  gen <- odin(code, safe = TRUE, skip_cache = TRUE)
+  expect_error(
+    gen(p = 2, size = 2)$initial(0),
+    "Binomial probability is outside of [0, 1]", fixed = TRUE)
+  expect_error(
+    gen(p = -1, size = 2)$initial(0),
+    "Binomial probability is outside of [0, 1]", fixed = TRUE)
 })
