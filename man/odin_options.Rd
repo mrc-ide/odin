@@ -4,10 +4,19 @@
 \alias{odin_options}
 \title{Odin options}
 \usage{
-odin_options(verbose = NULL, target = NULL, workdir = NULL,
-  validate = NULL, pretty = NULL, skip_cache = NULL,
-  compiler_warnings = NULL, no_check_unused_equations = NULL,
-  no_check_naked_index = NULL, options = NULL)
+odin_options(
+  verbose = NULL,
+  target = NULL,
+  workdir = NULL,
+  validate = NULL,
+  pretty = NULL,
+  skip_cache = NULL,
+  compiler_warnings = NULL,
+  no_check_unused_equations = NULL,
+  no_check_naked_index = NULL,
+  safe = NULL,
+  options = NULL
+)
 }
 \arguments{
 \item{verbose}{Logical scalar indicating if the compilation should
@@ -67,6 +76,10 @@ behaviour of this functionality changed in odin version
 change.  See \url{https://github.com/mrc-ide/odin/issues/136}
 for more information.  Defaults to the option
 \code{odin.no_check_naked_index} or \code{FALSE} otherwise.}
+
+\item{safe}{If \code{TRUE}, then try to make some of the generated
+code safer, at the cost of speed.  Only supported for the C
+target.}
 
 \item{options}{Named list of options.  If provided, then all other
 options are ignored.}
