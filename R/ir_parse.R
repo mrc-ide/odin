@@ -10,7 +10,7 @@ ir_parse <- function(x, options, type = NULL) {
 
   ## Data elements:
   config <- ir_parse_config(eqs, base, root, source)
-  features <- ir_parse_features(eqs, config, source)
+  features <- ir_parse_features(eqs, config, source, options$safe)
 
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
 
@@ -405,7 +405,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
 ## A downside of the approach here is that we do make the checks in a
 ## few different places.  It might be worth trying to shift more of
 ## this classification into the initial equation parsing.
-ir_parse_features <- function(eqs, config, source) {
+ir_parse_features <- function(eqs, config, source, safe) {
   is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
@@ -433,7 +433,8 @@ ir_parse_features <- function(eqs, config, source) {
        has_interpolate = any(is_interpolate),
        has_stochastic = any(is_stochastic),
        has_include = !is.null(config$include),
-       initial_time_dependent = NULL)
+       initial_time_dependent = NULL,
+       safe = safe)
 }
 
 
