@@ -630,10 +630,7 @@
                     "type": "object",
                     "properties": {
                         "default": {
-                            "oneOf": [
-                                {"type": "null"},
-                                {"type": "number"}
-                            ]
+                            "$ref": "#/definitions/sexpression_or_null"
                         },
                         "dim": {
                             "type": "boolean"
