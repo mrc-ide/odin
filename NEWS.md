@@ -1,3 +1,7 @@
+# odin 1.0.3
+
+* Support for simple calculations in user defaults (e.g., `x <- user(-1)`) - only basic arithmetic is allowed, and variables are still disabled (`mrc-1542`, reported by @MJomaba)
+
 # odin 1.0.2
 
 * Support for 2-argument round (e.g., `round(1.23, 1)` is 1.2), and enforce the same 0.5 rounding behaviour as R when used from C (`mrc-511`, #116, #179)
