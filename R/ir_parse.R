@@ -873,7 +873,8 @@ ir_parse_expr_rhs_user <- function(rhs, line, source) {
   ## runtime.  So for now, these values must be constants.  I
   ## don't want to relax that until it's clear enough how arrays
   ## get treated here.
-  if (length(deps$functions) > 0L) {
+  allowed <- c("+", "/", "-", "*", "^", "(")
+  if (length(setdiff(deps$functions, allowed)) > 0L) {
     ir_parse_error("user() call must not use functions", line, source)
   }
   if (length(deps$variables) > 0L) {

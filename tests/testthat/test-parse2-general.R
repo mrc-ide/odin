@@ -171,6 +171,13 @@ test_that("user usage", {
 })
 
 
+test_that("user calls may use some functions", {
+  ir <- odin_parse("deriv(x) <- 1\ninitial(x) <- r\nr <- user(-2)")
+  dat <- ir_deserialise(ir)
+  expect_equal(dat$equations$r$user$default, list("-", 2))
+})
+
+
 test_that("array usage", {
   expect_error(odin_parse_(ex("y <- x\nx[1] <- 1\ndim(x) <- 10")),
                "Array 'x' used without array index", class = "odin_error")
