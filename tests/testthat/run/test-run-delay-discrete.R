@@ -202,3 +202,21 @@ test_that("default (vector)", {
   expect_equal(yy$x[i + 2, ], yy$y[i, ])
   expect_equal(yy$x[1:2, ], matrix(rep(z, 2), 2, 2, TRUE))
 })
+
+
+test_that("loop around ring", {
+  gen <- odin({
+    update(x) <- x + 1
+    initial(x) <- 0
+    y <- delay(x, 4)
+    output(y) <- TRUE
+  })
+
+  mod <- gen()
+  private <- environment(mod$initialize)$private
+
+  y1 <- mod$run(c(0, 10))
+  y2 <- mod$run(c(0, DEFAULT_HISTORY_SIZE + 10))
+  y3 <- mod$run(c(0, 10))
+  expect_equal(y1, y3)
+})
