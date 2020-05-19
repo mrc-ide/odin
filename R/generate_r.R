@@ -379,6 +379,16 @@ generate_r_run <- function(dat, env, rewrite) {
     check_interpolate_t <- NULL
   }
 
+  if (dat$features$discrete && dat$features$has_delay) {
+    rings <- names_if(vlapply(dat$data$elements, function(x)
+      x$storage_type == "ring_buffer"))
+    reset <- lapply(rings, function(r)
+      as.call(list(call("$", call("[[", as.name(dat$meta$internal), r),
+                        quote(reset)))))
+  } else {
+    reset <- NULL
+  }
+
   compute_initial <-
     call("if", call("is.null", as.name(dat$meta$state)),
          r_expr_block(call("<-", as.name(dat$meta$state),
@@ -435,9 +445,8 @@ generate_r_run <- function(dat, env, rewrite) {
          call("<-", call("class", ret), "matrix")),
     call("<-", call("colnames", ret), ynames))
 
-
-  body <- drop_null(list(set_initial, check_interpolate_t, compute_initial, run,
-                         set_names, ret))
+  body <- drop_null(list(set_initial, check_interpolate_t, reset,
+                         compute_initial, run, set_names, ret))
 
   as_function(args, r_expr_block(body), env)
 }
