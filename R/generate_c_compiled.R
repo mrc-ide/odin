@@ -16,6 +16,7 @@ generate_c_compiled <- function(eqs, dat, rewrite) {
   if (dat$features$discrete) {
     core$rhs <- generate_c_compiled_update(eqs, dat, rewrite)
     core$rhs_dde <- generate_c_compiled_update_dde(dat)
+    core$reset <- generate_c_compiled_reset(dat, rewrite)
   } else {
     core$rhs <- generate_c_compiled_deriv(eqs, dat, rewrite)
     core$rhs_dde <- generate_c_compiled_deriv_dde(dat)
@@ -663,6 +664,22 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
     rhs <- "NA_INTEGER"
   }
   sprintf_safe("%s = %s;", rewrite(data_info$name), rhs)
+}
+
+
+generate_c_compiled_reset <- function(dat, rewrite) {
+  body <- collector()
+  if (dat$features$has_delay && dat$features$discrete) {
+    body$add("%s *%s = %s(%s, 1);",
+             dat$meta$c$internal_t, dat$meta$internal,
+             dat$meta$c$get_internal, dat$meta$c$ptr)
+    rings <- names_if(vlapply(dat$data$elements, function(x)
+      x$storage_type == "ring_buffer"))
+    body$add("ring_buffer_reset(%s, false);", vcapply(rings, rewrite))
+  }
+  body$add("return R_NilValue;")
+  args <- c(SEXP = dat$meta$c$ptr)
+  c_function("SEXP", dat$meta$c$reset, args, body$get())
 }
 
 

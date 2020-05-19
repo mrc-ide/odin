@@ -53,6 +53,7 @@ generate_c_meta <- function(base, internal) {
     internal_t = sprintf("%s_internal", base),
     finalise = sprintf("%s_finalise", base),
     create = sprintf("%s_create", base),
+    reset = sprintf("%s_reset", base),
     contents = sprintf("%s_contents", base),
     get_internal = sprintf("%s_get_internal", base),
     set_user = sprintf("%s_set_user", base),

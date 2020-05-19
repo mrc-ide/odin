@@ -194,6 +194,14 @@ odin_c_class_run_discrete <- function(features, env = emptyenv()) {
     check_interpolate <- NULL
   }
 
+  if (features$discrete && features$has_delay) {
+    reset <- call(".Call", quote(private$core$reset),
+                  quote(private$ptr),
+                  PACKAGE = quote(private$dll))
+  } else {
+    reset <- NULL
+  }
+
   run_args <- list(quote(y), quote(step), quote(private$core$rhs_dde),
                    quote(private$ptr), dllname = quote(private$dll),
                    parms_are_real = FALSE, ynames = FALSE,
@@ -208,7 +216,7 @@ odin_c_class_run_discrete <- function(features, env = emptyenv()) {
     quote(colnames(ret) <- private$ynames),
     quote(colnames(ret) <- NULL))
 
-  body <- drop_null(list(check_step, check_y, check_interpolate, run,
+  body <- drop_null(list(check_step, check_y, check_interpolate, reset, run,
                          cleanup, quote(ret)))
   as_function(args, r_expr_block(body), env)
 }
