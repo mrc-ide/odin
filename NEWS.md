@@ -1,5 +1,6 @@
 # odin 1.0.3
 
+* Discrete models initialisation is now safe from ring buffer overflow (`mrc-1610`)
 * Support for simple calculations in user defaults (e.g., `x <- user(-1)`) - only basic arithmetic is allowed, and variables are still disabled (`mrc-1542`, reported by @MJomaba)
 
 # odin 1.0.2
