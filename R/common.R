@@ -98,7 +98,9 @@ FUNCTIONS <- list(
   cos = 1L,   sin = 1L,   tan = 1L,
   acos = 1L,  asin = 1L,  atan = 1L,  atan2 = 2L,
   cosh = 1L,  sinh = 1L,  tanh = 1L,
-  acosh = 1L, asinh = 1L, atanh = 1L
+  acosh = 1L, asinh = 1L, atanh = 1L,
+  ## Sorting
+  sort = 1L
 )
 
 FUNCTIONS_STOCHASTIC <- list(
@@ -133,7 +135,8 @@ FUNCTIONS_REWRITE_RF <-
   grep("_rand$", names(FUNCTIONS_STOCHASTIC), invert = TRUE, value = TRUE)
 
 FUNCTIONS_INPLACE <- list(
-  rmultinom = list(len = 3L, dest = 4L, type = "int"))
+  rmultinom = list(len = 3L, dest = 4L, type = "int"),
+  sort = list(len = 3L, dest = 3L, type = "double"))
 
 ## Here we need to do a bit of a faff because unary functions need
 ## adding.  This may get tightened up later to either use local() or

@@ -175,3 +175,20 @@ test_that("complex initialisation: vector", {
   expect_equal(vv$x2, cmp * 2 + 1)
   expect_equal(mod$contents()$r, cmp * 2)
 })
+
+
+test_that("sort", {
+  gen <- odin({
+    initial(x[]) <- 0
+    update(x[]) <- x[i] + norm_rand()
+    y[] <- sort(x)
+    n <- 10
+    dim(x) <- n
+    dim(y) <- n
+    output(y) <- TRUE
+  })
+
+  mod <- gen()
+  y <- mod$transform_variables(mod$run(0:10))
+  expect_equal(t(apply(y$x, 1, sort)), y$y)
+})

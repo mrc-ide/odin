@@ -51,6 +51,8 @@ generate_c_equation_inplace <- function(eq, data_info, dat, rewrite) {
   switch(
     fn,
     rmultinom = generate_c_equation_inplace_rmultinom(eq, lhs, dat, rewrite),
+    sort = generate_c_equation_inplace_sort(
+      eq, lhs, data_info, dat, rewrite),
     stop("unhandled array expression [odin bug]")) # nocov
 }
 
@@ -61,6 +63,17 @@ generate_c_equation_inplace_rmultinom <- function(eq, lhs, dat, rewrite) {
   stopifnot(!is.null(len))
   sprintf_safe("Rf_rmultinom(%s, %s, %s, %s);",
                rewrite(args[[1]]), rewrite(args[[2]]), len, lhs)
+}
+
+
+generate_c_equation_inplace_sort <- function(eq, lhs, data_info, dat, rewrite) {
+  ## TODO: check both source and destination are double or the memcpy
+  ## is not safe
+  stopifnot(data_info$type == "double")
+  len <- rewrite(data_info$dimnames$length)
+  src <- rewrite(eq$rhs$value[[2]])
+  c(sprintf_safe("memcpy(%s, %s, %s * sizeof(double));", lhs, src, len),
+    sprintf_safe("R_rsort(%s, %s);", lhs, len))
 }
 
 
