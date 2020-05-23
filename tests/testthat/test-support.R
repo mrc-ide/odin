@@ -61,3 +61,25 @@ test_that("as_numeric errors appropriately", {
   expect_error(as_numeric(TRUE), "Expected numeric input for 'TRUE'")
   expect_error(as_numeric("x"), "Expected numeric input for")
 })
+
+
+test_that("multivariate hypergeometric distribution", {
+  k <- c(6, 10, 15, 3, 0, 4)
+  n <- 20
+  N <- sum(k)
+
+  set.seed(1)
+  res <- t(replicate(5000, rmhyper(k, n)))
+
+  ## Population is preserved
+  expect_true(all(rowSums(res) == n))
+
+  ## Mean
+  expect_equal(colMeans(res), n * k / N, tolerance = 0.05)
+
+  ## Variance and covariance
+  expected <- outer(k, k, function(ki, kj)
+    - n * (N - n) / (N - 1) * ki / N * kj / N)
+  diag(expected) <- n * (N - n) / (N - 1) * k / N * (1 - k / N)
+  expect_equal(cov(res), expected, tolerance = 0.05)
+})
