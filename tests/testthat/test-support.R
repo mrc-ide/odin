@@ -83,3 +83,52 @@ test_that("multivariate hypergeometric distribution", {
   diag(expected) <- n * (N - n) / (N - 1) * k / N * (1 - k / N)
   expect_equal(cov(res), expected, tolerance = 0.05)
 })
+
+
+test_that("multivariate hypergeometric distribution (C)", {
+  skip_on_cran()
+
+  lib <- read_user_c(system.file("library.c", package = "odin"))
+  impl <- unname(lib$definitions[c("rmhyper", "rmhyper_i", "rmhyper_d")])
+  code <- c(
+    "#include <R.h>",
+    "#include <Rmath.h>",
+    "#include <Rinternals.h>",
+    impl,
+    "SEXP test_rmhyper(SEXP k, SEXP n) {",
+    "  size_t m = (size_t) length(k);",
+    "  SEXP ret = PROTECT(allocVector(INTSXP, m));",
+    "  GetRNGstate();",
+    "  if (TYPEOF(k) == INTSXP) {",
+    "    rmhyper_i(INTEGER(k), m, INTEGER(n)[0], INTEGER(ret));",
+    "  } else {",
+    "    rmhyper_d(REAL(k), m, INTEGER(n)[0], INTEGER(ret));",
+    "  }",
+    "  PutRNGstate();",
+    "  UNPROTECT(1);",
+    "  return ret;",
+    "}")
+
+  path <- tempfile(fileext = ".c")
+  writeLines(code, path)
+  res <- compile(path, verbose = FALSE)
+  dyn.load(res$dll)
+  on.exit(dyn.unload(res$dll))
+
+  rmhyper_c <- function(k, n) {
+    .Call("test_rmhyper", k, as.integer(n), PACKAGE = res$base)
+  }
+
+  k <- c(6, 10, 15, 3, 0, 4)
+  n <- 20
+  set.seed(1)
+  a <- replicate(500, rmhyper(k, n))
+  set.seed(1)
+  b1 <- replicate(500, rmhyper_c(as.integer(k), n))
+  set.seed(1)
+  b2 <- replicate(500, rmhyper_c(as.double(k), n))
+
+  expect_equal(b1, a)
+  expect_equal(b2, a)
+  expect_identical(b1, b2)
+})
