@@ -1,3 +1,7 @@
+# odin 1.0.3
+
+* Support for multivariate hypergeometric function via the odin function `rmhyper()` - there is no analogue for this in base R. Like `rmultinom` this returns a vector and the inteface is subject to possible change (`mrc-1621`)
+
 # odin 1.0.2
 
 * Support for 2-argument round (e.g., `round(1.23, 1)` is 1.2), and enforce the same 0.5 rounding behaviour as R when used from C (`mrc-511`, #116, #179)
