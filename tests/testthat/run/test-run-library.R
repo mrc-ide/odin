@@ -136,3 +136,35 @@ test_that("2-arg round", {
   expect_equal(yy1[, "y"], round(tt, 1))
   expect_equal(yy2[, "y"], round(tt, 2))
 })
+
+
+test_that("multivariate hypergeometric", {
+  gen <- odin({
+    x0[] <- user()
+    dim(x0) <- user()
+    n <- user()
+
+    nk <- length(x0)
+
+    ## We can't accept output from rmhyper (or e.g., rmultinom)
+    ## directly into the state vector because the pointer types are
+    ## incompatible.
+    tmp[] <- rmhyper(x0, n)
+    dim(tmp) <- nk
+
+    initial(x[]) <- 0
+    update(x[]) <- tmp[i]
+    dim(x) <- nk
+  })
+
+  k <- c(6, 10, 15, 3, 0, 4)
+  n <- 20
+  mod <- gen(x0 = k, n = n)
+
+  set.seed(1)
+  res <- mod$run(0:10)
+  set.seed(1)
+  cmp <- t(replicate(10, rmhyper(k, n)))
+
+  expect_equal(mod$transform_variables(res)$x[-1L, ], cmp)
+})

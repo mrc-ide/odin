@@ -45,12 +45,21 @@ generate_c_equation_scalar <- function(eq, data_info, dat, rewrite) {
 
 generate_c_equation_inplace <- function(eq, data_info, dat, rewrite) {
   location <- data_info$location
-  lhs <- rewrite(eq$lhs)
+  if (location == "internal") {
+    lhs <- rewrite(eq$lhs)
+  } else {
+    stop("this is not possible and should be dealt with in parse")
+    offset <- dat$data[[location]]$contents[[data_info$name]]$offset
+    storage <- if (location == "variable") dat$meta$result else dat$meta$output
+    lhs <- sprintf("%s[%s]", storage, rewrite(offset))
+  }
   fn <- eq$rhs$value[[1]]
   args <- lapply(eq$rhs$value[-1], rewrite)
   switch(
     fn,
     rmultinom = generate_c_equation_inplace_rmultinom(eq, lhs, dat, rewrite),
+    rmhyper = generate_c_equation_inplace_rmhyper(
+      eq, lhs, data_info, dat, rewrite),
     stop("unhandled array expression [odin bug]")) # nocov
 }
 
@@ -61,6 +70,18 @@ generate_c_equation_inplace_rmultinom <- function(eq, lhs, dat, rewrite) {
   stopifnot(!is.null(len))
   sprintf_safe("Rf_rmultinom(%s, %s, %s, %s);",
                rewrite(args[[1]]), rewrite(args[[2]]), len, lhs)
+}
+
+
+generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
+                                                rewrite) {
+  len <- data_info$dimnames$length
+  src <- eq$rhs$value[[2]]
+  n <- eq$rhs$value[[3]]
+  src_type <- dat$data$elements[[src]]$storage_type
+  fn <- if (src_type == "integer") "rmhyper_i" else "rmhyper_d"
+  sprintf_safe("%s(%s, %s, %s, %s);",
+               fn, rewrite(src), rewrite(len), rewrite(n), lhs)
 }
 
 

@@ -638,7 +638,7 @@ ir_parse_arrays_find_integers <- function(eqs, variables, source) {
   ## too (treated separtately for now...)
   integer_arrays <- ir_parse_arrays_used_as_index(eqs)
   integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x)
-    identical(x$rhs$value[[1]], quote(rmultinom))))
+    any(deparse(x$rhs$value[[1]]) == c("rmultinom", "rmhyper"))))
   integer_vars <- unique(c(index_vars, integer_arrays, integer_inplace))
 
   err <- vcapply(eqs[integer_inplace], function(x) x$lhs$name_data) %in%
