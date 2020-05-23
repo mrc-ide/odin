@@ -151,6 +151,7 @@ test_that("multivariate hypergeometric", {
     ## incompatible.
     tmp[] <- rmhyper(x0, n)
     dim(tmp) <- nk
+    output(tmp) <- TRUE
 
     initial(x[]) <- 0
     update(x[]) <- tmp[i]
@@ -166,5 +167,7 @@ test_that("multivariate hypergeometric", {
   set.seed(1)
   cmp <- t(replicate(10, rmhyper(k, n)))
 
-  expect_equal(mod$transform_variables(res)$x[-1L, ], cmp)
+  yy <- mod$transform_variables(res)
+  expect_equal(yy$x[-1L, ], cmp)
+  expect_equal(yy$tmp[-11L, ], yy$x[-1L, ])
 })
