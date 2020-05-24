@@ -1,0 +1,174 @@
+---
+title: "Odin Functions"
+author: "Rich FitzJohn"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Odin Functions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+``` {r include = FALSE}
+path <- system.file("functions.json", package = "odin", mustWork = TRUE)
+functions <- jsonlite::fromJSON(path, FALSE)
+vcapply <- odin:::vcapply
+
+render <- function(x) {
+  render1 <- function(el) {
+    if (!is.null(el$description)) {
+      ret <- sprintf("**%s**: %s", el$title, el$description)
+    } else {
+      ret <- sprintf("**%s**", el$title)
+    }
+    if (!is.null(el$examples)) {
+      examples <- vcapply(el$examples, function(ex)
+        sprintf("`%s` &rarr; `%s`", ex[[1]], ex[[2]]))
+      ret <- sprintf("%s (e.g., %s)", ret, paste(examples, collapse = "; "))
+    }
+    ret
+  }
+  value <- vapply(x, render1, "", USE.NAMES = FALSE)
+  paste(sprintf("* `%s` -- %s\n", names(x), value), collapse = "\n")
+}
+```
+
+`odin` supports many functions that you'd expect to see for
+constructing differential equation models; primarily mathematical
+functions available through R's "Rmath" library.  These include all
+mathematical operations, and many more obscure mathematical
+functions.  Special support is provided for working with arrays.  A
+further set of functions is available for working discrete time
+stochastic models.
+
+## Basic operators
+
+``` {r echo = FALSE, results = "asis"}
+writeLines(render(functions$basic))
+```
+
+Because general programming is not supported in `odin` and because
+every line must contain an assignment, instead of writing
+
+```r
+if (mycondition) {
+  a <- true_value
+} else {
+  a <- false_value
+}
+```
+
+instead write
+
+```r
+a <- if (mycondition) true_value else false_value
+```
+
+(this works in normal R too!)
+
+## Array support
+
+There are a group of functions for interacting with arrays
+
+``` {r echo = FALSE, results = "asis"}
+writeLines(render(functions$arrays))
+```
+
+When working with arrays, use generally implies a "for loop" in the
+generated C code.  For example, in the example in [the main package
+vignette](odin.html) the deriviatives are computed as
+
+```r
+deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))
+```
+
+The indexes on the right hand side can be one of `i`, `j`, 'k`, `l`
+`i5`, `i6`, `i7` or `i8` corresponding to the index on the *left
+hand side* being iterated over.  The left-hand-side here contains
+no explicit entry (`y[]`) which is equivalent to `y[1:length(y)]`,
+which expands (approximately) to the "for loop"
+
+```r
+for (i in 1:length(y)) {
+  deriv(y[i]) <- r[i] * y[i] * (1 - sum(ay[i, ]))
+}
+```
+
+(except slightly different, and in C).
+
+Similarly, the expression
+
+```r
+ay[,] <- a[i, j] * y[j]
+```
+
+involves loops over two dimensions (`ay[,]` becomes `ay[1:dim(ay,
+1), 1:dim(ay, 2)]` and so the loop becomes
+
+```r
+for (i in 1:dim(ay, 1)) {
+  for (j in 1:dim(ay, 2)) {
+    ay[i, j] <- a[i, j] * y[j]
+  }
+}
+```
+
+The interpolation functions are described in more detail in the
+[main packagee vignette](odin.html)
+
+## Operators
+
+A number of logical-returning operators exist, primarily to support
+the `if` statement; all the usual comparison operators exist
+(though not vectorised `|` or `&`).
+
+``` {r echo = FALSE, results = "asis"}
+writeLines(render(functions$operators))
+```
+
+Be wary of strict equality with `==` or `!=` as numbers may be
+floating point numbers, which have some surprising properties for
+the uninitiated, for example
+``` {r }
+sqrt(3)^2 == 3
+```
+
+## Mathematical operators
+
+``` {r echo = FALSE, results = "asis"}
+writeLines(render(functions$maths))
+```
+
+The exact for `%%` and `%/%` for floating point numbers and signed
+numbers are complicated - please see `?Arithmetic`.  The rules for
+operators in odin are exactly those in R as the same underlying
+functions are used.
+
+Similarly, for the differences between `round`, `floor`, `ceiling`
+and `truncate`, see the help page `?round`.  Note that R's
+behaviour for rounding away from 0.5 is exactly followed and that
+this slightly changed behaviour at version 4.0.0
+
+All the usual trig functions are also available:
+
+``` {r echo = FALSE, results = "asis"}
+writeLines(render(functions$trig))
+```
+
+## Stochastic models
+
+For discrete time stochastic models, all of R's normal stochastic
+distribution functions are available:
+
+``` {r echo = FALSE, results = "asis"}
+writeLines(render(functions$stochastic))
+```
+
+In addition, two functions that are vector returning and require
+some care to use:
+
+``` {r echo = FALSE, results = "asis"}
+writeLines(render(functions$inplace))
+```
