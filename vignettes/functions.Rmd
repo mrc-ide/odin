@@ -84,11 +84,12 @@ vignette](odin.html) the derivatives are computed as
 deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))
 ```
 
-The indexes on the right hand side can be one of `i`, `j`, 'k`, `l`
-`i5`, `i6`, `i7` or `i8` corresponding to the index on the *left
-hand side* being iterated over.  The left-hand-side here contains
-no explicit entry (`y[]`) which is equivalent to `y[1:length(y)]`,
-which expands (approximately) to the "for loop"
+The indexes on the right hand side can be one of `i`, `j`, `k`, `l`
+`i5`, `i6`, `i7` or `i8` corresponding to the index on the *left hand
+side* being iterated over (`odin` supports arrays up to 8 dimensions).
+The left-hand-side here contains no explicit entry (`y[]`) which is
+equivalent to `y[1:length(y)]`, which expands (approximately) to the
+"for loop"
 
 ```r
 for (i in 1:length(y)) {
@@ -143,7 +144,7 @@ writeLines(render(functions$maths))
 
 The exact for `%%` and `%/%` for floating point numbers and signed
 numbers are complicated - please see `?Arithmetic`.  The rules for
-operators in odin are exactly those in R as the same underlying
+operators in `odin` are exactly those in R as the same underlying
 functions are used.
 
 Similarly, for the differences between `round`, `floor`, `ceiling`
