@@ -45,14 +45,7 @@ generate_c_equation_scalar <- function(eq, data_info, dat, rewrite) {
 
 generate_c_equation_inplace <- function(eq, data_info, dat, rewrite) {
   location <- data_info$location
-  if (location == "internal") {
-    lhs <- rewrite(eq$lhs)
-  } else {
-    stop("this is not possible and should be dealt with in parse")
-    offset <- dat$data[[location]]$contents[[data_info$name]]$offset
-    storage <- if (location == "variable") dat$meta$result else dat$meta$output
-    lhs <- sprintf("%s[%s]", storage, rewrite(offset))
-  }
+  lhs <- rewrite(eq$lhs)
   fn <- eq$rhs$value[[1]]
   args <- lapply(eq$rhs$value[-1], rewrite)
   switch(
