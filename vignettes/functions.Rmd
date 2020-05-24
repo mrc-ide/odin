@@ -167,9 +167,46 @@ distribution functions are available:
 writeLines(render(functions$stochastic))
 ```
 
+With random number functions we can write:
+
+```r
+x <- runif(10, 20)
+```
+
+which will generate a random number from the uniform distribution.  If you write:
+
+```r
+x[] <- runif(10, 20)
+```
+
+then each element of `x` will be filled with a *different* random number drawn from this distribution (which is generally what you want). Random numbers are considered to be *time varying* which means they will automatically generate each time step, so if you write
+
+```r
+x <- rnorm(0, 10)
+update(y[]) <- y[i] + x
+```
+
+then at each time step, each element of `y` will be updated by the same random number from a normal distribution with a mean of zero and a standard deviation of 10 - the number will change each time step but be the same for each element of `y` in the example above.
+
 In addition, two functions that are vector returning and require
 some care to use:
 
 ``` {r echo = FALSE, results = "asis"}
 writeLines(render(functions$inplace))
 ```
+
+Both these functions require a vector input (of probabilities for `rmultinom` and of counts for `rmhyper`) and return a vector the same length.  So the expression
+
+```r
+y[] <- rmultinom(10, p)
+```
+
+will produce a vector `y` of samples from the multinomial distribution with parameters `size = 10` (so after wards `sum(y)` is 10) and probabilities `p`. It is very important that `y` and `p` have the same size.
+
+At the moment it is not possible to use expressions like
+
+```r
+y[1, ] <- rmultinom(10, p[i, ])
+```
+
+but this is planned for implementation in the future.  A full example of using `rmultinom` is given in the [discrete models](discrete.html) vignette.
