@@ -171,3 +171,26 @@ test_that("multivariate hypergeometric", {
   expect_equal(yy$x[-1L, ], cmp)
   expect_equal(yy$tmp[-11L, ], yy$x[-1L, ])
 })
+
+
+test_that("Throw an error if requesting more elements than possible", {
+  gen <- odin({
+    b[] <- user()
+    n <- user()
+
+    initial(x[]) <- 0
+    update(x[]) <- x[i] + b[i]
+    y[] <- rmhyper(x, n)
+    output(y) <- TRUE
+
+    dim(x) <- 3
+    dim(b) <- 3
+    dim(y) <- 3
+  })
+  b <- c(10, 15, 9)
+  n <- 10
+  mod <- gen(b = b, n = n)
+  expect_error(mod$run(step = 2),
+               "Requesting too many elements in rmhyper (10 from 0)",
+               fixed = TRUE)
+})

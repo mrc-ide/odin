@@ -171,6 +171,10 @@ as_numeric <- function(x, name = deparse(substitute(x))) {
 ##   Cov(K_i, K_j) => - n * (N - n) / (N - 1) * k_i / N * k_j / N
 rmhyper <- function(k, n_sample) {
   N <- sum(k)
+  if (n_sample > N) {
+    stop(sprintf("Requesting too many elements in rmhyper (%d from %d)",
+                 n_sample, N))
+  }
   m <- length(k)
   ret <- rep(0, m)
   k_other <- N - k[[1L]]

@@ -85,6 +85,14 @@ test_that("multivariate hypergeometric distribution", {
 })
 
 
+test_that("prevent oversampling in rmhyper", {
+  expect_error(
+    rmhyper(0:5, 100),
+    "Requesting too many elements in rmhyper (100 from 15)",
+    fixed = TRUE)
+})
+
+
 test_that("multivariate hypergeometric distribution (C)", {
   skip_on_cran()
 
@@ -131,4 +139,9 @@ test_that("multivariate hypergeometric distribution (C)", {
   expect_equal(b1, a)
   expect_equal(b2, a)
   expect_identical(b1, b2)
+
+  expect_error(
+    rmhyper_c(as.integer(k), 100),
+    "Requesting too many elements in rmhyper (100 from 38)",
+    fixed = TRUE)
 })

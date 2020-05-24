@@ -353,6 +353,10 @@ void rmhyper(int *k, size_t m, size_t n_sample) {
   for (size_t i = 0; i < m; ++i) {
     N += k[i];
   }
+  if (n_sample > N) {
+    Rf_error("Requesting too many elements in rmhyper (%d from %d)",
+             n_sample, N);
+  }
   int k_other = N - k[0];
   k[0] = Rf_rhyper(k[0], k_other, n_sample);
   for (size_t i = 1; i < m - 1; ++i) {
