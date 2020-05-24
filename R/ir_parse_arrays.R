@@ -754,7 +754,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
           throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
       } else {
-        if (f_nm == "rmultinom") {
+        if (f_nm == "rmultinom" || f_nm == "rmhyper") {
           arr_idx <- 2L
         } else {
           arr_idx <- 1L

@@ -138,7 +138,7 @@ FUNCTIONS_REWRITE_RF <-
 
 FUNCTIONS_INPLACE <- list(
   rmultinom = list(len = 3L, dest = 4L, type = "int"),
-  rmhyper = list(len = 2L, dest = 4L, type = "int"))
+  rmhyper = list(len = 3L, dest = 4L, type = "int"))
 
 ## Here we need to do a bit of a faff because unary functions need
 ## adding.  This may get tightened up later to either use local() or

@@ -169,7 +169,7 @@ as_numeric <- function(x, name = deparse(substitute(x))) {
 ##   E(K_i) => n * k_i / N
 ##   Var(K_i) => n * (N - n) / (N - 1) * k_i / N * (1 - k_i / N)
 ##   Cov(K_i, K_j) => - n * (N - n) / (N - 1) * k_i / N * k_j / N
-rmhyper <- function(k, n_sample) {
+rmhyper <- function(n_sample, k) {
   N <- sum(k)
   if (n_sample > N) {
     stop(sprintf("Requesting too many elements in rmhyper (%d from %d)",

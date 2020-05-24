@@ -348,7 +348,7 @@ void interpolate_check_y(size_t nx, size_t ny, size_t i, const char *name_arg, c
 }
 
 
-void rmhyper(int *k, size_t m, size_t n_sample) {
+void rmhyper(size_t n_sample, int *k, size_t m) {
   int N = 0;
   for (size_t i = 0; i < m; ++i) {
     N += k[i];
@@ -368,15 +368,15 @@ void rmhyper(int *k, size_t m, size_t n_sample) {
 }
 
 
-void rmhyper_i(int *k, size_t m, size_t n_sample, int *ret) {
+void rmhyper_i(size_t n_sample, int *k, size_t m, int *ret) {
   memcpy(ret, k, m * sizeof(int));
-  rmhyper(ret, m, n_sample);
+  rmhyper(n_sample, ret, m);
 }
 
 
-void rmhyper_d(double *k, size_t m, size_t n_sample, int *ret) {
+void rmhyper_d(size_t n_sample, double *k, size_t m, int *ret) {
   for (size_t i = 0; i < m; ++i) {
     ret[i] = k[i];
   }
-  rmhyper(ret, m, n_sample);
+  rmhyper(n_sample, ret, m);
 }

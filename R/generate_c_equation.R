@@ -69,12 +69,12 @@ generate_c_equation_inplace_rmultinom <- function(eq, lhs, dat, rewrite) {
 generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
                                                 rewrite) {
   len <- data_info$dimnames$length
-  src <- eq$rhs$value[[2]]
-  n <- eq$rhs$value[[3]]
+  n <- eq$rhs$value[[2]]
+  src <- eq$rhs$value[[3]]
   src_type <- dat$data$elements[[src]]$storage_type
   fn <- if (src_type == "integer") "rmhyper_i" else "rmhyper_d"
   sprintf_safe("%s(%s, %s, %s, %s);",
-               fn, rewrite(src), rewrite(len), rewrite(n), lhs)
+               fn, rewrite(n), rewrite(src), rewrite(len), lhs)
 }
 
 

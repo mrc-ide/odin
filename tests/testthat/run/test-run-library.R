@@ -149,7 +149,7 @@ test_that("multivariate hypergeometric", {
     ## We can't accept output from rmhyper (or e.g., rmultinom)
     ## directly into the state vector because the pointer types are
     ## incompatible.
-    tmp[] <- rmhyper(x0, n)
+    tmp[] <- rmhyper(n, x0)
     dim(tmp) <- nk
     output(tmp) <- TRUE
 
@@ -165,7 +165,7 @@ test_that("multivariate hypergeometric", {
   set.seed(1)
   res <- mod$run(0:10)
   set.seed(1)
-  cmp <- t(replicate(10, rmhyper(k, n)))
+  cmp <- t(replicate(10, rmhyper(n, k)))
 
   yy <- mod$transform_variables(res)
   expect_equal(yy$x[-1L, ], cmp)
@@ -180,7 +180,7 @@ test_that("Throw an error if requesting more elements than possible", {
 
     initial(x[]) <- 0
     update(x[]) <- x[i] + b[i]
-    y[] <- rmhyper(x, n)
+    y[] <- rmhyper(n, x)
     output(y) <- TRUE
 
     dim(x) <- 3

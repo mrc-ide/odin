@@ -51,13 +51,13 @@ test_that("rmultinom is integer", {
 })
 
 
-test_that("rmultinom is integer", {
+test_that("rmhyper is integer", {
   ir <- odin_parse({
     x0[] <- user()
     dim(x0) <- user()
     n <- user()
     nk <- length(x0)
-    tmp[] <- rmhyper(x0, n)
+    tmp[] <- rmhyper(n, x0)
     dim(tmp) <- nk
     initial(x[]) <- 0
     update(x[]) <- tmp[i]
