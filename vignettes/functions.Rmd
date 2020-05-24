@@ -78,7 +78,7 @@ writeLines(render(functions$arrays))
 
 When working with arrays, use generally implies a "for loop" in the
 generated C code.  For example, in the example in [the main package
-vignette](odin.html) the deriviatives are computed as
+vignette](odin.html) the derivatives are computed as
 
 ```r
 deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))
@@ -116,7 +116,7 @@ for (i in 1:dim(ay, 1)) {
 ```
 
 The interpolation functions are described in more detail in the
-[main packagee vignette](odin.html)
+[main package vignette](odin.html)
 
 ## Operators
 

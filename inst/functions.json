@@ -22,7 +22,7 @@
         },
         "^": {
             "title": "Power",
-            "description": "Raise the first number to the power of the second. Either number may be a floating point numbr",
+            "description": "Raise the first number to the power of the second. Either number may be a floating point number",
             "examples": [["2.3 ^ 1.2", "2.716898"]]
         },
         "(": {
@@ -149,7 +149,7 @@
         },
         "min": {
             "title": "Minimum",
-            "title": "Returns minimium of all arguments given",
+            "title": "Returns minimum of all arguments given",
             "examples": [["min(2, 6, 1)", "1"]]
         },
 
@@ -258,8 +258,8 @@
             "description": "Sample from the uniform distribution on [0, 1] - more efficient than but equivalent to runif(0, 1)"
         },
         "norm_rand": {
-            "title": "Standard normal distirbution",
-            "description": "Sample from the standard normal distirbution - more efficient than but equivalent to rnorm(0, 1)"
+            "title": "Standard normal distribution",
+            "description": "Sample from the standard normal distribution - more efficient than but equivalent to rnorm(0, 1)"
         },
         "exp_rand": {
             "title": "Standard exponential distribution",
