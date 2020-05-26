@@ -268,7 +268,7 @@
 
         "rbeta": {
             "title": "Beta distribution",
-            "description": "With parameters shape1 and shape2 (see `?rbeta` for details"
+            "description": "With parameters shape1 and shape2 (see `?rbeta` for details)"
         },
         "rbinom": {
             "title": "Binomial distribution",
