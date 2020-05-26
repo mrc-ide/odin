@@ -17,6 +17,7 @@ odin_base_env <- function() {
   for (i in imports) {
     env[[i]] <- stats[[i]]
   }
+  env[["rmhyper"]] <- rmhyper
 
   env
 }

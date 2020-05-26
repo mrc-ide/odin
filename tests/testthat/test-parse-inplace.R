@@ -51,6 +51,24 @@ test_that("rmultinom is integer", {
 })
 
 
+test_that("rmhyper is integer", {
+  ir <- odin_parse({
+    x0[] <- user()
+    dim(x0) <- user()
+    n <- user()
+    nk <- length(x0)
+    tmp[] <- rmhyper(n, x0)
+    dim(tmp) <- nk
+    initial(x[]) <- 0
+    update(x[]) <- tmp[i]
+    dim(x) <- nk
+  })
+  dat <- ir_deserialise(ir)
+  expect_equal(dat$data$elements$tmp$storage_type, "int")
+  expect_equal(dat$data$elements$tmp$rank, 1)
+})
+
+
 test_that("rmultinom argument validation", {
   expect_error(odin_parse({
     update(x) <- 1

@@ -346,3 +346,37 @@ void interpolate_check_y(size_t nx, size_t ny, size_t i, const char *name_arg, c
     }
   }
 }
+
+
+void rmhyper(size_t n_sample, int *k, size_t m) {
+  int N = 0;
+  for (size_t i = 0; i < m; ++i) {
+    N += k[i];
+  }
+  if (n_sample > N) {
+    Rf_error("Requesting too many elements in rmhyper (%d from %d)",
+             n_sample, N);
+  }
+  int k_other = N - k[0];
+  k[0] = Rf_rhyper(k[0], k_other, n_sample);
+  for (size_t i = 1; i < m - 1; ++i) {
+    k_other -= k[i];
+    n_sample -= k[i - 1];
+    k[i] = Rf_rhyper(k[i], k_other, n_sample);
+  }
+  k[m - 1] = n_sample - k[m - 2];
+}
+
+
+void rmhyper_i(size_t n_sample, int *k, size_t m, int *ret) {
+  memcpy(ret, k, m * sizeof(int));
+  rmhyper(n_sample, ret, m);
+}
+
+
+void rmhyper_d(size_t n_sample, double *k, size_t m, int *ret) {
+  for (size_t i = 0; i < m; ++i) {
+    ret[i] = k[i];
+  }
+  rmhyper(n_sample, ret, m);
+}

@@ -126,14 +126,19 @@ FUNCTIONS_STOCHASTIC <- list(
   rweibull = 2L, # shape, scale
   rwilcox = 2L, # m, n
   rmultinom = 2L, # n, p
-  rsignrank = 1L # n
+  rsignrank = 1L, # n
+  ## Custom
+  rmhyper = 2L
 )
 
 FUNCTIONS_REWRITE_RF <-
-  grep("_rand$", names(FUNCTIONS_STOCHASTIC), invert = TRUE, value = TRUE)
+  setdiff(
+    grep("_rand$", names(FUNCTIONS_STOCHASTIC), invert = TRUE, value = TRUE),
+    "rmhyper")
 
 FUNCTIONS_INPLACE <- list(
-  rmultinom = list(len = 3L, dest = 4L, type = "int"))
+  rmultinom = list(len = 3L, dest = 4L, type = "int"),
+  rmhyper = list(len = 3L, dest = 4L, type = "int"))
 
 ## Here we need to do a bit of a faff because unary functions need
 ## adding.  This may get tightened up later to either use local() or

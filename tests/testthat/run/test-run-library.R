@@ -136,3 +136,61 @@ test_that("2-arg round", {
   expect_equal(yy1[, "y"], round(tt, 1))
   expect_equal(yy2[, "y"], round(tt, 2))
 })
+
+
+test_that("multivariate hypergeometric", {
+  gen <- odin({
+    x0[] <- user()
+    dim(x0) <- user()
+    n <- user()
+
+    nk <- length(x0)
+
+    ## We can't accept output from rmhyper (or e.g., rmultinom)
+    ## directly into the state vector because the pointer types are
+    ## incompatible.
+    tmp[] <- rmhyper(n, x0)
+    dim(tmp) <- nk
+    output(tmp) <- TRUE
+
+    initial(x[]) <- 0
+    update(x[]) <- tmp[i]
+    dim(x) <- nk
+  })
+
+  k <- c(6, 10, 15, 3, 0, 4)
+  n <- 20
+  mod <- gen(x0 = k, n = n)
+
+  set.seed(1)
+  res <- mod$run(0:10)
+  set.seed(1)
+  cmp <- t(replicate(10, rmhyper(n, k)))
+
+  yy <- mod$transform_variables(res)
+  expect_equal(yy$x[-1L, ], cmp)
+  expect_equal(yy$tmp[-11L, ], yy$x[-1L, ])
+})
+
+
+test_that("Throw an error if requesting more elements than possible", {
+  gen <- odin({
+    b[] <- user()
+    n <- user()
+
+    initial(x[]) <- 0
+    update(x[]) <- x[i] + b[i]
+    y[] <- rmhyper(n, x)
+    output(y) <- TRUE
+
+    dim(x) <- 3
+    dim(b) <- 3
+    dim(y) <- 3
+  })
+  b <- c(10, 15, 9)
+  n <- 10
+  mod <- gen(b = b, n = n)
+  expect_error(mod$run(step = 2),
+               "Requesting too many elements in rmhyper (10 from 0)",
+               fixed = TRUE)
+})

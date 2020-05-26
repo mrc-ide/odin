@@ -638,7 +638,7 @@ ir_parse_arrays_find_integers <- function(eqs, variables, source) {
   ## too (treated separtately for now...)
   integer_arrays <- ir_parse_arrays_used_as_index(eqs)
   integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x)
-    identical(x$rhs$value[[1]], quote(rmultinom))))
+    any(deparse(x$rhs$value[[1]]) == c("rmultinom", "rmhyper"))))
   integer_vars <- unique(c(index_vars, integer_arrays, integer_inplace))
 
   err <- vcapply(eqs[integer_inplace], function(x) x$lhs$name_data) %in%
@@ -713,7 +713,8 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
 
   ## TODO: check that the right number of indices are used when using sum?
   array_special_function <-
-    c("sum", "odin_sum", "length", "dim", "interpolate", "rmultinom")
+    c("sum", "odin_sum", "length", "dim", "interpolate",
+      names(FUNCTIONS_INPLACE))
   nms <- names(rank)
 
   check <- function(e, array_special) {
@@ -753,7 +754,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
           throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
       } else {
-        if (f_nm == "rmultinom") {
+        if (f_nm == "rmultinom" || f_nm == "rmhyper") {
           arr_idx <- 2L
         } else {
           arr_idx <- 1L

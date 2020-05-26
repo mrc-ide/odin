@@ -61,3 +61,87 @@ test_that("as_numeric errors appropriately", {
   expect_error(as_numeric(TRUE), "Expected numeric input for 'TRUE'")
   expect_error(as_numeric("x"), "Expected numeric input for")
 })
+
+
+test_that("multivariate hypergeometric distribution", {
+  k <- c(6, 10, 15, 3, 0, 4)
+  n <- 20
+  N <- sum(k)
+
+  set.seed(1)
+  res <- t(replicate(5000, rmhyper(n, k)))
+
+  ## Population is preserved
+  expect_true(all(rowSums(res) == n))
+
+  ## Mean
+  expect_equal(colMeans(res), n * k / N, tolerance = 0.05)
+
+  ## Variance and covariance
+  expected <- outer(k, k, function(ki, kj)
+    - n * (N - n) / (N - 1) * ki / N * kj / N)
+  diag(expected) <- n * (N - n) / (N - 1) * k / N * (1 - k / N)
+  expect_equal(cov(res), expected, tolerance = 0.05)
+})
+
+
+test_that("prevent oversampling in rmhyper", {
+  expect_error(
+    rmhyper(100, 0:5),
+    "Requesting too many elements in rmhyper (100 from 15)",
+    fixed = TRUE)
+})
+
+
+test_that("multivariate hypergeometric distribution (C)", {
+  skip_on_cran()
+
+  lib <- read_user_c(system.file("library.c", package = "odin"))
+  impl <- unname(lib$definitions[c("rmhyper", "rmhyper_i", "rmhyper_d")])
+  code <- c(
+    "#include <R.h>",
+    "#include <Rmath.h>",
+    "#include <Rinternals.h>",
+    impl,
+    "SEXP test_rmhyper(SEXP n, SEXP k) {",
+    "  size_t m = (size_t) length(k);",
+    "  SEXP ret = PROTECT(allocVector(INTSXP, m));",
+    "  GetRNGstate();",
+    "  if (TYPEOF(k) == INTSXP) {",
+    "    rmhyper_i(INTEGER(n)[0], INTEGER(k), m, INTEGER(ret));",
+    "  } else {",
+    "    rmhyper_d(INTEGER(n)[0], REAL(k), m, INTEGER(ret));",
+    "  }",
+    "  PutRNGstate();",
+    "  UNPROTECT(1);",
+    "  return ret;",
+    "}")
+
+  path <- tempfile(fileext = ".c")
+  writeLines(code, path)
+  res <- compile(path, verbose = FALSE)
+  dyn.load(res$dll)
+  on.exit(dyn.unload(res$dll))
+
+  rmhyper_c <- function(n, k) {
+    .Call("test_rmhyper", as.integer(n), k, PACKAGE = res$base)
+  }
+
+  k <- c(6, 10, 15, 3, 0, 4)
+  n <- 20
+  set.seed(1)
+  a <- replicate(500, rmhyper(n, k))
+  set.seed(1)
+  b1 <- replicate(500, rmhyper_c(n, as.integer(k)))
+  set.seed(1)
+  b2 <- replicate(500, rmhyper_c(n, as.double(k)))
+
+  expect_equal(b1, a)
+  expect_equal(b2, a)
+  expect_identical(b1, b2)
+
+  expect_error(
+    rmhyper_c(100, as.integer(k)),
+    "Requesting too many elements in rmhyper (100 from 38)",
+    fixed = TRUE)
+})

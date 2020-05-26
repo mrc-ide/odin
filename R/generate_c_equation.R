@@ -51,6 +51,8 @@ generate_c_equation_inplace <- function(eq, data_info, dat, rewrite) {
   switch(
     fn,
     rmultinom = generate_c_equation_inplace_rmultinom(eq, lhs, dat, rewrite),
+    rmhyper = generate_c_equation_inplace_rmhyper(
+      eq, lhs, data_info, dat, rewrite),
     stop("unhandled array expression [odin bug]")) # nocov
 }
 
@@ -61,6 +63,18 @@ generate_c_equation_inplace_rmultinom <- function(eq, lhs, dat, rewrite) {
   stopifnot(!is.null(len))
   sprintf_safe("Rf_rmultinom(%s, %s, %s, %s);",
                rewrite(args[[1]]), rewrite(args[[2]]), len, lhs)
+}
+
+
+generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
+                                                rewrite) {
+  len <- data_info$dimnames$length
+  n <- eq$rhs$value[[2]]
+  src <- eq$rhs$value[[3]]
+  src_type <- dat$data$elements[[src]]$storage_type
+  fn <- if (src_type == "integer") "rmhyper_i" else "rmhyper_d"
+  sprintf_safe("%s(%s, %s, %s, %s);",
+               fn, rewrite(n), rewrite(src), rewrite(len), lhs)
 }
 
 
@@ -182,9 +196,17 @@ generate_c_equation_copy <- function(eq, data_info, dat, rewrite) {
   if (data_info$rank == 0L) {
     sprintf_safe("%s = %s;", target, rewrite(eq$lhs))
   } else {
-    sprintf_safe("memcpy(%s, %s, %s * sizeof(%s));",
-                 target, rewrite(eq$lhs), rewrite(data_info$dimnames$length),
-                 data_info$storage_type)
+    len <- rewrite(data_info$dimnames$length)
+    lhs <- rewrite(eq$lhs)
+    if (data_info$storage_type == "double") {
+      sprintf_safe("memcpy(%s, %s, %s * sizeof(%s));",
+                   target, lhs, len, data_info$storage_type)
+    } else {
+      offset <- rewrite(x$offset)
+      c(sprintf_safe("for (size_t i = 0; i < %s; ++i) {", len),
+        sprintf_safe("  output[%s + i] = %s[i];", offset, lhs),
+        sprintf_safe("}", len))
+    }
   }
 }
 

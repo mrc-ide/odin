@@ -148,3 +148,42 @@ as_numeric <- function(x, name = deparse(substitute(x))) {
     stop(sprintf("Expected numeric input for '%s'", name), call. = FALSE)
   }
 }
+
+
+## https://en.wikipedia.org/wiki/Hypergeometric_distribution
+## (section "Multivariate hypergeometric distribution")
+##
+## > the model of an urn with green and red marbles can be extended to
+## > the case where there are more than two colors of marbles. If
+## > there are K_i marbles of color i in the urn and you take n
+## > marbles at random without replacement, then the number of marbles
+## > of each color in the sample (k_1, k_2, ..., k_c) has the
+## > multivariate hypergeometric distribution. This has the same
+## > relationship to the multinomial distribution that the
+## > hypergeometric distribution has to the binomial distribution—the
+## > multinomial distribution is the "with-replacement" distribution
+## > and the multivariate hypergeometric is the "without-replacement"
+## > distribution.
+##
+## Expectations:
+##   E(K_i) => n * k_i / N
+##   Var(K_i) => n * (N - n) / (N - 1) * k_i / N * (1 - k_i / N)
+##   Cov(K_i, K_j) => - n * (N - n) / (N - 1) * k_i / N * k_j / N
+rmhyper <- function(n_sample, k) {
+  N <- sum(k)
+  if (n_sample > N) {
+    stop(sprintf("Requesting too many elements in rmhyper (%d from %d)",
+                 n_sample, N))
+  }
+  m <- length(k)
+  ret <- rep(0, m)
+  k_other <- N - k[[1L]]
+  ret[[1L]] <- rhyper(1, k[[1L]], k_other, n_sample)
+  for (i in seq_len(m - 1)[-1L]) {
+    k_other <- k_other - k[[i]]
+    n_sample <- n_sample - ret[i - 1]
+    ret[[i]] <- rhyper(1, k[[i]], k_other, n_sample)
+  }
+  ret[[m]] <- n_sample - ret[[m - 1]]
+  ret
+}

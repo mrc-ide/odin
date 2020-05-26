@@ -728,6 +728,10 @@ generate_c_compiled_library <- function(dat, is_package) {
     }
   }
 
+  if ("rmhyper" %in% used) {
+    v <- c(v, "rmhyper", "rmhyper_i", "rmhyper_d")
+  }
+
   v <- unique(v)
   msg <- setdiff(v, names(lib$declarations))
   if (length(msg) > 0L) {

@@ -19,7 +19,7 @@ generate_r_sexp <- function(x, data, meta) {
       quote(rexp(1L))
     } else {
       args <- lapply(args, generate_r_sexp, data, meta)
-      if (fn %in% names(FUNCTIONS_STOCHASTIC)) {
+      if (fn %in% names(FUNCTIONS_STOCHASTIC) && fn != "rmhyper") {
         args <- c(list(1L), args)
       }
       if (fn == "rbinom") {
