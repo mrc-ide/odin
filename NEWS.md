@@ -1,6 +1,7 @@
 # odin 1.0.3
 
 * Support for multivariate hypergeometric function via the odin function `rmhyper()` - there is no analogue for this in base R. Like `rmultinom` this returns a vector and the interface is subject to possible change (`mrc-1621`)
+* New vignette `functions`, which briefly describes all supported odin functions (`mrc-1623`)
 
 # odin 1.0.2
 

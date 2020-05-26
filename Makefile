@@ -53,11 +53,7 @@ clean:
 coverage:
 	Rscript -e 'covr::shine(covr::package_coverage(quiet=FALSE))'
 
-vignettes/odin.Rmd: vignettes/src/odin.R
-	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
-vignettes/discrete.Rmd: vignettes/src/discrete.R
-	${RSCRIPT} -e 'library(sowsear); sowsear("$<", output="$@")'
-vignettes: vignettes/odin.Rmd vignettes/discrete.Rmd
+vignettes: vignettes/odin.Rmd vignettes/discrete.Rmd vignettes/functions.Rmd
 	${RSCRIPT} -e 'library(methods); devtools::build_vignettes()'
 
 ir_reference:

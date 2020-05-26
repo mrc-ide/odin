@@ -1,0 +1,357 @@
+{
+    "basic": {
+        "+": {
+            "title": "Plus",
+            "description": "Both infix (`a + b`) and prefix (`+a`) versions supported",
+            "examples": [["1 + 2", "3"]]
+        },
+        "-": {
+            "title": "Minus",
+            "description": "Both infix (`a - b`) and prefix (`-a`) versions supported",
+            "examples": [["10 - 1", "9"]]
+        },
+        "*": {
+            "title": "Multiply",
+            "description": "Multiply two numbers together",
+            "examples": [["2 * 6", "12"]]
+        },
+        "/": {
+            "title": "Divide",
+            "description": "Divide two numbers",
+            "examples": [["12 / 6", "2"]]
+        },
+        "^": {
+            "title": "Power",
+            "description": "Raise the first number to the power of the second. Either number may be a floating point number",
+            "examples": [["2.3 ^ 1.2", "2.716898"]]
+        },
+        "(": {
+            "title": "Parenthesis",
+            "description": "Group expressions together",
+            "examples": [["(1 + 5) * 2", "12"]]
+        },
+        "if": {
+            "title": "Conditional",
+            "description": "Inline conditional statement. This takes a form slightly different to typically seen in R with the result of the statement directly assigned",
+            "examples": [["if (9 > 10) 1 else 2", "2"]]
+        }
+    },
+
+    "arrays": {
+        "sum": {
+            "title": "Sum",
+            "description": "Compute sum over an array, or over some dimension of an array"
+        },
+        "length": {
+            "title": "Length",
+            "description": "Total length of an array"
+        },
+        "dim": {
+            "title": "Length of one of an array's dimensions",
+            "description": "If an array `x` has 10 rows and 20 columns, then `dim(x, 1)` is `10` and `dim(x, 2)` is `20`. Note that this differs from `dim` in R and `dim(x, i)` is closer to `dim(x)[[i]]`"
+        },
+        "[": {
+            "title": "Subset an array",
+            "description": "See below"
+        },
+        "interpolate": {
+            "title": "Interpolate an array over time",
+            "description": "See below"
+        }
+    },
+
+    "operators": {
+        ">": {
+            "title": "Greater than",
+            "examples": [["1 > 2", "FALSE"]]
+        },
+        "<": {
+            "title": "Less than",
+            "examples": [["1 < 2", "TRUE"]]
+        },
+        ">=": {
+            "title": "Greater than or equal to",
+            "examples": [["1 >= 2", "FALSE"]]
+        },
+        "<=": {
+            "title": "Less than or equal to",
+            "examples": [["1 <= 2", "TRUE"]]
+        },
+        "==": {
+            "title": "Is exactly equal to",
+            "examples": [["1 == 1", "TRUE"]]
+        },
+        "!=": {
+            "title": "Is not exactly equal to",
+            "examples": [["1 != 2", "TRUE"]]
+            
+        },
+        "&&": {
+            "title": "Boolean AND",
+            "examples": [["(1 == 1) && (2 > 1)", "TRUE"]]
+        },
+        "||": {
+            "title": "Boolean OR",
+            "examples": [["(1 == 1) && (2 > 1)", "TRUE"]]
+        }
+    },
+
+    "maths": {
+        "%%": {
+            "title": "Modulo",
+            "description": "Finds the remainder after division of one number by another",
+            "examples": [["123 %% 100", "23"]]
+        },
+        "%/%": {
+            "title": "Integer divide",
+            "description": "Different to floating point division, effectively the full number of times one number divides into another",
+            "examples": [["20 %/% 7", "2"]]
+        },
+
+        "abs": {
+            "title": "Absolute value",
+            "examples": [["abs(-1)", "1"]]
+
+        },
+
+        "sign": {
+            "title": "Sign function",
+            "description": "Returns the sign of its argument as either -1, 0 or 1, which may be useful for multiplying by another argument",
+            "examples": [["sign(-100)", "-1"]]
+        },
+
+        "round": {
+            "title": "Round a number",
+            "examples": [["round(1.23)", "1"], ["round(1.23, 1)", "1.2"]]
+        },
+      
+        "floor": {
+            "title": "Floor of a number",
+            "description": "Largest integer not greater than the provided number",
+            "examples": [["floor(6.5)", "6"]]
+        },
+
+        "ceiling": {
+            "title": "Ceiling of a number",
+            "description": "Smallest integer not less than the provided number",
+            "examples": [["ceiling(6.5)", "7"]]
+        },
+
+        "trunc": {
+            "title": "Truncate a number",
+            "description": "Round a number towards zero"
+        },
+
+        "max": {
+            "title": "Maximum",
+            "description": "Returns maximum of all arguments given",
+            "examples": [["max(2, 6, 1)", "6"]]
+        },
+        "min": {
+            "title": "Minimum",
+            "title": "Returns minimum of all arguments given",
+            "examples": [["min(2, 6, 1)", "1"]]
+        },
+
+        "exp": {
+            "title": "Exponential function",
+            "examples": [["exp(1)", "2.718282"]]
+        },
+        "expm1": {
+            "title": "Computes exp(x) - 1 accurately for small |x|",
+            "examples": [["exp(1)", "1.718282"]]
+        },
+        "log": {
+            "title": "Logarithmic function",
+            "examples": [["log(1)", "0"]]
+        },
+        "log2": {
+            "title": "Logarithmic function in base 2",
+            "examples": [["log2(1024)", "10"]]
+            
+        },
+        "log10": {
+            "title": "Logarithmic function in base 10",
+            "examples": [["log10(1000)", "3"]]
+            
+        },
+        "log1p": {
+            "title": "Computes log(x + 1) accurately for small |x|",
+            "examples": [["log1p(1)", "0.6931472"]]
+        },
+        "sqrt": {
+            "title": "Square root function",
+            "examples": [["sqrt(4)", "2"]]
+        },
+
+        "beta": {
+            "title": "Beta function",
+            "examples": [["beta(3, 5)", "0.00952381"]]
+        },
+        "lbeta": {
+            "title": "Log beta function",
+            "examples": [["lbeta(3, 5)", "-4.65396"]]
+        },
+        "choose": {
+            "title": "Binomial coefficients",
+            "examples": [["choose(60, 3)", "34220"]]
+        },
+        "lchoose": {
+            "title": "Log binomial coefficients",
+            "examples": [["choose(60, 3)", "10.44057"]]
+        },
+        "gamma": {
+            "title": "Gamma function",
+            "examples": [["gamma(10)", "362880"]]
+        },
+        "lgamma": {
+            "title": "Log gamma function",
+            "examples": [["lgamma(10)", "12.80183"]]
+        }
+    },
+
+    "trig": {
+        "cos": {
+            "title": "Cosine function"
+        },
+        "sin": {
+            "title": "Sine function"
+        },
+        "tan": {
+            "title": "Tangent function"
+        },
+        "acos": {
+            "title": "Arc-cosine function"
+        },
+        "asin": {
+            "title": "Arc-sin function"
+        },
+        "atan": {
+            "title": "Arc-tangent function"
+        },
+        "atan2": {
+            "title": "Two-arg arc-tangent function"
+        },
+        "cosh": {
+            "title": "Hyperbolic cosine function"
+        },
+        "sinh": {
+            "title": "Hyperbolic sine function"
+        },
+        "tanh": {
+            "title": "Hyperbolic tangent function"
+        },
+        "acosh": {
+            "title": "Hyperbolic arc-cosine function"
+        },
+        "asinh": {
+            "title": "Hyperbolic arc-sine function"
+        },
+        "atanh": {
+            "title": "Hyperbolic arc-tangent function"
+        }
+    },
+
+    "stochastic": {
+        "unif_rand": {
+            "title": "Standard uniform distribution",
+            "description": "Sample from the uniform distribution on [0, 1] - more efficient than but equivalent to runif(0, 1)"
+        },
+        "norm_rand": {
+            "title": "Standard normal distribution",
+            "description": "Sample from the standard normal distribution - more efficient than but equivalent to rnorm(0, 1)"
+        },
+        "exp_rand": {
+            "title": "Standard exponential distribution",
+            "description": "Sample from the exponential distribution with rate 1 - more efficient than but equivalent to rexp(1)"
+        },
+
+        "rbeta": {
+            "title": "Beta distribution",
+            "description": "With parameters shape1 and shape2 (see `?rbeta` for details)"
+        },
+        "rbinom": {
+            "title": "Binomial distribution",
+            "description": "With parameters `size` (number of trials) and `prob` (probability of success)"
+        },
+        "rcauchy": {
+            "title": "Cauchy distribution",
+            "description": "With parameters `location` and `scale`"
+        },
+        "rchisq": {
+            "title": "Chi-Squared distribution",
+            "description": "With parameter `df`"
+        },
+        "rexp": {
+            "title": "Exponential distribution",
+            "description": "With parameter `rate`"
+        },
+        "rf": {
+            "title": "F-distribution",
+            "description": "With parameter `df1` and `df2"
+        },
+        "rgamma": {
+            "title": "Gamma distribution",
+            "description": "With parameters `shape` and `rate`"
+        },
+        "rgeom": {
+            "title": "Geometric distribution",
+            "description": "Distribution with parameters `prob`"
+        },
+        "rhyper": {
+            "title": "Hypergeometric distribution",
+            "description": "With parameters `m` (the number of white balls in the urn), `n` (the number of black balls in the urn) and `k` (the number of balls drawn from the urn)"
+        },
+        "rlogis": {
+            "title": "Logistic distribution",
+            "description": "With parameters `location` and `scale`"
+        },
+        "rlnorm": {
+            "title": "Log-normal distribution",
+            "description": "With parameters `meanlog` and `sdlog`"
+        },
+        "rnbinom": {
+            "title": "Negative binomial distribution",
+            "description": "With parameters `size`, `prob` and `mu`"
+        },
+        "rnorm": {
+            "title": "Normal distribution",
+            "description": "With parameters `mean` and `sd`"
+        },
+        "rpois": {
+            "title": "Poisson distribution",
+            "description": "With parameter `lambda`"
+        },
+        "rt": {
+            "title": "Student's t distribution",
+            "description": "With parameter `df`"
+        },
+        "runif": {
+            "title": "uniform distribution",
+            "description": "With parameters `min` and `max`"
+        },
+        "rweibull": {
+            "title": "Weibull distribution",
+            "description": "With parameters `shape` and `scale`"
+        },
+        "rwilcox": {
+            "title": "Wilcoxon rank sum statistic distribution",
+            "description": "With parameters `n` and `m`"
+        },
+        "rsignrank": {
+            "title": "Wilcoxon signed rank statistic distribution",
+            "description": "With parameter `n`"
+        }
+    },
+
+    "inplace": {        
+        "rmultinom": {
+            "title": "multinomial distribution",
+            "description": "The first parameter is the number of samples and the second is the per-class probability and must be a vector"
+        },
+        "rmhyper": {
+            "title": "Multivariate hypergeometric distribution",
+            "description": "The first parameter is the number of samples and the second is the per-class count and must be a vector"
+        }
+    }
+}       
