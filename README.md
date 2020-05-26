@@ -18,7 +18,7 @@
 * Interpolation functions can be used to include time-varying quantities into the model (piecewise constant, linear and spline interpolation is supported, using [`cinterpolate`](https://cran.r-project.org/package=cinterpolate).
 * The equations are analysed before compilation so that parts that do not depend on time are not included in the final derivative calculations.
 * Supports user-supplied parameters for any part of the system.
-* Supports a large number of mathematical functions
+* Supports a large number of mathematical functions (see the [functions vignette](https://mrc-ide.github.io/odin/articles/functions.html)) for a complete list.
 
 In addition, the same machinery can be used to generate discrete-time models that proceed over a set of steps (rather than through continuous time).  These may be stochastic and make use of any of R's random number functions.
 
@@ -107,7 +107,7 @@ t <- seq(0, 100, length.out = 50000)
 y <- mod$run(t)
 ```
 
-For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [vignette](https://mrc-ide.github.io/odin/articles/odin.html)
+For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [main package vignette](https://mrc-ide.github.io/odin/articles/odin.html)
 
 ## Limitations
 
