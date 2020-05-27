@@ -101,7 +101,7 @@ odin_package <- function(path_package) {
     include <- combine_include(include)
   }
 
-  lib <- list(declarations = NULL, definitions = NULL)
+  lib <- list(declarations = character(0), definitions = character(0))
   for (i in seq_along(dat)) {
     lib_i <- dat[[i]]$lib
     used <- lib_i$used
