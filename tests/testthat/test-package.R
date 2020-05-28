@@ -141,3 +141,30 @@ test_that("example package", {
   expect_equal(mod$deriv(0, c(10, 1, 1)),
                c(-90, 269, 22/3))
 })
+
+
+test_that("two sums example", {
+  skip_on_cran()
+
+  path <- tempfile()
+  dir.create(path)
+
+  src <- system.file("examples/package", package = "odin", mustWork = TRUE)
+  file.copy(src, path, recursive = TRUE)
+  pkg <- file.path(path, "package")
+
+  code <- c("deriv(x) <- sum(y[1, , ])",
+            "initial(x) <- 0",
+            "y[,,] <- 1",
+            "dim(y) <- c(2, 3, 4)")
+  writeLines(code, file.path(pkg, "inst/odin/z.R"))
+
+  odin_package(pkg)
+  res <- build_package(pkg)
+  on.exit(res$cleanup())
+
+  expect_is(res$env$z, "odin_generator")
+  mod <- res$env$z()
+  expect_equal(mod$initial(0), 0)
+  expect_equal(mod$deriv(0, 0), 12)
+})
