@@ -302,6 +302,13 @@ double odin_sum1(double *x, size_t from, size_t to) {
   return tot;
 }
 
+int odin_isum1(int *x, size_t from, size_t to) {
+  int tot = 0.0;
+  for (size_t i = from; i < to; ++i) {
+    tot += x[i];
+  }
+  return tot;
+}
 
 void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
   typedef void (*lagvalue_type)(double, int*, int, double*);
