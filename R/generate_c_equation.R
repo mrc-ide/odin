@@ -72,7 +72,7 @@ generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
   n <- eq$rhs$value[[2]]
   src <- eq$rhs$value[[3]]
   src_type <- dat$data$elements[[src]]$storage_type
-  fn <- if (src_type == "integer") "rmhyper_i" else "rmhyper_d"
+  fn <- if (src_type == "int") "rmhyper_i" else "rmhyper_d"
   sprintf_safe("%s(%s, %s, %s, %s);",
                fn, rewrite(n), rewrite(src), rewrite(len), lhs)
 }
