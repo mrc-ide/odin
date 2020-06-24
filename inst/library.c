@@ -302,6 +302,13 @@ double odin_sum1(double *x, size_t from, size_t to) {
   return tot;
 }
 
+int odin_isum1(int *x, size_t from, size_t to) {
+  int tot = 0.0;
+  for (size_t i = from; i < to; ++i) {
+    tot += x[i];
+  }
+  return tot;
+}
 
 void lagvalue_ds(double t, int *idx, int dim_idx, double *state) {
   typedef void (*lagvalue_type)(double, int*, int, double*);
@@ -353,7 +360,7 @@ void rmhyper(size_t n_sample, int *k, size_t m) {
   for (size_t i = 0; i < m; ++i) {
     N += k[i];
   }
-  if (n_sample > N) {
+  if ((int)n_sample > N) {
     Rf_error("Requesting too many elements in rmhyper (%d from %d)",
              n_sample, N);
   }

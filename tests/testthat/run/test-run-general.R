@@ -1245,3 +1245,25 @@ test_that("user parameter validation", {
     mod$set_user(user = list(x = 1), unused_user_action = "error"),
     "Unknown user parameters: x")
 })
+
+test_that("sum over integer", {
+  gen <- odin({
+    x[] <- user()
+    dim(x) <- user()
+    idx[] <- user()
+    dim(idx) <- user()
+    initial(v[]) <- x[idx[i]]
+    update(v[]) <- sum(idx)
+    dim(v) <- length(x)
+  })
+
+  set.seed(1)
+  idx <- sample(15)
+  x <- runif(length(idx))
+  mod <- gen(x = x, idx = idx)
+  dat <- mod$contents()
+  expect_equal(dat$idx, idx)
+  expect_equal(dat$initial_v, x[idx])
+  expect_equal(mod$update(0, mod$initial(0)),
+               rep(sum(idx), 15))
+})

@@ -705,7 +705,7 @@ generate_c_compiled_library <- function(dat, is_package) {
     v <- c(v, "fintdiv")
   }
   if ("sum" %in% used) {
-    v <- c(v, "odin_sum1")
+    v <- c(v, "odin_sum1", "odin_isum1")
   }
 
   if ("odin_sum" %in% used) {

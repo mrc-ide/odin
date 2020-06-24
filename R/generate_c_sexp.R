@@ -78,10 +78,15 @@ generate_c_sexp <- function(x, data, meta, supported) {
 generate_c_sexp_sum <- function(args, data, meta, supported) {
   target <- generate_c_sexp(args[[1]], data, meta, supported)
   data_info <- data$elements[[args[[1]]]]
+  type <- data_info$storage_type
   if (length(args) == 1L) {
+    fn <- if (type == "int") "odin_isum1" else "odin_sum1"
     len <- generate_c_sexp(data_info$dimnames$length, data, meta, supported)
-    sprintf("odin_sum1(%s, 0, %s)", target, len)
+    sprintf("%s(%s, 0, %s)", fn, target, len)
   } else {
+    if (type == "int") {
+      stop("Partial integer sums not yet supported")
+    }
     i <- seq(2, length(args), by = 2)
 
     all_args <- c(args, as.list(data_info$dimnames$mult[-1]))

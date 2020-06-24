@@ -72,7 +72,7 @@ generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
   n <- eq$rhs$value[[2]]
   src <- eq$rhs$value[[3]]
   src_type <- dat$data$elements[[src]]$storage_type
-  fn <- if (src_type == "integer") "rmhyper_i" else "rmhyper_d"
+  fn <- if (src_type == "int") "rmhyper_i" else "rmhyper_d"
   sprintf_safe("%s(%s, %s, %s, %s);",
                fn, rewrite(n), rewrite(src), rewrite(len), lhs)
 }
@@ -203,7 +203,7 @@ generate_c_equation_copy <- function(eq, data_info, dat, rewrite) {
                    target, lhs, len, data_info$storage_type)
     } else {
       offset <- rewrite(x$offset)
-      c(sprintf_safe("for (size_t i = 0; i < %s; ++i) {", len),
+      c(sprintf_safe("for (int i = 0; i < %s; ++i) {", len),
         sprintf_safe("  output[%s + i] = %s[i];", offset, lhs),
         sprintf_safe("}", len))
     }
