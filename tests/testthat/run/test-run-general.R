@@ -1252,7 +1252,7 @@ test_that("sum over integer", {
     dim(x) <- user()
     idx[] <- user()
     dim(idx) <- user()
-    initial(v[]) <- x[idx[i]] # TODO: fixme
+    initial(v[]) <- x[idx[i]]
     update(v[]) <- sum(idx)
     dim(v) <- length(x)
   })
