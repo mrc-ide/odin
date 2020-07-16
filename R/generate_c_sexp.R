@@ -28,6 +28,7 @@ generate_c_sexp <- function(x, data, meta, supported) {
       ret <- generate_c_sexp(data$elements[[args[[1L]]]]$dimnames$length,
                              data, meta, supported)
     } else if (fn == "dim") {
+      args[[1]] <- sub(sprintf("^%s->", INTERNAL), "", args[[1]])
       dim <- data$elements[[args[[1L]]]]$dimnames$dim[[args[[2]]]]
       ret <- generate_c_sexp(dim, data, meta, supported)
     } else if (fn %in% c("norm_rand", "unif_rand", "exp_rand")) {
@@ -77,7 +78,7 @@ generate_c_sexp <- function(x, data, meta, supported) {
 
 generate_c_sexp_sum <- function(args, data, meta, supported) {
   target <- generate_c_sexp(args[[1]], data, meta, supported)
-  data_info <- data$elements[[args[[1]]]]
+  data_info <- data$elements[[sub(sprintf("^%s->", INTERNAL), "", args[[1]])]]
   type <- data_info$storage_type
   if (length(args) == 1L) {
     fn <- if (type == "int") "odin_isum1" else "odin_sum1"
