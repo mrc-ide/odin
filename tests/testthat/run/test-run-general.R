@@ -940,6 +940,18 @@ test_that("sum initial condition from initial condition", {
   expect_equal(gen()$initial(0), c(10, rep(1, 100)))
 })
 
+test_that("another initial condition failure", {
+  gen <- odin({
+    deriv(a[]) <- 1
+    deriv(b) <- 1
+    initial(a[]) <- 1
+    initial(b) <- n
+    n <- sum(a)
+    dim(a) <- 10
+  })
+  expect_equal(gen()$initial(0), c(10, rep(1, 10)))
+})
+
 test_that("self output for scalar", {
   gen <- odin({
     initial(a) <- 1
