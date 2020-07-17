@@ -928,6 +928,30 @@ test_that("sum for a 4d array", {
   expect_equal(dat$m24, apply(a, c(2, 4), sum))
 })
 
+test_that("sum initial condition from initial condition", {
+  gen <- odin({
+    update(a[, ]) <- 1
+    update(b) <- 1
+    initial(a[, ]) <- 1
+    initial(b) <- n
+    n <- sum(a[1, ])
+    dim(a) <- c(10, 10)
+  })
+  expect_equal(gen()$initial(0), c(10, rep(1, 100)))
+})
+
+test_that("another initial condition failure", {
+  gen <- odin({
+    deriv(a[]) <- 1
+    deriv(b) <- 1
+    initial(a[]) <- 1
+    initial(b) <- n
+    n <- sum(a)
+    dim(a) <- 10
+  })
+  expect_equal(gen()$initial(0), c(10, rep(1, 10)))
+})
+
 test_that("self output for scalar", {
   gen <- odin({
     initial(a) <- 1
