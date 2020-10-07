@@ -1,3 +1,7 @@
+# odin 1.0.7
+
+* Support for `as.integer()` to cast to integer for use within array expressions (#200)
+
 # odin 1.0.6
 
 * Fixed bug in code generation for initial conditions involving sums of matrices (#196)
