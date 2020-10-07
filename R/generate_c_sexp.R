@@ -43,6 +43,8 @@ generate_c_sexp <- function(x, data, meta, supported) {
       ret <- c_fold_call(paste0("f", fn), values)
     } else if (fn == "sum" || fn == "odin_sum") {
       ret <- generate_c_sexp_sum(args, data, meta, supported)
+    } else if (fn == "as.integer") {
+      ret <- sprintf("(int) (%s)", values[[1L]])
     } else {
       if (fn == "rbinom") {
         ## This is a little extreme but is useful in at least some
