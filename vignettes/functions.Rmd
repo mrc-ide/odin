@@ -116,6 +116,22 @@ for (i in 1:dim(ay, 1)) {
 }
 ```
 
+Due to constraints with using C, few things can be used as an index; in particular the following will not work:
+
+```r
+idx <- if (t > 5) 2 else 1
+x <- vec[idx]
+```
+
+(or where `idx` is some general odin variable as the result of a different assignment). You must use `as.integer` to cast this to integer immediately before indexing:
+
+```r
+idx <- if (t > 5) 2 else 1
+x <- vec[as.integer(idx)]
+```
+
+This will *truncate* the value (same behaviour as `truncate`) so be warned if passing in things that may be approximately integer - you may want to use `as.integer(round(x))` in that case.
+
 The interpolation functions are described in more detail in the
 [main package vignette](odin.html)
 

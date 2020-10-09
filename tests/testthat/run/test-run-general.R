@@ -1291,3 +1291,34 @@ test_that("sum over integer", {
   expect_equal(mod$update(0, mod$initial(0)),
                rep(sum(idx), 15))
 })
+
+
+test_that("force integer on use", {
+  gen <- odin({
+    vec[] <- i
+    dim(vec) <- 2
+    idx <- if (t > 5) 2 else 1
+    deriv(x) <- vec[as.integer(idx)]
+    initial(x) <- 0
+  })
+
+  mod <- gen()
+  t <- seq(0, 10, length.out = 101)
+  y <- mod$run(t, atol = 1e-9, rtol = 1e-9)
+  expect_equal(y[, 2], ifelse(t <= 5, t, 2 * t - 5))
+})
+
+
+test_that("force integer on a numeric vector truncates", {
+  gen <- odin({
+    vec[] <- i
+    dim(vec) <- 10
+    idx <- user()
+    initial(x) <- vec[as.integer(idx)]
+    deriv(x) <- 0
+  })
+
+  expect_equal(gen(idx = 1.5)$initial(), 1)
+  expect_equal(gen(idx = 3 - 1e-8)$initial(), 2)
+  expect_equal(gen(idx = 3 + 1e-8)$initial(), 3)
+})

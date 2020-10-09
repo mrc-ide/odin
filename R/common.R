@@ -27,7 +27,7 @@ INTERNAL <- "internal"
 RESERVED <- c(INDEX, TIME, STEP, STATE, DSTATEDT, STATE_NEXT, USER,
               SPECIAL_LHS, "delay", "dde", INTERNAL)
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
-VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[")
+VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[", "as.integer")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 SPECIAL_DATA_TYPES <- c("void", "ring_buffer")
 
@@ -94,6 +94,7 @@ FUNCTIONS <- list(
   trunc = 1L,
   floor = 1L,
   ceil = 1L,
+  as.integer = 1L,
   ## Big pile of trig:
   cos = 1L,   sin = 1L,   tan = 1L,
   acos = 1L,  asin = 1L,  atan = 1L,  atan2 = 2L,
