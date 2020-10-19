@@ -33,6 +33,7 @@ Imports:
     crayon,
     deSolve,
     digest,
+    glue,
     jsonlite,
     ring
 Suggests:

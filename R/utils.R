@@ -219,3 +219,19 @@ odin_message <- function(msg, verbose) {
 new_empty_env <- function() {
   new.env(parent = emptyenv())
 }
+
+
+odin_file <- function(...) {
+  system.file(..., package = "odin", mustWork = TRUE)
+}
+
+
+glue_whisker <- function(template, data) {
+  glue::glue(template, .envir = data, .open = "{{", .close = "}}",
+             .trim = FALSE)
+}
+
+
+read_lines <- function(path) {
+  paste(readLines(path), collapse = "\n")
+}
