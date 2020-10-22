@@ -205,7 +205,7 @@ generate_c_equation_copy <- function(eq, data_info, dat, rewrite) {
       offset <- rewrite(x$offset)
       c(sprintf_safe("for (int i = 0; i < %s; ++i) {", len),
         sprintf_safe("  output[%s + i] = %s[i];", offset, lhs),
-        sprintf_safe("}", len))
+        sprintf_safe("}"))
     }
   }
 }
