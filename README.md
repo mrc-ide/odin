@@ -140,7 +140,7 @@ Install odin from CRAN with
 install.packages("odin")
 ```
 
-Alternatively, you can install a potentially more recent version of odin from the [`mrc-ide` drat repository](https://mrc-ide.github.io/drat)
+Alternatively, you can install a potentially more recent version of odin from the [`mrc-ide` drat repository](https://mrc-ide.github.io/drat/)
 
 ```r
 # install.packages("drat") # -- if you don't have drat installed
