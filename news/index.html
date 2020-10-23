@@ -17,23 +17,27 @@
 <link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png" />
 
 <!-- jquery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous" />
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script>
+
+<!-- bootstrap-toc -->
+<link rel="stylesheet" href="../bootstrap-toc.css">
+<script src="../bootstrap-toc.js"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script>
 
 <!-- headroom.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/headroom.min.js" integrity="sha256-DJFC1kqIhelURkuza0AvYal5RxMtpzLjFhsnVIeuk+U=" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
 
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
@@ -44,7 +48,6 @@
 
 <meta property="og:title" content="Changelog" />
 <meta property="og:image" content="/logo.png" />
-<meta name="twitter:card" content="summary" />
 
 
 
@@ -62,7 +65,7 @@
 
   </head>
 
-  <body>
+  <body data-spy="scroll" data-target="#toc">
     <div class="container template-news">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -76,7 +79,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.5</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.8</span>
       </span>
     </div>
 
@@ -115,7 +118,7 @@
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-  <a href="https://github.com/mrc-ide/odin">
+  <a href="https://github.com/mrc-ide/odin/">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -133,12 +136,28 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Changelog <small></small></h1>
+      <h1 data-toc-skip>Changelog <small></small></h1>
       <small>Source: <a href='https://github.com/mrc-ide/odin/blob/master/NEWS.md'><code>NEWS.md</code></a></small>
     </div>
 
+    <div id="odin-107" class="section level1">
+<h1 class="page-header" data-toc-text="1.0.7">
+<a href="#odin-107" class="anchor"></a>odin 1.0.7<small> Unreleased </small>
+</h1>
+<ul>
+<li>Support for <code><a href="https://rdrr.io/r/base/integer.html">as.integer()</a></code> to cast to integer for use within array expressions (<a href='https://github.com/mrc-ide/odin/issues/200'>#200</a>)</li>
+</ul>
+</div>
+    <div id="odin-106" class="section level1">
+<h1 class="page-header" data-toc-text="1.0.6">
+<a href="#odin-106" class="anchor"></a>odin 1.0.6<small> Unreleased </small>
+</h1>
+<ul>
+<li>Fixed bug in code generation for initial conditions involving sums of matrices (<a href='https://github.com/mrc-ide/odin/issues/196'>#196</a>)</li>
+</ul>
+</div>
     <div id="odin-103" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="1.0.3">
 <a href="#odin-103" class="anchor"></a>odin 1.0.3<small> Unreleased </small>
 </h1>
 <ul>
@@ -147,7 +166,7 @@
 </ul>
 </div>
     <div id="odin-102" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="1.0.2">
 <a href="#odin-102" class="anchor"></a>odin 1.0.2<small> Unreleased </small>
 </h1>
 <ul>
@@ -155,7 +174,7 @@
 </ul>
 </div>
     <div id="odin-100" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="1.0.0">
 <a href="#odin-100" class="anchor"></a>odin 1.0.0<small> Unreleased </small>
 </h1>
 <ul>
@@ -163,7 +182,7 @@
 </ul>
 </div>
     <div id="odin-026" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.2.6">
 <a href="#odin-026" class="anchor"></a>odin 0.2.6<small> Unreleased </small>
 </h1>
 <ul>
@@ -171,7 +190,7 @@
 </ul>
 </div>
     <div id="odin-024" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.2.4">
 <a href="#odin-024" class="anchor"></a>odin 0.2.4<small> Unreleased </small>
 </h1>
 <ul>
@@ -180,7 +199,7 @@
 </ul>
 </div>
     <div id="odin-023" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.2.3">
 <a href="#odin-023" class="anchor"></a>odin 0.2.3<small> Unreleased </small>
 </h1>
 <ul>
@@ -189,7 +208,7 @@
 </ul>
 </div>
     <div id="odin-022" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.2.2">
 <a href="#odin-022" class="anchor"></a>odin 0.2.2<small> Unreleased </small>
 </h1>
 <ul>
@@ -197,7 +216,7 @@
 </ul>
 </div>
     <div id="odin-021" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.2.1">
 <a href="#odin-021" class="anchor"></a>odin 0.2.1<small> Unreleased </small>
 </h1>
 <ul>
@@ -205,7 +224,7 @@
 </ul>
 </div>
     <div id="odin-020" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.2.0">
 <a href="#odin-020" class="anchor"></a>odin 0.2.0<small> Unreleased </small>
 </h1>
 <p>A complete rewrite of the odin engine, designed to increase future maintainability but have few user-visible effects. In brief, this does add</p>
@@ -229,7 +248,7 @@
 <p>Fixes many outstanding issues: <a href="https://github.com/mrc-ide/odin/issues/139"><a href='https://github.com/mrc-ide/odin/issues/139'>#139</a></a>, <a href="https://github.com/mrc-ide/odin/issues/136"><a href='https://github.com/mrc-ide/odin/issues/136'>#136</a></a>, <a href="https://github.com/mrc-ide/odin/issues/132"><a href='https://github.com/mrc-ide/odin/issues/132'>#132</a></a>, <a href="https://github.com/mrc-ide/odin/issues/130"><a href='https://github.com/mrc-ide/odin/issues/130'>#130</a></a>, <a href="https://github.com/mrc-ide/odin/issues/129"><a href='https://github.com/mrc-ide/odin/issues/129'>#129</a></a>, <a href="https://github.com/mrc-ide/odin/issues/127"><a href='https://github.com/mrc-ide/odin/issues/127'>#127</a></a>, <a href="https://github.com/mrc-ide/odin/issues/123"><a href='https://github.com/mrc-ide/odin/issues/123'>#123</a></a>, <a href="https://github.com/mrc-ide/odin/issues/122"><a href='https://github.com/mrc-ide/odin/issues/122'>#122</a></a>, <a href="https://github.com/mrc-ide/odin/issues/121"><a href='https://github.com/mrc-ide/odin/issues/121'>#121</a></a>, <a href="https://github.com/mrc-ide/odin/issues/120"><a href='https://github.com/mrc-ide/odin/issues/120'>#120</a></a>, <a href="https://github.com/mrc-ide/odin/issues/117"><a href='https://github.com/mrc-ide/odin/issues/117'>#117</a></a>, <a href="https://github.com/mrc-ide/odin/issues/115"><a href='https://github.com/mrc-ide/odin/issues/115'>#115</a></a>, <a href="https://github.com/mrc-ide/odin/issues/112"><a href='https://github.com/mrc-ide/odin/issues/112'>#112</a></a>, <a href="https://github.com/mrc-ide/odin/issues/106"><a href='https://github.com/mrc-ide/odin/issues/106'>#106</a></a>, <a href="https://github.com/mrc-ide/odin/issues/99"><a href='https://github.com/mrc-ide/odin/issues/99'>#99</a></a>, <a href="https://github.com/mrc-ide/odin/issues/98"><a href='https://github.com/mrc-ide/odin/issues/98'>#98</a></a>, <a href="https://github.com/mrc-ide/odin/issues/84"><a href='https://github.com/mrc-ide/odin/issues/84'>#84</a></a>, <a href="https://github.com/mrc-ide/odin/issues/72"><a href='https://github.com/mrc-ide/odin/issues/72'>#72</a></a>, <a href="https://github.com/mrc-ide/odin/issues/64"><a href='https://github.com/mrc-ide/odin/issues/64'>#64</a></a>, <a href="https://github.com/mrc-ide/odin/issues/57"><a href='https://github.com/mrc-ide/odin/issues/57'>#57</a></a>, <a href="https://github.com/mrc-ide/odin/issues/52"><a href='https://github.com/mrc-ide/odin/issues/52'>#52</a></a>, <a href="https://github.com/mrc-ide/odin/issues/12"><a href='https://github.com/mrc-ide/odin/issues/12'>#12</a></a>, <a href="https://github.com/mrc-ide/odin/issues/4"><a href='https://github.com/mrc-ide/odin/issues/4'>#4</a></a></p>
 </div>
     <div id="odin-012" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.1.2">
 <a href="#odin-012" class="anchor"></a>odin 0.1.2<small> Unreleased </small>
 </h1>
 <ul>
@@ -237,7 +256,7 @@
 </ul>
 </div>
     <div id="odin-0010" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.0.10">
 <a href="#odin-0010" class="anchor"></a>odin 0.0.10<small> Unreleased </small>
 </h1>
 <ul>
@@ -245,7 +264,7 @@
 </ul>
 </div>
     <div id="odin-009" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.0.9">
 <a href="#odin-009" class="anchor"></a>odin 0.0.9<small> Unreleased </small>
 </h1>
 <ul>
@@ -254,7 +273,7 @@
 </ul>
 </div>
     <div id="odin-006" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.0.6">
 <a href="#odin-006" class="anchor"></a>odin 0.0.6<small> Unreleased </small>
 </h1>
 <ul>
@@ -263,7 +282,7 @@
 </ul>
 </div>
     <div id="odin-005" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.0.5">
 <a href="#odin-005" class="anchor"></a>odin 0.0.5<small> Unreleased </small>
 </h1>
 <ul>
@@ -274,7 +293,7 @@
 </ul>
 </div>
     <div id="odin-004" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.0.4">
 <a href="#odin-004" class="anchor"></a>odin 0.0.4<small> Unreleased </small>
 </h1>
 <ul>
@@ -282,7 +301,7 @@
 </ul>
 </div>
     <div id="odin-003" class="section level1">
-<h1 class="page-header">
+<h1 class="page-header" data-toc-text="0.0.3">
 <a href="#odin-003" class="anchor"></a>odin 0.0.3<small> Unreleased </small>
 </h1>
 <ul>
@@ -291,28 +310,10 @@
 </div>
   </div>
 
-  <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
-    <div id="tocnav">
-      <h2>Contents</h2>
-      <ul class="nav nav-pills nav-stacked">
-        <li><a href="#odin-103">1.0.3</a></li>
-        <li><a href="#odin-102">1.0.2</a></li>
-        <li><a href="#odin-100">1.0.0</a></li>
-        <li><a href="#odin-026">0.2.6</a></li>
-        <li><a href="#odin-024">0.2.4</a></li>
-        <li><a href="#odin-023">0.2.3</a></li>
-        <li><a href="#odin-022">0.2.2</a></li>
-        <li><a href="#odin-021">0.2.1</a></li>
-        <li><a href="#odin-020">0.2.0</a></li>
-        <li><a href="#odin-012">0.1.2</a></li>
-        <li><a href="#odin-0010">0.0.10</a></li>
-        <li><a href="#odin-009">0.0.9</a></li>
-        <li><a href="#odin-006">0.0.6</a></li>
-        <li><a href="#odin-005">0.0.5</a></li>
-        <li><a href="#odin-004">0.0.4</a></li>
-        <li><a href="#odin-003">0.0.3</a></li>
-      </ul>
-    </div>
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+    <nav id="toc" data-toggle="toc" class="sticky-top">
+      <h2 data-toc-skip>Contents</h2>
+    </nav>
   </div>
 
 </div>
@@ -324,7 +325,7 @@
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.4.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>

@@ -1,8 +1,9 @@
-pandoc: '2.5'
-pkgdown: 1.4.1
+pandoc: 2.7.3
+pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
   discrete: discrete.html
   functions: functions.html
   odin: odin.html
+last_built: 2020-10-23T16:06Z
 
