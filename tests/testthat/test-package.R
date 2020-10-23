@@ -1,6 +1,7 @@
 context("package")
 
 test_that("generate package", {
+  skip_on_windows_gha()
   files <- sprintf("examples/%s_odin.R", ODIN_TO_TEST[1:2])
   res <- odin_create_package("example", files)
   on.exit(res$cleanup())
@@ -28,6 +29,7 @@ test_that("generate package", {
 })
 
 test_that("interpolation", {
+  skip_on_windows_gha()
   res <- odin_create_package("interpolation", "examples/interpolate_odin.R")
   on.exit(res$cleanup())
 
@@ -59,6 +61,7 @@ test_that("interpolation", {
 
 
 test_that("ring", {
+  skip_on_windows_gha()
   path <- "pkg/inst/odin/discretedelay.R"
   res <- odin_create_package("discretedelay", path)
   on.exit(res$cleanup())
@@ -71,6 +74,7 @@ test_that("ring", {
 
 
 test_that("user_c", {
+  skip_on_windows_gha()
   path <- c("pkg/inst/odin/pulse.R", "user_fns.c")
   res <- odin_create_package("pulse", path)
   on.exit(res$cleanup())
@@ -124,6 +128,7 @@ test_that("error cases", {
 ## Same as the example:
 test_that("example package", {
   skip_on_cran()
+  skip_on_windows_gha()
   path <- tempfile()
   dir.create(path)
 
@@ -145,6 +150,7 @@ test_that("example package", {
 
 test_that("two sums example", {
   skip_on_cran()
+  skip_on_windows_gha()
 
   path <- tempfile()
   dir.create(path)

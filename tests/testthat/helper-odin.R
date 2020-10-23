@@ -13,6 +13,25 @@ on_cran <- function() {
 }
 
 
+on_windows <- function() {
+  tolower(Sys.info()[["sysname"]]) == "windows"
+}
+
+
+on_ci <- function() {
+  isTRUE(as.logical(Sys.getenv("CI")))
+}
+
+
+skip_on_windows_gha <- function() {
+  ## There are mystery issues with finding the odin package being
+  ## tested on windows gha
+  if (on_ci() && on_windows()) {
+    testthat::skip("On Windows Github Actions")
+  }
+}
+
+
 validate_ir <- function() {
   ## Not worth the faff, and not expected to fail anyway
   if (on_cran()) {

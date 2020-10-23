@@ -2,9 +2,7 @@
 
 <!-- badges: start -->
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Travis-CI Build Status](https://travis-ci.org/mrc-ide/odin.svg?branch=master)](https://travis-ci.org/mrc-ide/odin)
-[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/wmdbqbgrqw26xan5/branch/master?svg=true)](https://ci.appveyor.com/project/richfitz/odin-hpgj3/branch/master)
-[![codecov.io](https://codecov.io/github/mrc-ide/odin/coverage.svg?branch=master)](https://codecov.io/github/mrc-ide/odin?branch=master)
+[![R build status](https://github.com/mrc-ide/odin/workflows/R-CMD-check/badge.svg)](https://github.com/mrc-ide/odin/actions)
 [![](https://www.r-pkg.org/badges/version/odin)](https://cran.r-project.org/package=odin)
 <!-- badges: end -->
 
@@ -140,7 +138,7 @@ Install odin from CRAN with
 install.packages("odin")
 ```
 
-Alternatively, you can install a potentially more recent version of odin from the [`mrc-ide` drat repository](https://mrc-ide.github.io/drat)
+Alternatively, you can install a potentially more recent version of odin from the [`mrc-ide` drat repository](https://mrc-ide.github.io/drat/)
 
 ```r
 # install.packages("drat") # -- if you don't have drat installed

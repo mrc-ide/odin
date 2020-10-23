@@ -862,7 +862,7 @@ ir_parse_expr_rhs_user <- function(rhs, line, source) {
   if (!is.null(extra)) {
     ir_parse_error(sprintf("Unknown %s to user(): %s",
                            ngettext(length(extra), "argument", "arguments"),
-                           paste(squote(names(extra))), collapse = ", "),
+                           paste(squote(names(extra)), collapse = ", ")),
                    line, source)
   }
 

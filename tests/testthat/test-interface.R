@@ -15,6 +15,7 @@ test_that("verbose", {
 })
 
 test_that("warnings", {
+  skip_on_cran() # this test is platform specific!
   code <- quote({
     initial(a) <- 1
     deriv(a) <- if (t > 8 || t > 1 && t < 3) 1 else 0

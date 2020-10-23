@@ -18,7 +18,7 @@ ir_parse_note <- function(msg, line, source) {
 ir_parse_error_data <- function(msg, line, source, type) {
   if (length(line) > 0L) {
     expr <- source[line]
-    str <- sprintf(ifelse(is.na(line), "%s", "%s # (line %s)"), expr, line)
+    str <- sprintf("%s # (line %s)", expr, line)
     message <- paste0(msg, paste0("\n\t", str, collapse = ""))
   } else {
     ## There are not many cases that will trigger this - the most used

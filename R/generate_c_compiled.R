@@ -260,7 +260,7 @@ generate_c_compiled_deriv_dde <- function(dat) {
   body <- sprintf_safe("%s((%s*)%s, %s, %s, %s, NULL);",
                        dat$meta$c$rhs, dat$meta$c$internal_t,
                        dat$meta$internal, dat$meta$time, dat$meta$state,
-                       dat$meta$result, dat$meta$output)
+                       dat$meta$result)
   c_function("void", dat$meta$c$rhs_dde, args, body)
 }
 
