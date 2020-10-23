@@ -28,3 +28,4 @@
 ^development\.md$
 ^docker$
 ^\.dockerignore$
+^\.github$
