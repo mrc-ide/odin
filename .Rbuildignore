@@ -29,3 +29,4 @@
 ^docker$
 ^\.dockerignore$
 ^\.github$
+^.lintr$

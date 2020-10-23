@@ -35,7 +35,7 @@ odin_preprocess <- function(x, type = NULL) {
 
   ## TODO: This is a bit of a hack to avoid rewriting all the uses of
   ## odin_parse in the tests.  They could be rewritten using a fn
-  ##   odin_parse2 <- function(x) odin_parse(odin_preprocess(x))
+  ## > odin_parse2 <- function(x) odin_parse(odin_preprocess(x))
   ## perhaps?
   attr(ret, "odin_preprocessed") <- TRUE
   ret

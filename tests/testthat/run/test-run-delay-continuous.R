@@ -357,17 +357,17 @@ test_that("compute derivative", {
   })
 
   ## The analytic solution here is:
-  ##   a = -cos(t)
-  ##   b = if t <= pi / 4 => -t
-  ##       else           => cos(t + pi / 4) - pi / 4
-  ##   x = if t <= pi / 4 => -1
-  ##       else           => -cos(t - pi / 4)
+  ## >  a = -cos(t)
+  ## >  b = if t <= pi / 4 => -t
+  ## >      else           => cos(t + pi / 4) - pi / 4
+  ## >  x = if t <= pi / 4 => -1
+  ## >      else           => -cos(t - pi / 4)
   ##
   ## The derivative calculations are:
   ##
-  ##   da/dt = sin(t)
-  ##   db/dt = if initialised => -cos(t)
-  ##           else           => -1
+  ## >  da/dt = sin(t)
+  ## >  db/dt = if initialised => -cos(t)
+  ## >          else           => -1
   mod <- gen()
   expect_identical(mod$contents()$initial_t, NA_real_)
 

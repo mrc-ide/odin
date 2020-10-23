@@ -292,8 +292,8 @@ gen <- odin::odin({
 
   y0[] <- user()
   r[] <- user()
-  a[,] <- user()
-  ay[,] <- a[i, j] * y[j]
+  a[, ] <- user()
+  ay[, ] <- a[i, j] * y[j]
 
   dim(r) <- user()
   n_spp <- length(r)
@@ -387,7 +387,7 @@ you'd write:
 z[] <- interpolate(tt, y)
 dim(z) <- 4
 tt[] <- user()
-y[,] <- user()
+y[, ] <- user()
 dim(tt) <- user()
 dim(y) <- c(length(tt), length(z))
 ```

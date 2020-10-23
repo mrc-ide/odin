@@ -1,7 +1,7 @@
 ## This generates non-inclusive ranges; so a full sum will be passed
 ## in as:
 ##
-##   odin_sum1(x, 0, length(x))
+## > odin_sum1(x, 0, length(x))
 ##
 ## The rewriter generate_c_sexp_sum takes care of converting 'from'
 ## into a base-0 index

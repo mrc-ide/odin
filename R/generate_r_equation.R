@@ -339,14 +339,14 @@ generate_r_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
 
 
 ## For internal storage we can do:
-##   STORAGE[[NAME]][i, j]
+## > STORAGE[[NAME]][i, j]
 ## but the variable/output case is different as it's
-##   STORAGE[OFFSET + f(i, j)]
+## > STORAGE[OFFSET + f(i, j)]
 ##
 ## In C we'll do this as
-##   STORAGE->NAME[f(i, j)]
+## > STORAGE->NAME[f(i, j)]
 ## and
-##   STORAGE[OFFSET + f(i, j)]
+## > STORAGE[OFFSET + f(i, j)]
 generate_r_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
   ## All the rhs have the same structure so we can use any of them
   ## here - we need only to get the index element out

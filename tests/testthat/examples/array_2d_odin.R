@@ -7,20 +7,12 @@ age_width[3] <- 365 * 10
 age_width[4] <- 365 * 15
 age_width[5] <- 365 * 20
 
-## This is not used, but if uncommented will define a new integer:
-##   nn <- length(age_width)
-
 age_rate[1:(N_age - 1)] <- 1 / age_width[i]
 age_rate[N_age] <- 0
 
 den[1] <- 1 / (1 + age_rate[1] / b)
 ## to work out the % of the population in each age group
 den[2:N_age] <- age_rate[i - 1] * den[i - 1] / (age_rate[i] + b)
-
-## test to make sure densities add up to 1
-##   TODO: should do an assert in here?
-##   TODO: sum not yet supported
-## den_tot <- sum(den)
 
 initial(y[1:N_age, 1]) <- den[i] * (N - I0)
 initial(y[1:N_age, 2]) <- den[i] * I0
@@ -39,18 +31,18 @@ I_tot <- sum(y[, 2])
 
 deriv(y[1, 1]) <- - beta * y[i, 1] * I_tot / N + delta * y[i, 3] - b * y[i, 1] +
   (Births - age_rate[i] * y[i, 1])
-deriv(y[2:N_age, 1]) <- - beta * y[i, 1] * I_tot / N + delta * y[i, 3] - b * y[i, 1] +
-  (age_rate[i-1] * y[i-1, 1] - age_rate[i]*y[i, 1])
+deriv(y[2:N_age, 1]) <- - beta * y[i, 1] * I_tot / N + delta * y[i, 3] -
+  b * y[i, 1] + (age_rate[i - 1] * y[i - 1, 1] - age_rate[i] * y[i, 1])
 
 deriv(y[1, 2]) <- beta * y[i, 1] * I_tot / N - (b + sigma) * y[i, 2] +
   (- age_rate[i] * y[i, 2])
 deriv(y[2:N_age, 2]) <- beta * y[i, 1] * I_tot / N - (b + sigma) * y[i, 2] +
-  (age_rate[i-1] * y[i-1, 2] - age_rate[i] * y[i, 2])
+  (age_rate[i - 1] * y[i - 1, 2] - age_rate[i] * y[i, 2])
 
 deriv(y[1, 3]) <- sigma * y[i, 2] - b * y[i, 3] - delta * y[i, 3] +
   (- age_rate[i] * y[i, 3])
 deriv(y[2:N_age, 3]) <- sigma * y[i, 2] - b * y[i, 3] - delta * y[i, 3] +
-  (age_rate[i-1] * y[i-1, 3] - age_rate[i] * y[i, 3])
+  (age_rate[i - 1] * y[i - 1, 3] - age_rate[i] * y[i, 3])
 
 ## TODO: Can I get a nicer syntax here (for the N_tot case
 ##

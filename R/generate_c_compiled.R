@@ -140,10 +140,6 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
   ## Assign all arrays as NULL, which allows all allocations to be
   ## written as Free/Calloc because Free will not try to free a
   ## pointer that has been set to NULL.
-  ##
-  ## NOTE: previously we ignored user equations here
-  ##   !identical(dat$equations[[x$name]]$type, "user")
-  ## but I don't think that's needed
   null_initial <- names_if(vlapply(dat$data$elements, function(x) {
     (x$rank > 0 && x$location == "internal") ||
       x$storage_type == "ring_buffer"
@@ -292,7 +288,7 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
     body$add("double *%s = NULL;", dat$meta$output)
   }
 
-  if(dat$features$has_stochastic) {
+  if (dat$features$has_stochastic) {
     body$add("GetRNGstate();")
   }
 
@@ -323,7 +319,7 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
     body$add(eval_rhs)
   }
 
-  if(dat$features$has_stochastic) {
+  if (dat$features$has_stochastic) {
     body$add("PutRNGstate();")
   }
 

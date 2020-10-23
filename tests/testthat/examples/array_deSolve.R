@@ -40,14 +40,20 @@ age <- function() {
     dRdt <- numeric(N_age)
     I_tot <- sum(I)
 
-    dSdt[[1L]] <- - beta * S[[1L]] * I_tot/N + delta * R[[1L]] - b * S[[1L]] + (Births - age_rate[[1L]] * S[[1L]])
-    dSdt[-1L] <- - beta * S[-1L] * I_tot/N + delta * R[-1L] - b * S[-1L] + (age_rate[-N_age] * S[-N_age] - age_rate[-1L] * S[-1L])
+    dSdt[[1L]] <- - beta * S[[1L]] * I_tot / N + delta * R[[1L]] - b * S[[1L]] +
+      (Births - age_rate[[1L]] * S[[1L]])
+    dSdt[-1L] <- - beta * S[-1L] * I_tot / N + delta * R[-1L] - b * S[-1L] +
+      (age_rate[-N_age] * S[-N_age] - age_rate[-1L] * S[-1L])
 
-    dIdt[[1L]] <-  beta * S[[1L]] * I_tot/N  - (b+sigma) * I[[1L]]   + (- age_rate[[1L]] * I[[1L]])
-    dIdt[-1L] <-  beta * S[-1L] * I_tot/N  - (b+sigma) * I[-1L]   + (age_rate[-N_age] * I[-N_age] - age_rate[-1L] * I[-1L])
+    dIdt[[1L]] <-  beta * S[[1L]] * I_tot / N  - (b + sigma) * I[[1L]] +
+      (-age_rate[[1L]] * I[[1L]])
+    dIdt[-1L] <-  beta * S[-1L] * I_tot / N  - (b + sigma) * I[-1L] +
+      (age_rate[-N_age] * I[-N_age] - age_rate[-1L] * I[-1L])
 
-    dRdt[[1L]] <-  sigma * I[[1L]] - b * R[[1L]]-delta * R[[1L]] + (- age_rate[[1L]] * R[[1L]])
-    dRdt[-1L] <-  sigma * I[-1L] - b * R[-1L]-delta * R[-1L] + (age_rate[-N_age] * R[-N_age] - age_rate[-1L] * R[-1L])
+    dRdt[[1L]] <-  sigma * I[[1L]] - b * R[[1L]] - delta * R[[1L]] +
+      (-age_rate[[1L]] * R[[1L]])
+    dRdt[-1L] <-  sigma * I[-1L] - b * R[-1L] - delta * R[-1L] +
+      (age_rate[-N_age] * R[-N_age] - age_rate[-1L] * R[-1L])
 
     N_tot <- sum(S + I + R)
     prev <- I_tot / N_tot * 100

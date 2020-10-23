@@ -146,7 +146,7 @@ generate_c_r <- function(dat, core, package) {
   core_str <- as_str(sprintf(
     '%s = "%s"', names(core), list_to_character(core)))
   features_str <- as_str(sprintf(
-    '%s = %s', names(dat$features), vlapply(dat$features, identity)))
+    "%s = %s", names(dat$features), vlapply(dat$features, identity)))
 
   ## TODO:
   ## nicer would be to:

@@ -52,7 +52,7 @@ test_that("constant array", {
     pulse[] <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
-    zp[,] <- user()
+    zp[, ] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
     dim(pulse) <- 2
@@ -84,13 +84,13 @@ test_that("constant array", {
 
 test_that("constant 3d array", {
   gen <- odin({
-    deriv(y[,]) <- pulse[i,j]
-    initial(y[,]) <- 0
+    deriv(y[, ]) <- pulse[i, j]
+    initial(y[, ]) <- 0
     ##
-    pulse[,] <- interpolate(tp, zp, "constant")
+    pulse[, ] <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
-    zp[,,] <- user()
+    zp[, , ] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
     dim(pulse) <- c(2, 2)
@@ -106,9 +106,9 @@ test_that("constant 3d array", {
                 c(0, 2, 0),
                 c(0, 3, 0),
                 c(0, 4, 0)), c(length(tp), 2, 2))
-  stopifnot(isTRUE(all.equal(zp[1,,], matrix(0, 2, 2))))
-  stopifnot(isTRUE(all.equal(zp[2,,], cbind(1:2, 3:4))))
-  stopifnot(isTRUE(all.equal(zp[3,,], matrix(0, 2, 2))))
+  stopifnot(isTRUE(all.equal(zp[1, , ], matrix(0, 2, 2))))
+  stopifnot(isTRUE(all.equal(zp[2, , ], cbind(1:2, 3:4))))
+  stopifnot(isTRUE(all.equal(zp[3, , ], matrix(0, 2, 2))))
 
   ## Three dimensions to check here:
   expect_error(gen(tp = tp, zp = zp[1:2, , ]), "zp to have size 3")
@@ -212,7 +212,7 @@ test_that("interpolation with two variables", {
       }, list(type = type)))
 
     tp1 <- c(-1, 3)
-    zp1 <- c( 0, 1)
+    zp1 <- c(0, 1)
     tp2 <- c(0, 1, 2)
     zp2 <- c(0, 1, 0)
     mod <- gen(tp1 = tp1, zp1 = zp1, tp2 = tp2, zp2 = zp2)
@@ -326,7 +326,7 @@ test_that("critical times", {
   })
 
   tp1 <- c(-1, 3)
-  zp1 <- c( 0, 1)
+  zp1 <- c(0, 1)
   tp2 <- c(-1, 1, 2)
   zp2 <- c(0, 1, 0)
   mod <- gen(tp1 = tp1, zp1 = zp1, tp2 = tp2, zp2 = zp2)
@@ -343,7 +343,7 @@ test_that("user sized interpolation, 1d", {
     pulse[] <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
-    zp[,] <- user()
+    zp[, ] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
     dim(pulse) <- user()
@@ -369,13 +369,13 @@ test_that("user sized interpolation, 1d", {
 
 test_that("user sized interpolation, 2d", {
   gen <- odin({
-    deriv(y[,]) <- pulse[i,j]
-    initial(y[,]) <- 0
+    deriv(y[, ]) <- pulse[i, j]
+    initial(y[, ]) <- 0
     ##
-    pulse[,] <- interpolate(tp, zp, "constant")
+    pulse[, ] <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
-    zp[,,] <- user()
+    zp[, , ] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
     dim(pulse) <- user()

@@ -7,20 +7,12 @@ age_width[3] <- 365 * 10
 age_width[4] <- 365 * 15
 age_width[5] <- 365 * 20
 
-## This is not used, but if uncommented will define a new integer:
-##   nn <- length(age_width)
-
 age_rate[1:(N_age - 1)] <- 1 / age_width[i]
 age_rate[N_age] <- 0
 
 den[1] <- 1 / (1 + age_rate[1] / b)
 ## to work out the % of the population in each age group
 den[2:N_age] <- age_rate[i - 1] * den[i - 1] / (age_rate[i] + b)
-
-## test to make sure densities add up to 1
-##   TODO: should do an assert in here?
-##   TODO: sum not yet supported
-## den_tot <- sum(den)
 
 initial(S[1:N_age]) <- den[i] * (N - I0)
 initial(E[1:N_age]) <- 0
@@ -46,24 +38,21 @@ lag_inf[] <- delay(new_inf[i] * surv, lat_hum)
 deriv(S[1]) <- - new_inf[i] + delta * R[i] - b * S[i] +
   (Births - age_rate[i] * S[i])
 deriv(S[2:N_age]) <- - new_inf[i] + delta * R[i] - b * S[i] +
-  (age_rate[i-1] * S[i-1] - age_rate[i]*S[i])
+  (age_rate[i - 1] * S[i - 1] - age_rate[i] * S[i])
 
 deriv(E[1]) <- new_inf[i] - lag_inf[i] - b * E[i] + (- age_rate[i] * E[i])
-deriv(E[2:N_age]) <- new_inf[i] - lag_inf[i] - b * E[i] + (age_rate[i-1] * E[i-1] - age_rate[i] * E[i])
+deriv(E[2:N_age]) <- new_inf[i] - lag_inf[i] - b * E[i] +
+  (age_rate[i - 1] * E[i - 1] - age_rate[i] * E[i])
 
 deriv(I[1]) <- lag_inf[i] - (b + sigma) * I[i] +
   (- age_rate[i] * I[i])
 deriv(I[2:N_age]) <- lag_inf[i] - (b + sigma) * I[i] +
-  (age_rate[i-1] * I[i-1] - age_rate[i] * I[i])
+  (age_rate[i - 1] * I[i - 1] - age_rate[i] * I[i])
 
 deriv(R[1]) <- sigma * I[i] - b * R[i] - delta * R[i] +
   (- age_rate[i] * R[i])
 deriv(R[2:N_age]) <- sigma * I[i] - b * R[i] - delta * R[i] +
-  (age_rate[i-1] * R[i-1] - age_rate[i] * R[i])
-
-## N_tot <- sum(S) + sum(I) + sum(R)
-## output(N_tot) <- N_tot
-## output(prev) <- I_tot / N_tot * 100
+  (age_rate[i - 1] * R[i - 1] - age_rate[i] * R[i])
 
 dim(den) <- N_age
 dim(age_width) <- N_age

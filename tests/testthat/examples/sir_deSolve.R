@@ -20,7 +20,7 @@ sir <- function() {
     R <- y[[3L]]
     list(c(Births - b * S - beta * S * I / N + delta * R,
            beta * S * I / N - (b + sigma) * I,
-           sigma * I - b * R-delta * R))
+           sigma * I - b * R - delta * R))
   }
 
   list(derivs = derivs, initial = initial, t = c(0, 100))

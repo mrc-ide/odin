@@ -144,7 +144,7 @@ test_that("example package", {
   mod <- res$env$lorenz()
   expect_equal(mod$initial(0), c(10, 1, 1))
   expect_equal(mod$deriv(0, c(10, 1, 1)),
-               c(-90, 269, 22/3))
+               c(-90, 269, 22 / 3))
 })
 
 
@@ -161,7 +161,7 @@ test_that("two sums example", {
 
   code <- c("deriv(x) <- sum(y[1, , ])",
             "initial(x) <- 0",
-            "y[,,] <- 1",
+            "y[, , ] <- 1",
             "dim(y) <- c(2, 3, 4)")
   writeLines(code, file.path(pkg, "inst/odin/z.R"))
 

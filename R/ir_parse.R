@@ -235,12 +235,12 @@ ir_parse_find_variables <- function(eqs, discrete, source) {
 ## place for output variables this will work.  However, for that to
 ## work we need special treatment of
 ##
-##   output(x[]) <- x[i]
+## > output(x[]) <- x[i]
 ##
 ## because in that case an arbitrary transformation is currently
 ## allowed, for example
 ##
-##   output(x[]) <- x[i] / 2
+## > output(x[]) <- x[i] / 2
 ##
 ## which is really quite different.
 ir_parse_find_exclusive_output <- function(eqs, source) {
@@ -599,7 +599,7 @@ ir_parse_expr <- function(expr, line, source) {
 
   ## NOTE: arrays are the only case where self referential variables
   ## are allowed.  For arrays, there's no checking here and things like
-  ##   x[i] = x[i] * 2
+  ## > x[i] = x[i] * 2
   ## will cause a crash or nonsense behaviour.
   ##
   ## TODO: look at this carefully; the rule for derivatives has been
@@ -687,19 +687,19 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
     ir_parse_error("array lhs must be a name", line, source)
   }
 
-  index <- as.list(lhs[-(1:2)])
+  index <- as.list(lhs[- (1:2)])
 
-  is_empty <- vlapply(index, identical, quote(expr = ))
+  is_empty <- vlapply(index, identical, quote(expr = )) # nolint
   ## TODO: it might be useful to treat these specially rather than
   ## filling them in like this.
   if (any(is_empty)) {
     if (length(index) == 1L) {
-      index[] <- list(bquote(1:length(.(lhs[[2L]]))))
+      index[] <- list(bquote(1:length(.(lhs[[2L]])))) # nolint
     } else {
       index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
         bquote(1:dim(.(lhs[[2L]]), .(i))))
     }
-    lhs[-(1:2)] <- index
+    lhs[- (1:2)] <- index
   }
 
   ## Valid expressions are:
@@ -1065,7 +1065,6 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
 
     nm_length <- eq$array$dimnames$length
     eqs[[nm_length]]$type <- "expression_scalar"
-    ## eqs[[eq$array$dimnames$length]]$implicit <- TRUE
 
     if (rank_z == 1L) {
       len <- eq_y$array$dimnames$dim[[2]]

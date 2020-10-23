@@ -105,7 +105,7 @@ Similarly, the expression
 ay[, ] <- a[i, j] * y[j]
 ```
 
-involves loops over two dimensions (`ay[,]` becomes `ay[1:dim(ay,
+involves loops over two dimensions (`ay[, ]` becomes `ay[1:dim(ay,
 1), 1:dim(ay, 2)]` and so the loop becomes
 
 ```r

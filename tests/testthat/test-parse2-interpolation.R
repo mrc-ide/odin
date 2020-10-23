@@ -23,7 +23,7 @@ test_that("interpolation parse errors: incorrect array dimension", {
     pulse[] <- interpolate(tp, zp, "constant")
     ##
     tp[] <- user()
-    zp[,,] <- user()
+    zp[, , ] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
     dim(pulse) <- 2
@@ -37,8 +37,8 @@ test_that("interpolation parse errors: incorrect array dimension", {
     ##
     pulse[] <- interpolate(tp, zp, "constant")
     ##
-    tp[,] <- user()
-    zp[,] <- user()
+    tp[, ] <- user()
+    zp[, ] <- user()
     dim(tp) <- user()
     dim(zp) <- user()
     dim(pulse) <- 2

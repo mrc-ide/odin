@@ -10,7 +10,7 @@ lv4 <- function() {
 
   derivs <- function(t, y, .) {
     ## Not much faster, less clear:
-    ##   list(r * y * (1 - colSums(t(a) * y)))
+    ## > list(r * y * (1 - colSums(t(a) * y)))
     list(vapply(seq_along(y), function(i)
       r[i] * y[i] * (1 - sum(a[i, ] * y)), numeric(1)))
   }
