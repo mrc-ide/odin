@@ -97,7 +97,7 @@ test_that("user arrays", {
   age_width <- mod1$contents()$age_width
 
   expect_error(gen2(age_width[-1L]), "Expected length 5 value for age_width")
-  expect_error(gen2(NULL), "Expected a value for age_width")
+  expect_error(gen2(NULL), "Expected a value for 'age_width'")
   expect_error(gen2(numeric(0)), "Expected length 5 value for age_width")
   expect_error(gen2(rep(age_width, 2)),
                "Expected length 5 value for age_width")
