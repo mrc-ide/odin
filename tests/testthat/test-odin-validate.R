@@ -31,7 +31,7 @@ test_that("unused variables can be detected", {
 
 
 test_that("invalid R", {
-  code <- c("a b")
+  code <- "a b"
   res <- odin_validate(code, "text")
   expect_false(res$success)
   expect_null(res$result)
