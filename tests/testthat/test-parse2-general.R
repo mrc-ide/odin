@@ -283,7 +283,7 @@ test_that("lhs array checking", {
   expect_null(attr(res, "value_min"))
 
   expect_false(ir_parse_expr_lhs_check_index(quote(a:b + c:d)))
-  expect_false(ir_parse_expr_lhs_check_index(quote(- (a:b))))
+  expect_false(ir_parse_expr_lhs_check_index(quote(-(a:b)))) # nolint
   expect_false(ir_parse_expr_lhs_check_index(quote((a:b):c)))
   expect_false(ir_parse_expr_lhs_check_index(quote(c:(a:b))))
   expect_false(ir_parse_expr_lhs_check_index(quote((-a))))

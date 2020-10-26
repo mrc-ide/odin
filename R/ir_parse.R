@@ -687,7 +687,7 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
     ir_parse_error("array lhs must be a name", line, source)
   }
 
-  index <- as.list(lhs[- (1:2)])
+  index <- as.list(lhs[-(1:2)]) # nolint
 
   is_empty <- vlapply(index, identical, quote(expr = )) # nolint
   ## TODO: it might be useful to treat these specially rather than
@@ -699,7 +699,7 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
       index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
         bquote(1:dim(.(lhs[[2L]]), .(i))))
     }
-    lhs[- (1:2)] <- index
+    lhs[-(1:2)] <- index # nolint
   }
 
   ## Valid expressions are:

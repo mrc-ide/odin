@@ -528,7 +528,7 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
         ## and I think can be done more reasonably given we know where
         ## we're going.  For example, the check index could work
         ## directly with empty objects
-        index <- as.list(target[- (1:2)])
+        index <- as.list(target[-(1:2)]) # nolint
         target <- target[[2L]]
         is_empty <- vlapply(index, identical, quote(expr = )) # nolint
         if (any(is_empty)) {
@@ -728,7 +728,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
       f_nm <- as.character(e[[1L]])
       if (identical(f_nm, "[")) {
         x <- deparse(e[[2L]])
-        ijk <- as.list(e[- (1:2)])
+        ijk <- as.list(e[-(1:2)]) # nolint
         if (x %in% nms) {
           if (length(ijk) != rank[[x]]) {
             throw(
