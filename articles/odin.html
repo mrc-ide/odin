@@ -99,7 +99,7 @@
       <h1 data-toc-skip>Odin</h1>
                         <h4 class="author">Rich FitzJohn</h4>
             
-            <h4 class="date">2020-10-23</h4>
+            <h4 class="date">2020-10-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/master/vignettes/odin.Rmd"><code>vignettes/odin.Rmd</code></a></small>
       <div class="hidden name"><code>odin.Rmd</code></div>
@@ -266,7 +266,7 @@
 <span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">20000</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span><span class="op">)</span></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.009   0.001   0.011</code></pre>
+##   0.008   0.001   0.009</code></pre>
 <div class="sourceCode" id="cb29"><pre class="downlit">
 <span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, lwd <span class="op">=</span> <span class="fl">.2</span>, col <span class="op">=</span> <span class="st">"#00000055"</span><span class="op">)</span></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-20-1.png" width="672"></p>
@@ -321,8 +321,8 @@
 
   <span class="va">y0</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
   <span class="va">r</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">a</span><span class="op">[</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">ay</span><span class="op">[</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">j</span><span class="op">]</span>
+  <span class="va">a</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
+  <span class="va">ay</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">j</span><span class="op">]</span>
 
   <span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
   <span class="va">n_spp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span>
@@ -376,7 +376,7 @@
 <span class="va">z</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">tt</span>, <span class="va">y</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">4</span>
 <span class="va">tt</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="va">y</span><span class="op">[</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
+<span class="va">y</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span><span class="op">)</span></pre></div>
 <p>In this case, <code>z</code> is a vector (here length 4), so <code>y</code> must be a matrix with <code><a href="https://rdrr.io/r/base/length.html">length(t)</a></code> rows and 4 columns. This does not do anything clever - the interpolation happens for each of the four variables independently.</p>
