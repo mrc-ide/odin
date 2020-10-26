@@ -14,7 +14,7 @@ generate_r_class <- function(core, dat, env) {
   }
 
   if (dat$features$discrete) {
-    args <- alist(step =, y = NULL, "..." =, use_names = TRUE,
+    args <- alist(step = , y = NULL, "..." = , use_names = TRUE, # nolint
                   replicate = NULL)
     call <- list(quote(private$core$run), quote(private$data),
                  quote(step), quote(y), quote(private$n_out),
@@ -23,7 +23,8 @@ generate_r_class <- function(core, dat, env) {
                  replicate = quote(replicate),
                  interpolate_t = quote(private$interpolate_t))
   } else {
-    args <- alist(t =, y = NULL, "..." =, use_names = TRUE, tcrit = NULL)
+    args <- alist(t = , y = NULL, "..." = , use_names = TRUE, # nolint
+                  tcrit = NULL)
     call <- list(quote(private$core$run), quote(private$data),
                  quote(t), quote(y), quote(private$n_out),
                  quote(if (use_names) private$ynames else NULL),
@@ -145,7 +146,7 @@ generate_r_constructor <- function(base, discrete, user, ir, env) {
     i <- set_names(vlapply(user, "[[", "has_default"),
                    vcapply(user, "[[", "name"))
     nms <- names(i)
-    args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i)))
+    args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i))) # nolint
     names(args) <- nms
     args[[name_user]] <-
       as.call(c(list(quote(list)),

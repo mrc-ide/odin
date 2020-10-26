@@ -18,8 +18,8 @@
 ## Combine array expressions into a single set of expressions.  This
 ## means that the pair:
 ##
-##   x[1] <- ...
-##   x[2:n] <- ...
+## > x[1] <- ...
+## > x[2:n] <- ...
 ##
 ## will get grouped together as a single x.  All dependencies of the
 ## expression will be combined, and the source reference also gets
@@ -49,14 +49,14 @@ ir_parse_arrays <- function(eqs, variables, source) {
   ## It's not clear that this will produce the best error messages and
   ## we should try to see what happens with something like:
   ##
-  ## dim(a) <- dim(b)
-  ## dim(b) <- dim(a)
+  ## > dim(a) <- dim(b)
+  ## > dim(b) <- dim(a)
   ##
   ## because I think that is probably not well dealt with.
   ##
   ## The approach here should cope with
   ##
-  ## dim(x) <- c(dim(a), dim(b))
+  ## > dim(x) <- c(dim(a), dim(b))
   dims_nms <- names(eqs[is_dim])
   deps <- lapply(eqs[is_dim], function(x)
     intersect(x$depends$variables, dims_nms))
@@ -105,8 +105,8 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   }
 
   ## Prevent:
-  ##   x[] <- user()
-  ##   x[1] <- 1
+  ## > x[] <- user()
+  ## > x[1] <- 1
   ##
   ## And similar for delays and interpolated variables.  The message
   ## for output is not as nice.
@@ -294,10 +294,10 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
     }
 
     ## It's an error to use
-    ##   dim(foo) <- user()
+    ## >  dim(foo) <- user()
     ## without specifying
-    ##   foo[] <- user()
-    ##   foo[,] <- user()
+    ## > foo[] <- user()
+    ## > foo[, ] <- user()
     ## etc.
     eq_data <- eqs[[eq$lhs$name_data]]
     if (is.null(eq_data) || !(eq_data$type %in% c("user", "interpolate"))) {
@@ -528,12 +528,12 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
         ## and I think can be done more reasonably given we know where
         ## we're going.  For example, the check index could work
         ## directly with empty objects
-        index <- as.list(target[-(1:2)])
+        index <- as.list(target[-(1:2)]) # nolint
         target <- target[[2L]]
-        is_empty <- vlapply(index, identical, quote(expr = ))
+        is_empty <- vlapply(index, identical, quote(expr = )) # nolint
         if (any(is_empty)) {
           if (length(index) == 1L) {
-            index[] <- list(bquote(1:length(.(target))))
+            index[] <- list(bquote(1:length(.(target)))) # nolint
           } else {
             index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
               bquote(1:dim(.(target), .(i))))
@@ -674,7 +674,7 @@ ir_parse_arrays_find_integers <- function(eqs, variables, source) {
 ## Another option will be to flag types on arrays.  I could imagine
 ## doing:
 ##
-##   type(x) <- "integer"
+## > type(x) <- "integer"
 ##
 ## But this should do for now.  Used in set_type above
 ir_parse_arrays_used_as_index <- function(eqs) {
@@ -728,7 +728,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
       f_nm <- as.character(e[[1L]])
       if (identical(f_nm, "[")) {
         x <- deparse(e[[2L]])
-        ijk <- as.list(e[-(1:2)])
+        ijk <- as.list(e[-(1:2)]) # nolint
         if (x %in% nms) {
           if (length(ijk) != rank[[x]]) {
             throw(

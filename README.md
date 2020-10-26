@@ -4,6 +4,7 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![R build status](https://github.com/mrc-ide/odin/workflows/R-CMD-check/badge.svg)](https://github.com/mrc-ide/odin/actions)
 [![](https://www.r-pkg.org/badges/version/odin)](https://cran.r-project.org/package=odin)
+[![CodeFactor](https://www.codefactor.io/repository/github/mrc-ide/odin/badge)](https://www.codefactor.io/repository/github/mrc-ide/odin)
 <!-- badges: end -->
 
 `odin` implements a high-level language for describing and implementing ordinary differential equations in R.  It provides a "domain specific language" (DSL) which _looks_ like R but is compiled directly to C.  The actual solution of the differential equations is done with the [`deSolve`](https://cran.r-project.org/package=deSolve) package, giving access to the excellent Livermore solvers (`lsoda`, `lsode`, etc), or with [`dde`](https://cran.r-project.org/package=dde) for use with delay differential equations.

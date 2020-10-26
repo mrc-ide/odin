@@ -149,7 +149,7 @@ test_that("dim lhs must be simple", {
   expect_error(odin_parse_(quote(dim(x[1]) <- 1)),
                "must be applied to a name only",
                class = "odin_error")
-  expect_error(odin_parse_(quote(dim(x[1,2]) <- c(1, 2))),
+  expect_error(odin_parse_(quote(dim(x[1, 2]) <- c(1, 2))),
                "must be applied to a name only",
                class = "odin_error")
 })
@@ -212,7 +212,7 @@ test_that("deriv can't be used as rhs symbol", {
 
 
 test_that("unclassifiable statement", {
-  expect_error(odin_parse_(quote(x <- 1(2))),
+  expect_error(odin_parse_(quote(x <- 1(2))), # nolint
                "Cannot process statement", class = "odin_error")
 })
 
@@ -232,10 +232,10 @@ test_that("RHS array checking", {
   expect_error(ir_parse_arrays_check_rhs(quote(a + b[1]), c(b = 2), ia,
                                          eq, source),
                "Incorrect dimensionality for 'b'", class = "odin_error")
-  expect_error(ir_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 2), ia,
+  expect_error(ir_parse_arrays_check_rhs(quote(a + b[1, 2, 3]), c(b = 2), ia,
                                          eq, source),
                "Incorrect dimensionality for 'b'", class = "odin_error")
-  expect_null(ir_parse_arrays_check_rhs(quote(a + b[1,2,3]), c(b = 3), ia,
+  expect_null(ir_parse_arrays_check_rhs(quote(a + b[1, 2, 3]), c(b = 3), ia,
                                         eq, source))
   expect_error(ir_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b = 1), ia,
                                          eq, source),
@@ -260,7 +260,7 @@ test_that("RHS array checking", {
                "Function 'sum' requires array as argument 1",
                class = "odin_error")
 
-  expr <- quote(sum(a[,]))
+  expr <- quote(sum(a[, ]))
   rhs <- ir_parse_expr_rhs_expression_sum(expr)
   expect_error(ir_parse_arrays_check_rhs(rhs, c(a = 1), ia, eq, source),
                "Incorrect dimensionality for 'a' in 'sum' (expected 1)",
@@ -272,9 +272,9 @@ test_that("RHS array checking", {
 })
 
 test_that("lhs array checking", {
-  res <- ir_parse_expr_lhs_check_index(quote(a + (2:(n-3) - 4) + z))
+  res <- ir_parse_expr_lhs_check_index(quote(a + (2:(n - 3) - 4) + z))
   expect_true(res)
-  expect_equal(attr(res, "value_max"), quote(a + ((n-3) - 4) + z))
+  expect_equal(attr(res, "value_max"), quote(a + ((n - 3) - 4) + z))
   expect_equal(attr(res, "value_min"), quote(a + (2 - 4) + z))
 
   res <- ir_parse_expr_lhs_check_index(quote(a))
@@ -283,7 +283,7 @@ test_that("lhs array checking", {
   expect_null(attr(res, "value_min"))
 
   expect_false(ir_parse_expr_lhs_check_index(quote(a:b + c:d)))
-  expect_false(ir_parse_expr_lhs_check_index(quote(-(a:b))))
+  expect_false(ir_parse_expr_lhs_check_index(quote(-(a:b)))) # nolint
   expect_false(ir_parse_expr_lhs_check_index(quote((a:b):c)))
   expect_false(ir_parse_expr_lhs_check_index(quote(c:(a:b))))
   expect_false(ir_parse_expr_lhs_check_index(quote((-a))))
@@ -306,13 +306,13 @@ test_that("sum rewriting", {
                    quote(odin_sum(a, 4, 9)))
 
   ## 2d:
-  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[,]))),
+  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[, ]))),
                    quote(odin_sum(a, 1, dim(a, 1), 1, dim(a, 2))))
-  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[b:c,]))),
+  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[b:c, ]))),
                    quote(odin_sum(a, b, c, 1, dim(a, 2))))
-  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[,d:e]))),
+  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[, d:e]))),
                    quote(odin_sum(a, 1, dim(a, 1), d, e)))
-  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[b:c,d:e]))),
+  expect_identical(ir_parse_expr_rhs_expression_sum(quote(sum(a[b:c, d:e]))),
                    quote(odin_sum(a, b, c, d, e)))
 
   ## 3d:
@@ -557,16 +557,16 @@ test_that("correct dim() use", {
     "dim() must not be used for 1D arrays",
     fixed = TRUE, class = "odin_error")
   expect_error(odin_parse_(ex(
-    "dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, 1.4)")),
+    "dim(x) <- c(1, 2); x[, ] <- 1; a <- dim(x, 1.4)")),
     "second argument to dim() must be an integer",
     fixed = TRUE, class = "odin_error")
   expect_error(odin_parse_(ex(
-    "dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, b)")),
+    "dim(x) <- c(1, 2); x[, ] <- 1; a <- dim(x, b)")),
     "second argument to dim() must be an integer",
     fixed = TRUE, class = "odin_error")
 
   expect_error(odin_parse_(ex(
-    "dim(x) <- c(1, 2); x[,] <- 1; a <- dim(x, 3)")),
+    "dim(x) <- c(1, 2); x[, ] <- 1; a <- dim(x, 3)")),
     "array index out of bounds",
     fixed = TRUE, class = "odin_error")
 
@@ -621,8 +621,8 @@ test_that("rewrite errors", {
 
 test_that("Incomplete user array", {
   expect_error(odin_parse_(quote({
-    initial(x[,]) <- x0[i, j]
-    deriv(x[,]) <- 1
+    initial(x[, ]) <- x0[i, j]
+    deriv(x[, ]) <- 1
     dim(x0) <- user()
     dim(x) <- c(dim(x0, 1), dim(x0, 1))
   })),
@@ -715,8 +715,8 @@ test_that("detect integers", {
     n <- 2
     m <- 2
     deriv(S[, ]) <- 0
-    deriv(I) <- S[n,m]
-    dim(S) <- c(n,m)
+    deriv(I) <- S[n, m]
+    dim(S) <- c(n, m)
     initial(S[, ]) <- S0[i, j]
     initial(I) <- 0
     S0[, ] <- user()
@@ -755,8 +755,8 @@ test_that("no variables", {
 
 test_that("dim on rhs", {
   expect_error(odin_parse({
-      deriv(y[,]) <- r[i] * y[i, j]
-      initial(y[,]) <- 1
+      deriv(y[, ]) <- r[i] * y[i, j]
+      initial(y[, ]) <- 1
       r[] <- 0.1
       n <- 1
       dim(y) <- c(3, 4)
@@ -770,14 +770,14 @@ test_that("skip sum in naked index check", {
   ## In the first version of the naked index check, this produced a
   ## note because the sum expression expands out to
   ##
-  ##   odin_sum(m, i, i, 1, dim(m, 2))
+  ## >  odin_sum(m, i, i, 1, dim(m, 2))
   ##
   ## which looks like a naked index.
   expect_silent(
     odin_parse({
       deriv(y) <- sum(v)
       initial(y) <- 1
-      m[,] <- user()
+      m[, ] <- user()
       v[] <- sum(m[i, ])
       dim(m) <- c(4, 4)
       dim(v) <- 4
@@ -827,7 +827,7 @@ test_that("can't use array indices that exceed the rank of the lhs", {
   expect_error(
     odin_parse({
       ## A simplified version of Anne's problem:
-      m[,] <- user()
+      m[, ] <- user()
       r[] <- m[i, 1] + m[1, j]
       dim(m) <- user()
       dim(r) <- 5
@@ -840,7 +840,7 @@ test_that("can't use array indices that exceed the rank of the lhs", {
 
   expect_error(
     odin_parse({
-      m[,] <- user()
+      m[, ] <- user()
       r[] <- m[k, 1] + m[1, j]
       dim(m) <- user()
       dim(r) <- 5

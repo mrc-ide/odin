@@ -50,7 +50,7 @@ generate_r_core <- function(eqs, dat, env, rewrite) {
     set_user = generate_r_set_user(eqs, dat, env),
     rhs_desolve = generate_r_rhs(eqs, dat, env, rewrite, "desolve"),
     rhs_dde = generate_r_rhs(eqs, dat, env, rewrite, "dde"),
-    output = generate_r_rhs(eqs, dat, env, rewrite,"output"),
+    output = generate_r_rhs(eqs, dat, env, rewrite, "output"),
     interpolate_t = generate_r_interpolate_t(dat, env, rewrite),
     set_initial = generate_r_set_initial(dat, env, rewrite),
     run = generate_r_run(dat, env, rewrite),
@@ -108,7 +108,7 @@ generate_r_ic <- function(eqs, dat, env, rewrite) {
 
   ## Build the function:
   body <- as.call(c(list(quote(`{`)), eqs_initial, alloc, assign, state))
-  args <- alist(time =, internal =)
+  args <- alist(time = , internal = ) # nolint
   names(args)[[1]] <- dat$meta$time
   names(args)[[2]] <- dat$meta$internal
   as_function(args, body, env)
@@ -117,7 +117,7 @@ generate_r_ic <- function(eqs, dat, env, rewrite) {
 
 generate_r_set_user <- function(eqs, dat, env) {
   eqs_user <- r_flatten_eqs(eqs[dat$components$user$equations])
-  args <- alist(user =, internal =, unused_user_action =)
+  args <- alist(user = , internal = , unused_user_action = ) # nolint
   names(args)[[1]] <- dat$meta$user
   names(args)[[2]] <- dat$meta$internal
 
@@ -211,7 +211,7 @@ generate_r_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
 
   eqs_include <- r_flatten_eqs(eqs[use_eqs])
   body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_include, ret)))
-  args <- alist(t = , y =, parms = )
+  args <- alist(t = , y = , parms = ) # nolint
   names(args)[[1]] <- dat$meta$time
   names(args)[[2]] <- dat$meta$state
   names(args)[[3]] <- dat$meta$internal
@@ -247,7 +247,7 @@ generate_r_metadata <- function(dat, rewrite) {
       quote(private$interpolate_t <- private$core$interpolate_t(private$data)))
   }
 
-  args <- alist(self =, private =)
+  args <- alist(self = , private = ) # nolint
   body <- as.call(c(list(as.name("{")), body))
 
   as_function(args, body, env)
@@ -287,7 +287,7 @@ generate_r_interpolate_t <- function(dat, env, rewrite) {
       call("sort", call("unique", as.call(c(list(quote(c)), args_critical))))
   }
 
-  args <- set_names(alist(internal = ), dat$meta$internal)
+  args <- set_names(alist(internal = ), dat$meta$internal) # nolint
   body <- call("{",
                call("list",
                     min = min, max = max, critical = critical))
@@ -314,7 +314,7 @@ generate_r_set_initial <- function(dat, env, rewrite) {
     c(dat$meta$time, dat$meta$state, dat$meta$internal))
 
   if (!dat$features$discrete) {
-    args <- c(args, set_names(alist(x = ), dat$meta$use_dde))
+    args <- c(args, set_names(alist(x = ), dat$meta$use_dde)) # nolint
     body <- c(body, list(call("<-", rewrite(dat$meta$use_dde),
                               as.name(dat$meta$use_dde))))
   }
@@ -327,13 +327,13 @@ generate_r_set_initial <- function(dat, env, rewrite) {
 ## It's quite likely that we'd be better off with two separate
 ## generators - one for discrete and one for continuous models.
 generate_r_run <- function(dat, env, rewrite) {
-  args <- alist(data =, t =, y = , n_out =, ynames =, ...=,
+  args <- alist(data = , t = , y = , n_out = , ynames = , ... = , # nolint
                   ## These are only used in some cases!
-                  interpolate_t =)
+                  interpolate_t = ) # nolint
   if (dat$features$discrete) {
-    args <- c(args, alist(replicate =))
+    args <- c(args, alist(replicate = )) # nolint
   } else {
-    args <- c(args, alist(use_dde =, tcrit =))
+    args <- c(args, alist(use_dde = , tcrit = )) # nolint
   }
   if (!dat$features$discrete && dat$features$has_delay) {
     args <- c(args, list(n_history = DEFAULT_HISTORY_SIZE))

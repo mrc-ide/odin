@@ -7,9 +7,9 @@ seir <- function() {
   lat_hum <- 14
   I0 <- 1
 
-  Births <- N*b
+  Births <- N * b
   ## i.e. proportion of humans surviving the latent period
-  surv <- exp(-b*lat_hum)
+  surv <- exp(-b * lat_hum)
 
   t0 <- NULL
   y0 <- NULL
@@ -20,7 +20,7 @@ seir <- function() {
       I0 <<- pars$I0
     }
     t0 <<- t
-    y0 <<- c(S = N - I0,E = 0, I = I0, R = 0)
+    y0 <<- c(S = N - I0, E = 0, I = I0, R = 0)
     lag <<- make_lagvalue(t0, y0)
     y0
   }
@@ -32,7 +32,7 @@ seir <- function() {
     R <- y[[4L]]
 
     ## people developing latent infection
-    new_inf <- beta*S*I/N
+    new_inf <- beta * S * I / N
 
     ## people that become latent 'lat_hum' days ago, less those that
     ## died during that time

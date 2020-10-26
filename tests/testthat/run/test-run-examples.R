@@ -97,7 +97,7 @@ test_that("user arrays", {
   age_width <- mod1$contents()$age_width
 
   expect_error(gen2(age_width[-1L]), "Expected length 5 value for age_width")
-  ## expect_error(gen2(NULL), "Expected value for age_width")
+  expect_error(gen2(NULL), "Expected a value for 'age_width'")
   expect_error(gen2(numeric(0)), "Expected length 5 value for age_width")
   expect_error(gen2(rep(age_width, 2)),
                "Expected length 5 value for age_width")
@@ -110,7 +110,7 @@ test_that("user arrays", {
   res2 <- mod2$run(t)
   expect_equal(res1, res2)
 
-  ## User *sized* arrays.
+  ## User _sized_ arrays.
   gen3 <- odin("examples/array_odin_user2.R")
   mod3 <- gen3(age_width)
 
@@ -146,11 +146,11 @@ test_that("user arrays", {
 
   ## Ideally, these tests will be run with gctorture on, as there is
   ## some nasty memory management going on behind the scenes that
-  ## needs to work correctly.  Howeever, it runs _very_ slowly with
+  ## needs to work correctly.  However, it runs _very_ slowly with
   ## this on, and it does seem to work correctly at the moment.
   ##
-  ##   prev <- gctorture(TRUE)
-  ##   on.exit(gctorture(prev))
+  ## > prev <- gctorture(TRUE)
+  ## > on.exit(gctorture(prev))
   mod4$set_user(age_width = age_width2)
   dat4.2 <- mod4$contents()
   expect_equal(dat4.2$age_width, age_width2)

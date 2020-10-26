@@ -120,8 +120,9 @@ match_value <- function(x, choices, name = deparse(substitute(x))) {
   stopifnot(length(x) == 1L, is.character(x), !is.na(x))
   i <- match(x, choices)
   if (is.na(i)) {
-    stop(sprintf("%s must be one of {%s}", name, paste(choices, collapse=", ")),
-         call.=FALSE)
+    stop(sprintf("%s must be one of {%s}", name,
+                 paste(choices, collapse = ", ")),
+         call. = FALSE)
   }
   choices[[i]]
 }

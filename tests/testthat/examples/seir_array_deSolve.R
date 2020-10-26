@@ -17,9 +17,9 @@ seir_array <- function() {
   }
   rm(i)
 
-  Births <- N*b
+  Births <- N * b
   ## i.e. proportion of humans surviving the latent period
-  surv <- exp(-b*lat_hum)
+  surv <- exp(-b * lat_hum)
 
   t0 <- NULL
   y0 <- NULL
@@ -68,10 +68,12 @@ seir_array <- function() {
     dSdt[[1]] <- - new_inf[[1L]] + delta * R[[1L]] - b * S[[1L]] +
       (Births - age_rate[[1L]] * S[[1L]])
     dSdt[-1] <- - new_inf[-1L] + delta * R[-1L] - b * S[-1L] +
-      (age_rate[-N_age] * S[-N_age] - age_rate[-1L]*S[-1L])
+      (age_rate[-N_age] * S[-N_age] - age_rate[-1L] * S[-1L])
 
-    dEdt[[1L]] <- new_inf[[1L]] - lag_inf[[1L]] - b * E[[1L]] + (- age_rate[[1L]] * E[[1L]])
-    dEdt[-1L] <- new_inf[-1L] - lag_inf[-1L] - b * E[-1L] + (age_rate[-N_age] * E[-N_age] - age_rate[-1L] * E[-1L])
+    dEdt[[1L]] <- new_inf[[1L]] - lag_inf[[1L]] - b * E[[1L]] +
+      (-age_rate[[1L]] * E[[1L]])
+    dEdt[-1L] <- new_inf[-1L] - lag_inf[-1L] - b * E[-1L] +
+      (age_rate[-N_age] * E[-N_age] - age_rate[-1L] * E[-1L])
 
     dIdt[[1L]] <- lag_inf[[1L]] - (b + sigma) * I[[1L]] +
       (- age_rate[[1L]] * I[[1L]])

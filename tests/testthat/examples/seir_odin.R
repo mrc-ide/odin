@@ -25,11 +25,3 @@ deriv(S) <- Births - b * S - new_inf + delta * R
 deriv(E) <- new_inf - lag_inf - b * E
 deriv(I) <- lag_inf  - (b + sigma) * I
 deriv(R) <- sigma * I - b * R - delta * R
-
-## Simplify things for now and don't include output variables as
-## they're not supported!
-##
-## Ntot <- S + E + I + R
-## prev <- I / Ntot * 100
-## output(prev) <- I / N
-## output(Hpop) <- S + E + I + R

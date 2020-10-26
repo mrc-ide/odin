@@ -5,8 +5,8 @@ test_that("bug #78", {
     n <- 2
     m <- 2
     deriv(S[, ]) <- 0
-    deriv(I) <- S[n,m]
-    dim(S) <- c(n,m)
+    deriv(I) <- S[n, m]
+    dim(S) <- c(n, m)
     initial(S[, ]) <- S0[i, j]
     initial(I) <- 0
     S0[, ] <- user()

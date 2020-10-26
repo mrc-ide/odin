@@ -13,8 +13,8 @@ n_SI <- rbinom(S, p_SI)
 n_IR <- rbinom(I, p_IR)
 
 ## If order of operations matter
-## S1 <- S + ....
-## update(S) <- S1
+## > S1 <- S + ....
+## > update(S) <- S1
 
 S0 <- user(100)
 beta <- user(0.1)

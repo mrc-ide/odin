@@ -155,7 +155,7 @@ test_that("conditionals, precendence", {
   t <- seq(0, 5, length.out = 101)
   y <- mod$run(t)
 
-  cmp <- ifelse(t < 2, 1.1 * t, 2.4 -0.1 * t)
+  cmp <- ifelse(t < 2, 1.1 * t, 2.4 - 0.1 * t)
   expect_equal(y[, 2], cmp, tolerance = 1e-5)
 })
 
@@ -332,8 +332,8 @@ test_that("unused variable in output", {
 
 test_that("3d array", {
   gen <- odin({
-    initial(y[,,]) <- 1
-    deriv(y[,,]) <- y[i,j,k] * 0.1
+    initial(y[, , ]) <- 1
+    deriv(y[, , ]) <- y[i, j, k] * 0.1
     dim(y) <- c(2, 3, 4)
   })
   mod <- gen()
@@ -353,7 +353,7 @@ test_that("3d array", {
   expect_identical(zz$y[, 1, 2, 4], yy[, "y[1,2,4]"])
 
   ## Check conversion of single row:
-  y0 <- mod$transform_variables(yy[1,])
+  y0 <- mod$transform_variables(yy[1, ])
   expect_equal(y0,
                c(setNames(list(tt[1]), TIME), list(y = array(1, c(2, 3, 4)))))
 })
@@ -361,8 +361,8 @@ test_that("3d array", {
 test_that("4d array", {
   ## TODO: offset_y is saved here and is not really needed.
   gen <- odin({
-    initial(y[,,,]) <- 1
-    deriv(y[,,,]) <- y[i,j,k,l] * 0.1
+    initial(y[, , , ]) <- 1
+    deriv(y[, , , ]) <- y[i, j, k, l] * 0.1
     dim(y) <- c(2, 3, 4, 5)
   })
 
@@ -411,8 +411,8 @@ test_that("mixed", {
 ##
 ## This would probably work but be bad:
 ##
-##   output(y[]) <- y[i] * 2
-##   dim(y) <- 10
+## > output(y[]) <- y[i] * 2
+## > dim(y) <- 10
 ##
 ## because we'd pick up dim(output(y)) as 10; most of the time this
 ## would be correct but sometimes might not be.  The check is:
@@ -490,8 +490,8 @@ test_that("use length on rhs", {
 
 test_that("use dim on rhs", {
   gen <- odin({
-    deriv(y[,]) <- r[i] * y[i,j]
-    initial(y[,]) <- 1
+    deriv(y[, ]) <- r[i] * y[i, j]
+    initial(y[, ]) <- 1
     r[] <- 0.1
     dim(y) <- c(3, 4)
     dim(r) <- dim(y, 1)
@@ -581,16 +581,16 @@ test_that("pathalogical array index", {
     ## *initial assignment* we have assigned the wrong thing.  I think
     ## that Ada has an issue about this actually!  Probably this will
     ## require some care on the rewrite.
-    y[] <- i #  + 1
+    y[] <- i
     dim(y) <- 5
 
     a <- length(y)
 
-    y1 <- y[a + 1 - a] # y[1] -- first call is '-'
-    y2 <- y[2 - a + a] # y[2] -- first call is '+'
-    y3 <- y[1 + 2] # y[3]
-    y4 <- y[a - 1] # y[4]
-    y5 <- y[5 + (a - a)] # y[5]
+    y1 <- y[a + 1 - a]   # > y[1] -- first call is '-'
+    y2 <- y[2 - a + a]   # > y[2] -- first call is '+'
+    y3 <- y[1 + 2]       # > y[3]
+    y4 <- y[a - 1]       # > y[4]
+    y5 <- y[5 + (a - a)] # > y[5]
   })
 
   dat <- gen()$contents()
@@ -652,11 +652,11 @@ test_that("non-numeric input", {
     scalar <- user()
     vector[] <- user()
     dim(vector) <- user()
-    matrix[,] <- user()
+    matrix[, ] <- user()
     dim(matrix) <- user()
-    array[,,] <- user()
+    array[, , ] <- user()
     dim(array) <- user()
-    array4[,,,] <- user()
+    array4[, , , ] <- user()
     dim(array4) <- user()
   })
 
@@ -790,7 +790,7 @@ test_that("sum over one dimension", {
     deriv(y) <- 0
     initial(y) <- 1
 
-    m[,] <- user()
+    m[, ] <- user()
     dim(m) <- user()
 
     v1[] <- sum(m[i, ])
@@ -804,7 +804,7 @@ test_that("sum over one dimension", {
     dim(v4) <- length(v2)
 
     tot1 <- sum(m)
-    tot2 <- sum(m[,])
+    tot2 <- sum(m[, ])
   }, verbose = FALSE)
 
   nr <- 5
@@ -829,13 +829,13 @@ test_that("sum over two dimensions", {
     deriv(y) <- 0
     initial(y) <- 1
 
-    a[,,] <- user()
+    a[, , ] <- user()
     dim(a) <- user()
 
     ## These collapse one dimension
-    m12[,] <- sum(a[i, j, ])
-    m13[,] <- sum(a[i, , j])
-    m23[,] <- sum(a[, i, j])
+    m12[, ] <- sum(a[i, j, ])
+    m13[, ] <- sum(a[i, , j])
+    m23[, ] <- sum(a[, i, j])
 
     dim(m12) <- c(dim(a, 1), dim(a, 2))
     dim(m13) <- c(dim(a, 1), dim(a, 3))
@@ -849,9 +849,9 @@ test_that("sum over two dimensions", {
     dim(v2) <- dim(a, 2)
     dim(v3) <- dim(a, 3)
 
-    mm12[,] <- sum(a[i, j, 2:4])
-    mm13[,] <- sum(a[i, 2:4, j])
-    mm23[,] <- sum(a[2:4, i, j])
+    mm12[, ] <- sum(a[i, j, 2:4])
+    mm13[, ] <- sum(a[i, 2:4, j])
+    mm23[, ] <- sum(a[2:4, i, j])
     ## TODO: dim(mm12) <- dim(m12) will not work, but that would be nice
     dim(mm12) <- c(dim(a, 1), dim(a, 2))
     dim(mm13) <- c(dim(a, 1), dim(a, 3))
@@ -865,7 +865,7 @@ test_that("sum over two dimensions", {
     dim(vv3) <- dim(a, 3)
 
     tot1 <- sum(a)
-    tot2 <- sum(a[,,])
+    tot2 <- sum(a[, , ])
   }, verbose = FALSE)
 
   nr <- 5
@@ -883,13 +883,13 @@ test_that("sum over two dimensions", {
   expect_equal(dat$v2, apply(a, 2, sum))
   expect_equal(dat$v3, apply(a, 3, sum))
 
-  expect_equal(dat$mm12, apply(a[,,2:4], 1:2, sum))
-  expect_equal(dat$mm13, apply(a[,2:4,], c(1, 3), sum))
-  expect_equal(dat$mm23, apply(a[2:4,,], 2:3, sum))
+  expect_equal(dat$mm12, apply(a[, , 2:4], 1:2, sum))
+  expect_equal(dat$mm13, apply(a[, 2:4, ], c(1, 3), sum))
+  expect_equal(dat$mm23, apply(a[2:4, , ], 2:3, sum))
 
-  expect_equal(dat$vv1, apply(a[,2:4,2:4], 1, sum))
-  expect_equal(dat$vv2, apply(a[2:4,,2:4], 2, sum))
-  expect_equal(dat$vv3, apply(a[2:4,2:4,], 3, sum))
+  expect_equal(dat$vv1, apply(a[, 2:4, 2:4], 1, sum))
+  expect_equal(dat$vv2, apply(a[2:4, , 2:4], 2, sum))
+  expect_equal(dat$vv3, apply(a[2:4, 2:4, ], 3, sum))
 
   expect_equal(dat$tot1, sum(a))
   expect_equal(dat$tot2, sum(a))
@@ -903,19 +903,19 @@ test_that("sum for a 4d array", {
     deriv(y) <- 0
     initial(y) <- 1
 
-    a[,,,] <- user()
+    a[, , , ] <- user()
     dim(a) <- user()
 
-    m12[,] <- sum(a[i, j, , ])
-    m23[,] <- sum(a[, i, j, ])
-    m24[,] <- sum(a[, i, , j])
+    m12[, ] <- sum(a[i, j, , ])
+    m23[, ] <- sum(a[, i, j, ])
+    m24[, ] <- sum(a[, i, , j])
 
     dim(m12) <- c(dim(a, 1), dim(a, 2))
     dim(m23) <- c(dim(a, 2), dim(a, 3))
     dim(m24) <- c(dim(a, 2), dim(a, 4))
 
     tot1 <- sum(a)
-    tot2 <- sum(a[,,,])
+    tot2 <- sum(a[, , , ])
   }, verbose = FALSE)
 
   dim <- c(3, 5, 7, 9)
