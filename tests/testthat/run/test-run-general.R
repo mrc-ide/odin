@@ -564,7 +564,7 @@ test_that("transform variables without time", {
   expect_equal(res$t, NA_real_)
   expect_equal(res[names(res) != "t"], cmp[names(cmp) != "t"])
 
-  expect_error(mod$transform_variables(yy[, -(1:2)]),
+  expect_error(mod$transform_variables(yy[, -(1:2)]), # nocov
                "Unexpected size input")
   expect_error(mod$transform_variables(cbind(yy, yy)),
                "Unexpected size input")
