@@ -40,6 +40,7 @@ Suggests:
     dde (>= 1.0.0),
     jsonvalidate (>= 1.1.0),
     knitr,
+    pkgload,
     rmarkdown,
     testthat
 VignetteBuilder: knitr
