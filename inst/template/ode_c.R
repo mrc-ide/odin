@@ -12,16 +12,13 @@
     ynames = NULL,
     interpolate_t = NULL,
 
-    ## This is never called, but we need to ensure that R finds our
-    ## symbols that we will use from the package. This does not yet
-    ## work automatically, and will need to be done somewhat more
-    ## carefully than we can do with the skeleton generator
-    ## unfortunately.
-    ## registration = function() {
-    ##   .C("{{name}}_rhs_dde", 1, 2, 3, 4, 5, PACKAGE = "{{package}}")
-    ##   .C("{{name}}_rhs_desolve", 1, 2, 3, 4, 5, 6, PACKAGE = "{{package}}")
-    ##   .C("{{name}}_initmod_desolve", 1, PACKAGE = "{{package}}")
-    ## },
+    ## This is never called, but is used to ensure that R finds our
+    ## symbols that we will use from the package.
+    registration = function() {
+      .C("{{name}}_rhs_dde", 1, 2, 3, 4, 5, PACKAGE = "{{package}}")
+      .C("{{name}}_rhs_desolve", 1, 2, 3, 4, 5, 6, PACKAGE = "{{package}}")
+      .C("{{name}}_initmod_desolve", 1, PACKAGE = "{{package}}")
+    },
 
     update_metadata = function() {
       ## TODO: this all needs a little thought

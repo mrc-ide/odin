@@ -81,26 +81,15 @@ odin_c_wrapper <- function(ir, options) {
   writeLines(code, file.path(dest, "src/odin.c"))
   writeLines(ir, file.path(dest, sprintf("inst/odin/%s.json", data$name)))
 
+  path_reg <- file.path(dest, "src/registration.c")
+  tools::package_native_routine_registration_skeleton(dest, path_reg)
+
+  quiet <- !options$verbose
+
   ## This will do us a fully consistent build/load that we can use for
   ## both the packaging version and the locally built version. Ideally
   ## we could skip over the compile_dll step, but this has already had
   ## the compilation flags bit worked out.
-  quiet <- FALSE
-  ## Some care needed here because we do need access to dynamic
-  ## symbols for deSolve and dde to work as expected with symbols that
-  ## come from a package. There *must* be some other way of making
-  ## this work, but I've not worked it out yet. For now, we allow
-  ## dynamic symbols.
-  path_reg <- file.path(dest, "src/registration.c")
-  tools::package_native_routine_registration_skeleton(dest, path_reg)
-  txt <- readLines(path_reg)
-  i <- grep("R_useDynamicSymbols", txt)
-  txt[i] <- sub("FALSE", "TRUE", txt[i])
-  writeLines(txt, path_reg)
-  ##
-  ## Will generate a suitable skeleton, which is nice. We need to do
-  ## additional work to get the function sorted out for deSolve
-  ## though!
   dll <- compile_dll(dest, compile_attributes = FALSE, quiet = quiet)
   env <- pkgload::load_all(dest, compile = FALSE, recompile = FALSE,
                            warn_conflicts = FALSE, export_all = FALSE,
