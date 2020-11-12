@@ -35,9 +35,11 @@
   ),
 
   public = list(
-    initialize = function(..., user = list(...), use_dde = FALSE) {
+    initialize = function(user = list(), use_dde = FALSE,
+                          unused_user_action = NULL) {
       private$odin <- asNamespace("odin")
       private$ptr <- .Call("{{c$create}}", user, PACKAGE = "{{package}}")
+      self$set_user(user = user, unused_user_action = unused_user_action)
       private$use_dde <- use_dde
       private$update_metadata()
     },
@@ -86,13 +88,15 @@
       t <- as.numeric(t)
       if (is.null(y)) {
         y <- self$initial(t)
+      } else {
+        y <- as.numeric(t)
       }
 
       ret <- private$odin$wrapper_run_basic(
         t, y, private$ptr, "{{package}}", private$use_dde,
         "{{c$rhs_dde}}", {{c$output_dde}},
         "{{c$rhs_desolve}}", "{{c$initmod_desolve}}",
-        private$n_out, tcrit, ...)
+        private$n_out, private$interpolate_t, tcrit, ...)
 
       ## NOTE: This won't work in the case where many dde options are
       ## used; we should at least warn about this in the docs. Support
@@ -100,6 +104,8 @@
       ## can easily be done together, assuming the time names etc.
       if (use_names) {
         colnames(ret) <- private$ynames
+      } else {
+        colnames(ret) <- NULL
       }
 
       ret
@@ -107,8 +113,8 @@
   ))
 
 
-{{name}} <- function(..., user = list(), use_dde = FALSE) {
-  {{name}}_$new(..., user = user, use_dde = use_dde)
+{{name}} <- function(..., user = list(...), use_dde = FALSE) {
+  {{name}}_$new(user = user, use_dde = use_dde)
 }
 class({{name}}) <- "odin_generator"
 attr({{name}}, "generator") <- {{name}}_

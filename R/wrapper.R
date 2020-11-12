@@ -134,7 +134,8 @@ substitute_template <- function(data, src, dest) {
 wrapper_run_basic <- function(t, y, ptr, package, use_dde,
                               rhs_dde, output_dde,
                               rhs_desolve, initmod_desolve,
-                              n_out, tcrit, ...) {
+                              n_out, interpolate_t, tcrit, ...) {
+  tcrit <- support_check_interpolate_t(t, interpolate_t, tcrit)
   if (use_dde) {
     ## TODO: Because we might invert or otherwise strip the data
     ## returned here, we should use dde's support for naming, and
