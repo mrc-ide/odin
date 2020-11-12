@@ -1,11 +1,12 @@
 {{name}}_ <- R6::R6Class(
-  "odin", # hmm, what should this be?
+  "odin",
   cloneable = FALSE,
 
   private = list(
     ptr = NULL,
     use_dde = NULL,
 
+    odin = NULL,
     variable_order = NULL,
     output_order = NULL,
     n_out = NULL,
@@ -27,9 +28,7 @@
       private$variable_order <- meta$variable_order
       private$output_order <- meta$output_order
       private$n_out <- meta$n_out
-      ## TODO: this can't be triple colon, pull out as some support
-      ## structure? Or we set the environment to be odin's?
-      private$ynames <- odin:::make_names(
+      private$ynames <- private$odin$make_names(
         private$variable_order, private$output_order, FALSE)
       private$interpolate_t <- meta$interpolate_t
     }
@@ -37,6 +36,7 @@
 
   public = list(
     initialize = function(..., user = list(...), use_dde = FALSE) {
+      private$odin <- asNamespace("odin")
       private$ptr <- .Call("{{c$create}}", user, PACKAGE = "{{package}}")
       private$use_dde <- use_dde
       private$update_metadata()
@@ -79,7 +79,7 @@
     },
 
     transform_variables = function(y) {
-      odin:::support_transform_variables(y, private)
+      private$odin$support_transform_variables(y, private)
     },
 
     ## Probably the only sane way of dealing with this is a wrapper
