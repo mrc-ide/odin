@@ -50,6 +50,7 @@ odin_c_wrapper <- function(ir, options) {
 
   data <- list(name = dat$config$base,
                package = paste0(dat$config$base, short_hash(hash)),
+               run = "wrapper_run_basic",
                c = list(metadata = res$core$metadata,
                         create = res$core$create,
                         set_user = res$core$set_user,

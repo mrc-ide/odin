@@ -12,6 +12,7 @@
     n_out = NULL,
     ynames = NULL,
     interpolate_t = NULL,
+    run_ = NULL,
 
     ## This is never called, but is used to ensure that R finds our
     ## symbols that we will use from the package.
@@ -42,6 +43,7 @@
       self$set_user(user = user, unused_user_action = unused_user_action)
       private$use_dde <- use_dde
       private$update_metadata()
+      private$run_ <- private$odin${{run}}
     },
 
     ir = function() {
@@ -92,11 +94,10 @@
         y <- as.numeric(t)
       }
 
-      ret <- private$odin$wrapper_run_basic(
-        t, y, private$ptr, "{{package}}", private$use_dde,
-        "{{c$rhs_dde}}", {{c$output_dde}},
-        "{{c$rhs_desolve}}", "{{c$initmod_desolve}}",
-        private$n_out, private$interpolate_t, tcrit, ...)
+      ret <- private$run_(t, y, private$ptr, "{{package}}", private$use_dde,
+                          "{{c$rhs_dde}}", {{c$output_dde}},
+                          "{{c$rhs_desolve}}", "{{c$initmod_desolve}}",
+                          private$n_out, private$interpolate_t, tcrit, ...)
 
       ## NOTE: This won't work in the case where many dde options are
       ## used; we should at least warn about this in the docs. Support
