@@ -82,45 +82,17 @@
       private$odin$support_transform_variables(y, private)
     },
 
-    ## Probably the only sane way of dealing with this is a wrapper
-    ## function? But the logic here is all relatively cheap
-    ##
-    ## TODO: n_history should have no effect if has_delay is false,
-    ## and should not be passed through to anything. This suggests
-    ## that we might be best to write some interface layer here
-    ## really, as this is too many options to code generate easily.
-    ##
-    ## TODO: if we have interpolation we need to check that the time is ok
     run = function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
       t <- as.numeric(t)
       if (is.null(y)) {
         y <- self$initial(t)
       }
-      if (private$use_dde) {
-        ## TODO: names of the functions should come from the template
-        ## data; that will make getting output here easier.
-        ##
-        ## TODO: Because we might invert or otherwise strip the data
-        ## returned here, we should use dde's support for naming, and
-        ## check that is actually good enough to do this! (this is out
-        ## of scope for the immediate work as it's broken in the
-        ## current interface).
-        ##
-        ## NOTE: it's not obvious how (or if!) we can call into use
-        ## the native symbols as found by package registration but it
-        ## appears not.
-        ret <- dde::dopri(y, t, "{{c$rhs_dde}}", private$ptr,
-                          dllname = "{{package}}", parms_are_real = FALSE,
-                          n_out = private$n_out, output = {{c$output}},
-                          ynames = FALSE, tcrit = tcrit, ...)
-      } else {
-        ## TODO: if this is a delay function we need to use dde, and
-        ## in both cases we need to inject the history length.
-        ret <- deSolve::ode(y, t, "{{c$rhs_desolve}}", private$ptr,
-                            initfunc = "{{c$initmod_desolve}}",
-                            nout = private$n_out, dllname = "{{package}}",
-                            tcrit = tcrit, ...)
-      }
+
+      ret <- private$odin$wrapper_run_basic(
+        t, y, private$ptr, "{{package}}", private$use_dde,
+        "{{c$rhs_dde}}", {{c$output_dde}},
+        "{{c$rhs_desolve}}", "{{c$initmod_desolve}}",
+        private$n_out, tcrit, ...)
 
       ## NOTE: This won't work in the case where many dde options are
       ## used; we should at least warn about this in the docs. Support
@@ -135,9 +107,6 @@
   ))
 
 
-## TODO: work out how to get the class added here, and the reference
-## to the class so that we can call the ir method as a static method,
-## or add it on here.
 {{name}} <- function(..., user = list(), use_dde = FALSE) {
   {{name}}_$new(..., user = user, use_dde = use_dde)
 }

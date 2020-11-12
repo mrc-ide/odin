@@ -58,11 +58,11 @@ odin_c_wrapper <- function(ir, options) {
                         contents = res$core$contents,
                         rhs_dde = res$core$rhs_dde,
                         rhs_desolve = res$core$rhs_desolve,
-                        output = "NULL",
+                        output_dde = "NULL",
                         initmod_desolve = res$core$initmod_desolve))
 
   if (dat$features$has_output) {
-    data$c$output <- dquote(res$core$output)
+    data$c$output_dde <- dquote(res$core$output)
   }
 
 
@@ -129,6 +129,34 @@ substitute_template <- function(data, src, dest) {
 }
 
 
-run_wrap <- function() {
+## We will use a few different sorts of run functions here, based on
+## the overall type of model.
+wrapper_run_basic <- function(t, y, ptr, package, use_dde,
+                              rhs_dde, output_dde,
+                              rhs_desolve, initmod_desolve,
+                              n_out, tcrit, ...) {
+  if (use_dde) {
+    ## TODO: Because we might invert or otherwise strip the data
+    ## returned here, we should use dde's support for naming, and
+    ## check that is actually good enough to do this! (this is out
+    ## of scope for the immediate work as it's broken in the
+    ## current interface).
+    ##
+    ## NOTE: it's not obvious how (or if!) we can call into use
+    ## the native symbols as found by package registration but it
+    ## appears not.
+    ret <- dde::dopri(y, t, rhs_dde, ptr,
+                      dllname = package, parms_are_real = FALSE,
+                      n_out = n_out, output = output_dde,
+                      ynames = FALSE, tcrit = tcrit, ...)
+  } else {
+    ## TODO: if this is a delay function we need to use dde, and
+    ## in both cases we need to inject the history length.
+    ret <- deSolve::ode(y, t, rhs_desolve, ptr,
+                        initfunc = initmod_desolve,
+                        nout = n_out, dllname = package,
+                        tcrit = tcrit, ...)
+  }
 
+  ret
 }
