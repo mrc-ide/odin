@@ -59,6 +59,7 @@ odin_c_wrapper <- function(ir, options) {
                package = paste0(dat$config$base, short_hash(hash)),
                time = dat$meta$time,
                rhs = if (dat$features$discrete) "update" else "deriv",
+               user = deparse1(names(dat$user)),
                discrete = as.character(dat$features$discrete),
                c = list(metadata = res$core$metadata,
                         create = res$core$create,
@@ -174,7 +175,7 @@ wrapper_run_ode <- function(self, private, t, y = NULL, ...,
                             use_names = TRUE, tcrit = NULL) {
   t <- as.numeric(t)
   if (is.null(y)) {
-    y <- self$initial(t)
+    y <- self$initial(t[[1L]])
   } else {
     y <- as.numeric(t)
   }
@@ -212,16 +213,16 @@ wrapper_run_delay <- function(self, private, t, y, ...,
                               n_history = DEFAULT_HISTORY_SIZE) {
   t <- as.numeric(t)
   if (is.null(y)) {
-    y <- self$initial(t)
+    y <- self$initial(t[[1L]])
   } else {
-    y <- as.numeric(t)
+    y <- as.numeric(y)
   }
 
   tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
 
   private$set_initial(t[[1]], y, private$use_dde)
 
-  if (privateuse_dde) {
+  if (private$use_dde) {
     ret <- dde::dopri(y, t, private$cfuns$rhs_dde, private$ptr,
                       dllname = private$dll, parms_are_real = FALSE,
                       n_out = private$n_out, output = private$cfuns$output_dde,
@@ -231,7 +232,7 @@ wrapper_run_delay <- function(self, private, t, y, ...,
     ret <- deSolve::dede(y = y, times = t,
                          func = private$cfuns$rhs_desolve,
                          parms = private$ptr,
-                         initfunc = privatae$cfuns$initmod_desolve,
+                         initfunc = private$cfuns$initmod_desolve,
                          nout = private$n_out,
                          dllname = private$dll,
                          tcrit = tcrit,
@@ -251,7 +252,7 @@ wrapper_run_discrete <- function(self, private, step, y = NULL, ...,
                                  use_names = TRUE, replicate = NULL) {
   step <- as_integer(step)
   if (is.null(y)) {
-    y <- self$initial(step[[1]])
+    y <- self$initial(step[[1L]])
   }
   support_check_interpolate_t(step, private$interpolate_t, NULL)
 

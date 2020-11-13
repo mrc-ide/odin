@@ -9,8 +9,8 @@ test_that("constant model", {
     initial(y) <- 1
   })
   mod <- gen()
-  expect_identical(r6_private(mod)$init, 1.0)
-  expect_identical(mod$deriv(0.0, r6_private(mod)$init), 0.5)
+  ## expect_identical(r6_private(mod)$init, 1.0)
+  ## expect_identical(mod$deriv(0.0, r6_private(mod)$init), 0.5)
 
   tt <- seq(0, 10, length.out = 11)
   yy <- mod$run(tt)
@@ -30,10 +30,10 @@ test_that("user variables", {
   })
 
   ## Two different errors when r is not provided:
-  expect_error(gen(), 'argument "r" is missing')
-  expect_error(gen(NULL), "Expected a value for 'r'")
+  expect_error(gen(), "Expected a value for 'r'")
+  expect_error(gen(r = NULL), "Expected a value for 'r'")
 
-  mod <- gen(pi)
+  mod <- gen(r = pi)
   dat <- mod$contents()
   expect_equal(dat$r, pi)
   expect_equal(dat$N0, 1.0)
@@ -59,12 +59,11 @@ test_that("user variables", {
 })
 
 test_that("user variables on models with none", {
-  gen <- odin({
+  gen <- odin::odin({
     a <- 1
     deriv(y) <- 0.5 * a
     initial(y) <- 1
   })
-  expect_error(gen(a = 1), "unused argument")
   mod <- gen()
   ## NOTE: This is a change of behaviour, but that's probably OK
   expect_silent(mod$set_user())
@@ -81,7 +80,7 @@ test_that("non-numeric time", {
   })
   mod <- gen()
   t <- as.integer(0:10)
-  expect_equal(mod$initial(t), 0.5)
+  expect_equal(mod$initial(t[1]), 0.5)
   expect_silent(mod$run(t))
 })
 
@@ -126,7 +125,7 @@ test_that("non-numeric user", {
     K <- user(100)
     r <- user()
   })
-  mod <- gen(1L)
+  mod <- gen(r = 1L)
   expect_is(mod$contents()$r, "numeric")
   expect_identical(mod$contents()$r, 1.0)
 })
@@ -185,8 +184,8 @@ test_that("time dependent", {
   t0 <- seq(0,  10, length.out = 101)
   t1 <- seq(10, 10, length.out = 101)
 
-  expect_equal(mod_t$run(t0), gen_cmp(sqrt(t0[[1]]) + 1)$run(t0))
-  expect_equal(mod_t$run(t1), gen_cmp(sqrt(t1[[1]]) + 1)$run(t1))
+  expect_equal(mod_t$run(t0), gen_cmp(N0 = sqrt(t0[[1]]) + 1)$run(t0))
+  expect_equal(mod_t$run(t1), gen_cmp(N0 = sqrt(t1[[1]]) + 1)$run(t1))
 })
 
 test_that("time dependent initial conditions", {
@@ -337,7 +336,7 @@ test_that("3d array", {
     dim(y) <- c(2, 3, 4)
   })
   mod <- gen()
-  expect_equal(mod$initial(), rep(1.0, 2 * 3 * 4))
+  expect_equal(mod$initial(0), rep(1.0, 2 * 3 * 4))
 
   tt <- seq(0, 10, length.out = 11)
   yy <- mod$run(tt)
@@ -367,7 +366,7 @@ test_that("4d array", {
   })
 
   mod <- gen()
-  expect_equal(mod$initial(), rep(1.0, 2 * 3 * 4 * 5))
+  expect_equal(mod$initial(0), rep(1.0, 2 * 3 * 4 * 5))
   dat <- mod$contents()
   expect_equal(dat$initial_y, array(1, c(2, 3, 4, 5)))
 })
@@ -1026,7 +1025,7 @@ test_that("integer vector", {
   expect_equal(dat$idx, idx)
   expect_equal(dat$initial_v, x[idx])
 
-  expect_equal(ir_deserialise(mod$ir)$data$elements$idx$storage_type,
+  expect_equal(ir_deserialise(mod$ir())$data$elements$idx$storage_type,
                "int")
 })
 
@@ -1053,7 +1052,7 @@ test_that("integer matrix", {
 
   mod <- gen(x = x, idx = idx)
   expect_equal(mod$contents()$v, v)
-  expect_equal(ir_deserialise(mod$ir)$data$elements$idx$storage_type,
+  expect_equal(ir_deserialise(mod$ir())$data$elements$idx$storage_type,
                "int")
 })
 
@@ -1081,11 +1080,11 @@ test_that("user variable information", {
 
   info <- coef(gen)
   expect_is(info, "data.frame")
-  expect_equal(info$name, names(formals(gen))[1:3])
+  ## expect_equal(info$name, names(formals(gen))[1:3])
   expect_equal(info$has_default, c(FALSE, TRUE, TRUE))
   expect_equal(info$rank, c(1L, 0L, 0L))
 
-  expect_identical(coef(gen(1)), info)
+  expect_identical(coef(gen(r = 1)), info)
 })
 
 
@@ -1133,18 +1132,6 @@ test_that("format/print", {
                fixed = TRUE, all = FALSE)
 
   expect_identical(x, list(value = gen, visible = FALSE))
-})
-
-
-test_that("ir is read-only", {
-  gen <- odin({
-    deriv(y) <- 0.5
-    initial(y) <- 1
-  })
-  mod <- gen()
-  ir <- mod$ir
-  expect_error(mod$ir <- TRUE)
-  expect_identical(mod$ir, ir)
 })
 
 
@@ -1318,7 +1305,7 @@ test_that("force integer on a numeric vector truncates", {
     deriv(x) <- 0
   })
 
-  expect_equal(gen(idx = 1.5)$initial(), 1)
-  expect_equal(gen(idx = 3 - 1e-8)$initial(), 2)
-  expect_equal(gen(idx = 3 + 1e-8)$initial(), 3)
+  expect_equal(gen(idx = 1.5)$initial(0), 1)
+  expect_equal(gen(idx = 3 - 1e-8)$initial(0), 2)
+  expect_equal(gen(idx = 3 + 1e-8)$initial(0), 3)
 })

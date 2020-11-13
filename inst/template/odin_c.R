@@ -14,6 +14,7 @@
     interpolate_t = NULL,
     cfuns = {{cfuns}},
     dll = "{{package}}",
+    user = {{user}},
 
     ## This is never called, but is used to ensure that R finds our
     ## symbols that we will use from the package; without this they
@@ -69,12 +70,8 @@
 
     ## Do we need to have the user-settable args here? It would be
     ## nice, but that's not super straightforward to do.
-    set_user = function(..., user = list(...)) {
-      if (length(user) > 0) {
-        if (is.null(names(user)) || any(!nzchar(names(user)))) {
-          stop("All arguments passed to odin models must be named")
-        }
-      }
+    set_user = function(..., user = list(...), unused_user_action = NULL) {
+      support_check_user(user, private$user, unused_user_action)
       .Call("{{c$set_user}}", private$ptr, user, PACKAGE = "{{package}}")
       private$update_metadata()
     },
@@ -112,8 +109,10 @@
   ))
 
 
-{{name}} <- function(..., user = list(...), use_dde = FALSE) {
-  {{name}}_$new(user = user, use_dde = use_dde)
+{{name}} <- function(..., user = list(...), use_dde = FALSE,
+                     unused_user_action = NULL) {
+  {{name}}_$new(user = user, use_dde = use_dde,
+                unused_user_action = unused_user_action)
 }
 class({{name}}) <- "odin_generator"
 attr({{name}}, "generator") <- {{name}}_

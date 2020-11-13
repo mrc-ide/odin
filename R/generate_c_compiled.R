@@ -525,13 +525,14 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
   body <- collector()
   if (dat$features$initial_time_dependent) {
     if (dat$features$discrete) {
-      type <- "int"
-      unpack <- "INTEGER"
+      time_type <- "int"
+      time_access <- "scalar_int"
     } else {
-      type <- "double"
-      unpack <- "REAL"
+      time_type <- "double"
+      time_access <- "scalar_real"
     }
-    body$add("%s %s = %s(%s)[0];", type, dat$meta$time, unpack, time_ptr)
+    body$add('%s %s = %s(%s, "%s");',
+             time_type, dat$meta$time, time_access, time_ptr, dat$meta$time)
   }
   body$add("%s *%s = %s(%s, 1);",
           dat$meta$c$internal_t, dat$meta$internal,

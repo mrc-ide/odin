@@ -119,9 +119,9 @@ test_that("2-arg round", {
     z <- round(t)
   })
 
-  mod0 <- gen(0)
-  mod1 <- gen(1)
-  mod2 <- gen(2)
+  mod0 <- gen(n = 0)
+  mod1 <- gen(n = 1)
+  mod2 <- gen(n = 2)
 
   tt <- seq(0, 1, length.out = 101)
   yy0 <- mod0$run(tt)

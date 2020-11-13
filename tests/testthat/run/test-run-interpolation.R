@@ -153,7 +153,7 @@ test_that("linear", {
 
   f <- approxfun(tp, zp, "linear")
   target <- function(t, x, .) list(f(t))
-  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit = 2)
+  cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = 2)
   expect_equal(yy[, 2], cmp[, 2])
 
   expect_error(mod$run(c(tt, max(tp) + 1)),
@@ -186,7 +186,7 @@ test_that("spline", {
 
   f <- splinefun(tp, zp, "natural")
   target <- function(t, x, .) list(f(t))
-  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit = tt[length(tt)])
+  cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = tt[length(tt)])
   expect_equal(yy[, 2], cmp[, 2])
 })
 

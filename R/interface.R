@@ -27,7 +27,7 @@ odin_ir <- function(x, parsed = FALSE) {
   if (inherits(x, "odin_generator")) {
     ir <- attr(x, "ir") %||% attr(x, "generator")$public_methods$ir()
   } else if (inherits(x, "odin_model")) {
-    ir <- x$ir
+    ir <- x$ir()
   } else {
     stop("Expected an odin_generator or odin_model object")
   }
