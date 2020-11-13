@@ -5,10 +5,9 @@
 \alias{odin_}
 \title{Create an odin model}
 \usage{
-odin(x, verbose = NULL, target = NULL, workdir = NULL,
-  validate = NULL, pretty = NULL, skip_cache = NULL,
-  compiler_warnings = NULL, no_check_unused_equations = NULL,
-  no_check_naked_index = NULL)
+odin(x, verbose = NULL, target = NULL, workdir = NULL, validate = NULL,
+  pretty = NULL, skip_cache = NULL, compiler_warnings = NULL,
+  no_check_unused_equations = NULL, no_check_naked_index = NULL)
 
 odin_(x, verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,

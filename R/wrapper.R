@@ -198,3 +198,15 @@ wrapper_run_delay <- function(t, y, ptr, package, use_dde,
 
   ret
 }
+
+
+##' @export
+`[[.odin_generator` <- function(x, i) {
+  attr(x, "generator", exact = TRUE)[[i]]
+}
+
+
+##' @export
+`$.odin_generator` <- function(x, name) {
+  x[[name]]
+}

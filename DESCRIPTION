@@ -44,6 +44,7 @@ Suggests:
     rmarkdown,
     testthat
 VignetteBuilder: knitr
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1
+Roxygen: list(old_usage = TRUE)
 Encoding: UTF-8
 Language: en-GB
