@@ -48,12 +48,10 @@ odin_c_wrapper <- function(ir, options) {
   hash <- hash_string(dat$ir)
   code <- res$code
 
-  run <- if (dat$features$has_delay) "wrapper_run_delay" else "wrapper_run_ode"
-
   data <- list(name = dat$config$base,
                package = paste0(dat$config$base, short_hash(hash)),
-               run = run,
-               time = "step",
+               time = dat$meta$time,
+               rhs = if (dat$features$discrete) "update" else "deriv",
                c = list(metadata = res$core$metadata,
                         create = res$core$create,
                         set_user = res$core$set_user,
@@ -62,7 +60,13 @@ odin_c_wrapper <- function(ir, options) {
                         contents = res$core$contents,
                         set_initial = res$core$set_initial))
 
-  ## TODO: Select among our 3 core run functions
+  if (dat$features$discrete) {
+    data$run <- "wrapper_run_discrete"
+  } else if (dat$features$has_delay) {
+    data$run <- "wrapper_run_delay"
+  } else {
+    data$run <- "wrapper_run_ode"
+  }
 
   ## Collect up all the C functions, used as pointers.
   if (dat$features$discrete) {
@@ -103,7 +107,7 @@ odin_c_wrapper <- function(ir, options) {
                       file.path(dest, "DESCRIPTION"))
   substitute_template(data, odin_file("template/NAMESPACE"),
                       file.path(dest, "NAMESPACE"))
-  substitute_template(data, odin_file("template/discrete_c.R"),
+  substitute_template(data, odin_file("template/odin_c.R"),
                       file.path(dest, "R/odin.R"))
   writeLines(code, file.path(dest, "src/odin.c"))
   writeLines(ir, file.path(dest, sprintf("inst/odin/%s.json", data$name)))
@@ -158,28 +162,30 @@ substitute_template <- function(data, src, dest) {
 
 ## We will use a few different sorts of run functions here, based on
 ## the overall type of model.
-wrapper_run_ode <- function(t, y, ptr, package, use_dde,
-                            rhs_dde, output_dde,
-                            rhs_desolve, initmod_desolve,
-                            n_out, tcrit, ...) {
-  if (use_dde) {
+wrapper_run_ode <- function(self, private, t, y = NULL, ...,
+                            use_names = TRUE, tcrit = NULL) {
+  t <- as.numeric(t)
+  if (is.null(y)) {
+    y <- self$initial(t)
+  } else {
+    y <- as.numeric(t)
+  }
+
+  tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
+  if (private$use_dde) {
     ## TODO: Because we might invert or otherwise strip the data
     ## returned here, we should use dde's support for naming, and
     ## check that is actually good enough to do this! (this is out
     ## of scope for the immediate work as it's broken in the
     ## current interface).
-    ##
-    ## NOTE: it's not obvious how (or if!) we can call into use
-    ## the native symbols as found by package registration but it
-    ## appears not.
-    ret <- dde::dopri(y, t, rhs_dde, ptr,
-                      dllname = package, parms_are_real = FALSE,
-                      n_out = n_out, output = output_dde,
+    ret <- dde::dopri(y, t, private$cfuns$rhs_dde, private$ptr,
+                      dllname = private$dll, parms_are_real = FALSE,
+                      n_out = private$n_out, output = private$cfuns$output_dde,
                       ynames = FALSE, tcrit = tcrit, ...)
   } else {
-    ret <- deSolve::ode(y, t, rhs_desolve, ptr,
-                        initfunc = initmod_desolve,
-                        nout = n_out, dllname = package,
+    ret <- deSolve::ode(y, t, private$cfuns$rhs_desolve, private$ptr,
+                        initfunc = private$cfuns$initmod_desolve,
+                        nout = private$n_out, dllname = private$dll,
                         tcrit = tcrit, ...)
   }
 
@@ -187,23 +193,22 @@ wrapper_run_ode <- function(t, y, ptr, package, use_dde,
 }
 
 
-wrapper_run_delay <- function(t, y, ptr, package, use_dde,
-                              rhs_dde, output_dde,
-                              rhs_desolve, initmod_desolve,
-                              n_out, tcrit, ...,
+wrapper_run_delay <- function(self, private, t, y, ...,
+                              use_names = TRUE, tcrit = NULL,
                               n_history = DEFAULT_HISTORY_SIZE) {
-  if (use_dde) {
-    ret <- dde::dopri(y, t, rhs_dde, ptr,
-                      dllname = package, parms_are_real = FALSE,
-                      n_out = n_out, output = output_dde,
+  if (privateuse_dde) {
+    ret <- dde::dopri(y, t, private$cfuns$rhs_dde, private$ptr,
+                      dllname = private$dll, parms_are_real = FALSE,
+                      n_out = private$n_out, output = private$cfuns$output_dde,
                       ynames = FALSE, tcrit = tcrit,
                       n_history = n_history, ...)
   } else {
-    ## TODO: if this is a delay function we need to use dde, and
-    ## in both cases we need to inject the history length.
-    ret <- deSolve::dede(y = y, times = t, func = rhs_desolve, parms = ptr,
-                         initfunc = initmod_desolve,
-                         nout = n_out, dllname = package,
+    ret <- deSolve::dede(y = y, times = t,
+                         func = private$cfuns$rhs_desolve,
+                         parms = private$ptr,
+                         initfunc = privatae$cfuns$initmod_desolve,
+                         nout = private$n_out,
+                         dllname = private$dll,
                          tcrit = tcrit,
                          control = list(mxhist = n_history))
   }

@@ -35,6 +35,9 @@
   ),
 
   public = list(
+    ## TODO: Deprecate (fairly hard) use_dde; directly from the
+    ## constructor should be NULL and via the generator should be
+    ## FALSE with warning?
     initialize = function(user = list(), use_dde = FALSE,
                           unused_user_action = NULL) {
       private$odin <- asNamespace("odin")
@@ -72,7 +75,13 @@
     },
 
     rhs = function({{time}}, y) {
+      ## TODO: The rhs_r function should do coersion here!
       .Call("{{c$rhs_r}}", private$ptr, {{time}}, y, PACKAGE = "{{package}}")
+    },
+
+    {{rhs}} = function({{time}}, y) {
+      .Deprecated("$rhs()")
+      self$rhs({{time}}, y)
     },
 
     contents = function() {
@@ -84,7 +93,7 @@
     },
 
     run = function({{time}}, y = NULL, ..., use_names = TRUE) {
-      private$odin$wrapper_run_discrete(
+      private$odin${{run}}(
         self, private, {{time}}, y, ..., use_names = use_names)
     }
   ))
