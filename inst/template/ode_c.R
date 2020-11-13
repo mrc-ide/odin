@@ -17,9 +17,7 @@
     ## This is never called, but is used to ensure that R finds our
     ## symbols that we will use from the package.
     registration = function() {
-      .C("{{name}}_rhs_dde", 1, 2, 3, 4, 5, PACKAGE = "{{package}}")
-      .C("{{name}}_rhs_desolve", 1, 2, 3, 4, 5, 6, PACKAGE = "{{package}}")
-      .C("{{name}}_initmod_desolve", 1, PACKAGE = "{{package}}")
+      {{registration}}
     },
 
     update_metadata = function() {
@@ -94,10 +92,14 @@
         y <- as.numeric(t)
       }
 
+      tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
+      .Call("{{c$set_initial}}", private$ptr, t[[1]], y, private$use_dde,
+            PACKAGE = "{{package}}")
+
       ret <- private$run_(t, y, private$ptr, "{{package}}", private$use_dde,
                           "{{c$rhs_dde}}", {{c$output_dde}},
                           "{{c$rhs_desolve}}", "{{c$initmod_desolve}}",
-                          private$n_out, private$interpolate_t, tcrit, ...)
+                          private$n_out, tcrit, ...)
 
       ## NOTE: This won't work in the case where many dde options are
       ## used; we should at least warn about this in the docs. Support

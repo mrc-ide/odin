@@ -449,10 +449,6 @@ generate_c_compiled_set_user <- function(eqs, dat) {
 
 
 generate_c_compiled_set_initial <- function(dat, rewrite) {
-  if (!dat$features$has_delay) {
-    return(NULL)
-  }
-
   set_initial1 <- function(x) {
     rhs <- c_extract_variable(x, dat$data$elements, dat$meta$state, rewrite)
     sprintf_safe("%s = %s;", rewrite(x$initial), rhs)
@@ -477,18 +473,20 @@ generate_c_compiled_set_initial <- function(dat, rewrite) {
   }
 
   body <- collector()
-  body$add("%s *%s = %s(%s, 1);",
-           internal_t, internal, dat$meta$c$get_internal, ptr)
-  body$add("const double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
-  body$add("%s = %s;", rewrite(dat$meta$initial_time), dat$meta$time)
-  if (!dat$features$discrete) {
-    body$add("%s = INTEGER(%s)[0];", rewrite(dat$meta$c$use_dde), use_dde_ptr)
+  if (dat$features$has_delay) {
+    body$add("%s *%s = %s(%s, 1);",
+             internal_t, internal, dat$meta$c$get_internal, ptr)
+    body$add("const double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
+    body$add("%s = %s;", rewrite(dat$meta$initial_time), dat$meta$time)
+    if (!dat$features$discrete) {
+      body$add("%s = INTEGER(%s)[0];", rewrite(dat$meta$c$use_dde), use_dde_ptr)
+    }
+    body$add("if (%s != R_NilValue) {", state_ptr)
+    body$add("  double * %s = REAL(%s);", dat$meta$state, state_ptr)
+    body$add(paste0("  ", set_initial_variables))
+    body$add("}")
+    body$add("return R_NilValue;")
   }
-  body$add("if (%s != R_NilValue) {", state_ptr)
-  body$add("  double * %s = REAL(%s);", dat$meta$state, state_ptr)
-  body$add(paste0("  ", set_initial_variables))
-  body$add("}")
-  body$add("return R_NilValue;")
 
   c_function("SEXP", dat$meta$c$set_initial, args, body$get())
 }

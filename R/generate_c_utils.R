@@ -18,7 +18,7 @@ c_function <- function(return_type, name, args, body) {
   str <- sprintf_safe("%s %s(%s)", return_type, name, args_str)
   list(name = name,
        declaration = paste0(str, ";"),
-       definition = c(paste0(str, " {"), paste0("  ", body), "}"))
+       definition = c(paste0(str, " {"), sprintf("  %s", body), "}"))
 }
 
 

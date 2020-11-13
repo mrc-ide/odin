@@ -36,7 +36,7 @@ odin2_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 odin2_generate <- function(ir, options) {
   odin_message(paste("Generating model in", options$target), options$verbose)
   switch(options$target,
-         # "r" = generate_r(dat, options),
+         ## "r" = generate_r(dat, options),
          "c" = odin_c_wrapper(ir, options),
          stop(sprintf("Unknown target '%s'", options$target)))
 }
@@ -48,9 +48,11 @@ odin_c_wrapper <- function(ir, options) {
   hash <- hash_string(dat$ir)
   code <- res$code
 
+  run <- if (dat$features$has_delay) "wrapper_run_delay" else "wrapper_run_ode"
+
   data <- list(name = dat$config$base,
                package = paste0(dat$config$base, short_hash(hash)),
-               run = "wrapper_run_basic",
+               run = run,
                c = list(metadata = res$core$metadata,
                         create = res$core$create,
                         set_user = res$core$set_user,
@@ -60,12 +62,24 @@ odin_c_wrapper <- function(ir, options) {
                         rhs_dde = res$core$rhs_dde,
                         rhs_desolve = res$core$rhs_desolve,
                         output_dde = "NULL",
+                        set_initial = res$core$set_initial,
                         initmod_desolve = res$core$initmod_desolve))
+
+  ## Sort out the registration; this is a bit tedious and we should
+  ## give it a good tidy before merging.
+  ##
+  ## TODO: It's very likely that we will want to generate a set of
+  ## arguments to go with this?
+  nms <- c(data$c$rhs_dde, data$c$rhs_desolve, data$c$initmod_desolve)
 
   if (dat$features$has_output) {
     data$c$output_dde <- dquote(res$core$output)
+    nms <- c(nms, res$core$output)
   }
 
+  data$registration <- paste(
+    sprintf('      .C("%s", package = "%s")', nms, data$package),
+    collapse = "\n")
 
   dest <- options$workdir
   dir.create(dest, FALSE, TRUE)
@@ -132,11 +146,10 @@ substitute_template <- function(data, src, dest) {
 
 ## We will use a few different sorts of run functions here, based on
 ## the overall type of model.
-wrapper_run_basic <- function(t, y, ptr, package, use_dde,
-                              rhs_dde, output_dde,
-                              rhs_desolve, initmod_desolve,
-                              n_out, interpolate_t, tcrit, ...) {
-  tcrit <- support_check_interpolate_t(t, interpolate_t, tcrit)
+wrapper_run_ode <- function(t, y, ptr, package, use_dde,
+                            rhs_dde, output_dde,
+                            rhs_desolve, initmod_desolve,
+                            n_out, tcrit, ...) {
   if (use_dde) {
     ## TODO: Because we might invert or otherwise strip the data
     ## returned here, we should use dde's support for naming, and
@@ -152,12 +165,35 @@ wrapper_run_basic <- function(t, y, ptr, package, use_dde,
                       n_out = n_out, output = output_dde,
                       ynames = FALSE, tcrit = tcrit, ...)
   } else {
-    ## TODO: if this is a delay function we need to use dde, and
-    ## in both cases we need to inject the history length.
     ret <- deSolve::ode(y, t, rhs_desolve, ptr,
                         initfunc = initmod_desolve,
                         nout = n_out, dllname = package,
                         tcrit = tcrit, ...)
+  }
+
+  ret
+}
+
+
+wrapper_run_delay <- function(t, y, ptr, package, use_dde,
+                              rhs_dde, output_dde,
+                              rhs_desolve, initmod_desolve,
+                              n_out, tcrit, ...,
+                              n_history = DEFAULT_HISTORY_SIZE) {
+  if (use_dde) {
+    ret <- dde::dopri(y, t, rhs_dde, ptr,
+                      dllname = package, parms_are_real = FALSE,
+                      n_out = n_out, output = output_dde,
+                      ynames = FALSE, tcrit = tcrit,
+                      n_history = n_history, ...)
+  } else {
+    ## TODO: if this is a delay function we need to use dde, and
+    ## in both cases we need to inject the history length.
+    ret <- deSolve::dede(y = y, times = t, func = rhs_desolve, parms = ptr,
+                         initfunc = initmod_desolve,
+                         nout = n_out, dllname = package,
+                         tcrit = tcrit,
+                         control = list(mxhist = n_history))
   }
 
   ret
