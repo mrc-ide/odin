@@ -26,8 +26,8 @@
     },
 
     ## This only does something in delay models
-    set_initial = function(t, y, use_dde) {
-      .Call("{{c$set_initial}}", private$ptr, t, y, use_dde,
+    set_initial = function({{time}}, y, use_dde) {
+      .Call("{{c$set_initial}}", private$ptr, {{time}}, y, use_dde,
             PACKAGE= "{{package}}")
     },
 
@@ -38,7 +38,7 @@
       private$output_order <- meta$output_order
       private$n_out <- meta$n_out
       private$ynames <- private$odin$make_names(
-        private$variable_order, private$output_order, FALSE)
+        private$variable_order, private$output_order, {{discrete}})
       private$interpolate_t <- meta$interpolate_t
     }
   ),
@@ -70,6 +70,11 @@
     ## Do we need to have the user-settable args here? It would be
     ## nice, but that's not super straightforward to do.
     set_user = function(..., user = list(...)) {
+      if (length(user) > 0) {
+        if (is.null(names(user)) || any(!nzchar(names(user)))) {
+          stop("All arguments passed to odin models must be named")
+        }
+      }
       .Call("{{c$set_user}}", private$ptr, user, PACKAGE = "{{package}}")
       private$update_metadata()
     },
@@ -79,7 +84,7 @@
     ## as it does not seem generally useful. This would bring us
     ## closer to the js version which requires that we always pass the
     ## time in.
-    initial = function(t) {
+    initial = function({{time}}) {
       .Call("{{c$initial}}", private$ptr, {{time}}, PACKAGE = "{{package}}")
     },
 

@@ -59,6 +59,7 @@ odin_c_wrapper <- function(ir, options) {
                package = paste0(dat$config$base, short_hash(hash)),
                time = dat$meta$time,
                rhs = if (dat$features$discrete) "update" else "deriv",
+               discrete = as.character(dat$features$discrete),
                c = list(metadata = res$core$metadata,
                         create = res$core$create,
                         set_user = res$core$set_user,
@@ -85,8 +86,8 @@ odin_c_wrapper <- function(ir, options) {
       rhs_desolve = list(name = res$core$rhs_desolve),
       initmod_desolve = list(name = res$core$initmod_desolve))
   }
-  if (dat$features$has_output) {
-    cfuns <- c(cfuns, list(output = list(name = res$core$output)))
+  if (dat$features$has_output && !dat$features$discrete) {
+    cfuns <- c(cfuns, list(output_dde = list(name = res$core$output)))
   }
 
   ## TODO: It's very likely that we will want to generate a set of

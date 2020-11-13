@@ -107,8 +107,8 @@ test_that("multiple variables", {
     b     <-  8.0 / 3.0
   })
   mod <- gen()
-  expect_equal(mod$initial(), c(10, 1, 1))
-  expect_equal(mod$deriv(0, mod$initial()), c(-90, 269, 22 / 3))
+  expect_equal(mod$initial(0), c(10, 1, 1))
+  expect_equal(mod$deriv(0, mod$initial(0)), c(-90, 269, 22 / 3))
 })
 
 
@@ -123,18 +123,18 @@ test_that("user variables", {
   })
 
   expect_error(gen())
-  expect_error(gen(NULL),
+  expect_error(gen(r = NULL),
                "Expected a value for 'r'", fixed = TRUE)
-  expect_error(gen(1:2),
+  expect_error(gen(r = 1:2),
                "Expected a scalar numeric for 'r'")
-  expect_error(gen(numeric(0)),
+  expect_error(gen(r = numeric(0)),
                "Expected a scalar numeric for 'r'")
 
   expect_equal(sort_list(gen(r = pi)$contents()),
                sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
   expect_equal(sort_list(gen(r = pi, N0 = 10)$contents()),
                sort_list(list(K = 100, N0 = 10, initial_N = 10, r = pi)))
-  expect_equal(gen(r = pi, N0 = 10)$initial(), 10)
+  expect_equal(gen(r = pi, N0 = 10)$initial(0), 10)
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))
 
@@ -181,7 +181,7 @@ test_that("output", {
   expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
   expect_equal(yy1[, "z"], tt)
 
-  yy2 <- gen(TRUE)$run(tt)
+  yy2 <- gen(use_dde = TRUE)$run(tt)
   expect_equal(colnames(yy2), c("t", "y", "z"))
   expect_equal(yy2[, "t"], tt)
   expect_equal(yy2[, "y"], seq(1, length.out = length(tt), by = 2))
@@ -230,11 +230,11 @@ test_that("discrete", {
   })
   mod <- gen()
 
-  expect_equal(mod$initial(), 1)
+  expect_equal(mod$initial(0), 1)
   expect_equal(mod$update(0, 1), 2)
 
   tt <- 0:10
-  yy <- mod$run(tt)
+  yy <- mod$run(tt) # wrong time name here
   expect_equal(yy, cbind(step = tt, x = tt + 1))
 })
 
@@ -274,7 +274,7 @@ test_that("array support", {
   expect_equal(sort_list(mod$contents()),
                sort_list(list(dim_r = 3, dim_x = 3, initial_x = rep(1, 3),
                               initial_y = 2, n = 3, r = 1:3)))
-  expect_equal(mod$initial(), c(2, 1, 1, 1))
+  expect_equal(mod$initial(0), c(2, 1, 1, 1))
   expect_equal(mod$deriv(0, c(2, 1, 1, 1)), c(3, 1, 2, 3))
 
   tt <- 0:10
@@ -321,8 +321,8 @@ test_that("3d array", {
   expect_equal(d$dim_y_3, 4)
   expect_equal(d$dim_y_12, 6)
 
-  expect_equal(mod$initial(), rep(1, 24))
-  expect_equal(mod$deriv(0, mod$initial()), rep(0.1, 24))
+  expect_equal(mod$initial(0), rep(1, 24))
+  expect_equal(mod$deriv(0, mod$initial(0)), rep(0.1, 24))
 
   tt <- 0:10
   yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
@@ -343,9 +343,9 @@ test_that("user array", {
     dim(x) <- n
   })
 
-  mod <- gen(1:3)
+  mod <- gen(r = 1:3)
   expect_identical(mod$contents()$r, as.numeric(1:3))
-  expect_error(gen(1), "Expected length 3 value for r")
+  expect_error(gen(r = 1), "Expected length 3 value for r")
 })
 
 
@@ -359,7 +359,7 @@ test_that("user matrix", {
   })
 
   r <- matrix(runif(6), 2, 3)
-  mod <- gen(r)
+  mod <- gen(r = r)
   expect_identical(mod$contents()$r, r)
 
   ## TODO: this would be nice to tidy up but it's really tricky to
@@ -371,12 +371,12 @@ test_that("user matrix", {
     msg2 <- "Incorrect size of dimension 1 of r (expected 2)"
   }
 
-  expect_error(gen(c(r)), msg1, fixed = TRUE)
-  expect_error(gen(r[2, 2]), msg1, fixed = TRUE)
-  expect_error(gen(array(1, 2:4)), msg1, fixed = TRUE)
-  expect_error(gen(1), msg1, fixed = TRUE)
+  expect_error(gen(r = c(r)), msg1, fixed = TRUE)
+  expect_error(gen(r = r[2, 2]), msg1, fixed = TRUE)
+  expect_error(gen(r = array(1, 2:4)), msg1, fixed = TRUE)
+  expect_error(gen(r = 1), msg1, fixed = TRUE)
 
-  expect_error(gen(t(r)), msg2, fixed = TRUE)
+  expect_error(gen(r = t(r)), msg2, fixed = TRUE)
 })
 
 
@@ -435,14 +435,14 @@ test_that("user array - direct 3d", {
   })
 
   m <- array(runif(24), 2:4)
-  mod <- gen(m)
+  mod <- gen(r = m)
   expect_equal(sort_list(mod$contents()),
                sort_list(list(dim_r = 24, dim_r_1 = 2, dim_r_12 = 6,
                               dim_r_2 = 3, dim_r_3 = 4, initial_y = 1,
                               r = m)))
 
-  expect_error(gen(1), "Expected a numeric array of rank 3 for 'r'")
-  expect_error(gen(matrix(1)), "Expected a numeric array of rank 3 for 'r'")
+  expect_error(gen(r = 1), "Expected a numeric array of rank 3 for 'r'")
+  expect_error(gen(r = matrix(1)), "Expected a numeric array of rank 3 for 'r'")
 })
 
 
@@ -491,7 +491,7 @@ test_that("stochastic", {
     update(x) <- x + norm_rand()
   })
   mod <- gen()
-  expect_equal(mod$initial(), 0)
+  expect_equal(mod$initial(0), 0)
 
   set.seed(1)
   x <- rnorm(3)
@@ -535,7 +535,7 @@ test_that("multiple arrays: dynamic", {
     dim(y) <- n
   })
 
-  mod <- gen(4)
+  mod <- gen(n = 4)
   expect_equal(mod$initial(0), rep(1:2, each = 4))
   expect_equal(mod$deriv(0, mod$initial(0)), rep(1:4, 2))
 })
@@ -589,8 +589,8 @@ test_that("3d array time dependent and variable", {
   expect_equal(d$dim_y_3, 4)
   expect_equal(d$dim_y_12, 6)
 
-  expect_equal(mod$initial(), rep(1, 24))
-  expect_equal(mod$deriv(2, mod$initial()), rep(0.2, 24))
+  expect_equal(mod$initial(0), rep(1, 24))
+  expect_equal(mod$deriv(2, mod$initial(0)), rep(0.2, 24))
 
   tt <- 0:10
   yy <- mod$run(tt)
@@ -614,12 +614,12 @@ test_that("rich user arrays", {
   })
 
   r <- matrix(runif(6), 2, 3)
-  expect_error(gen(r), NA)
-  expect_error(gen(-r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), NA)
+  expect_error(gen(r = -r), "Expected 'r' to be at least 0")
   r[5] <- -1
-  expect_error(gen(r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), "Expected 'r' to be at least 0")
   r[5] <- NA
-  expect_error(gen(r), "'r' must not contain any NA values")
+  expect_error(gen(r = r), "'r' must not contain any NA values")
 })
 
 
@@ -634,10 +634,10 @@ test_that("rich user sized arrays", {
 
   r <- matrix(runif(6), 2, 3)
 
-  expect_error(gen(r), NA)
-  expect_error(gen(-r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), NA)
+  expect_error(gen(r = -r), "Expected 'r' to be at least 0")
   r[5] <- -1
-  expect_error(gen(r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), "Expected 'r' to be at least 0")
 })
 
 
@@ -679,10 +679,10 @@ test_that("multinomial", {
 
   set.seed(1)
   p <- runif(5)
-  mod <- gen(p)
+  mod <- gen(q = p)
 
   set.seed(1)
-  y <- mod$update(0, mod$initial())
+  y <- mod$update(0, mod$initial(0))
   set.seed(1)
   cmp <- drop(rmultinom(1, 5, p))
 
@@ -708,7 +708,7 @@ test_that("local scope of loop variables", {
   })
 
   mod <- gen()
-  y0 <- mod$initial()
+  y0 <- mod$initial(0)
   y <- mod$transform_variables(mod$deriv(0, y0))
 
   cmp <- matrix(rep(1:2, c(2, 6)), 4, 2, TRUE)
