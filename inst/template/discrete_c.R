@@ -12,7 +12,8 @@
     n_out = NULL,
     ynames = NULL,
     interpolate_t = NULL,
-    run_ = NULL,
+    cfuns = {{cfuns}},
+    dll = "{{package}}",
 
     ## This is never called, but is used to ensure that R finds our
     ## symbols that we will use from the package.
@@ -41,7 +42,6 @@
       self$set_user(user = user, unused_user_action = unused_user_action)
       private$use_dde <- use_dde
       private$update_metadata()
-      private$run_ <- private$odin${{run}}
     },
 
     ir = function() {
@@ -67,14 +67,12 @@
     ## closer to the js version which requires that we always pass the
     ## time in.
     initial = function(t) {
-      .Call("{{c$initial}}", private$ptr, t,
+      .Call("{{c$initial}}", private$ptr, {{time}},
             PACKAGE = "{{package}}")
     },
 
-    ## For a totally general discrete time version, this would be
-    ## rhs()
-    deriv = function(t, y) {
-      .Call("{{c$rhs_r}}", private$ptr, t, y, PACKAGE = "{{package}}")
+    rhs = function({{time}}, y) {
+      .Call("{{c$rhs_r}}", private$ptr, {{time}}, y, PACKAGE = "{{package}}")
     },
 
     contents = function() {
@@ -85,34 +83,9 @@
       private$odin$support_transform_variables(y, private)
     },
 
-    run = function(t, y = NULL, ..., use_names = TRUE, tcrit = NULL) {
-      t <- as.numeric(t)
-      if (is.null(y)) {
-        y <- self$initial(t)
-      } else {
-        y <- as.numeric(t)
-      }
-
-      tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
-      .Call("{{c$set_initial}}", private$ptr, t[[1]], y, private$use_dde,
-            PACKAGE = "{{package}}")
-
-      ret <- private$run_(t, y, private$ptr, "{{package}}", private$use_dde,
-                          "{{c$rhs_dde}}", {{c$output_dde}},
-                          "{{c$rhs_desolve}}", "{{c$initmod_desolve}}",
-                          private$n_out, tcrit, ...)
-
-      ## NOTE: This won't work in the case where many dde options are
-      ## used; we should at least warn about this in the docs. Support
-      ## in dde is hard because we assume that output and y and time
-      ## can easily be done together, assuming the time names etc.
-      if (use_names) {
-        colnames(ret) <- private$ynames
-      } else {
-        colnames(ret) <- NULL
-      }
-
-      ret
+    run = function({{time}}, y = NULL, ..., use_names = TRUE) {
+      private$odin$wrapper_run_discrete(
+        self, private, {{time}}, y, ..., use_names = use_names)
     }
   ))
 

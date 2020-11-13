@@ -485,8 +485,8 @@ generate_c_compiled_set_initial <- function(dat, rewrite) {
     body$add("  double * %s = REAL(%s);", dat$meta$state, state_ptr)
     body$add(paste0("  ", set_initial_variables))
     body$add("}")
-    body$add("return R_NilValue;")
   }
+  body$add("return R_NilValue;")
 
   c_function("SEXP", dat$meta$c$set_initial, args, body$get())
 }

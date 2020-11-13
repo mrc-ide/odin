@@ -53,33 +53,45 @@ odin_c_wrapper <- function(ir, options) {
   data <- list(name = dat$config$base,
                package = paste0(dat$config$base, short_hash(hash)),
                run = run,
+               time = "step",
                c = list(metadata = res$core$metadata,
                         create = res$core$create,
                         set_user = res$core$set_user,
                         initial = res$core$initial_conditions,
                         rhs_r = res$core$rhs_r,
                         contents = res$core$contents,
-                        rhs_dde = res$core$rhs_dde,
-                        rhs_desolve = res$core$rhs_desolve,
-                        output_dde = "NULL",
-                        set_initial = res$core$set_initial,
-                        initmod_desolve = res$core$initmod_desolve))
+                        set_initial = res$core$set_initial))
 
-  ## Sort out the registration; this is a bit tedious and we should
-  ## give it a good tidy before merging.
-  ##
-  ## TODO: It's very likely that we will want to generate a set of
-  ## arguments to go with this?
-  nms <- c(data$c$rhs_dde, data$c$rhs_desolve, data$c$initmod_desolve)
+  ## TODO: Select among our 3 core run functions
 
+  ## Collect up all the C functions, used as pointers.
+  if (dat$features$discrete) {
+    cfuns <- list(
+      rhs_dde = list(name = res$core$rhs_dde))
+  } else {
+    cfuns <- list(
+      rhs_dde = list(name = res$core$rhs_dde),
+      rhs_desolve = list(name = res$core$rhs_desolve),
+      initmod_desolve = list(name = res$core$initmod_desolve))
+  }
   if (dat$features$has_output) {
-    data$c$output_dde <- dquote(res$core$output)
-    nms <- c(nms, res$core$output)
+    cfuns <- c(cfuns, list(output = list(name = res$core$output)))
   }
 
+  ## TODO: It's very likely that we will want to generate a set of
+  ## arguments to go with this? Just need to know the correct number
+  ## and can do that, though getting types matching is much harder
+  ## given the initmod one.
+  cfuns_nms <- vcapply(cfuns, "[[", "name", USE.NAMES = FALSE)
   data$registration <- paste(
-    sprintf('      .C("%s", package = "%s")', nms, data$package),
-    collapse = "\n")
+    sprintf('.C("%s", package = "%s")', cfuns_nms, data$package),
+    collapse = "\n      ")
+
+  ## Then the assignment block:
+  data$cfuns <- sprintf(
+    "list(\n%s)",
+    paste(sprintf("      %s = %s", names(cfuns), dquote(cfuns_nms)),
+          collapse = ",\n"))
 
   dest <- options$workdir
   dir.create(dest, FALSE, TRUE)
@@ -91,7 +103,7 @@ odin_c_wrapper <- function(ir, options) {
                       file.path(dest, "DESCRIPTION"))
   substitute_template(data, odin_file("template/NAMESPACE"),
                       file.path(dest, "NAMESPACE"))
-  substitute_template(data, odin_file("template/ode_c.R"),
+  substitute_template(data, odin_file("template/discrete_c.R"),
                       file.path(dest, "R/odin.R"))
   writeLines(code, file.path(dest, "src/odin.c"))
   writeLines(ir, file.path(dest, sprintf("inst/odin/%s.json", data$name)))
@@ -198,6 +210,35 @@ wrapper_run_delay <- function(t, y, ptr, package, use_dde,
 
   ret
 }
+
+wrapper_run_discrete <- function(self, private, step, y = NULL, ...,
+                                 use_names = TRUE, replicate = NULL) {
+  step <- as_integer(step)
+  if (is.null(y)) {
+    y <- self$initial(step[[1]])
+  }
+  support_check_interpolate_t(step, private$interpolate_t, NULL)
+
+  if (is.null(replicate)) {
+    ret <- dde::difeq(y, step, private$cfuns$rhs_dde, private$ptr,
+                      dllname = private$dll, parms_are_real = FALSE,
+                      ynames = FALSE, n_out = private$n_out, ...)
+  } else {
+    ret <- dde::difeq_replicate(replicate, y, step, private$cfuns$rhs_dde,
+                                private$ptr, dllname = private$dll,
+                                parms_are_real = FALSE,
+                                ynames = FALSE, n_out = private$n_out, ...)
+  }
+
+  if (use_names) {
+    colnames(ret) <- private$ynames
+  } else {
+    colnames(ret) <- NULL
+  }
+
+  ret
+}
+
 
 
 ##' @export
