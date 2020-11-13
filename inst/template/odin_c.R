@@ -16,13 +16,16 @@
     dll = "{{package}}",
 
     ## This is never called, but is used to ensure that R finds our
-    ## symbols that we will use from the package.
+    ## symbols that we will use from the package; without this they
+    ## cannot be found by dynamic lookup now that we use the package
+    ## FFI registration system.
     registration = function() {
-      {{registration}}
+      if (FALSE) {
+        {{registration}}
+      }
     },
 
     update_metadata = function() {
-      ## TODO: this all needs a little thought
       meta <- .Call("{{c$metadata}}", private$ptr,
                     PACKAGE = "{{package}}")
       private$variable_order <- meta$variable_order
@@ -35,9 +38,10 @@
   ),
 
   public = list(
-    ## TODO: Deprecate (fairly hard) use_dde; directly from the
+    ## TODO: Deprecate (fairly agressively) use_dde; directly from the
     ## constructor should be NULL and via the generator should be
-    ## FALSE with warning?
+    ## FALSE with warning? What else uses it? We might need to change
+    ## the behaviour of set_initial.
     initialize = function(user = list(), use_dde = FALSE,
                           unused_user_action = NULL) {
       private$odin <- asNamespace("odin")
@@ -57,8 +61,8 @@
       json
     },
 
-    ## Do we need to have the user-settable args here? Probably, but
-    ## that's not super straightforward.
+    ## Do we need to have the user-settable args here? It would be
+    ## nice, but that's not super straightforward to do.
     set_user = function(..., user = list(...)) {
       .Call("{{c$set_user}}", private$ptr, user, PACKAGE = "{{package}}")
       private$update_metadata()
@@ -70,12 +74,10 @@
     ## closer to the js version which requires that we always pass the
     ## time in.
     initial = function(t) {
-      .Call("{{c$initial}}", private$ptr, {{time}},
-            PACKAGE = "{{package}}")
+      .Call("{{c$initial}}", private$ptr, {{time}}, PACKAGE = "{{package}}")
     },
 
     rhs = function({{time}}, y) {
-      ## TODO: The rhs_r function should do coersion here!
       .Call("{{c$rhs_r}}", private$ptr, {{time}}, y, PACKAGE = "{{package}}")
     },
 

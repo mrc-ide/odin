@@ -264,10 +264,10 @@ generate_c_compiled_deriv_dde <- function(dat) {
 generate_c_compiled_rhs_r <- function(dat, rewrite) {
   discrete <- dat$features$discrete
   if (discrete) {
-    time_access <- "INTEGER"
+    time_access <- "scalar_int"
     time_type <- "int"
   } else {
-    time_access <- "REAL"
+    time_access <- "scalar_real"
     time_type <- "double"
   }
   body <- collector()
@@ -293,9 +293,9 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
   }
 
   eval_rhs <- sprintf_safe(
-    "%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
+    '%s(%s, %s(%s, "%s"), REAL(%s), REAL(%s), %s);',
     dat$meta$c$rhs, dat$meta$internal, time_access, dat$meta$time,
-    dat$meta$state, dat$meta$result, dat$meta$output)
+    dat$meta$time, dat$meta$state, dat$meta$result, dat$meta$output)
 
   ## In order to run the derivative calculation safely, we have to set
   ## the initial time.  But in order to make this safe, we need to put
@@ -700,6 +700,11 @@ generate_c_compiled_library <- function(dat, is_package) {
   }
   if ("sum" %in% used) {
     v <- c(v, "odin_sum1", "odin_isum1")
+  }
+  if (dat$features$discrete) {
+    v <- c(v, "scalar_int")
+  } else {
+    v <- c(v, "scalar_real")
   }
 
   if ("odin_sum" %in% used) {
