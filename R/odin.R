@@ -161,10 +161,9 @@ odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 
 
 odin_generate <- function(ir, options) {
-  dat <- ir_deserialise(ir)
   odin_message(paste("Generating model in", options$target), options$verbose)
   switch(options$target,
-         "r" = generate_r(dat, options),
-         "c" = generate_c(dat, options),
+         "r" = odin_r_wrapper(ir, options),
+         "c" = odin_c_wrapper(ir, options),
          stop(sprintf("Unknown target '%s'", options$target)))
 }

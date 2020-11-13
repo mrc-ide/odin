@@ -1,5 +1,5 @@
 {{name}}_ <- R6::R6Class(
-  "odin",
+  "odin_model",
   cloneable = FALSE,
 
   private = list(
@@ -23,6 +23,12 @@
       if (FALSE) {
         {{registration}}
       }
+    },
+
+    ## This only does something in delay models
+    set_initial = function(t, y, use_dde) {
+      .Call("{{c$set_initial}}", private$ptr, t, y, use_dde,
+            PACKAGE= "{{package}}")
     },
 
     update_metadata = function() {
@@ -82,7 +88,7 @@
     },
 
     {{rhs}} = function({{time}}, y) {
-      .Deprecated("$rhs()")
+      ## .Deprecated("$rhs()")
       self$rhs({{time}}, y)
     },
 

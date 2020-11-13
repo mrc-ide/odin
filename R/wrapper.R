@@ -196,6 +196,12 @@ wrapper_run_ode <- function(self, private, t, y = NULL, ...,
                         tcrit = tcrit, ...)
   }
 
+  if (use_names) {
+    colnames(ret) <- private$ynames
+  } else {
+    colnames(ret) <- NULL
+  }
+
   ret
 }
 
@@ -203,6 +209,17 @@ wrapper_run_ode <- function(self, private, t, y = NULL, ...,
 wrapper_run_delay <- function(self, private, t, y, ...,
                               use_names = TRUE, tcrit = NULL,
                               n_history = DEFAULT_HISTORY_SIZE) {
+  t <- as.numeric(t)
+  if (is.null(y)) {
+    y <- self$initial(t)
+  } else {
+    y <- as.numeric(t)
+  }
+
+  tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
+
+  private$set_initial(t[[1]], y, private$use_dde)
+
   if (privateuse_dde) {
     ret <- dde::dopri(y, t, private$cfuns$rhs_dde, private$ptr,
                       dllname = private$dll, parms_are_real = FALSE,
@@ -218,6 +235,12 @@ wrapper_run_delay <- function(self, private, t, y, ...,
                          dllname = private$dll,
                          tcrit = tcrit,
                          control = list(mxhist = n_history))
+  }
+
+  if (use_names) {
+    colnames(ret) <- private$ynames
+  } else {
+    colnames(ret) <- NULL
   }
 
   ret
