@@ -170,19 +170,6 @@ wrapper_run_delay <- function(self, private, t, y, ...,
   t <- as.numeric(t)
   tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
 
-  ## TODO: This masks a bad bug; if 'y' is given here, then this is
-  ## setting up a crash in the case where we have a delay that
-  ## involves vectors.
-  ##
-  ## We can get the contents of that by doing contents() and they look
-  ## reasonable. However, the call do odin_set_initial seem to really
-  ## conflict with how I'd have thought that this would be called as we
-  ## have odin-managed memory on the one hand (with Free/Calloc) and otoh
-  ##
-  ##   internal->initial_y = state + 1
-  ##
-  ## which means that initial_y is holding a pointer that should not be
-  ## free'd
   if (!is.null(y)) {
     y <- as_numeric(y)
   }

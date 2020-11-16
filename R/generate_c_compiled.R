@@ -452,7 +452,14 @@ generate_c_compiled_set_user <- function(eqs, dat) {
 generate_c_compiled_set_initial <- function(dat, rewrite) {
   set_initial1 <- function(x) {
     rhs <- c_extract_variable(x, dat$data$elements, dat$meta$state, rewrite)
-    sprintf_safe("%s = %s;", rewrite(x$initial), rhs)
+    if (dat$data$elements[[x$name]]$rank == 0) {
+      sprintf_safe("%s = %s;", rewrite(x$initial), rhs)
+    } else {
+      el <- dat$data$elements[[x$name]]
+      sprintf_safe("memcpy(%s, %s, %s * sizeof(%s));",
+                   rewrite(x$initial), rhs, rewrite(el$dimnames$length),
+                   el$storage_type)
+    }
   }
 
   ## TODO: see generate_c_compiled_initial_conditions for more that
