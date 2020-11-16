@@ -192,7 +192,8 @@ wrapper_run_delay <- function(self, private, t, y, ...,
                          nout = private$n_out,
                          dllname = private$dll,
                          tcrit = tcrit,
-                         control = list(mxhist = n_history))
+                         control = list(mxhist = n_history),
+                         ...)
   }
 
   if (use_names) {
