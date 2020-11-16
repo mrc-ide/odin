@@ -121,15 +121,14 @@ generate_c_code <- function(dat, options, package) {
               include$definition)
     list(code = c(decl, defn), core = core$name)
   } else {
-    r <- generate_c_r(dat, core$name, package)
     list(headers = headers,
          struct = struct,
-         core = core,
+         code = core,      # NOTE: Updated
+         core = core$name, # NOTE: Bad name
          lib = lib,
          include = include,
          ring = ring,
-         interpolate = interpolate,
-         r = r)
+         interpolate = interpolate)
   }
 }
 

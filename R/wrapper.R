@@ -11,56 +11,8 @@ odin_c_wrapper <- function(ir, options) {
   hash <- hash_string(dat$ir)
   code <- res$code
 
-  data <- list(name = dat$config$base,
-               package = paste0(dat$config$base, short_hash(hash)),
-               time = dat$meta$time,
-               rhs = if (dat$features$discrete) "update" else "deriv",
-               user = deparse1(names(dat$user)),
-               discrete = as.character(dat$features$discrete),
-               c = list(metadata = res$core$metadata,
-                        create = res$core$create,
-                        set_user = res$core$set_user,
-                        initial = res$core$initial_conditions,
-                        rhs_r = res$core$rhs_r,
-                        contents = res$core$contents,
-                        set_initial = res$core$set_initial))
-
-  if (dat$features$discrete) {
-    data$run <- "wrapper_run_discrete"
-  } else if (dat$features$has_delay) {
-    data$run <- "wrapper_run_delay"
-  } else {
-    data$run <- "wrapper_run_ode"
-  }
-
-  ## Collect up all the C functions, used as pointers.
-  if (dat$features$discrete) {
-    cfuns <- list(
-      rhs_dde = list(name = res$core$rhs_dde))
-  } else {
-    cfuns <- list(
-      rhs_dde = list(name = res$core$rhs_dde),
-      rhs_desolve = list(name = res$core$rhs_desolve),
-      initmod_desolve = list(name = res$core$initmod_desolve))
-  }
-  if (dat$features$has_output && !dat$features$discrete) {
-    cfuns <- c(cfuns, list(output_dde = list(name = res$core$output)))
-  }
-
-  ## TODO: It's very likely that we will want to generate a set of
-  ## arguments to go with this? Just need to know the correct number
-  ## and can do that, though getting types matching is much harder
-  ## given the initmod one.
-  cfuns_nms <- vcapply(cfuns, "[[", "name", USE.NAMES = FALSE)
-  data$registration <- paste(
-    sprintf('.C("%s", package = "%s")', cfuns_nms, data$package),
-    collapse = "\n      ")
-
-  ## Then the assignment block:
-  data$cfuns <- sprintf(
-    "list(\n%s)",
-    paste(sprintf("      %s = %s", names(cfuns), dquote(cfuns_nms)),
-          collapse = ",\n"))
+  package <- paste0(dat$config$base, short_hash(hash))
+  data <- wrapper_substitutions(dat, res, package)
 
   dest <- options$workdir
   dir.create(dest, FALSE, TRUE)
@@ -133,7 +85,7 @@ wrapper_run_ode <- function(self, private, t, y = NULL, ...,
   if (is.null(y)) {
     y <- self$initial(t[[1L]])
   } else {
-    y <- as.numeric(t)
+    y <- as.numeric(y) # TODO: this is a bug - is it caught by tests?
   }
 
   tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
@@ -244,4 +196,63 @@ wrapper_run_discrete <- function(self, private, step, y = NULL, ...,
 ##' @export
 `$.odin_generator` <- function(x, name) {
   x[[name]]
+}
+
+
+## Creates the data for substituting into inst/template/odin_c.R from
+## the parsed ir data.
+wrapper_substitutions <- function(dat, res, package) {
+  data <- list(name = dat$config$base,
+               package = package,
+               time = dat$meta$time,
+               rhs = if (dat$features$discrete) "update" else "deriv",
+               user = deparse1(names(dat$user)),
+               discrete = as.character(dat$features$discrete),
+               c = list(metadata = res$core$metadata,
+                        create = res$core$create,
+                        set_user = res$core$set_user,
+                        initial = res$core$initial_conditions,
+                        rhs_r = res$core$rhs_r,
+                        contents = res$core$contents,
+                        set_initial = res$core$set_initial))
+
+  if (dat$features$discrete) {
+    data$run <- "wrapper_run_discrete"
+  } else if (dat$features$has_delay) {
+    data$run <- "wrapper_run_delay"
+  } else {
+    data$run <- "wrapper_run_ode"
+  }
+
+
+  ## Collect up all the C functions, used as pointers.
+  if (dat$features$discrete) {
+    cfuns <- list(
+      rhs_dde = list(name = res$core$rhs_dde))
+  } else {
+    cfuns <- list(
+      rhs_dde = list(name = res$core$rhs_dde),
+      rhs_desolve = list(name = res$core$rhs_desolve),
+      initmod_desolve = list(name = res$core$initmod_desolve))
+  }
+  if (dat$features$has_output && !dat$features$discrete) {
+    cfuns <- c(cfuns, list(output_dde = list(name = res$core$output)))
+  }
+
+  ## TODO: It's very likely that we will want to generate a set of
+  ## arguments to go with this? Just need to know the correct number
+  ## and can do that, though getting types matching is much harder
+  ## given the initmod one.
+  cfuns_nms <- vcapply(cfuns, "[[", "name", USE.NAMES = FALSE)
+  data$registration <- paste(
+    sprintf('.C("%s", package = "%s")', cfuns_nms, data$package),
+    collapse = "\n      ")
+
+  ## Then the assignment block:
+  data$cfuns <- sprintf(
+    "list(\n%s)",
+    paste(sprintf("      %s = %s", names(cfuns), dquote(cfuns_nms)),
+          collapse = ",\n"))
+
+  data
 }
