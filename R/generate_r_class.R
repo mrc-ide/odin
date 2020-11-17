@@ -159,7 +159,9 @@ generate_r_class <- function(core, dat, env) {
 }
 
 
-generate_r_constructor <- function(base, discrete, user, ir, env) {
+generate_r_constructor <- function(base, discrete, user, ir, env, ...) {
+  ## NOTE: dots above are to prevent concern from the static checker
+  ## about list(...) below.
   args <- alist("..." = ,
                user = list(...),
                unused_user_action = NULL)
