@@ -100,7 +100,7 @@ wrapper_run_ode <- function(self, private, t, y = NULL, ...,
   if (is.null(y)) {
     y <- self$initial(t[[1L]])
   } else {
-    y <- as.numeric(y) # TODO: this is a bug - is it caught by tests?
+    y <- as.numeric(y)
   }
 
   tcrit <- support_check_interpolate_t(t, private$interpolate_t, tcrit)
