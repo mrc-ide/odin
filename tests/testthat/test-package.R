@@ -42,7 +42,8 @@ test_that("interpolation", {
               0.193, 0.286, 0.599, 1.889, 0.996, 0.681, 1.135)
   k <- 0.01
   C0 <- mean(approx(flux_t, flux_y, xout = 1:365)$y) / k
-  mod <- res$env$interpolate_odin(kk = k, C0 = C0, flux_t = flux_t, flux_y)
+  mod <- res$env$interpolate_odin(kk = k, C0 = C0, flux_t = flux_t,
+                                  flux_y = flux_y)
 
   t <- seq(1, 365)
 

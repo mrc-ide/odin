@@ -142,7 +142,8 @@ test_that("disable update function", {
   })
 
   mod <- gen()
-  expect_error(mod$update(0),
+  y <- mod$initial(0)
+  expect_error(mod$update(0, y),
                "Can't call update() on delay models",
                fixed = TRUE)
 })

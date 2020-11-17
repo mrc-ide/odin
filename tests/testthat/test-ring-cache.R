@@ -41,7 +41,7 @@ test_that("reused cached model", {
 
   gen <- odin(code)
   expect_equal(.odin$model_cache_c$list(),
-               hash_string(gen()$ir))
+               hash_string(gen()$ir()))
   expect_message(odin(code, verbose = TRUE),
                  "Using cached model")
   expect_silent(odin(code, verbose = FALSE))
