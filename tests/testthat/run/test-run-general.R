@@ -1080,7 +1080,6 @@ test_that("user variable information", {
 
   info <- coef(gen)
   expect_is(info, "data.frame")
-  ## expect_equal(info$name, names(formals(gen))[1:3])
   expect_equal(info$has_default, c(FALSE, TRUE, TRUE))
   expect_equal(info$rank, c(1L, 0L, 0L))
 

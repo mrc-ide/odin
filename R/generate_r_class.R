@@ -54,6 +54,25 @@ generate_r_class <- function(core, dat, env) {
     }
   }
 
+
+  ## TODO: is this reasonable?
+  path_ir <- tempfile(fileext = ".json")
+  writeLines(dat$ir, path_ir)
+  ir_body <- list(
+    bquote(json <- readLines(.(path_ir))),
+    quote(class(json) <- "json"),
+    quote(json))
+
+  ## TODO: With a tiny bit of simplification this can be harmonised
+  ## with the version in the C: we could _just_ return the path, so
+  ## that the body here becomes simply
+  ##
+  ##   r_expr_block(ir_path)
+  ##
+  ## However, we might also move to supporting something more
+  ## dust-like for rapit access to parameter infomation too.
+  ir <- as_function(alist(), r_expr_block(ir_body), baseenv())
+
   env[[dat$config$base]] <- R6::R6Class(
     ## TODO: use of 'odin_model' here is somewhat incorrect because
     ## the objects are not really substituable within a class.  This
@@ -81,7 +100,7 @@ generate_r_class <- function(core, dat, env) {
     ),
 
     public = drop_null(list(
-      ir = dat$ir,
+      ir = ir,
 
       ## Methods:
       initialize = function(user = NULL, unused_user_action = NULL,
@@ -141,28 +160,12 @@ generate_r_class <- function(core, dat, env) {
 
 
 generate_r_constructor <- function(base, discrete, user, ir, env) {
-  name_user <- "user"
-  if (length(user) > 0L) {
-    i <- set_names(vlapply(user, "[[", "has_default"),
-                   vcapply(user, "[[", "name"))
-    nms <- names(i)
-    args <- c(rep(alist(a = ), sum(!i)), rep(alist(a = NULL), sum(i))) # nolint
-    names(args) <- nms
-    args[[name_user]] <-
-      as.call(c(list(quote(list)),
-                set_names(lapply(nms, as.name), nms)))
-    args["unused_user_action"] <- list(NULL)
-    user_value <- as.name(name_user)
-    unused_user_action <- quote(unused_user_action)
-  } else {
-    args <- alist()
-    user_value <- NULL
-    unused_user_action <- NULL
-  }
-
+  args <- alist("..." = ,
+               user = list(...),
+               unused_user_action = NULL)
 
   cl_init <- call("$", as.name(base), quote(new))
-  call <- list(cl_init, user_value, unused_user_action)
+  call <- list(cl_init, quote(user), quote(unused_user_action))
   if (!discrete) {
     call <- c(call, list(quote(use_dde)))
     args <- c(args, alist(use_dde = FALSE))
@@ -170,7 +173,6 @@ generate_r_constructor <- function(base, discrete, user, ir, env) {
 
   ret <- as_function(args, r_expr_block(list(as.call(call))), env)
   if (!is.null(env)) {
-    attr(ret, "ir") <- ir
     class(ret) <- "odin_generator"
   }
   ret
