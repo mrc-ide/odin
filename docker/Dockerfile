@@ -15,7 +15,6 @@ RUN install_packages --repo=https://mrc-ide.github.io/drat \
         R6 \
         dde \
         cinterpolate \
-        crayon \
         deSolve \
         devtools \
         digest \

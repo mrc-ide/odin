@@ -30,7 +30,6 @@ BugReports: https://github.com/mrc-ide/odin/issues
 Imports:
     R6,
     cinterpolate (>= 1.0.0),
-    crayon,
     deSolve,
     digest,
     glue,

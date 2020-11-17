@@ -14,42 +14,6 @@ test_that("verbose", {
     "mycrazymodel[[:xdigit:]]{8}")
 })
 
-test_that("warnings", {
-  skip_on_cran() # this test is platform specific!
-  code <- quote({
-    initial(a) <- 1
-    deriv(a) <- if (t > 8 || t > 1 && t < 3) 1 else 0
-  })
-
-  str <- capture.output(
-    tmp <- odin_(code, verbose = TRUE, compiler_warnings = FALSE,
-                 skip_cache = TRUE, workdir = tempfile()))
-  out <- compiler_output_classify(str)
-
-  ## This will only give a warning with -Wall or greater.
-  has_warning <- any(vlapply(seq_along(out$type), function(i)
-    out$type[i] == "info" && attr(out$value[[i]], "type") == "warning"))
-  if (has_warning) {
-    re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
-    expect_warning(
-      odin_(code, compiler_warnings = TRUE, skip_cache = TRUE,
-            workdir = tempfile()),
-      re)
-
-    with_options(
-      list(odin.compiler_warnings = FALSE),
-      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
-                           workdir = tempfile()), NA))
-    with_options(
-      list(odin.compiler_warnings = TRUE),
-      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
-                           workdir = tempfile()), re))
-  } else {
-    expect_warning(odin_(code, compiler_warnings = TRUE, verbose = FALSE,
-                         skip_cache = TRUE, workdir = tempfile()), NA) # none
-  }
-})
-
 test_that("n_history is configurable", {
   gen <- odin({
     ylag <- delay(y, 10)
