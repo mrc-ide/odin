@@ -139,7 +139,7 @@ test_that("user arrays", {
 
   ## All in; this one is driven by a variable sized array.
   gen4 <- odin("examples/array_odin_user3.R")
-  mod4 <- gen4(age_width)
+  mod4 <- gen4(age_width = age_width)
 
   dat4 <- mod4$contents()
   expect_true(setequal(names(dat1), names(dat4)))
