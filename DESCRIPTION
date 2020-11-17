@@ -35,11 +35,13 @@ Imports:
     digest,
     glue,
     jsonlite,
-    ring
+    ring,
+    withr
 Suggests:
     dde (>= 1.0.0),
     jsonvalidate (>= 1.1.0),
     knitr,
+    pkgbuild,
     pkgload,
     rmarkdown,
     testthat

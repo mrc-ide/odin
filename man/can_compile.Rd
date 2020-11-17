@@ -16,19 +16,17 @@ A logical scalar
 }
 \description{
 Test if compilation appears possible.  This is used in some
-examples, and tries compiling a trivial C program with \code{R CMD
-SHLIB}.  Results are cached between runs within a session so this
-should be fast to rely on.
+examples, and tries compiling a trivial C program with
+\code{pkgbuild}.  Results are cached between runs within a session
+so this should be fast to rely on.
 }
 \details{
-If this function believes you can't compile, and if \code{gcc}
-can't be found on the path, a diagnostic message will be printed.
-This will of course not be very interesting if you use a different
-compiler to gcc!  But the most likely people affected here are
-Windows users; if you get this ensure that you have rtools
-installed.  If you have \code{devtools} installed,
-\code{devtools::find_rtools()} may be helpful for diagnosing
-compiler issues.
+We use \code{pkgbuild} in order to build packages, and it includes
+a set of heuristics to locate and organise your C compiler. The
+most likely people affected here are Windows users; if you get
+this ensure that you have rtools installed.  If you have
+\code{devtools} installed, \code{pkgbuild::find_rtools(TRUE)} may
+be helpful for diagnosing compiler issues.
 }
 \examples{
 can_compile() # will take ~0.1s the first time
