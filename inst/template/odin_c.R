@@ -71,7 +71,7 @@
     ## Do we need to have the user-settable args here? It would be
     ## nice, but that's not super straightforward to do.
     set_user = function(..., user = list(...), unused_user_action = NULL) {
-      support_check_user(user, private$user, unused_user_action)
+      private$odin$support_check_user(user, private$user, unused_user_action)
       .Call("{{c$set_user}}", private$ptr, user, PACKAGE = "{{package}}")
       private$update_metadata()
     },
