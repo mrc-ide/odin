@@ -11,7 +11,7 @@ test_that("verbose", {
       update(x) <- x + norm_rand()
       config(base) <- "mycrazymodel"
     }, target = "c", workdir = tempfile(), skip_cache = TRUE, verbose = TRUE),
-    "mycrazymodel_[[:xdigit:]]{8}\\.c")
+    "mycrazymodel[[:xdigit:]]{8}")
 })
 
 test_that("warnings", {

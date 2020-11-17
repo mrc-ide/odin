@@ -235,3 +235,8 @@ glue_whisker <- function(template, data) {
 read_lines <- function(path) {
   paste(readLines(path), collapse = "\n")
 }
+
+
+clean_package_name <- function(name) {
+  gsub("_", ".", name)
+}

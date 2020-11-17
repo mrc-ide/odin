@@ -9,9 +9,18 @@ odin_c_wrapper <- function(ir, options) {
   dat <- ir_deserialise(ir)
   res <- generate_c_code(dat, options, NULL)
   hash <- hash_string(dat$ir)
-  code <- res$code
 
-  package <- paste0(dat$config$base, short_hash(hash))
+  skip_cache <- options$skip_cache
+  if (!skip_cache) {
+    prev <- .odin$model_cache_c$get(hash)
+    if (!is.null(prev)) {
+      odin_message("Using cached model", options$verbose)
+      return(prev)
+    }
+  }
+
+  code <- res$code
+  package <- clean_package_name(paste0(dat$config$base, short_hash(hash)))
   data <- wrapper_substitutions(dat, res, package)
 
   dest <- options$workdir
@@ -44,7 +53,13 @@ odin_c_wrapper <- function(ir, options) {
                            helpers = FALSE, attach_testthat = FALSE,
                            quiet = quiet)
 
-  env$env[[data$name]]
+  model <- env$env[[data$name]]
+
+  if (!skip_cache) {
+    .odin$model_cache_c$put(hash, model)
+  }
+
+  model
 }
 
 
