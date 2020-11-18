@@ -36,24 +36,10 @@ model appears not to compile when you would expect it to.
 Hopefully this will not be needed often.  Defaults to the option
 \code{odin.skip_cache} or \code{FALSE} otherwise.}
 
-\item{compiler_warnings}{Logical scalar indicating if compiler
-warnings should be converted to R warnings.  If this is
-\code{TRUE}, then if any compiler warnings are generated, the
-compiler output will be displayed (regardless of the value of
-\code{verbose}) within an R warning (suppressible via
-\code{suppressWarnings} and catchable via \code{tryCatch}).  The
-default is to default to \code{FALSE} unless the global option
-\code{odin.compiler_warnings} is set to \code{TRUE} (set with
-\code{options(odin.compiler_warnings = TRUE)}).  The default may
-change to \code{TRUE} in future.  Warnings are currently a mix
-of ambiguous syntax in your model (worth fixing) and limitations
-in the code that odin generates (which you can't fix but I will
-get on to over time).  What is flagged will depend strongly on
-your platform and what is in your \code{Makevars}.  I develop
-odin with \code{-Wall -Wextra -pedantic} and still see warnings
-with both gcc and clang.  The compiler output is very simple and
-may not work on all platforms.  Defaults to the option
-\code{odin.compiler_warnings} or \code{FALSE} otherwise.}
+\item{compiler_warnings}{Previously this attempted detection of
+compiler warnings (with some degree of success), but is
+currently ignored. This may become supported again in a future
+version depending on underlying support in pkgbuild.}
 
 \item{no_check_unused_equations}{If \code{TRUE}, then don't print
 messages about unused variables.  Defaults to the option
