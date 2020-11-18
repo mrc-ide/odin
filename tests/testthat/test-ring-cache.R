@@ -48,19 +48,4 @@ test_that("reused cached model", {
 })
 
 
-test_that("reuse shared library", {
-  model_cache_clear()
-  code <- c("deriv(y) <- 0.5",
-            "initial(y) <- 1")
-
-  path <- tempfile()
-  dir.create(path)
-  gen <- odin(code, skip_cache = TRUE, workdir = path)
-  expect_message(
-    odin(code, verbose = TRUE, skip_cache = TRUE, workdir = path),
-    "Using previously compiled shared library")
-  expect_equal(length(dir(path, pattern = paste0(.Platform$dynlib.ext, "$"))),
-               1)
-})
-
 unload_dlls()
