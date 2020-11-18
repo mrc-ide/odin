@@ -117,14 +117,26 @@ test_that("multivariate hypergeometric distribution (C)", {
     "  return ret;",
     "}")
 
-  path <- tempfile(fileext = ".c")
-  writeLines(code, path)
-  res <- compile(path, verbose = FALSE)
-  dyn.load(res$dll)
-  on.exit(dyn.unload(res$dll))
+  path <- tempfile()
+  path_src <- file.path(path, "src")
+  dir.create(path_src, FALSE, TRUE)
+  name <- "test.rmhyper"
+  writeLines(code, file.path(path_src, "rmhyper.c"))
+  for (f in c("DESCRIPTION", "NAMESPACE")) {
+    writeLines(sprintf(readLines(file.path("pkg", f)), name),
+               file.path(path, f))
+  }
+
+  ## NOTE: could either use pkgload or pkgbuild here, not clear which
+  ## is better.
+  dll <- file.path(path_src,
+                   basename(pkgbuild::compile_dll(path, quiet = TRUE)))
+
+  dyn.load(dll)
+  on.exit(dyn.unload(dll))
 
   rmhyper_c <- function(n, k) {
-    .Call("test_rmhyper", as.integer(n), k, PACKAGE = res$base)
+    .Call("test_rmhyper", as.integer(n), k, PACKAGE = name)
   }
 
   k <- c(6, 10, 15, 3, 0, 4)
