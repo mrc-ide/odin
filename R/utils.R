@@ -96,10 +96,6 @@ short_hash <- function(x) {
   substr(x, 1L, 8L)
 }
 
-dllname <- function(base) {
-  paste0(base, .Platform$dynlib.ext)
-}
-
 dquote <- function(x) {
   sprintf('"%s"', x)
 }
