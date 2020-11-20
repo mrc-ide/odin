@@ -270,12 +270,22 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
     time_access <- "scalar_real"
     time_type <- "double"
   }
+
+  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time, SEXP = dat$meta$state)
+
+  ## Early exit in the case of delay models:
+  if (dat$features$has_delay) {
+    body <- c('Rf_error("Can\'t call update() on delay models");',
+              "return R_NilValue;")
+    return(c_function("SEXP", dat$meta$c$rhs_r, args, body))
+  }
+
   body <- collector()
   body$add("SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
-          dat$meta$result, dat$meta$state)
+           dat$meta$result, dat$meta$state)
   body$add("%s *%s = %s(%s, 1);",
-          dat$meta$c$internal_t, dat$meta$internal,
-          dat$meta$c$get_internal, dat$meta$c$ptr)
+           dat$meta$c$internal_t, dat$meta$internal,
+           dat$meta$c$get_internal, dat$meta$c$ptr)
   if (dat$features$has_output) {
     output_ptr <- sprintf("%s_ptr", dat$meta$output)
     body$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
@@ -327,7 +337,6 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
   body$add("UNPROTECT(1);")
   body$add("return %s;", dat$meta$result)
 
-  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time, SEXP = dat$meta$state)
   c_function("SEXP", dat$meta$c$rhs_r, args, body$get())
 }
 
