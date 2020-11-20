@@ -274,7 +274,7 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
   args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time, SEXP = dat$meta$state)
 
   ## Early exit in the case of delay models:
-  if (dat$features$has_delay) {
+  if (dat$features$has_delay && dat$features$discrete) {
     body <- c('Rf_error("Can\'t call update() on delay models");',
               "return R_NilValue;")
     return(c_function("SEXP", dat$meta$c$rhs_r, args, body))

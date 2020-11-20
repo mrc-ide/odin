@@ -715,3 +715,27 @@ test_that("local scope of loop variables", {
   expect_equal(y$x, cmp)
   expect_equal(y$y, cmp * 2)
 })
+
+
+test_that("Can set or omit names", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- 2
+  })
+  mod <- gen()
+  expect_equal(colnames(mod$run(0:10)), c("t", "y"))
+  expect_equal(colnames(mod$run(0:10, use_names = FALSE)), NULL)
+})
+
+
+test_that("Can set initial conditions directly in an ode", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- 2
+  })
+  mod <- gen()
+  y <- mod$run(0:10, 2)
+  expect_equal(y[, "y"], seq(2, by = 2, length.out = 11))
+})

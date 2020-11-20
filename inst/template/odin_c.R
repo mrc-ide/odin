@@ -45,10 +45,6 @@
   ),
 
   public = list(
-    ## TODO: Deprecate (fairly agressively) use_dde; directly from the
-    ## constructor should be NULL and via the generator should be
-    ## FALSE with warning? What else uses it? We might need to change
-    ## the behaviour of set_initial.
     initialize = function(user = list(), use_dde = FALSE,
                           unused_user_action = NULL) {
       private$odin <- asNamespace("odin")

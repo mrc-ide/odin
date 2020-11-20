@@ -460,3 +460,34 @@ test_that("delay with array and provide input", {
   expect_equal(zz$y, real_y, tolerance = 1e-6)
   expect_equal(zz$z, real_z, tolerance = 1e-6)
 })
+
+
+test_that("set initial conditions in delay differential equation", {
+  gen <- odin({
+    ylag <- delay(y, 2 + 3)
+    initial(y) <- 0.5
+    deriv(y) <- 1
+    output(ylag) <- TRUE
+  })
+
+  tt <- 0:10
+  y <- gen()$run(tt, 1)
+  expect_equal(y[, "y"], 1:11)
+  expect_equal(y[, "ylag"],
+               c(rep(1, 6), seq(2, by = 1, length.out = 5)))
+})
+
+
+test_that("can set/omit ynames", {
+  gen <- odin({
+    ylag <- delay(y, 2 + 3)
+    initial(y) <- 0.5
+    deriv(y) <- 1
+    output(ylag) <- TRUE
+  })
+
+  tt <- 0:10
+  mod <- gen()
+  expect_equal(colnames(mod$run(tt)), c("t", "y", "ylag"))
+  expect_null(colnames(mod$run(tt, use_names = FALSE)))
+})
