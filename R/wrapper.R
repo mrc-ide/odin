@@ -201,19 +201,6 @@ wrapper_run_discrete <- function(self, private, step, y = NULL, ...,
 }
 
 
-
-##' @export
-`[[.odin_generator` <- function(x, i) {
-  attr(x, "generator", exact = TRUE)[[i]]
-}
-
-
-##' @export
-`$.odin_generator` <- function(x, name) {
-  x[[name]]
-}
-
-
 ## Creates the data for substituting into inst/template/odin_c.R from
 ## the parsed ir data.
 wrapper_substitutions <- function(dat, res, package) {
