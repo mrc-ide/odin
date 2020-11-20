@@ -138,7 +138,7 @@ test_that("example package", {
   pkg <- file.path(path, "package")
 
   odin_package(pkg)
-  res <- build_package(pkg)
+  res <- build_package(pkg, FALSE)
   on.exit(res$cleanup())
 
   expect_is(res$env$lorenz, "odin_generator")
@@ -167,7 +167,7 @@ test_that("two sums example", {
   writeLines(code, file.path(pkg, "inst/odin/z.R"))
 
   odin_package(pkg)
-  res <- build_package(pkg)
+  res <- build_package(pkg, FALSE)
   on.exit(res$cleanup())
 
   expect_is(res$env$z, "odin_generator")
