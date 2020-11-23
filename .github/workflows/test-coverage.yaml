@@ -53,5 +53,11 @@ jobs:
         shell: Rscript {0}
 
       - name: Test coverage
-        run: covr::codecov()
+        run: |
+          covr::codecov(quiet = FALSE, clean = FALSE)
+          files <- dir(tempfile(), pattern = "testthat.Rout", recusive = TRUE, full.names = TRUE)
+          for (f in files) {
+            message(f)
+            writeLines(readLines(f))
+          }
         shell: Rscript {0}
