@@ -148,7 +148,7 @@ test_that("Don't set envvar if not needed", {
   res <- withr::with_envvar(
     env,
     with_mock(
-      "dust::has_user_makevars" = mock_has_user_makevars,
+      "odin::has_user_makevars" = mock_has_user_makevars,
       "pkgbuild::compile_dll" = mock_compile_dll,
       compile_dll(path, compile_attributes, quiet)))
 
