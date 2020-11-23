@@ -48,6 +48,7 @@ jobs:
       - name: Debug run
         run: |
           install.packages("devtools")
+          remotes::install_local(".")
           devtools::test()
         shell: Rscript {0}
 
