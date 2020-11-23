@@ -49,7 +49,6 @@ jobs:
         run: |
           install.packages("devtools")
           remotes::install_local(".")
-          devtools::test()
         shell: Rscript {0}
 
       - name: Test coverage
