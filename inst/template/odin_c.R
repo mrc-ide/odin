@@ -86,7 +86,6 @@
     },
 
     {{rhs}} = function({{time}}, y) {
-      ## .Deprecated("$rhs()")
       self$rhs({{time}}, y)
     },
 

@@ -67,7 +67,7 @@ generate_r_class <- function(core, dat, env) {
   ## with the version in the C: we could _just_ return the path, so
   ## that the body here becomes simply
   ##
-  ##   r_expr_block(ir_path)
+  ## > r_expr_block(ir_path)
   ##
   ## However, we might also move to supporting something more
   ## dust-like for rapit access to parameter infomation too.
@@ -162,7 +162,7 @@ generate_r_class <- function(core, dat, env) {
 generate_r_constructor <- function(base, discrete, user, ir, env, ...) {
   ## NOTE: dots above are to prevent concern from the static checker
   ## about list(...) below.
-  args <- alist("..." = ,
+  args <- alist("..." = , # nolint
                user = list(...),
                unused_user_action = NULL)
 

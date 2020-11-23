@@ -9,8 +9,6 @@ test_that("constant model", {
     initial(y) <- 1
   })
   mod <- gen()
-  ## expect_identical(r6_private(mod)$init, 1.0)
-  ## expect_identical(mod$deriv(0.0, r6_private(mod)$init), 0.5)
 
   tt <- seq(0, 10, length.out = 11)
   yy <- mod$run(tt)
