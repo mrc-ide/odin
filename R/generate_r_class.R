@@ -54,8 +54,6 @@ generate_r_class <- function(core, dat, env) {
     }
   }
 
-
-  ## TODO: is this reasonable?
   path_ir <- tempfile(fileext = ".json")
   writeLines(dat$ir, path_ir)
   ir_body <- list(
@@ -70,7 +68,7 @@ generate_r_class <- function(core, dat, env) {
   ## > r_expr_block(ir_path)
   ##
   ## However, we might also move to supporting something more
-  ## dust-like for rapit access to parameter infomation too.
+  ## dust-like for rapid access to parameter infomation too.
   ir <- as_function(alist(), r_expr_block(ir_body), baseenv())
 
   env[[dat$config$base]] <- R6::R6Class(

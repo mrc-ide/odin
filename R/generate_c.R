@@ -75,8 +75,8 @@ generate_c_code <- function(dat, options, package) {
   } else {
     list(headers = headers,
          struct = struct,
-         code = core,      # NOTE: Updated
-         core = core$name, # NOTE: Bad name
+         code = core,
+         core = core$name,
          lib = lib,
          include = include,
          ring = ring,
