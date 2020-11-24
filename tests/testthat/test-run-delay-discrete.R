@@ -1,8 +1,6 @@
-## Automatically generated from run/test-run-delay-discrete.R - do not edit!
-options(odin.target = "r")
-context("run: r: discrete delays")
+context("run: discrete delays")
 
-test_that("delays", {
+test_that_odin("delays", {
   gen <- odin({
     initial(y) <- 1
     update(y) <- y + yprev
@@ -18,7 +16,7 @@ test_that("delays", {
 
 ## This also catches a corner case in the inclusion of sum() in the
 ## headers.
-test_that("delays: scalar variable", {
+test_that_odin("delays: scalar variable", {
   gen <- odin({
     r <- 3.6
     update(y) <- r * y * (1 - y)
@@ -41,7 +39,7 @@ test_that("delays: scalar variable", {
   expect_equal(yy$x[1:2], rep(0.2, 2))
 })
 
-test_that("delays: scalar expression", {
+test_that_odin("delays: scalar expression", {
   gen <- odin({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -65,7 +63,7 @@ test_that("delays: scalar expression", {
   expect_equal(yy$x[i + 2], rowMeans(yy$y[i, ]))
 })
 
-test_that("delays: vector variable", {
+test_that_odin("delays: vector variable", {
   gen <- odin({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -91,7 +89,7 @@ test_that("delays: vector variable", {
   expect_equal(yy$x[1:2, ], matrix(rep(c(0.2, 0.4), 2), 2, 2, TRUE))
 })
 
-test_that("delays: vector expression", {
+test_that_odin("delays: vector expression", {
   gen <- odin({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -117,7 +115,7 @@ test_that("delays: vector expression", {
   expect_equal(yy$x[i + 2, ], yy$y[i, ] / rowSums(yy$y[i, ]))
 })
 
-test_that("delay vars that depend on time", {
+test_that_odin("delay vars that depend on time", {
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + v
@@ -136,7 +134,7 @@ test_that("delay vars that depend on time", {
 })
 
 
-test_that("disable update function", {
+test_that_odin("disable update function", {
   gen <- odin({
     initial(y) <- 1
     update(y) <- y + yprev
@@ -151,7 +149,7 @@ test_that("disable update function", {
 })
 
 
-test_that("default (scalar)", {
+test_that_odin("default (scalar)", {
   skip_for_target("c")
   gen <- odin({
     r <- 3.6
@@ -176,7 +174,7 @@ test_that("default (scalar)", {
 })
 
 
-test_that("default (vector)", {
+test_that_odin("default (vector)", {
   skip_for_target("c")
   gen <- odin({
     r <- 3.6
@@ -205,4 +203,3 @@ test_that("default (vector)", {
   expect_equal(yy$x[i + 2, ], yy$y[i, ])
   expect_equal(yy$x[1:2, ], matrix(rep(z, 2), 2, 2, TRUE))
 })
-options(odin.target = NULL)

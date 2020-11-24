@@ -43,6 +43,7 @@ Suggests:
     mockery,
     pkgbuild,
     pkgload,
+    rlang,
     rmarkdown,
     testthat
 VignetteBuilder: knitr

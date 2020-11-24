@@ -1,8 +1,6 @@
-## Automatically generated from run/test-run-basic.R - do not edit!
-options(odin.target = "c")
-context("odin: c: basic")
+context("odin: basic")
 
-test_that("trivial model", {
+test_that_odin("trivial model", {
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -32,7 +30,7 @@ test_that("trivial model", {
 ## 3. we can construct somewhat nontrivial expressions
 ##
 ## This should integrate to a parabola y = 1 + t^2
-test_that("Time dependent rhs", {
+test_that_odin("Time dependent rhs", {
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -52,7 +50,7 @@ test_that("Time dependent rhs", {
 })
 
 
-test_that("Time dependent initial conditions", {
+test_that_odin("Time dependent initial conditions", {
   gen <- odin({
     y1 <- cos(t)
     y2 <- y1 * (r + t)
@@ -78,7 +76,7 @@ test_that("Time dependent initial conditions", {
 
 
 ## Tests: that we can actually use state variables in a calculation
-test_that("use state in derivative calculation", {
+test_that_odin("use state in derivative calculation", {
   gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- 1
@@ -96,7 +94,7 @@ test_that("use state in derivative calculation", {
 
 
 ## Tests: multiple scalar variables can be packed together properly
-test_that("multiple variables", {
+test_that_odin("multiple variables", {
   gen <- odin({
     deriv(y1) <- sigma * (y2 - y1)
     deriv(y2) <- R * y1 - y2 - y1 * y3
@@ -115,7 +113,7 @@ test_that("multiple variables", {
 
 
 ## Tests: scalar user variables
-test_that("user variables", {
+test_that_odin("user variables", {
   gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
@@ -148,7 +146,7 @@ test_that("user variables", {
 
 
 
-test_that("simple operations in user variables are allowed", {
+test_that_odin("simple operations in user variables are allowed", {
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- x0
@@ -163,7 +161,7 @@ test_that("simple operations in user variables are allowed", {
 ## Tests: basic output
 ##
 ## This one is about as basic as I can see!
-test_that("output", {
+test_that_odin("output", {
   gen <- odin({
     deriv(y) <- 2
     initial(y) <- 1
@@ -192,7 +190,7 @@ test_that("output", {
 
 
 ## Do some nontrivial calculation in the output
-test_that("output", {
+test_that_odin("output", {
   gen <- odin({
     deriv(y) <- 2
     initial(y) <- 1
@@ -206,7 +204,7 @@ test_that("output", {
 })
 
 
-test_that("copy output", {
+test_that_odin("copy output", {
   gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1
@@ -225,7 +223,7 @@ test_that("copy output", {
 
 
 ## Basic discrete models
-test_that("discrete", {
+test_that_odin("discrete", {
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -241,7 +239,7 @@ test_that("discrete", {
 })
 
 
-test_that("discrete with output", {
+test_that_odin("discrete with output", {
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -258,7 +256,7 @@ test_that("discrete with output", {
 
 ## Fairly minimal array model, though it does mix array and non array
 ## variables, plus an array support variable.
-test_that("array support", {
+test_that_odin("array support", {
   gen <- odin({
     initial(x[]) <- 1
     initial(y) <- 2
@@ -293,7 +291,7 @@ test_that("array support", {
 })
 
 
-test_that("multi-line array expression", {
+test_that_odin("multi-line array expression", {
   gen <- odin({
     initial(x) <- 1
     deriv(x) <- 1
@@ -307,7 +305,7 @@ test_that("multi-line array expression", {
 })
 
 
-test_that("3d array", {
+test_that_odin("3d array", {
   gen <- odin({
     initial(y[, , ]) <- 1
     deriv(y[, , ]) <- y[i, j, k] * 0.1
@@ -335,7 +333,7 @@ test_that("3d array", {
 
 
 ## User provided, constant defined arrays
-test_that("user array", {
+test_that_odin("user array", {
   gen <- odin({
     initial(x[]) <- 1
     deriv(x[]) <- r[i]
@@ -351,7 +349,7 @@ test_that("user array", {
 })
 
 
-test_that("user matrix", {
+test_that_odin("user matrix", {
   gen <- odin({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -382,7 +380,7 @@ test_that("user matrix", {
 })
 
 
-test_that("user array - indirect", {
+test_that_odin("user array - indirect", {
   gen <- odin({
     initial(x[]) <- 1
     deriv(x[]) <- r[i]
@@ -406,7 +404,7 @@ test_that("user array - indirect", {
 })
 
 
-test_that("user array - direct", {
+test_that_odin("user array - direct", {
   gen <- odin({
     initial(x[]) <- 1
     deriv(x[]) <- r[i]
@@ -428,7 +426,7 @@ test_that("user array - direct", {
 })
 
 
-test_that("user array - direct 3d", {
+test_that_odin("user array - direct 3d", {
   gen <- odin({
     initial(y) <- 1
     deriv(y) <- 1
@@ -449,7 +447,7 @@ test_that("user array - direct 3d", {
 
 
 ## NOTE: this is the test from test-interpolation.R
-test_that("interpolation", {
+test_that_odin("interpolation", {
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -487,7 +485,7 @@ test_that("interpolation", {
 })
 
 
-test_that("stochastic", {
+test_that_odin("stochastic", {
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + norm_rand()
@@ -505,7 +503,7 @@ test_that("stochastic", {
 })
 
 
-test_that("multiple arrays: constant", {
+test_that_odin("multiple arrays: constant", {
   gen <- odin({
     initial(x[]) <- 1
     initial(y[]) <- 2
@@ -524,7 +522,7 @@ test_that("multiple arrays: constant", {
 })
 
 
-test_that("multiple arrays: dynamic", {
+test_that_odin("multiple arrays: dynamic", {
   gen <- odin({
     initial(x[]) <- 1
     initial(y[]) <- 2
@@ -543,7 +541,7 @@ test_that("multiple arrays: dynamic", {
 })
 
 
-test_that("multiple output arrays", {
+test_that_odin("multiple output arrays", {
   gen <- odin({
     deriv(y[]) <- y[i] * r[i]
     initial(y[]) <- i
@@ -573,7 +571,7 @@ test_that("multiple output arrays", {
 })
 
 
-test_that("3d array time dependent and variable", {
+test_that_odin("3d array time dependent and variable", {
   gen <- odin({
     initial(y[, , ]) <- 1
     deriv(y[, , ]) <- y[i, j, k] * r[i, j, k]
@@ -606,7 +604,7 @@ test_that("3d array time dependent and variable", {
 })
 
 
-test_that("rich user arrays", {
+test_that_odin("rich user arrays", {
   gen <- odin({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -625,7 +623,7 @@ test_that("rich user arrays", {
 })
 
 
-test_that("rich user sized arrays", {
+test_that_odin("rich user sized arrays", {
   gen <- odin({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -643,7 +641,7 @@ test_that("rich user sized arrays", {
 })
 
 
-test_that("discrete delays: matrix", {
+test_that_odin("discrete delays: matrix", {
   gen <- odin({
     initial(y[, ]) <- 1
     update(y[, ]) <- y[i, j] + 1
@@ -666,7 +664,7 @@ test_that("discrete delays: matrix", {
 })
 
 
-test_that("multinomial", {
+test_that_odin("multinomial", {
   gen <- odin({
     q[] <- user()
     p[] <- q[i] / sum(q)
@@ -692,7 +690,7 @@ test_that("multinomial", {
 })
 
 
-test_that("local scope of loop variables", {
+test_that_odin("local scope of loop variables", {
   gen <- odin({
     deriv(x[1, ]) <- 1
     deriv(x[2:n, ]) <- 2
@@ -719,7 +717,7 @@ test_that("local scope of loop variables", {
 })
 
 
-test_that("Can set or omit names", {
+test_that_odin("Can set or omit names", {
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -731,7 +729,7 @@ test_that("Can set or omit names", {
 })
 
 
-test_that("Can set initial conditions directly in an ode", {
+test_that_odin("Can set initial conditions directly in an ode", {
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -741,5 +739,3 @@ test_that("Can set initial conditions directly in an ode", {
   y <- mod$run(0:10, 2)
   expect_equal(y[, "y"], seq(2, by = 2, length.out = 11))
 })
-unload_dlls()
-options(odin.target = NULL)

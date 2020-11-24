@@ -1,8 +1,6 @@
-## Automatically generated from run/test-run-delay-continuous.R - do not edit!
-options(odin.target = "r")
-context("run: r: continuous delays")
+context("run: continuous delays")
 
-test_that("mixed delay model", {
+test_that_odin("mixed delay model", {
   ## I want a model where the components of a delay are an array and a
   ## scalar.  This is going to be a pretty common thing to have, and I
   ## think it will throw up a few corner cases that are worth keeping
@@ -71,7 +69,7 @@ test_that("mixed delay model", {
 })
 
 
-test_that("use subset of variables", {
+test_that_odin("use subset of variables", {
   gen <- odin({
     deriv(a) <- 1
     deriv(b) <- 2
@@ -91,7 +89,7 @@ test_that("use subset of variables", {
                0.5 + ifelse(tt <= 2, 0, (tt - 2)) * 5)
 })
 
-test_that("delay array storage", {
+test_that_odin("delay array storage", {
   gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -143,7 +141,7 @@ test_that("delay array storage", {
   }
 })
 
-test_that("3 arg delay", {
+test_that_odin("3 arg delay", {
   gen <- odin({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
@@ -166,7 +164,7 @@ test_that("3 arg delay", {
 })
 
 
-test_that("3 arg delay with array", {
+test_that_odin("3 arg delay with array", {
   gen <- odin({
     deriv(a[]) <- i
     initial(a[]) <- (i - 1) / 10
@@ -196,7 +194,7 @@ test_that("3 arg delay with array", {
 
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
-test_that("delay index packing", {
+test_that_odin("delay index packing", {
   gen <- odin({
     deriv(a[]) <- i
     deriv(b[]) <- i
@@ -247,7 +245,7 @@ test_that("delay index packing", {
 })
 
 
-test_that("nontrivial time", {
+test_that_odin("nontrivial time", {
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
@@ -262,7 +260,7 @@ test_that("nontrivial time", {
 })
 
 
-test_that("overlapping array storage", {
+test_that_odin("overlapping array storage", {
   gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -322,7 +320,7 @@ test_that("overlapping array storage", {
 })
 
 
-test_that("delayed delays", {
+test_that_odin("delayed delays", {
   gen <- odin({
     deriv(y) <- y
     initial(y) <- 1
@@ -346,7 +344,7 @@ test_that("delayed delays", {
 })
 
 
-test_that("compute derivative", {
+test_that_odin("compute derivative", {
   gen <- odin({
     deriv(a) <- sin(t)
     initial(a) <- -1
@@ -420,7 +418,7 @@ test_that("compute derivative", {
 
 ## This triggered a crash in set_initial, due to invalid loading of
 ## array initial variable information
-test_that("delay with array and provide input", {
+test_that_odin("delay with array and provide input", {
   gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -464,7 +462,7 @@ test_that("delay with array and provide input", {
 })
 
 
-test_that("set initial conditions in delay differential equation", {
+test_that_odin("set initial conditions in delay differential equation", {
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
@@ -480,7 +478,7 @@ test_that("set initial conditions in delay differential equation", {
 })
 
 
-test_that("can set/omit ynames", {
+test_that_odin("can set/omit ynames", {
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
@@ -493,4 +491,3 @@ test_that("can set/omit ynames", {
   expect_equal(colnames(mod$run(tt)), c("t", "y", "ylag"))
   expect_null(colnames(mod$run(tt, use_names = FALSE)))
 })
-options(odin.target = NULL)

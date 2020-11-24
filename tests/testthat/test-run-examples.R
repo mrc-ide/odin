@@ -1,10 +1,8 @@
-## Automatically generated from run/test-run-examples.R - do not edit!
-options(odin.target = "r")
-context("run: r: examples")
+context("run: examples")
 
 ## TODO: this should all be rewritten
 
-test_that("basic interface", {
+test_that_odin("basic interface", {
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
@@ -90,7 +88,7 @@ test_that("basic interface", {
 })
 
 
-test_that("user arrays", {
+test_that_odin("user arrays", {
   ## In the first version we have constant sized arrays:
   gen1 <- odin("examples/array_odin.R")
   gen2 <- odin("examples/array_odin_user.R")
@@ -165,7 +163,7 @@ test_that("user arrays", {
 })
 
 
-test_that("lv", {
+test_that_odin("lv", {
   pars <- list(r = c(1.00, 0.72, 1.53, 1.27),
                a = rbind(c(1.00, 1.09, 1.52, 0.00),
                          c(0.00, 1.00, 0.44, 1.36),
@@ -198,7 +196,7 @@ test_that("lv", {
 })
 
 
-test_that("dde", {
+test_that_odin("dde", {
   skip_if_not_installed("dde")
 
   re <- "([[:alnum:]]+)_odin\\.R$"
@@ -246,4 +244,3 @@ test_that("dde", {
     expect_equal(res_ds, res_dde, tolerance = tol)
   }
 })
-options(odin.target = NULL)

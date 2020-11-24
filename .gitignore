@@ -17,5 +17,4 @@ tests/testthat/eugene
 .valgrind_ignore
 docs
 *~
-tests/testthat/test-run-[cr]-*.R
 TODO.md

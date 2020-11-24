@@ -1,6 +1,6 @@
-context("run: %TARGET%: library support")
+context("run: library support")
 
-test_that("abs", {
+test_that_odin("abs", {
   gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
@@ -11,7 +11,7 @@ test_that("abs", {
 })
 
 
-test_that("log", {
+test_that_odin("log", {
   gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
@@ -27,7 +27,7 @@ test_that("log", {
 })
 
 
-test_that("pow", {
+test_that_odin("pow", {
   gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
@@ -41,7 +41,7 @@ test_that("pow", {
 })
 
 
-test_that("%%", {
+test_that_odin("%%", {
   gen <- odin({
     deriv(y) <- 0
     initial(y) <- 0
@@ -74,7 +74,7 @@ test_that("%%", {
 })
 
 
-test_that("%/%", {
+test_that_odin("%/%", {
   ## As for %% but with %/%
   gen <- odin({
     deriv(y) <- 0
@@ -108,7 +108,7 @@ test_that("%/%", {
 })
 
 
-test_that("2-arg round", {
+test_that_odin("2-arg round", {
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- 1
@@ -138,7 +138,7 @@ test_that("2-arg round", {
 })
 
 
-test_that("multivariate hypergeometric", {
+test_that_odin("multivariate hypergeometric", {
   gen <- odin({
     x0[] <- user()
     dim(x0) <- user()
@@ -172,7 +172,7 @@ test_that("multivariate hypergeometric", {
   expect_equal(yy$tmp[-11L, ], yy$x[-1L, ])
 })
 
-test_that("multivariate hypergeometric - integer input", {
+test_that_odin("multivariate hypergeometric - integer input", {
   gen <- odin({
     x0[] <- user()
     dim(x0) <- user(integer = TRUE)
@@ -213,7 +213,7 @@ test_that("multivariate hypergeometric - integer input", {
   expect_equal(yy$y[-1L, ], cmp)
 })
 
-test_that("Throw an error if requesting more elements than possible", {
+test_that_odin("Throw an error if requesting more elements than possible", {
   gen <- odin({
     b[] <- user()
     n <- user()

@@ -1,6 +1,6 @@
-context("run: %TARGET%: discrete")
+context("run: discrete")
 
-test_that("basic", {
+test_that_odin("basic", {
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -18,7 +18,7 @@ test_that("basic", {
   expect_equal(res, cbind(step = tt, x = 1:11))
 })
 
-test_that("output", {
+test_that_odin("output", {
   gen <- odin({
     initial(x[]) <- x0[i]
     update(x[]) <- x[i] + r[i]
@@ -43,7 +43,7 @@ test_that("output", {
   expect_equal(zz$total, rowSums(zz$x))
 })
 
-test_that("interpolate", {
+test_that_odin("interpolate", {
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + pulse
@@ -70,7 +70,7 @@ test_that("interpolate", {
   expect_equal(yy[, 2], zz)
 })
 
-test_that("use step in model", {
+test_that_odin("use step in model", {
   gen <- odin({
     initial(x) <- step
     update(x) <- step + 1
@@ -82,7 +82,7 @@ test_that("use step in model", {
 })
 
 ## This is to avoid a regression with array_dim_name
-test_that("2d array equations", {
+test_that_odin("2d array equations", {
   gen <- odin({
     initial(x[, ]) <- x0[i, j]
     update(x[, ]) <- x[i, j] + r[i, j]
@@ -107,7 +107,7 @@ test_that("2d array equations", {
 })
 
 ## This turns up in one of Neil's cases:
-test_that("complex initialisation: scalar", {
+test_that_odin("complex initialisation: scalar", {
   gen <- odin({
     initial(x1) <- norm_rand()
     r <- x1 * 2
@@ -149,7 +149,7 @@ test_that("complex initialisation: scalar", {
   ## It's a bit of an odd model because r grows with x1
 })
 
-test_that("complex initialisation: vector", {
+test_that_odin("complex initialisation: vector", {
   gen <- odin({
     initial(x1[]) <- norm_rand()
     r[] <- x1[i] * 2
@@ -177,7 +177,7 @@ test_that("complex initialisation: vector", {
 })
 
 
-test_that("can set initial conditions", {
+test_that_odin("can set initial conditions", {
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -189,7 +189,7 @@ test_that("can set initial conditions", {
 })
 
 
-test_that("can set/omit ynames", {
+test_that_odin("can set/omit ynames", {
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
