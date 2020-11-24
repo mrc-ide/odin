@@ -1,6 +1,7 @@
-FROM rocker/r-ver:3.6.0
+FROM rocker/r-ver:4.0.3
 
 RUN apt-get update && apt-get -y install --no-install-recommends \
+        git \
         libcurl4-openssl-dev \
         libssl-dev \
         libv8-dev \
@@ -18,14 +19,17 @@ RUN install_packages --repo=https://mrc-ide.github.io/drat \
         deSolve \
         devtools \
         digest \
+        glue \
         jsonlite \
         jsonvalidate \
         knitr \
+        mockery \
+        pkgbuild \
+        pkgload \
         ring \
+        rlang \
         rmarkdown \
         testthat
-
-RUN install_remote ropensci/jsonvalidate@use-ajv
 
 COPY . /src
 RUN R CMD INSTALL /src
