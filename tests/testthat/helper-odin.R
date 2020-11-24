@@ -113,10 +113,19 @@ run_model <- function(model, times, parms = NULL, ...) {
 }
 
 
+test_odin_targets <- function() {
+  if (on_cran()) {
+    "r"
+  } else {
+    c("r", "c")
+  }
+}
+
+
 ## A helper that will run a code block with each target type
 test_that_odin <- function(desc, code) {
   testthat::skip_if_not_installed("rlang")
-  targets <- c("r", "c")
+  targets <- test_odin_targets()
   code_enq <- rlang::enquo(code)
   for (target in targets) {
     testthat::test_that(sprintf("%s (%s)", desc, target),
