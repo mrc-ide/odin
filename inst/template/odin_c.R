@@ -45,7 +45,7 @@
   ),
 
   public = list(
-    initialize = function(user = list(), use_dde = FALSE,
+    initialize = function(..., user = list(...), use_dde = FALSE,
                           unused_user_action = NULL) {
       private$odin <- asNamespace("odin")
       private$ptr <- .Call("{{c$create}}", user, PACKAGE = "{{package}}")
