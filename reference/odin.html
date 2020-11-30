@@ -81,7 +81,7 @@ The odin_ version is a &quot;standard evaluation&quot; escape hatch." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.0</span>
       </span>
     </div>
 
@@ -148,10 +148,9 @@ The odin_ version is a &quot;standard evaluation&quot; escape hatch." />
 The <code>odin_</code> version is a "standard evaluation" escape hatch.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>odin</span><span class='op'>(</span><span class='va'>x</span>, verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>,
-  validate <span class='op'>=</span> <span class='cn'>NULL</span>, pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>,
-  compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>, no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span>,
-  no_check_naked_index <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span>
+    <pre class="usage"><span class='fu'>odin</span><span class='op'>(</span><span class='va'>x</span>, verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>, validate <span class='op'>=</span> <span class='cn'>NULL</span>,
+  pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>, compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>,
+  no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span>, no_check_naked_index <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span>
 
 <span class='fu'>odin_</span><span class='op'>(</span><span class='va'>x</span>, verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>,
   validate <span class='op'>=</span> <span class='cn'>NULL</span>, pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>,
@@ -207,24 +206,10 @@ Hopefully this will not be needed often.  Defaults to the option
     </tr>
     <tr>
       <th>compiler_warnings</th>
-      <td><p>Logical scalar indicating if compiler
-warnings should be converted to R warnings.  If this is
-<code>TRUE</code>, then if any compiler warnings are generated, the
-compiler output will be displayed (regardless of the value of
-<code>verbose</code>) within an R warning (suppressible via
-<code>suppressWarnings</code> and catchable via <code>tryCatch</code>).  The
-default is to default to <code>FALSE</code> unless the global option
-<code>odin.compiler_warnings</code> is set to <code>TRUE</code> (set with
-<code><a href='https://rdrr.io/r/base/options.html'>options(odin.compiler_warnings = TRUE)</a></code>).  The default may
-change to <code>TRUE</code> in future.  Warnings are currently a mix
-of ambiguous syntax in your model (worth fixing) and limitations
-in the code that odin generates (which you can't fix but I will
-get on to over time).  What is flagged will depend strongly on
-your platform and what is in your <code>Makevars</code>.  I develop
-odin with <code>-Wall -Wextra -pedantic</code> and still see warnings
-with both gcc and clang.  The compiler output is very simple and
-may not work on all platforms.  Defaults to the option
-<code>odin.compiler_warnings</code> or <code>FALSE</code> otherwise.</p></td>
+      <td><p>Previously this attempted detection of
+compiler warnings (with some degree of success), but is
+currently ignored. This may become supported again in a future
+version depending on underlying support in pkgbuild.</p></td>
     </tr>
     <tr>
       <th>no_check_unused_equations</th>

@@ -48,9 +48,9 @@
 
 <meta property="og:title" content="Test if compilation is possible — can_compile" />
 <meta property="og:description" content="Test if compilation appears possible.  This is used in some
-examples, and tries compiling a trivial C program with R CMD
-SHLIB.  Results are cached between runs within a session so this
-should be fast to rely on." />
+examples, and tries compiling a trivial C program with
+pkgbuild.  Results are cached between runs within a session
+so this should be fast to rely on." />
 <meta property="og:image" content="/logo.png" />
 
 
@@ -83,7 +83,7 @@ should be fast to rely on." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.0</span>
       </span>
     </div>
 
@@ -147,9 +147,9 @@ should be fast to rely on." />
 
     <div class="ref-description">
     <p>Test if compilation appears possible.  This is used in some
-examples, and tries compiling a trivial C program with <code>R CMD
-SHLIB</code>.  Results are cached between runs within a session so this
-should be fast to rely on.</p>
+examples, and tries compiling a trivial C program with
+<code>pkgbuild</code>.  Results are cached between runs within a session
+so this should be fast to rely on.</p>
     </div>
 
     <pre class="usage"><span class='fu'>can_compile</span><span class='op'>(</span>verbose <span class='op'>=</span> <span class='cn'>FALSE</span>, refresh <span class='op'>=</span> <span class='cn'>FALSE</span><span class='op'>)</span></pre>
@@ -172,18 +172,16 @@ should be fast to rely on.</p>
     <p>A logical scalar</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>If this function believes you can't compile, and if <code>gcc</code>
-can't be found on the path, a diagnostic message will be printed.
-This will of course not be very interesting if you use a different
-compiler to gcc!  But the most likely people affected here are
-Windows users; if you get this ensure that you have rtools
-installed.  If you have <code>devtools</code> installed,
-<code>devtools::find_rtools()</code> may be helpful for diagnosing
-compiler issues.</p>
+    <p>We use <code>pkgbuild</code> in order to build packages, and it includes
+a set of heuristics to locate and organise your C compiler. The
+most likely people affected here are Windows users; if you get
+this ensure that you have rtools installed.  If you have
+<code>devtools</code> installed, <code><a href='https://rdrr.io/pkg/pkgbuild/man/has_rtools.html'>pkgbuild::find_rtools(TRUE)</a></code> may
+be helpful for diagnosing compiler issues.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'>can_compile</span><span class='op'>(</span><span class='op'>)</span> <span class='co'># will take ~0.1s the first time</span>
-</div><div class='output co'>#&gt; [1] TRUE</div><div class='input'><span class='fu'>can_compile</span><span class='op'>(</span><span class='op'>)</span> <span class='co'># should be basically instantaneous</span>
+</div><div class='output co'>#&gt; <span class='message'>Loading required namespace: pkgbuild</span></div><div class='output co'>#&gt; [1] TRUE</div><div class='input'><span class='fu'>can_compile</span><span class='op'>(</span><span class='op'>)</span> <span class='co'># should be basically instantaneous</span>
 </div><div class='output co'>#&gt; [1] TRUE</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

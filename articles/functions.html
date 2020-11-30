@@ -38,7 +38,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.0</span>
       </span>
     </div>
 
@@ -99,7 +99,7 @@
       <h1 data-toc-skip>Odin Functions</h1>
                         <h4 class="author">Rich FitzJohn</h4>
             
-            <h4 class="date">2020-10-26</h4>
+            <h4 class="date">2020-11-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/master/vignettes/functions.Rmd"><code>vignettes/functions.Rmd</code></a></small>
       <div class="hidden name"><code>functions.Rmd</code></div>
@@ -122,15 +122,15 @@
 <li><p><code>if</code> – <strong>Conditional</strong>: Inline conditional statement. This takes a form slightly different to typically seen in R with the result of the statement directly assigned (e.g., <code>if (9 &gt; 10) 1 else 2</code> → <code>2</code>)</p></li>
 </ul>
 <p>Because general programming is not supported in <code>odin</code> and because every line must contain an assignment, instead of writing</p>
-<div class="sourceCode" id="cb1"><pre class="downlit">
-<span class="kw">if</span> <span class="op">(</span><span class="va">mycondition</span><span class="op">)</span> <span class="op">{</span>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw">if</span> <span class="op">(</span><span class="va">mycondition</span><span class="op">)</span> <span class="op">{</span>
   <span class="va">a</span> <span class="op">&lt;-</span> <span class="va">true_value</span>
 <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span>
   <span class="va">a</span> <span class="op">&lt;-</span> <span class="va">false_value</span>
-<span class="op">}</span></pre></div>
+<span class="op">}</span></code></pre></div>
 <p>instead write</p>
-<div class="sourceCode" id="cb2"><pre class="downlit">
-<span class="va">a</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">mycondition</span><span class="op">)</span> <span class="va">true_value</span> <span class="kw">else</span> <span class="va">false_value</span></pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">a</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">mycondition</span><span class="op">)</span> <span class="va">true_value</span> <span class="kw">else</span> <span class="va">false_value</span></code></pre></div>
 <p>(this works in normal R too!)</p>
 </div>
 <div id="array-support" class="section level2">
@@ -145,32 +145,32 @@
 <li><p><code>interpolate</code> – <strong>Interpolate an array over time</strong>: See below</p></li>
 </ul>
 <p>When working with arrays, use generally implies a “for loop” in the generated C code. For example, in the example in <a href="odin.html">the main package vignette</a> the derivatives are computed as</p>
-<div class="sourceCode" id="cb3"><pre class="downlit">
-<span class="fu"><a href="https://rdrr.io/r/stats/deriv.html">deriv</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">ay</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/stats/deriv.html">deriv</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">ay</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <p>The indexes on the right hand side can be one of <code>i</code>, <code>j</code>, <code>k</code>, <code>l</code> <code>i5</code>, <code>i6</code>, <code>i7</code> or <code>i8</code> corresponding to the index on the <em>left hand side</em> being iterated over (<code>odin</code> supports arrays up to 8 dimensions). The left-hand-side here contains no explicit entry (<code>y[]</code>) which is equivalent to <code>y[1:length(y)]</code>, which expands (approximately) to the “for loop”</p>
-<div class="sourceCode" id="cb4"><pre class="downlit">
-<span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
   <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html">deriv</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">ay</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span>
-<span class="op">}</span></pre></div>
+<span class="op">}</span></code></pre></div>
 <p>(except slightly different, and in C).</p>
 <p>Similarly, the expression</p>
-<div class="sourceCode" id="cb5"><pre class="downlit">
-<span class="va">ay</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">j</span><span class="op">]</span></pre></div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">ay</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">j</span><span class="op">]</span></code></pre></div>
 <p>involves loops over two dimensions (<code>ay[, ]</code> becomes <code>ay[1:dim(ay, 1), 1:dim(ay, 2)]</code> and so the loop becomes</p>
-<div class="sourceCode" id="cb6"><pre class="downlit">
-<span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">ay</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">ay</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
   <span class="kw">for</span> <span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">ay</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span>
     <span class="va">ay</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">j</span><span class="op">]</span>
   <span class="op">}</span>
-<span class="op">}</span></pre></div>
+<span class="op">}</span></code></pre></div>
 <p>Due to constraints with using C, few things can be used as an index; in particular the following will not work:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit">
-<span class="va">idx</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">t</span> <span class="op">&gt;</span> <span class="fl">5</span><span class="op">)</span> <span class="fl">2</span> <span class="kw">else</span> <span class="fl">1</span>
-<span class="va">x</span> <span class="op">&lt;-</span> <span class="va">vec</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span></pre></div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">idx</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">t</span> <span class="op">&gt;</span> <span class="fl">5</span><span class="op">)</span> <span class="fl">2</span> <span class="kw">else</span> <span class="fl">1</span>
+<span class="va">x</span> <span class="op">&lt;-</span> <span class="va">vec</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span></code></pre></div>
 <p>(or where <code>idx</code> is some general odin variable as the result of a different assignment). You must use <code>as.integer</code> to cast this to integer immediately before indexing:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit">
-<span class="va">idx</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">t</span> <span class="op">&gt;</span> <span class="fl">5</span><span class="op">)</span> <span class="fl">2</span> <span class="kw">else</span> <span class="fl">1</span>
-<span class="va">x</span> <span class="op">&lt;-</span> <span class="va">vec</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">]</span></pre></div>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">idx</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">t</span> <span class="op">&gt;</span> <span class="fl">5</span><span class="op">)</span> <span class="fl">2</span> <span class="kw">else</span> <span class="fl">1</span>
+<span class="va">x</span> <span class="op">&lt;-</span> <span class="va">vec</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">]</span></code></pre></div>
 <p>This will <em>truncate</em> the value (same behaviour as <code>truncate</code>) so be warned if passing in things that may be approximately integer - you may want to use <code><a href="https://rdrr.io/r/base/integer.html">as.integer(round(x))</a></code> in that case.</p>
 <p>The interpolation functions are described in more detail in the <a href="odin.html">main package vignette</a></p>
 </div>
@@ -189,8 +189,8 @@
 <li><p><code><a href="https://rdrr.io/r/base/Logic.html">||</a></code> – <strong>Boolean OR</strong> (e.g., <code>(1 == 1) &amp;&amp; (2 &gt; 1)</code> → <code>TRUE</code>)</p></li>
 </ul>
 <p>Be wary of strict equality with <code><a href="https://rdrr.io/r/base/Comparison.html">==</a></code> or <code><a href="https://rdrr.io/r/base/Comparison.html">!=</a></code> as numbers may be floating point numbers, which have some surprising properties for the uninitiated, for example</p>
-<div class="sourceCode" id="cb9"><pre class="downlit">
-<span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">==</span> <span class="fl">3</span></pre></div>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">==</span> <span class="fl">3</span></code></pre></div>
 <pre><code>## [1] FALSE</code></pre>
 </div>
 <div id="mathematical-operators" class="section level2">
@@ -269,15 +269,15 @@
 <li><p><code>rsignrank</code> – <strong>Wilcoxon signed rank statistic distribution</strong>: With parameter <code>n</code></p></li>
 </ul>
 <p>With random number functions we can write:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit">
-<span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span></code></pre></div>
 <p>which will generate a random number from the uniform distribution. If you write:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit">
-<span class="va">x</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">x</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span><span class="op">)</span></code></pre></div>
 <p>then each element of <code>x</code> will be filled with a <em>different</em> random number drawn from this distribution (which is generally what you want). Random numbers are considered to be <em>time varying</em> which means they will automatically generate each time step, so if you write</p>
-<div class="sourceCode" id="cb13"><pre class="downlit">
-<span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/stats/update.html">update</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">+</span> <span class="va">x</span></pre></div>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/stats/update.html">update</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">+</span> <span class="va">x</span></code></pre></div>
 <p>then at each time step, each element of <code>y</code> will be updated by the same random number from a normal distribution with a mean of zero and a standard deviation of 10 - the number will change each time step but be the same for each element of <code>y</code> in the example above.</p>
 <p>In addition, two functions that are vector returning and require some care to use:</p>
 <ul>
@@ -285,12 +285,12 @@
 <li><p><code>rmhyper</code> – <strong>Multivariate hypergeometric distribution</strong>: The first parameter is the number of samples and the second is the per-class count and must be a vector</p></li>
 </ul>
 <p>Both these functions require a vector input (of probabilities for <code>rmultinom</code> and of counts for <code>rmhyper</code>) and return a vector the same length. So the expression</p>
-<div class="sourceCode" id="cb14"><pre class="downlit">
-<span class="va">y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span><span class="op">(</span><span class="fl">10</span>, <span class="va">p</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span><span class="op">(</span><span class="fl">10</span>, <span class="va">p</span><span class="op">)</span></code></pre></div>
 <p>will produce a vector <code>y</code> of samples from the multinomial distribution with parameters <code>size = 10</code> (so after wards <code><a href="https://rdrr.io/r/base/sum.html">sum(y)</a></code> is 10) and probabilities <code>p</code>. It is very important that <code>y</code> and <code>p</code> have the same size.</p>
 <p>At the moment it is not possible to use expressions like</p>
-<div class="sourceCode" id="cb15"><pre class="downlit">
-<span class="va">y</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span><span class="op">(</span><span class="fl">10</span>, <span class="va">p</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">y</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span><span class="op">(</span><span class="fl">10</span>, <span class="va">p</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span></code></pre></div>
 <p>but this is planned for implementation in the future. A full example of using <code>rmultinom</code> is given in the <a href="discrete.html">discrete models</a> vignette.</p>
 </div>
   </div>

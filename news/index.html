@@ -79,7 +79,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.0</span>
       </span>
     </div>
 
@@ -140,6 +140,23 @@
       <small>Source: <a href='https://github.com/mrc-ide/odin/blob/master/NEWS.md'><code>NEWS.md</code></a></small>
     </div>
 
+    <div id="odin-110" class="section level1">
+<h1 class="page-header" data-toc-text="1.1.0">
+<a href="#odin-110" class="anchor"></a>odin 1.1.0<small> Unreleased </small>
+</h1>
+<ul>
+<li>The basic infrastructure has been overhauled, which will make some alternative compilation targets easier to support. We now use <code>pkgbuild</code> for the compilation which should ease debugging, and odin code compiled into packages will no longer issue a slew of warnings (and cooperate with automatic routine registration). This refactor has caused a few minor breaking changes:
+<ul>
+<li>
+<code>$initial()</code> always requires time, even if it is ignored</li>
+<li>
+<code>$set_user()</code> and construction no longer work with positional argument matching - all arguments must be named</li>
+<li>The <code>$ir</code> field has become a method; add parens after it</li>
+<li>The <code>compiler_warnings</code> option has been removed</li>
+</ul>
+</li>
+</ul>
+</div>
     <div id="odin-107" class="section level1">
 <h1 class="page-header" data-toc-text="1.0.7">
 <a href="#odin-107" class="anchor"></a>odin 1.0.7<small> Unreleased </small>
