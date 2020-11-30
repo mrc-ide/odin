@@ -234,7 +234,7 @@ test_that_odin("discrete", {
   expect_equal(mod$update(0, 1), 2)
 
   tt <- 0:10
-  yy <- mod$run(tt) # wrong time name here
+  yy <- mod$run(tt)
   expect_equal(yy, cbind(step = tt, x = tt + 1))
 })
 

@@ -55,8 +55,6 @@
     },
 
     ir = function() {
-      ## The IR will always be saved as one line.
-      ## TODO: this might get changed?
       path_ir <- system.file("odin/{{name}}.json", mustWork = TRUE,
                              package = "{{package}}")
       json <- readLines(path_ir)
