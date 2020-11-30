@@ -25,20 +25,13 @@
 ##' coef(exp_decay)
 odin_ir <- function(x, parsed = FALSE) {
   if (inherits(x, "odin_generator")) {
-    ir <- attr(x, "ir")
+    ir <- attr(x, "ir") %||% attr(x, "generator")$public_methods$ir()
   } else if (inherits(x, "odin_model")) {
-    ir <- x$ir
+    ir <- x$ir()
   } else {
     stop("Expected an odin_generator or odin_model object")
   }
 
-  if (!inherits(ir, "json")) {
-    if (length(ir) == 2L) {
-      ir <- system.file(ir[[2]], package = ir[[1]], mustWork = TRUE)
-    }
-    ir <- read_string(ir)
-    class(ir) <- "json"
-  }
   if (parsed) {
     ir <- ir_deserialise(ir)
   }

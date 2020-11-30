@@ -1,6 +1,6 @@
-context("run: %TARGET%: interpolation")
+context("run: interpolation")
 
-test_that("constant", {
+test_that_odin("constant", {
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -44,7 +44,7 @@ test_that("constant", {
 })
 
 
-test_that("constant array", {
+test_that_odin("constant array", {
   gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
@@ -82,7 +82,7 @@ test_that("constant array", {
 })
 
 
-test_that("constant 3d array", {
+test_that_odin("constant 3d array", {
   gen <- odin({
     deriv(y[, ]) <- pulse[i, j]
     initial(y[, ]) <- 0
@@ -131,7 +131,7 @@ test_that("constant 3d array", {
 })
 
 
-test_that("linear", {
+test_that_odin("linear", {
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -153,7 +153,7 @@ test_that("linear", {
 
   f <- approxfun(tp, zp, "linear")
   target <- function(t, x, .) list(f(t))
-  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit = 2)
+  cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = 2)
   expect_equal(yy[, 2], cmp[, 2])
 
   expect_error(mod$run(c(tt, max(tp) + 1)),
@@ -164,7 +164,7 @@ test_that("linear", {
 })
 
 
-test_that("spline", {
+test_that_odin("spline", {
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -186,12 +186,12 @@ test_that("spline", {
 
   f <- splinefun(tp, zp, "natural")
   target <- function(t, x, .) list(f(t))
-  cmp <- deSolve::lsoda(mod$initial(), tt, target, tcrit = tt[length(tt)])
+  cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = tt[length(tt)])
   expect_equal(yy[, 2], cmp[, 2])
 })
 
 
-test_that("interpolation with two variables", {
+test_that_odin("interpolation with two variables", {
   for (type in INTERPOLATION_TYPES) {
     gen <- odin_(
       bquote({
@@ -247,7 +247,7 @@ test_that("interpolation with two variables", {
 })
 
 
-test_that("interpolation in a delay", {
+test_that_odin("interpolation in a delay", {
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -276,7 +276,7 @@ test_that("interpolation in a delay", {
 })
 
 
-test_that("interpolation in a delay, with default", {
+test_that_odin("interpolation in a delay, with default", {
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -305,7 +305,7 @@ test_that("interpolation in a delay, with default", {
 })
 
 
-test_that("critical times", {
+test_that_odin("critical times", {
   ## this is only done for the R generation so far:
   skip_for_target("c")
   gen <- odin({
@@ -335,7 +335,7 @@ test_that("critical times", {
 })
 
 
-test_that("user sized interpolation, 1d", {
+test_that_odin("user sized interpolation, 1d", {
   gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
@@ -367,7 +367,7 @@ test_that("user sized interpolation, 1d", {
 })
 
 
-test_that("user sized interpolation, 2d", {
+test_that_odin("user sized interpolation, 2d", {
   gen <- odin({
     deriv(y[, ]) <- pulse[i, j]
     initial(y[, ]) <- 0
@@ -398,7 +398,7 @@ test_that("user sized interpolation, 2d", {
 })
 
 
-test_that("double delayed interpolation function", {
+test_that_odin("double delayed interpolation function", {
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0

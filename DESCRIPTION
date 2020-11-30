@@ -1,6 +1,6 @@
 Package: odin
 Title: ODE Generation and Integration
-Version: 1.0.8
+Version: 1.1.0
 Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     email = "rich.fitzjohn@gmail.com"),
              person("Thibaut", "Jombart", role = "ctb"),
@@ -30,18 +30,24 @@ BugReports: https://github.com/mrc-ide/odin/issues
 Imports:
     R6,
     cinterpolate (>= 1.0.0),
-    crayon,
     deSolve,
     digest,
+    glue,
     jsonlite,
-    ring
+    ring,
+    withr
 Suggests:
     dde (>= 1.0.0),
     jsonvalidate (>= 1.1.0),
     knitr,
+    mockery,
+    pkgbuild,
+    pkgload,
+    rlang,
     rmarkdown,
     testthat
 VignetteBuilder: knitr
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1
+Roxygen: list(old_usage = TRUE)
 Encoding: UTF-8
 Language: en-GB

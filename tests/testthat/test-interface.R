@@ -11,43 +11,7 @@ test_that("verbose", {
       update(x) <- x + norm_rand()
       config(base) <- "mycrazymodel"
     }, target = "c", workdir = tempfile(), skip_cache = TRUE, verbose = TRUE),
-    "mycrazymodel_[[:xdigit:]]{8}\\.c")
-})
-
-test_that("warnings", {
-  skip_on_cran() # this test is platform specific!
-  code <- quote({
-    initial(a) <- 1
-    deriv(a) <- if (t > 8 || t > 1 && t < 3) 1 else 0
-  })
-
-  str <- capture.output(
-    tmp <- odin_(code, verbose = TRUE, compiler_warnings = FALSE,
-                 skip_cache = TRUE, workdir = tempfile()))
-  out <- compiler_output_classify(str)
-
-  ## This will only give a warning with -Wall or greater.
-  has_warning <- any(vlapply(seq_along(out$type), function(i)
-    out$type[i] == "info" && attr(out$value[[i]], "type") == "warning"))
-  if (has_warning) {
-    re <- "(There was 1 compiler warning|There were [0-9]+ compiler warnings)"
-    expect_warning(
-      odin_(code, compiler_warnings = TRUE, skip_cache = TRUE,
-            workdir = tempfile()),
-      re)
-
-    with_options(
-      list(odin.compiler_warnings = FALSE),
-      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
-                           workdir = tempfile()), NA))
-    with_options(
-      list(odin.compiler_warnings = TRUE),
-      expect_warning(odin_(code, verbose = FALSE, skip_cache = TRUE,
-                           workdir = tempfile()), re))
-  } else {
-    expect_warning(odin_(code, compiler_warnings = TRUE, verbose = FALSE,
-                         skip_cache = TRUE, workdir = tempfile()), NA) # none
-  }
+    "mycrazymodel[[:xdigit:]]{8}")
 })
 
 test_that("n_history is configurable", {
@@ -58,12 +22,10 @@ test_that("n_history is configurable", {
   })
 
   mod <- gen(use_dde = TRUE)
-  expect_true("n_history" %in% names(formals(mod$run)))
   expect_error(mod$run(seq(0, 200), n_history = 0),
                "Integration failure: can't use ylag in model with no history")
 
   mod <- gen(use_dde = FALSE)
-  expect_true("n_history" %in% names(formals(mod$run)))
   ## Don't test for precice deSolve error message; just test fail/pass
   expect_error(mod$run(seq(0, 200), n_history = 1))
   expect_error(mod$run(seq(0, 200), n_history = 1000), NA)

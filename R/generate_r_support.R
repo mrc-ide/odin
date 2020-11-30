@@ -122,6 +122,9 @@ support_check_interpolate_y <- function(dim_arg, dim_target, name_arg,
 
 
 support_check_interpolate_t <- function(time, dat, tcrit) {
+  if (is.null(dat)) {
+    return(tcrit)
+  }
   if (time[[1]] < dat$min) {
     stop(sprintf("Integration times do not span interpolation range; min: %s",
                  dat$min), call. = FALSE)

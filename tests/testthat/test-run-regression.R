@@ -1,6 +1,6 @@
-context("run: %TARGET%: regression")
+context("run: regression")
 
-test_that("bug #78", {
+test_that_odin("bug #78", {
   gen <- odin({
     n <- 2
     m <- 2
@@ -21,7 +21,7 @@ test_that("bug #78", {
 
 
 ## 75
-test_that("bug #75", {
+test_that_odin("bug #75", {
   gen <- odin({
     deriv(S) <- 1
     deriv(I) <- 2

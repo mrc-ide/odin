@@ -42,7 +42,8 @@ test_that("interpolation", {
               0.193, 0.286, 0.599, 1.889, 0.996, 0.681, 1.135)
   k <- 0.01
   C0 <- mean(approx(flux_t, flux_y, xout = 1:365)$y) / k
-  mod <- res$env$interpolate_odin(kk = k, C0 = C0, flux_t = flux_t, flux_y)
+  mod <- res$env$interpolate_odin(kk = k, C0 = C0, flux_t = flux_t,
+                                  flux_y = flux_y)
 
   t <- seq(1, 365)
 
@@ -137,7 +138,7 @@ test_that("example package", {
   pkg <- file.path(path, "package")
 
   odin_package(pkg)
-  res <- build_package(pkg)
+  res <- build_package(pkg, FALSE)
   on.exit(res$cleanup())
 
   expect_is(res$env$lorenz, "odin_generator")
@@ -166,7 +167,7 @@ test_that("two sums example", {
   writeLines(code, file.path(pkg, "inst/odin/z.R"))
 
   odin_package(pkg)
-  res <- build_package(pkg)
+  res <- build_package(pkg, FALSE)
   on.exit(res$cleanup())
 
   expect_is(res$env$z, "odin_generator")

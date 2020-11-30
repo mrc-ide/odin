@@ -104,7 +104,7 @@ t <- seq(0, 100, length.out = 50000)
 y <- mod$run(t)
 ```
 
-For more complicated examples, check out an [age structured SIR model](tests/testthat/examples/array_odin.R), and for more details see the [main package vignette](https://mrc-ide.github.io/odin/articles/odin.html)
+For more complicated examples, check out an [age structured SIR model](https://github.com/mrc-ide/odin/blob/master/tests/testthat/examples/array_odin.R), and for more details see the [main package vignette](https://mrc-ide.github.io/odin/articles/odin.html)
 
 ## Limitations
 

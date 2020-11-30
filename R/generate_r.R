@@ -39,7 +39,9 @@ generate_r <- function(dat, options) {
   }
 
   core <- generate_r_core(eqs, dat, env, rewrite)
-  generate_r_class(core, dat, env)
+  ret <- generate_r_class(core, dat, env)
+  attr(ret, "generator") <- env[[dat$config$base]]
+  ret
 }
 
 

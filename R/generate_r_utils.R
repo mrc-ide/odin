@@ -56,11 +56,7 @@ r_expr_block <- function(exprs) {
 
 
 r_expr_if <- function(condition, a, b) {
-  if (missing(b)) {
-    call("if", condition, r_expr_block(a))
-  } else {
-    call("if", condition, r_expr_block(a), r_expr_block(b))
-  }
+  call("if", condition, r_expr_block(a), r_expr_block(b))
 }
 
 

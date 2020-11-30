@@ -387,3 +387,39 @@ void rmhyper_d(size_t n_sample, double *k, size_t m, int *ret) {
   }
   rmhyper(n_sample, ret, m);
 }
+
+
+double scalar_real(SEXP x, const char * name) {
+  if (Rf_length(x) != 1) {
+    Rf_error("Expected a scalar for %s", name);
+  }
+  double ret = 0.0;
+  if (TYPEOF(x) == INTSXP) {
+    ret = INTEGER(x)[0];
+  } else if (TYPEOF(x) == REALSXP) {
+    ret = REAL(x)[0];
+  } else {
+    Rf_error("Expected a numeric value for %s", name);
+  }
+  return ret;
+}
+
+
+int scalar_int(SEXP x, const char * name) {
+  if (Rf_length(x) != 1) {
+    Rf_error("Expected a scalar for %s", name);
+  }
+  int ret = 0;
+  if (TYPEOF(x) == INTSXP) {
+    ret = INTEGER(x)[0];
+  } else if (TYPEOF(x) == REALSXP) {
+    double rx = REAL(x)[0];
+    ret = rx;
+    if (fabs(rx - ret) > sqrt(DOUBLE_EPS)) {
+      Rf_error("Expected a integer-like for %s", name);
+    }
+  } else {
+    Rf_error("Expected an integer value for %s", name);
+  }
+  return ret;
+}

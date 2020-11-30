@@ -96,10 +96,6 @@ short_hash <- function(x) {
   substr(x, 1L, 8L)
 }
 
-dllname <- function(base) {
-  paste0(base, .Platform$dynlib.ext)
-}
-
 dquote <- function(x) {
   sprintf('"%s"', x)
 }
@@ -218,4 +214,25 @@ odin_message <- function(msg, verbose) {
 
 new_empty_env <- function() {
   new.env(parent = emptyenv())
+}
+
+
+odin_file <- function(...) {
+  system.file(..., package = "odin", mustWork = TRUE)
+}
+
+
+glue_whisker <- function(template, data) {
+  glue::glue(template, .envir = data, .open = "{{", .close = "}}",
+             .trim = FALSE)
+}
+
+
+read_lines <- function(path) {
+  paste(readLines(path), collapse = "\n")
+}
+
+
+clean_package_name <- function(name) {
+  gsub("_", ".", name)
 }

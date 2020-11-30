@@ -264,18 +264,28 @@ generate_c_compiled_deriv_dde <- function(dat) {
 generate_c_compiled_rhs_r <- function(dat, rewrite) {
   discrete <- dat$features$discrete
   if (discrete) {
-    time_access <- "INTEGER"
+    time_access <- "scalar_int"
     time_type <- "int"
   } else {
-    time_access <- "REAL"
+    time_access <- "scalar_real"
     time_type <- "double"
   }
+
+  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time, SEXP = dat$meta$state)
+
+  ## Early exit in the case of delay models:
+  if (dat$features$has_delay && dat$features$discrete) {
+    body <- c('Rf_error("Can\'t call update() on delay models");',
+              "return R_NilValue;")
+    return(c_function("SEXP", dat$meta$c$rhs_r, args, body))
+  }
+
   body <- collector()
   body$add("SEXP %s = PROTECT(allocVector(REALSXP, LENGTH(%s)));",
-          dat$meta$result, dat$meta$state)
+           dat$meta$result, dat$meta$state)
   body$add("%s *%s = %s(%s, 1);",
-          dat$meta$c$internal_t, dat$meta$internal,
-          dat$meta$c$get_internal, dat$meta$c$ptr)
+           dat$meta$c$internal_t, dat$meta$internal,
+           dat$meta$c$get_internal, dat$meta$c$ptr)
   if (dat$features$has_output) {
     output_ptr <- sprintf("%s_ptr", dat$meta$output)
     body$add("SEXP %s = PROTECT(allocVector(REALSXP, %s));",
@@ -293,9 +303,9 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
   }
 
   eval_rhs <- sprintf_safe(
-    "%s(%s, %s(%s)[0], REAL(%s), REAL(%s), %s);",
+    '%s(%s, %s(%s, "%s"), REAL(%s), REAL(%s), %s);',
     dat$meta$c$rhs, dat$meta$internal, time_access, dat$meta$time,
-    dat$meta$state, dat$meta$result, dat$meta$output)
+    dat$meta$time, dat$meta$state, dat$meta$result, dat$meta$output)
 
   ## In order to run the derivative calculation safely, we have to set
   ## the initial time.  But in order to make this safe, we need to put
@@ -309,8 +319,9 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
       sprintf_safe("const %s %s = %s;",
                    time_type, dat$meta$initial_time, initial_time),
       c_expr_if(sprintf_safe("ISNA(%s)", dat$meta$initial_time),
-                sprintf_safe("%s = %s(%s)[0];",
-                             initial_time, time_access, dat$meta$time)))
+                sprintf_safe('%s = %s(%s, "dat$meta$time");',
+                             initial_time, time_access, dat$meta$time,
+                             dat$meta$time)))
     reset_initial_time <-
       c_expr_if(sprintf_safe("ISNA(%s)", dat$meta$initial_time),
                 sprintf_safe("%s = %s;", initial_time, dat$meta$initial_time))
@@ -326,7 +337,6 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
   body$add("UNPROTECT(1);")
   body$add("return %s;", dat$meta$result)
 
-  args <- c(SEXP = dat$meta$c$ptr, SEXP = dat$meta$time, SEXP = dat$meta$state)
   c_function("SEXP", dat$meta$c$rhs_r, args, body$get())
 }
 
@@ -449,13 +459,16 @@ generate_c_compiled_set_user <- function(eqs, dat) {
 
 
 generate_c_compiled_set_initial <- function(dat, rewrite) {
-  if (!dat$features$has_delay) {
-    return(NULL)
-  }
-
   set_initial1 <- function(x) {
     rhs <- c_extract_variable(x, dat$data$elements, dat$meta$state, rewrite)
-    sprintf_safe("%s = %s;", rewrite(x$initial), rhs)
+    if (dat$data$elements[[x$name]]$rank == 0) {
+      sprintf_safe("%s = %s;", rewrite(x$initial), rhs)
+    } else {
+      el <- dat$data$elements[[x$name]]
+      sprintf_safe("memcpy(%s, %s, %s * sizeof(%s));",
+                   rewrite(x$initial), rhs, rewrite(el$dimnames$length),
+                   el$storage_type)
+    }
   }
 
   ## TODO: see generate_c_compiled_initial_conditions for more that
@@ -477,17 +490,19 @@ generate_c_compiled_set_initial <- function(dat, rewrite) {
   }
 
   body <- collector()
-  body$add("%s *%s = %s(%s, 1);",
-           internal_t, internal, dat$meta$c$get_internal, ptr)
-  body$add("const double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
-  body$add("%s = %s;", rewrite(dat$meta$initial_time), dat$meta$time)
-  if (!dat$features$discrete) {
-    body$add("%s = INTEGER(%s)[0];", rewrite(dat$meta$c$use_dde), use_dde_ptr)
+  if (dat$features$has_delay) {
+    body$add("%s *%s = %s(%s, 1);",
+             internal_t, internal, dat$meta$c$get_internal, ptr)
+    body$add("const double %s = REAL(%s)[0];", dat$meta$time, time_ptr)
+    body$add("%s = %s;", rewrite(dat$meta$initial_time), dat$meta$time)
+    if (!dat$features$discrete) {
+      body$add("%s = INTEGER(%s)[0];", rewrite(dat$meta$c$use_dde), use_dde_ptr)
+    }
+    body$add("if (%s != R_NilValue) {", state_ptr)
+    body$add("  double * %s = REAL(%s);", dat$meta$state, state_ptr)
+    body$add(paste0("  ", set_initial_variables))
+    body$add("}")
   }
-  body$add("if (%s != R_NilValue) {", state_ptr)
-  body$add("  double * %s = REAL(%s);", dat$meta$state, state_ptr)
-  body$add(paste0("  ", set_initial_variables))
-  body$add("}")
   body$add("return R_NilValue;")
 
   c_function("SEXP", dat$meta$c$set_initial, args, body$get())
@@ -526,13 +541,14 @@ generate_c_compiled_initial_conditions <- function(dat, rewrite) {
   body <- collector()
   if (dat$features$initial_time_dependent) {
     if (dat$features$discrete) {
-      type <- "int"
-      unpack <- "INTEGER"
+      time_type <- "int"
+      time_access <- "scalar_int"
     } else {
-      type <- "double"
-      unpack <- "REAL"
+      time_type <- "double"
+      time_access <- "scalar_real"
     }
-    body$add("%s %s = %s(%s)[0];", type, dat$meta$time, unpack, time_ptr)
+    body$add('%s %s = %s(%s, "%s");',
+             time_type, dat$meta$time, time_access, time_ptr, dat$meta$time)
   }
   body$add("%s *%s = %s(%s, 1);",
           dat$meta$c$internal_t, dat$meta$internal,
@@ -702,6 +718,11 @@ generate_c_compiled_library <- function(dat, is_package) {
   }
   if ("sum" %in% used) {
     v <- c(v, "odin_sum1", "odin_isum1")
+  }
+  if (dat$features$discrete) {
+    v <- c(v, "scalar_int")
+  } else {
+    v <- c(v, "scalar_real")
   }
 
   if ("odin_sum" %in% used) {

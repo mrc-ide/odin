@@ -81,39 +81,6 @@ skip_for_target <- function(target, reason = NULL, using = NULL) {
 }
 
 
-prepare_run_tests <- function() {
-  path <- "run"
-  re <- "^test-run-(.*\\.R)$"
-  files <- dir(path, pattern = re)
-  pat <- "%TARGET%"
-
-  targets <- if (on_cran()) "r" else c("r", "c")
-  header_fmt <- "## Automatically generated from %s/%s - do not edit!"
-
-  for (f in files) {
-    txt <- readLines(file.path(path, f))
-    header <- sprintf(header_fmt, path, f)
-
-    if (!grepl(pat, txt[[1]])) {
-      stop("did not find target replacement in ", f)
-    }
-    if (any(grepl("\\btarget\\s*=", txt))) {
-      stop("detected leftover manual target setting in ", f)
-    }
-    for (t in targets) {
-      dest <- sprintf("test-run-%s-%s", t, sub(re, "\\1", f))
-      message(sprintf("Writing '%s'", dest))
-      res <- c(header,
-               sprintf('options(odin.target = "%s")', t),
-               gsub(pat, t, txt),
-               if (t == "c") "unload_dlls()",
-               "options(odin.target = NULL)")
-      writeLines(res, dest)
-    }
-  }
-}
-
-
 with_options <- function(opts, code) {
   oo <- options(opts)
   on.exit(oo)
@@ -143,4 +110,26 @@ run_model <- function(model, times, parms = NULL, ...) {
   ## of nested models; I'll probably handle that with a pointer
   ## though.
   deSolve::ode(y, times, model$derivs, NULL, lags = lags, ...)
+}
+
+
+test_odin_targets <- function() {
+  if (on_cran()) {
+    "r"
+  } else {
+    c("r", "c")
+  }
+}
+
+
+## A helper that will run a code block with each target type
+test_that_odin <- function(desc, code) {
+  testthat::skip_if_not_installed("rlang")
+  targets <- test_odin_targets()
+  code_enq <- rlang::enquo(code)
+  for (target in targets) {
+    testthat::test_that(sprintf("%s (%s)", desc, target),
+                        withr::with_options(list(odin.target = target),
+                                            rlang::eval_tidy(code_enq)))
+  }
 }

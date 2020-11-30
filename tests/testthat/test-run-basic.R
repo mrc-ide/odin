@@ -1,6 +1,6 @@
-context("odin: %TARGET%: basic")
+context("odin: basic")
 
-test_that("trivial model", {
+test_that_odin("trivial model", {
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -30,7 +30,7 @@ test_that("trivial model", {
 ## 3. we can construct somewhat nontrivial expressions
 ##
 ## This should integrate to a parabola y = 1 + t^2
-test_that("Time dependent rhs", {
+test_that_odin("Time dependent rhs", {
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -50,7 +50,7 @@ test_that("Time dependent rhs", {
 })
 
 
-test_that("Time dependent initial conditions", {
+test_that_odin("Time dependent initial conditions", {
   gen <- odin({
     y1 <- cos(t)
     y2 <- y1 * (r + t)
@@ -76,7 +76,7 @@ test_that("Time dependent initial conditions", {
 
 
 ## Tests: that we can actually use state variables in a calculation
-test_that("use state in derivative calculation", {
+test_that_odin("use state in derivative calculation", {
   gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- 1
@@ -94,7 +94,7 @@ test_that("use state in derivative calculation", {
 
 
 ## Tests: multiple scalar variables can be packed together properly
-test_that("multiple variables", {
+test_that_odin("multiple variables", {
   gen <- odin({
     deriv(y1) <- sigma * (y2 - y1)
     deriv(y2) <- R * y1 - y2 - y1 * y3
@@ -107,13 +107,13 @@ test_that("multiple variables", {
     b     <-  8.0 / 3.0
   })
   mod <- gen()
-  expect_equal(mod$initial(), c(10, 1, 1))
-  expect_equal(mod$deriv(0, mod$initial()), c(-90, 269, 22 / 3))
+  expect_equal(mod$initial(0), c(10, 1, 1))
+  expect_equal(mod$deriv(0, mod$initial(0)), c(-90, 269, 22 / 3))
 })
 
 
 ## Tests: scalar user variables
-test_that("user variables", {
+test_that_odin("user variables", {
   gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
@@ -123,18 +123,18 @@ test_that("user variables", {
   })
 
   expect_error(gen())
-  expect_error(gen(NULL),
+  expect_error(gen(r = NULL),
                "Expected a value for 'r'", fixed = TRUE)
-  expect_error(gen(1:2),
+  expect_error(gen(r = 1:2),
                "Expected a scalar numeric for 'r'")
-  expect_error(gen(numeric(0)),
+  expect_error(gen(r = numeric(0)),
                "Expected a scalar numeric for 'r'")
 
   expect_equal(sort_list(gen(r = pi)$contents()),
                sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
   expect_equal(sort_list(gen(r = pi, N0 = 10)$contents()),
                sort_list(list(K = 100, N0 = 10, initial_N = 10, r = pi)))
-  expect_equal(gen(r = pi, N0 = 10)$initial(), 10)
+  expect_equal(gen(r = pi, N0 = 10)$initial(0), 10)
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))
 
@@ -146,7 +146,7 @@ test_that("user variables", {
 
 
 
-test_that("simple operations in user variables are allowed", {
+test_that_odin("simple operations in user variables are allowed", {
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- x0
@@ -161,7 +161,7 @@ test_that("simple operations in user variables are allowed", {
 ## Tests: basic output
 ##
 ## This one is about as basic as I can see!
-test_that("output", {
+test_that_odin("output", {
   gen <- odin({
     deriv(y) <- 2
     initial(y) <- 1
@@ -181,7 +181,7 @@ test_that("output", {
   expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
   expect_equal(yy1[, "z"], tt)
 
-  yy2 <- gen(TRUE)$run(tt)
+  yy2 <- gen(use_dde = TRUE)$run(tt)
   expect_equal(colnames(yy2), c("t", "y", "z"))
   expect_equal(yy2[, "t"], tt)
   expect_equal(yy2[, "y"], seq(1, length.out = length(tt), by = 2))
@@ -190,7 +190,7 @@ test_that("output", {
 
 
 ## Do some nontrivial calculation in the output
-test_that("output", {
+test_that_odin("output", {
   gen <- odin({
     deriv(y) <- 2
     initial(y) <- 1
@@ -204,7 +204,7 @@ test_that("output", {
 })
 
 
-test_that("copy output", {
+test_that_odin("copy output", {
   gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1
@@ -223,14 +223,14 @@ test_that("copy output", {
 
 
 ## Basic discrete models
-test_that("discrete", {
+test_that_odin("discrete", {
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
   })
   mod <- gen()
 
-  expect_equal(mod$initial(), 1)
+  expect_equal(mod$initial(0), 1)
   expect_equal(mod$update(0, 1), 2)
 
   tt <- 0:10
@@ -239,7 +239,7 @@ test_that("discrete", {
 })
 
 
-test_that("discrete with output", {
+test_that_odin("discrete with output", {
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -256,7 +256,7 @@ test_that("discrete with output", {
 
 ## Fairly minimal array model, though it does mix array and non array
 ## variables, plus an array support variable.
-test_that("array support", {
+test_that_odin("array support", {
   gen <- odin({
     initial(x[]) <- 1
     initial(y) <- 2
@@ -274,7 +274,7 @@ test_that("array support", {
   expect_equal(sort_list(mod$contents()),
                sort_list(list(dim_r = 3, dim_x = 3, initial_x = rep(1, 3),
                               initial_y = 2, n = 3, r = 1:3)))
-  expect_equal(mod$initial(), c(2, 1, 1, 1))
+  expect_equal(mod$initial(0), c(2, 1, 1, 1))
   expect_equal(mod$deriv(0, c(2, 1, 1, 1)), c(3, 1, 2, 3))
 
   tt <- 0:10
@@ -291,7 +291,7 @@ test_that("array support", {
 })
 
 
-test_that("multi-line array expression", {
+test_that_odin("multi-line array expression", {
   gen <- odin({
     initial(x) <- 1
     deriv(x) <- 1
@@ -305,7 +305,7 @@ test_that("multi-line array expression", {
 })
 
 
-test_that("3d array", {
+test_that_odin("3d array", {
   gen <- odin({
     initial(y[, , ]) <- 1
     deriv(y[, , ]) <- y[i, j, k] * 0.1
@@ -321,8 +321,8 @@ test_that("3d array", {
   expect_equal(d$dim_y_3, 4)
   expect_equal(d$dim_y_12, 6)
 
-  expect_equal(mod$initial(), rep(1, 24))
-  expect_equal(mod$deriv(0, mod$initial()), rep(0.1, 24))
+  expect_equal(mod$initial(0), rep(1, 24))
+  expect_equal(mod$deriv(0, mod$initial(0)), rep(0.1, 24))
 
   tt <- 0:10
   yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
@@ -333,7 +333,7 @@ test_that("3d array", {
 
 
 ## User provided, constant defined arrays
-test_that("user array", {
+test_that_odin("user array", {
   gen <- odin({
     initial(x[]) <- 1
     deriv(x[]) <- r[i]
@@ -343,13 +343,13 @@ test_that("user array", {
     dim(x) <- n
   })
 
-  mod <- gen(1:3)
+  mod <- gen(r = 1:3)
   expect_identical(mod$contents()$r, as.numeric(1:3))
-  expect_error(gen(1), "Expected length 3 value for r")
+  expect_error(gen(r = 1), "Expected length 3 value for r")
 })
 
 
-test_that("user matrix", {
+test_that_odin("user matrix", {
   gen <- odin({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -359,7 +359,7 @@ test_that("user matrix", {
   })
 
   r <- matrix(runif(6), 2, 3)
-  mod <- gen(r)
+  mod <- gen(r = r)
   expect_identical(mod$contents()$r, r)
 
   ## TODO: this would be nice to tidy up but it's really tricky to
@@ -371,16 +371,16 @@ test_that("user matrix", {
     msg2 <- "Incorrect size of dimension 1 of r (expected 2)"
   }
 
-  expect_error(gen(c(r)), msg1, fixed = TRUE)
-  expect_error(gen(r[2, 2]), msg1, fixed = TRUE)
-  expect_error(gen(array(1, 2:4)), msg1, fixed = TRUE)
-  expect_error(gen(1), msg1, fixed = TRUE)
+  expect_error(gen(r = c(r)), msg1, fixed = TRUE)
+  expect_error(gen(r = r[2, 2]), msg1, fixed = TRUE)
+  expect_error(gen(r = array(1, 2:4)), msg1, fixed = TRUE)
+  expect_error(gen(r = 1), msg1, fixed = TRUE)
 
-  expect_error(gen(t(r)), msg2, fixed = TRUE)
+  expect_error(gen(r = t(r)), msg2, fixed = TRUE)
 })
 
 
-test_that("user array - indirect", {
+test_that_odin("user array - indirect", {
   gen <- odin({
     initial(x[]) <- 1
     deriv(x[]) <- r[i]
@@ -404,7 +404,7 @@ test_that("user array - indirect", {
 })
 
 
-test_that("user array - direct", {
+test_that_odin("user array - direct", {
   gen <- odin({
     initial(x[]) <- 1
     deriv(x[]) <- r[i]
@@ -426,7 +426,7 @@ test_that("user array - direct", {
 })
 
 
-test_that("user array - direct 3d", {
+test_that_odin("user array - direct 3d", {
   gen <- odin({
     initial(y) <- 1
     deriv(y) <- 1
@@ -435,19 +435,19 @@ test_that("user array - direct 3d", {
   })
 
   m <- array(runif(24), 2:4)
-  mod <- gen(m)
+  mod <- gen(r = m)
   expect_equal(sort_list(mod$contents()),
                sort_list(list(dim_r = 24, dim_r_1 = 2, dim_r_12 = 6,
                               dim_r_2 = 3, dim_r_3 = 4, initial_y = 1,
                               r = m)))
 
-  expect_error(gen(1), "Expected a numeric array of rank 3 for 'r'")
-  expect_error(gen(matrix(1)), "Expected a numeric array of rank 3 for 'r'")
+  expect_error(gen(r = 1), "Expected a numeric array of rank 3 for 'r'")
+  expect_error(gen(r = matrix(1)), "Expected a numeric array of rank 3 for 'r'")
 })
 
 
 ## NOTE: this is the test from test-interpolation.R
-test_that("interpolation", {
+test_that_odin("interpolation", {
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -485,13 +485,13 @@ test_that("interpolation", {
 })
 
 
-test_that("stochastic", {
+test_that_odin("stochastic", {
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + norm_rand()
   })
   mod <- gen()
-  expect_equal(mod$initial(), 0)
+  expect_equal(mod$initial(0), 0)
 
   set.seed(1)
   x <- rnorm(3)
@@ -503,7 +503,7 @@ test_that("stochastic", {
 })
 
 
-test_that("multiple arrays: constant", {
+test_that_odin("multiple arrays: constant", {
   gen <- odin({
     initial(x[]) <- 1
     initial(y[]) <- 2
@@ -522,7 +522,7 @@ test_that("multiple arrays: constant", {
 })
 
 
-test_that("multiple arrays: dynamic", {
+test_that_odin("multiple arrays: dynamic", {
   gen <- odin({
     initial(x[]) <- 1
     initial(y[]) <- 2
@@ -535,13 +535,13 @@ test_that("multiple arrays: dynamic", {
     dim(y) <- n
   })
 
-  mod <- gen(4)
+  mod <- gen(n = 4)
   expect_equal(mod$initial(0), rep(1:2, each = 4))
   expect_equal(mod$deriv(0, mod$initial(0)), rep(1:4, 2))
 })
 
 
-test_that("multiple output arrays", {
+test_that_odin("multiple output arrays", {
   gen <- odin({
     deriv(y[]) <- y[i] * r[i]
     initial(y[]) <- i
@@ -571,7 +571,7 @@ test_that("multiple output arrays", {
 })
 
 
-test_that("3d array time dependent and variable", {
+test_that_odin("3d array time dependent and variable", {
   gen <- odin({
     initial(y[, , ]) <- 1
     deriv(y[, , ]) <- y[i, j, k] * r[i, j, k]
@@ -589,8 +589,8 @@ test_that("3d array time dependent and variable", {
   expect_equal(d$dim_y_3, 4)
   expect_equal(d$dim_y_12, 6)
 
-  expect_equal(mod$initial(), rep(1, 24))
-  expect_equal(mod$deriv(2, mod$initial()), rep(0.2, 24))
+  expect_equal(mod$initial(0), rep(1, 24))
+  expect_equal(mod$deriv(2, mod$initial(0)), rep(0.2, 24))
 
   tt <- 0:10
   yy <- mod$run(tt)
@@ -604,7 +604,7 @@ test_that("3d array time dependent and variable", {
 })
 
 
-test_that("rich user arrays", {
+test_that_odin("rich user arrays", {
   gen <- odin({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -614,16 +614,16 @@ test_that("rich user arrays", {
   })
 
   r <- matrix(runif(6), 2, 3)
-  expect_error(gen(r), NA)
-  expect_error(gen(-r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), NA)
+  expect_error(gen(r = -r), "Expected 'r' to be at least 0")
   r[5] <- -1
-  expect_error(gen(r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), "Expected 'r' to be at least 0")
   r[5] <- NA
-  expect_error(gen(r), "'r' must not contain any NA values")
+  expect_error(gen(r = r), "'r' must not contain any NA values")
 })
 
 
-test_that("rich user sized arrays", {
+test_that_odin("rich user sized arrays", {
   gen <- odin({
     initial(y[, ]) <- 1
     deriv(y[, ]) <- y[i, j] * r[i, j]
@@ -634,14 +634,14 @@ test_that("rich user sized arrays", {
 
   r <- matrix(runif(6), 2, 3)
 
-  expect_error(gen(r), NA)
-  expect_error(gen(-r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), NA)
+  expect_error(gen(r = -r), "Expected 'r' to be at least 0")
   r[5] <- -1
-  expect_error(gen(r), "Expected 'r' to be at least 0")
+  expect_error(gen(r = r), "Expected 'r' to be at least 0")
 })
 
 
-test_that("discrete delays: matrix", {
+test_that_odin("discrete delays: matrix", {
   gen <- odin({
     initial(y[, ]) <- 1
     update(y[, ]) <- y[i, j] + 1
@@ -664,7 +664,7 @@ test_that("discrete delays: matrix", {
 })
 
 
-test_that("multinomial", {
+test_that_odin("multinomial", {
   gen <- odin({
     q[] <- user()
     p[] <- q[i] / sum(q)
@@ -679,10 +679,10 @@ test_that("multinomial", {
 
   set.seed(1)
   p <- runif(5)
-  mod <- gen(p)
+  mod <- gen(q = p)
 
   set.seed(1)
-  y <- mod$update(0, mod$initial())
+  y <- mod$update(0, mod$initial(0))
   set.seed(1)
   cmp <- drop(rmultinom(1, 5, p))
 
@@ -690,7 +690,7 @@ test_that("multinomial", {
 })
 
 
-test_that("local scope of loop variables", {
+test_that_odin("local scope of loop variables", {
   gen <- odin({
     deriv(x[1, ]) <- 1
     deriv(x[2:n, ]) <- 2
@@ -708,10 +708,34 @@ test_that("local scope of loop variables", {
   })
 
   mod <- gen()
-  y0 <- mod$initial()
+  y0 <- mod$initial(0)
   y <- mod$transform_variables(mod$deriv(0, y0))
 
   cmp <- matrix(rep(1:2, c(2, 6)), 4, 2, TRUE)
   expect_equal(y$x, cmp)
   expect_equal(y$y, cmp * 2)
+})
+
+
+test_that_odin("Can set or omit names", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- 2
+  })
+  mod <- gen()
+  expect_equal(colnames(mod$run(0:10)), c("t", "y"))
+  expect_equal(colnames(mod$run(0:10, use_names = FALSE)), NULL)
+})
+
+
+test_that_odin("Can set initial conditions directly in an ode", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- 2
+  })
+  mod <- gen()
+  y <- mod$run(0:10, 2)
+  expect_equal(y[, "y"], seq(2, by = 2, length.out = 11))
 })
