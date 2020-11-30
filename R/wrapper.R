@@ -204,11 +204,24 @@ wrapper_run_discrete <- function(self, private, step, y = NULL, ...,
 ## Creates the data for substituting into inst/template/odin_c.R from
 ## the parsed ir data.
 wrapper_substitutions <- function(dat, res, package) {
+  ## To nicely deparse the 'user' block we need to make some
+  ## assumptions: initial indent is 4 char, so we would line up
+  ## against the 14th character:
+  ##
+  ## 1234567890123456
+  ##     user = c(
+  ##
+  ## So:
+  user <- strwrap(paste(dquote(names(dat$user)), collapse = ", "),
+                  width = 80 - 15)
+  user[-1] <- paste0(strrep(13, " "), user[-1])
+  user <- sprintf("c(%s)", paste(user, collapse = "\n"))
+
   data <- list(name = dat$config$base,
                package = package,
                time = dat$meta$time,
                rhs = if (dat$features$discrete) "update" else "deriv",
-               user = deparse1(names(dat$user)),
+               user = user,
                discrete = as.character(dat$features$discrete),
                c = list(metadata = res$core$metadata,
                         create = res$core$create,
@@ -248,7 +261,7 @@ wrapper_substitutions <- function(dat, res, package) {
   cfuns_nms <- vcapply(cfuns, "[[", "name", USE.NAMES = FALSE)
   data$registration <- paste(
     sprintf('.C("%s", package = "%s")', cfuns_nms, data$package),
-    collapse = "\n      ")
+    collapse = "\n        ")
 
   ## Then the assignment block:
   data$cfuns <- sprintf(
