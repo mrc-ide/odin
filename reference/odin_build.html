@@ -82,7 +82,7 @@ function is for advanced use." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.1</span>
       </span>
     </div>
 
@@ -218,7 +218,7 @@ errorAny error thrown during compilation
 #&gt; 
 #&gt; $elapsed
 #&gt;    user  system elapsed 
-#&gt;   0.003   0.000   0.003 
+#&gt;   0.002   0.001   0.003 
 #&gt; 
 #&gt; $output
 #&gt; character(0)
@@ -228,7 +228,7 @@ errorAny error thrown during compilation
 #&gt; &lt;an 'odin_generator' function&gt;
 #&gt; 
 #&gt; $ir
-#&gt; {"version":"1.1.0","config":{"base":"odin","include":[]},"meta":{"internal":"internal","user":"user","state":"state","result":"dstatedt","output":"output","time":"t","initial_time":"initial_t"},"features":{"discrete":false,"has_array":false,"has_output":false,"has_user":false,"has_delay":false,"has_interpolate":false,"has_stochastic":false,"has_include":false,"initial_time_dependent":false},"data":{"elements":[{"name":"initial_y","location":"internal","storage_type":"double","rank":0,"dimnames":null},{"name":"y","location":"variable","storage_type":"double","rank":0,"dimnames":null}],"variable":{"length":1,"contents":[{"name":"y","offset":0,"initial":"initial_y"}]},"output":{"length":0,"contents":[]}},"equations":[{"name":"deriv_y","type":"expression_scalar","source":[1],"depends":{"functions":["*","-"],"variables":["y"]},"lhs":"y","rhs":{"value":["*",["-",0.5],"y"]}},{"name":"initial_y","type":"expression_scalar","source":[2],"depends":null,"lhs":"initial_y","rhs":{"value":1}}],"components":{"create":{"variables":[],"equations":["initial_y"]},"user":{"variables":[],"equations":[]},"initial":{"variables":[],"equations":[]},"rhs":{"variables":["y"],"equations":["deriv_y"]},"output":{"variables":[],"equations":[]}},"user":[],"interpolate":{"min":[],"max":[],"critical":[]},"source":["deriv(y) &lt;- -0.5 * y","initial(y) &lt;- 1"]} 
+#&gt; {"version":"1.1.1","config":{"base":"odin","include":[]},"meta":{"internal":"internal","user":"user","state":"state","result":"dstatedt","output":"output","time":"t","initial_time":"initial_t"},"features":{"discrete":false,"has_array":false,"has_output":false,"has_user":false,"has_delay":false,"has_interpolate":false,"has_stochastic":false,"has_include":false,"initial_time_dependent":false},"data":{"elements":[{"name":"initial_y","location":"internal","storage_type":"double","rank":0,"dimnames":null},{"name":"y","location":"variable","storage_type":"double","rank":0,"dimnames":null}],"variable":{"length":1,"contents":[{"name":"y","offset":0,"initial":"initial_y"}]},"output":{"length":0,"contents":[]}},"equations":[{"name":"deriv_y","type":"expression_scalar","source":[1],"depends":{"functions":["*","-"],"variables":["y"]},"lhs":"y","rhs":{"value":["*",["-",0.5],"y"]}},{"name":"initial_y","type":"expression_scalar","source":[2],"depends":null,"lhs":"initial_y","rhs":{"value":1}}],"components":{"create":{"variables":[],"equations":["initial_y"]},"user":{"variables":[],"equations":[]},"initial":{"variables":[],"equations":[]},"rhs":{"variables":["y"],"equations":["deriv_y"]},"output":{"variables":[],"equations":[]}},"user":[],"interpolate":{"min":[],"max":[],"critical":[]},"source":["deriv(y) &lt;- -0.5 * y","initial(y) &lt;- 1"]} 
 #&gt; 
 #&gt; $error
 #&gt; NULL
