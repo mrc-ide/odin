@@ -141,4 +141,7 @@ odin_package <- function(path_package) {
   dir.create(file.path(path_package, "src"), FALSE)
   writeLines(code_c, file.path(path_package, "src", "odin.c"))
   writeLines(code_r, file.path(path_package, "R", "odin.R"))
+
+  path_reg <- file.path(path_package, "src/registration.c")
+  tools::package_native_routine_registration_skeleton(path_package, path_reg)
 }
