@@ -9,7 +9,8 @@ test_that("generate package", {
   mod <- res$env$lorenz_odin()
   cmp <- source1("examples/lorenz_deSolve.R")
 
-  expect_equal(dir(file.path(res$path, "src"), pattern = "\\.c$"), "odin.c")
+  expect_setequal(dir(file.path(res$path, "src"), pattern = "\\.c$"),
+                  c("odin.c", "registration.c"))
   expect_equal(dir(file.path(res$path, "R"), pattern = "\\.R$"), "odin.R")
 
   t <- seq(0, 10, length.out = 100)
