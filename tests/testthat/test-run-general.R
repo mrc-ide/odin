@@ -1306,3 +1306,24 @@ test_that_odin("force integer on a numeric vector truncates", {
   expect_equal(gen(idx = 3 - 1e-8)$initial(0), 2)
   expect_equal(gen(idx = 3 + 1e-8)$initial(0), 3)
 })
+
+
+test_that("user c functions can be passed arrays and indexes", {
+  skip_for_target("r")
+  gen <- odin({
+    config(include) <- "user_fns4.c"
+    n <- 5
+    x[] <- user()
+    y[] <- f(i, x)
+    dim(x) <- n
+    dim(y) <- n
+    output(y) <- TRUE
+    initial(a) <- 0
+    deriv(a) <- 0
+  })
+
+  x <- runif(5)
+  mod <- gen(user = list(x = x))
+  y <- mod$run(c(0, 1))
+  expect_equal(mod$transform_variables(y[2, ])$y, cumsum(x))
+})

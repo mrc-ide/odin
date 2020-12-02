@@ -16,7 +16,7 @@ ir_parse <- function(x, options, type = NULL) {
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
 
-  eqs <- ir_parse_arrays(eqs, variables, source)
+  eqs <- ir_parse_arrays(eqs, variables, config$include, source)
 
   packing <- ir_parse_packing(eqs, variables, source)
   eqs <- c(eqs, packing$offsets)
