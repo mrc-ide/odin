@@ -6,7 +6,8 @@ ir_parse_config <- function(eqs, base_default, root, source, parse_include) {
   nms <- vcapply(config, function(x) x$lhs$name_data)
 
   base <- ir_parse_config_base(config[nms == "base"], base_default, source)
-  include <- parse_include(config[nms == "include"], root, source)
+  include <- ir_parse_config_include(config[nms == "include"], root, source,
+                                     parse_include)
 
   list(base = base, include = include)
 }
@@ -30,6 +31,14 @@ ir_parse_config_base <- function(config, base_default, source) {
   }
 
   base
+}
+
+
+ir_parse_config_include <- function(include, root, source, parse_include) {
+  if (length(include) == 0) {
+    return(NULL)
+  }
+  parse_include(include, root, source)
 }
 
 
