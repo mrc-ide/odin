@@ -1,4 +1,4 @@
-ir_parse_config <- function(eqs, base_default, root, source) {
+ir_parse_config <- function(eqs, base_default, root, source, parse_include) {
   i <- vcapply(eqs, "[[", "type") == "config"
 
   config <- lapply(unname(eqs[i]), ir_parse_config1, source)
@@ -6,7 +6,7 @@ ir_parse_config <- function(eqs, base_default, root, source) {
   nms <- vcapply(config, function(x) x$lhs$name_data)
 
   base <- ir_parse_config_base(config[nms == "base"], base_default, source)
-  include <- ir_parse_config_include(config[nms == "include"], root, source)
+  include <- parse_include(config[nms == "include"], root, source)
 
   list(base = base, include = include)
 }
@@ -63,12 +63,14 @@ ir_parse_config_include <- function(config, root, source) {
 
   declarations <- strsplit(res$declarations, "\n")
   definitions <- strsplit(res$definitions, "\n")
-  ret <- lapply(names(res$declarations), function(x)
+  data <- lapply(names(res$declarations), function(x)
     list(name = x,
          declaration = declarations[[x]],
          definition = definitions[[x]]))
-  names(ret) <- names(res$declarations)
-  ret
+  names(data) <- names(res$declarations)
+
+  list(names = names(data),
+       data = data)
 }
 
 

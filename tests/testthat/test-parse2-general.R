@@ -276,7 +276,7 @@ test_that("custom functions ignore arrays", {
   expr <- quote(x)
   ia <- character(0)
   source <- "x"
-  include <- list(f = NULL)
+  include <- "f"
 
   expect_null(ir_parse_arrays_check_rhs(quote(a + b[1]), c(b = 1), ia,
                                         include, eq, source))
@@ -284,6 +284,9 @@ test_that("custom functions ignore arrays", {
                                         include, eq, source))
   expect_null(ir_parse_arrays_check_rhs(quote(f(a, b)), c(b = 1), ia,
                                         include, eq, source))
+  expect_error(ir_parse_arrays_check_rhs(quote(g(a, b)), c(b = 1), ia,
+                                         include, eq, source),
+               "Array 'b' used without array index")
 })
 
 test_that("lhs array checking", {

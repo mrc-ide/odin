@@ -34,7 +34,7 @@ generate_c_code <- function(dat, options, package) {
   }
 
   rewrite <- function(x) {
-    generate_c_sexp(x, dat$data, dat$meta, names(dat$config$include))
+    generate_c_sexp(x, dat$data, dat$meta, dat$config$include$names)
   }
 
   eqs <- generate_c_equations(dat, rewrite)

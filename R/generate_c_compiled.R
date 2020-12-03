@@ -765,7 +765,8 @@ generate_c_compiled_library <- function(dat, is_package) {
 
 
 generate_c_compiled_include <- function(dat, is_package) {
-  include <- dat$config$include
+  include <- dat$config$include$data
+
   if (is_package) {
     include
   } else {

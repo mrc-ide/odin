@@ -719,7 +719,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, include, eq,
   ## TODO: check that the right number of indices are used when using sum?
   array_special_function <-
     c("sum", "odin_sum", "length", "dim", "interpolate",
-      names(FUNCTIONS_INPLACE), names(include))
+      names(FUNCTIONS_INPLACE), include)
   nms <- names(rank)
 
   check <- function(e, array_special) {
@@ -758,7 +758,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, include, eq,
         } else {
           throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
-      } else if (f_nm %in% names(include)) {
+      } else if (f_nm %in% include) {
         ## Suspends all further checking on user-supplied functions
       } else {
         if (f_nm == "rmultinom" || f_nm == "rmhyper") {
