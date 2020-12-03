@@ -33,7 +33,51 @@ ir_parse_config_base <- function(config, base_default, source) {
 }
 
 
-ir_parse_config_include <- function(config, root, source) {
+ir_parse_config_include_unsupported <- function(target) {
+  force(target)
+  function(...) {
+    stop(sprintf("'config(include)' is not supported for target '%s'", target))
+  }
+}
+
+
+ir_parse_config_include_r <- function(config, root, source) {
+  if (length(config) == 0L) {
+    return(NULL)
+  }
+
+  read1 <- function(x) {
+    filename <- file.path(root, x$rhs$value)
+    if (!file.exists(filename)) {
+      ir_parse_error(
+        sprintf("Could not find file '%s' (relative to root '%s')",
+                x$rhs$value, root),
+        x$source, source)
+    }
+    tryCatch(
+      read_user_r(filename),
+      error = function(e)
+        ir_parse_error(paste("Could not read include file:", e$message),
+                       x$source, source))
+  }
+
+  res <- lapply(config, read1)
+
+  nms <- unlist(lapply(res, names))
+  dups <- unique(nms[duplicated(nms)])
+  if (length(dups) > 0L) {
+    ir_parse_error(sprintf("Duplicated function %s while reading includes",
+                           paste(squote(dups), collapse = ", ")),
+                   ir_parse_error_lines(config), source)
+  }
+
+  list(names = nms,
+       data = list(
+         source = unlist(lapply(res, attr, "source"))))
+}
+
+
+ir_parse_config_include_c <- function(config, root, source) {
   if (length(config) == 0L) {
     return(NULL)
   }

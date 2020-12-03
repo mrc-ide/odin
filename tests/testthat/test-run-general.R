@@ -209,7 +209,29 @@ test_that_odin("user c", {
     output(z) <- z
     deriv(y) <- z
     initial(y) <- 0
-  })
+  }, target = "c")
+
+  mod <- gen()
+  t <- seq(0, 3, length.out = 301)
+  y <- mod$run(t)
+
+  expect_equal(y[, 3L], as.numeric(t >= 1 & t < 2))
+  cmp <- -1 + t
+  cmp[t < 1] <- 0
+  cmp[t > 2] <- 1
+  expect_equal(y[, 2L], cmp, tolerance = 1e-5)
+})
+
+test_that_odin("user r", {
+  ## mrc-2027 would minimise duplication here
+  skip_for_target("c")
+  gen <- odin({
+    config(include) <- "user_fns.R"
+    z <- squarepulse(t, 1, 2)
+    output(z) <- z
+    deriv(y) <- z
+    initial(y) <- 0
+  }, target = "r")
 
   mod <- gen()
   t <- seq(0, 3, length.out = 301)

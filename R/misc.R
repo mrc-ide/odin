@@ -36,6 +36,23 @@ read_user_c <- function(filename) {
 }
 
 
+read_user_r <- function(filename) {
+  e <- new.env(parent = baseenv())
+  sys.source(filename, e)
+  name <- names(e)
+  defn <- readLines(filename)
+
+  ## We will take a different approach here to reading files to the C
+  ## version here; this is practically the same as what we will do in
+  ## the dust version, but we will use C++ attributes to indicate
+  ## which functions are for use.
+  ret <- rep(list(NULL), length(name))
+  names(ret) <- name
+  attr(ret, "source") <- readLines(filename)
+  ret
+}
+
+
 is_c_identifier <- function(x) {
   ## Keyword list from:
   ## http://en.cppreference.com/w/c/keyword

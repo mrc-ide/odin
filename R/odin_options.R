@@ -41,12 +41,19 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                  no_check_naked_index = no_check_naked_index,
                  compiler_warnings = compiler_warnings)
   }
-  stopifnot(setequal(names(defaults), names(options)))
+  stopifnot(all(names(defaults) %in% names(options)))
 
   for (i in names(defaults)) {
     if (is.null(options[[i]])) {
       options[[i]] <- getOption(paste0("odin.", i), defaults[[i]])
     }
   }
+
+  options$parse_include <- switch(
+    options$target,
+    c = ir_parse_config_include_c,
+    r = ir_parse_config_include_r,
+    ir_parse_config_include_unsupported(options$target))
+
   options
 }
