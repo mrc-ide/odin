@@ -1,3 +1,7 @@
+# odin 1.1.2
+
+* Support for `config(include)` has been expanded, working for R models and designed to be extensible for other targets (mrc-2016)
+
 # odin 1.1.0
 
 * The basic infrastructure has been overhauled, which will make some alternative compilation targets easier to support. We now use `pkgbuild` for the compilation which should ease debugging, and odin code compiled into packages will no longer issue a slew of warnings (and cooperate with automatic routine registration). This refactor has caused a few minor breaking changes:
