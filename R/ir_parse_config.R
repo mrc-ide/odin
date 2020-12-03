@@ -1,4 +1,4 @@
-ir_parse_config <- function(eqs, base_default, root, source, parse_include) {
+ir_parse_config <- function(eqs, base_default, root, source, read_include) {
   i <- vcapply(eqs, "[[", "type") == "config"
 
   config <- lapply(unname(eqs[i]), ir_parse_config1, source)
@@ -7,7 +7,7 @@ ir_parse_config <- function(eqs, base_default, root, source, parse_include) {
 
   base <- ir_parse_config_base(config[nms == "base"], base_default, source)
   include <- ir_parse_config_include(config[nms == "include"], root, source,
-                                     parse_include)
+                                     read_include)
 
   list(base = base, include = include)
 }
@@ -34,96 +34,41 @@ ir_parse_config_base <- function(config, base_default, source) {
 }
 
 
-ir_parse_config_include <- function(include, root, source, parse_include) {
+ir_parse_config_include <- function(include, root, source, read_include) {
   if (length(include) == 0) {
     return(NULL)
   }
-  parse_include(include, root, source)
-}
 
-
-ir_parse_config_include_unsupported <- function(target) {
-  force(target)
-  function(...) {
-    stop(sprintf("'config(include)' is not supported for target '%s'", target))
-  }
-}
-
-
-ir_parse_config_include_r <- function(config, root, source) {
-  if (length(config) == 0L) {
-    return(NULL)
+  ## First check that the paths exist:
+  filename <- vcapply(include, function(x) x$rhs$value)
+  filename_full <- file.path(root, filename)
+  msg <- !file.exists(filename_full)
+  if (any(msg)) {
+    ## Only throw here on the first, for simplicity
+    x <- include[msg][[1]]
+    ir_parse_error(
+      sprintf("Could not find file '%s' (relative to root '%s')",
+              x$rhs$value, root),
+      x$source, source)
   }
 
-  read1 <- function(x) {
-    filename <- file.path(root, x$rhs$value)
-    if (!file.exists(filename)) {
-      ir_parse_error(
-        sprintf("Could not find file '%s' (relative to root '%s')",
-                x$rhs$value, root),
-        x$source, source)
-    }
-    tryCatch(
-      read_user_r(filename),
-      error = function(e)
-        ir_parse_error(paste("Could not read include file:", e$message),
-                       x$source, source))
-  }
+  ## TODO: do we want to inject the filename in here?
+  res <- lapply(filename_full, function(path)
+    withCallingHandlers(
+      read_include(path),
+      error = function(e) message(sprintf("While reading '%s'", path))))
 
-  res <- lapply(config, read1)
-
-  nms <- unlist(lapply(res, names))
+  nms <- unlist(lapply(res, "[[", "names"))
   dups <- unique(nms[duplicated(nms)])
   if (length(dups) > 0L) {
+    lines <- vnapply(include, "[[", "source")
     ir_parse_error(sprintf("Duplicated function %s while reading includes",
                            paste(squote(dups), collapse = ", ")),
-                   ir_parse_error_lines(config), source)
+                   lines, source)
   }
 
   list(names = nms,
-       data = list(
-         source = unlist(lapply(res, attr, "source"))))
-}
-
-
-ir_parse_config_include_c <- function(config, root, source) {
-  if (length(config) == 0L) {
-    return(NULL)
-  }
-
-  read1 <- function(x) {
-    filename <- file.path(root, x$rhs$value)
-    if (!file.exists(filename)) {
-      ir_parse_error(
-        sprintf("Could not find file '%s' (relative to root '%s')",
-                x$rhs$value, root),
-        x$source, source)
-    }
-    tryCatch(
-      read_user_c(filename),
-      error = function(e)
-        ir_parse_error(paste("Could not read include file:", e$message),
-                       x$source, source))
-  }
-
-  ## TODO: this is more roundabout than needed - join_library should
-  ## be replaced to support this.
-  res <- join_library(lapply(config, read1))
-  if (any(duplicated(res$declarations))) {
-    ir_parse_error("Duplicate declarations while reading includes",
-                   ir_parse_error_lines(config), source)
-  }
-
-  declarations <- strsplit(res$declarations, "\n")
-  definitions <- strsplit(res$definitions, "\n")
-  data <- lapply(names(res$declarations), function(x)
-    list(name = x,
-         declaration = declarations[[x]],
-         definition = definitions[[x]]))
-  names(data) <- names(res$declarations)
-
-  list(names = names(data),
-       data = data)
+       data = lapply(res, "[[", "data"))
 }
 
 

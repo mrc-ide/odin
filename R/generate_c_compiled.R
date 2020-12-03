@@ -764,13 +764,20 @@ generate_c_compiled_library <- function(dat, is_package) {
 }
 
 
-generate_c_compiled_include <- function(dat, is_package) {
+generate_c_compiled_include <- function(dat) {
   include <- dat$config$include$data
 
-  if (is_package) {
-    include
-  } else {
-    list(declaration = c_flatten_eqs(lapply(include, "[[", "declaration")),
-         definition = c_flatten_eqs(lapply(include, "[[", "definition")))
+  if (length(include) == 0) {
+    return(NULL)
   }
+
+  ## When this has been through the serialise/deserialise step it has
+  ## lost some structure, so we return named vectors
+  ret <- lapply(include, function(x) {
+    nms <- list_to_character(x$names)
+    list(names = nms,
+         declarations = set_names(list_to_character(x$declarations), nms),
+         definitions = set_names(list_to_character(x$definitions), nms))
+  })
+  unlist(ret, FALSE)
 }

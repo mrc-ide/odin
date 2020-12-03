@@ -49,11 +49,11 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     }
   }
 
-  options$parse_include <- switch(
+  options$read_include <- switch(
     options$target,
-    c = ir_parse_config_include_c,
-    r = ir_parse_config_include_r,
-    ir_parse_config_include_unsupported(options$target))
+    c = read_include_c,
+    r = read_include_r,
+    read_include_unsupported(options$target))
 
   options
 }

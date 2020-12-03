@@ -44,7 +44,7 @@ generate_c_code <- function(dat, options, package) {
 
   is_package <- !is.null(package)
   lib <- generate_c_compiled_library(dat, is_package)
-  include <- generate_c_compiled_include(dat, is_package)
+  include <- generate_c_compiled_include(dat)
 
   if (dat$features$has_delay && dat$features$discrete) {
     ring <- generate_c_support_ring(is_package)
@@ -65,12 +65,12 @@ generate_c_code <- function(dat, options, package) {
               struct,
               core$declaration,
               lib$declaration,
-              include$declaration)
+              unname(include$declarations))
     defn <- c(core$definition,
               lib$definition,
               ring$definitions,
               interpolate$definitions,
-              include$definition)
+              unname(include$definitions))
     list(code = c(decl, defn), core = core$name)
   } else {
     list(headers = headers,

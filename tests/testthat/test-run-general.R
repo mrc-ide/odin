@@ -209,7 +209,7 @@ test_that_odin("user c", {
     output(z) <- z
     deriv(y) <- z
     initial(y) <- 0
-  }, target = "c")
+  })
 
   mod <- gen()
   t <- seq(0, 3, length.out = 301)
@@ -231,7 +231,7 @@ test_that_odin("user r", {
     output(z) <- z
     deriv(y) <- z
     initial(y) <- 0
-  }, target = "r")
+  })
 
   mod <- gen()
   t <- seq(0, 3, length.out = 301)

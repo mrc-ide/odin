@@ -459,11 +459,12 @@ generate_r_dim <- function(data_info, rewrite) {
 
 
 generate_r_include <- function(dat, env) {
-  ## TODO: will this work with >1 include?
   include <- dat$config$include$data
-  src <- list_to_character(include$source)
-  tmp <- tempfile()
-  on.exit(unlink(tmp))
-  writeLines(src, tmp)
-  sys.source(tmp, env)
+  if (length(include) > 0) {
+    src <- unlist(lapply(include, function(x) list_to_character(x$source)))
+    tmp <- tempfile()
+    on.exit(unlink(tmp))
+    writeLines(src, tmp)
+    sys.source(tmp, env)
+  }
 }

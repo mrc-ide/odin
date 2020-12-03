@@ -46,16 +46,18 @@ test_that("config(base)", {
 })
 
 test_that("config(include)", {
-  expect_error(odin_parse_(quote(config(include) <- 1)),
+  options <- odin_options(target = "c")
+  expect_error(odin_parse_(quote(config(include) <- 1), options),
                "Expected a character for config(include)",
                fixed = TRUE, class = "odin_error")
 
-  expect_error(odin_parse_(quote(config(include) <- "no file.c")),
+  expect_error(odin_parse_(quote(config(include) <- "no file.c"), options),
                "Could not find file 'no file.c'",
                fixed = TRUE, class = "odin_error")
 
   expect_error(odin_parse(
-    'config(include) <- "user_fns.c"; config(include) <- "user_fns.c"'),
-    "Duplicate declarations while reading includes",
+    'config(include) <- "user_fns.c"; config(include) <- "user_fns.c"',
+    options),
+    "Duplicated function 'squarepulse' while reading includes",
     class = "odin_error")
 })

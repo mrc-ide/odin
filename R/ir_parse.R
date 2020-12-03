@@ -9,7 +9,7 @@ ir_parse <- function(x, options, type = NULL) {
   source <- dat$source
 
   ## Data elements:
-  config <- ir_parse_config(eqs, base, root, source, options$parse_include)
+  config <- ir_parse_config(eqs, base, root, source, options$read_include)
   features <- ir_parse_features(eqs, config, source)
 
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
