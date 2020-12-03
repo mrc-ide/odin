@@ -28,7 +28,6 @@ combine_include <- function(x) {
 }
 
 
-## TODO: compat
 read_user_c <- function(filename) {
   read_include_c(filename)$data
 }

@@ -52,7 +52,6 @@ ir_parse_config_include <- function(include, root, source, read_include) {
       x$source, source)
   }
 
-  ## TODO: do we want to inject the filename in here?
   res <- lapply(filename_full, function(path)
     withCallingHandlers(
       read_include(path),
