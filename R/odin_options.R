@@ -49,11 +49,13 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     }
   }
 
-  options$read_include <- switch(
-    options$target,
-    c = read_include_c,
-    r = read_include_r,
-    read_include_unsupported(options$target))
+  if (is.null(options$read_include)) {
+    options$read_include <- switch(
+      options$target,
+      c = read_include_c,
+      r = read_include_r,
+      read_include_unsupported(options$target))
+  }
 
   options
 }
