@@ -8,8 +8,8 @@ join_library <- function(x) {
 
 
 combine_include <- function(x) {
-  xx <- unique(unlist(x, FALSE))
-  nms <- vcapply(xx, "[[", "name")
+  xx <- unique(unname(unlist(x, FALSE)))
+  nms <- vcapply(xx, function(el) el$name[[1]])
   if (any(duplicated(nms))) {
     stop("Duplicated entries in included C support not allowed")
   }
