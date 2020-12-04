@@ -27,7 +27,7 @@
 ##
 ## The dim() calls get written out as a new group of data elements;
 ## we'll sort that out here too.
-ir_parse_arrays <- function(eqs, variables, source) {
+ir_parse_arrays <- function(eqs, variables, include, source) {
   ir_parse_arrays_check_indices(eqs, source)
   eqs <- ir_parse_arrays_find_integers(eqs, variables, source)
 
@@ -71,7 +71,7 @@ ir_parse_arrays <- function(eqs, variables, source) {
     eqs[[eq$name]]$array <- eqs[[eq$lhs$name_data]]$array
   }
 
-  ir_parse_arrays_check_usage2(eqs, source)
+  ir_parse_arrays_check_usage2(eqs, include, source)
 
   eqs
 }
@@ -144,7 +144,7 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
 }
 
 
-ir_parse_arrays_check_usage2 <- function(eqs, source) {
+ir_parse_arrays_check_usage2 <- function(eqs, include, source) {
   ## TODO: this feels really icky, but at least gets there.  What
   ## would be nicer in the longer term perhaps is something that flags
   ## the "canonical" version of a piece of data amongst equations.
@@ -164,18 +164,22 @@ ir_parse_arrays_check_usage2 <- function(eqs, source) {
 
   for (eq in eqs) {
     if (eq$type == "expression_scalar" || eq$type == "expression_inplace") {
-      ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
+      ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, include,
+                                eq, source)
     } else if (eq$type == "expression_array") {
       for (el in eq$rhs) {
-        ir_parse_arrays_check_rhs(el$value, rank, int_arrays, eq, source)
+        ir_parse_arrays_check_rhs(el$value, rank, int_arrays, include,
+                                  eq, source)
       }
     } else if (eq$type == "delay") {
-      ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, eq, source)
-      ir_parse_arrays_check_rhs(eq$delay$default, rank, int_arrays, eq, source)
+      ir_parse_arrays_check_rhs(eq$rhs$value, rank, int_arrays, include,
+                                eq, source)
+      ir_parse_arrays_check_rhs(eq$delay$default, rank, int_arrays, include,
+                                eq, source)
     } else {
       ## TODO: not sure what comes through here, or if this is correct
       ## at all.
-      ir_parse_arrays_check_rhs(eq, rank, int_arrays, source)
+      ir_parse_arrays_check_rhs(eq, rank, int_arrays, include, eq, source)
     }
   }
 }
@@ -706,7 +710,8 @@ ir_parse_arrays_used_as_index <- function(eqs) {
 }
 
 
-ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
+ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, include, eq,
+                                      source) {
   throw <- function(...) {
     ir_parse_error(sprintf(...), eq$source, source)
   }
@@ -714,7 +719,7 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
   ## TODO: check that the right number of indices are used when using sum?
   array_special_function <-
     c("sum", "odin_sum", "length", "dim", "interpolate",
-      names(FUNCTIONS_INPLACE))
+      names(FUNCTIONS_INPLACE), include)
   nms <- names(rank)
 
   check <- function(e, array_special) {
@@ -753,6 +758,8 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, eq, source) {
         } else {
           throw("Unknown array variable %s in '%s'", x, deparse_str(e))
         }
+      } else if (f_nm %in% include) {
+        ## Suspends all further checking on user-supplied functions
       } else {
         if (f_nm == "rmultinom" || f_nm == "rmhyper") {
           arr_idx <- 2L

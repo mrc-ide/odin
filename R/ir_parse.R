@@ -9,14 +9,14 @@ ir_parse <- function(x, options, type = NULL) {
   source <- dat$source
 
   ## Data elements:
-  config <- ir_parse_config(eqs, base, root, source)
+  config <- ir_parse_config(eqs, base, root, source, options$read_include)
   features <- ir_parse_features(eqs, config, source)
 
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
 
-  eqs <- ir_parse_arrays(eqs, variables, source)
+  eqs <- ir_parse_arrays(eqs, variables, config$include$names, source)
 
   packing <- ir_parse_packing(eqs, variables, source)
   eqs <- c(eqs, packing$offsets)
@@ -74,7 +74,7 @@ ir_parse <- function(x, options, type = NULL) {
   equations <- ir_parse_equations(eqs)
 
   ## TODO: it's a bit unclear where this best belongs
-  ir_parse_check_functions(eqs, features$discrete, config$include, source)
+  ir_parse_check_functions(eqs, features$discrete, config$include$names, source)
 
   ret <- list(version = .odin$version,
               config = config,
@@ -1129,7 +1129,7 @@ ir_parse_check_functions <- function(eqs, discrete, include, source) {
                names(FUNCTIONS_UNARY),
                names(FUNCTIONS_RENAME),
                "odin_sum",
-               names(include),
+               include,
                if (discrete) names(FUNCTIONS_STOCHASTIC))
 
   err <- setdiff(all_used_functions, allowed)

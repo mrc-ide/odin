@@ -228,47 +228,65 @@ test_that("RHS array checking", {
   ##
   ## TODO: I would prefer this to go all the way from odin_parse
   expect_null(ir_parse_arrays_check_rhs(quote(a + b[1]), c(b = 1), ia,
-                                        eq, source))
+                                        NULL, eq, source))
   expect_error(ir_parse_arrays_check_rhs(quote(a + b[1]), c(b = 2), ia,
-                                         eq, source),
+                                         NULL, eq, source),
                "Incorrect dimensionality for 'b'", class = "odin_error")
   expect_error(ir_parse_arrays_check_rhs(quote(a + b[1, 2, 3]), c(b = 2), ia,
-                                         eq, source),
+                                         NULL, eq, source),
                "Incorrect dimensionality for 'b'", class = "odin_error")
   expect_null(ir_parse_arrays_check_rhs(quote(a + b[1, 2, 3]), c(b = 3), ia,
-                                        eq, source))
+                                        NULL, eq, source))
   expect_error(ir_parse_arrays_check_rhs(quote(a + b[f(1)]), c(b = 1), ia,
-                                         eq, source),
+                                         NULL, eq, source),
                "Disallowed functions used for b", class = "odin_error")
   expect_error(ir_parse_arrays_check_rhs(quote(b), c(b = 1), ia,
-                                         eq, source),
+                                         NULL, eq, source),
                "Array 'b' used without array index", class = "odin_error")
   expect_null(ir_parse_arrays_check_rhs(quote(a), c(b = 1), ia,
-                                        eq, source))
+                                        NULL, eq, source))
   expect_error(ir_parse_arrays_check_rhs(quote(a[]), c(a = 1), ia,
-                                         eq, source),
+                                         NULL, eq, source),
                "Empty array index not allowed on rhs", class = "odin_error")
 
   rhs <- ir_parse_expr_rhs_expression_sum(quote(sum(a)))
-  expect_null(ir_parse_arrays_check_rhs(rhs, c(a = 1), ia, eq, source))
-  expect_error(ir_parse_arrays_check_rhs(rhs, c(b = 1), ia, eq, source),
+  expect_null(ir_parse_arrays_check_rhs(rhs, c(a = 1), ia, NULL, eq, source))
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(b = 1), ia, NULL, eq, source),
                "Function 'sum' requires array as argument 1",
                class = "odin_error")
 
   rhs <- ir_parse_expr_rhs_expression_sum(quote(sum(a[])))
-  expect_error(ir_parse_arrays_check_rhs(rhs, c(b = 1), ia, eq, source),
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(b = 1), ia, NULL, eq, source),
                "Function 'sum' requires array as argument 1",
                class = "odin_error")
 
   expr <- quote(sum(a[, ]))
   rhs <- ir_parse_expr_rhs_expression_sum(expr)
-  expect_error(ir_parse_arrays_check_rhs(rhs, c(a = 1), ia, eq, source),
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(a = 1), ia, NULL, eq, source),
                "Incorrect dimensionality for 'a' in 'sum' (expected 1)",
                fixed = TRUE, class = "odin_error")
-  expect_silent(ir_parse_arrays_check_rhs(rhs, c(a = 2), ia, eq, source))
-  expect_error(ir_parse_arrays_check_rhs(rhs, c(a = 3), ia, eq, source),
+  expect_silent(ir_parse_arrays_check_rhs(rhs, c(a = 2), ia, NULL, eq, source))
+  expect_error(ir_parse_arrays_check_rhs(rhs, c(a = 3), ia, NULL, eq, source),
                "Incorrect dimensionality for 'a' in 'sum' (expected 3)",
                fixed = TRUE, class = "odin_error")
+})
+
+test_that("custom functions ignore arrays", {
+  eq <- list(source = 1)
+  expr <- quote(x)
+  ia <- character(0)
+  source <- "x"
+  include <- "f"
+
+  expect_null(ir_parse_arrays_check_rhs(quote(a + b[1]), c(b = 1), ia,
+                                        include, eq, source))
+  expect_null(ir_parse_arrays_check_rhs(quote(f(a, b[1])), c(b = 1), ia,
+                                        include, eq, source))
+  expect_null(ir_parse_arrays_check_rhs(quote(f(a, b)), c(b = 1), ia,
+                                        include, eq, source))
+  expect_error(ir_parse_arrays_check_rhs(quote(g(a, b)), c(b = 1), ia,
+                                         include, eq, source),
+               "Array 'b' used without array index")
 })
 
 test_that("lhs array checking", {

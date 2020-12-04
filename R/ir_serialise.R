@@ -19,11 +19,7 @@ ir_serialise_version <- function(version) {
 
 
 ir_serialise_config <- function(config) {
-  include <- lapply(unname(config$include), function(x)
-    list(name = scalar(x$name),
-         declaration = x$declaration,
-         definition = x$definition))
-  list(base = scalar(config$base), include = include)
+  list(base = scalar(config$base), include = config$include)
 }
 
 

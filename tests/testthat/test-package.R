@@ -105,6 +105,19 @@ test_that("pathalogical user c", {
 })
 
 
+test_that("allow reuse of user eqs", {
+  skip_on_windows_gha()
+  tmp <- file.path(tempdir(), "pulse2.R")
+  txt <- file.copy("pkg/inst/odin/pulse.R", tmp, overwrite = TRUE)
+  path <- c("pkg/inst/odin/pulse.R", tmp, "user_fns.c")
+  res <- odin_create_package("pulse", path)
+
+  t <- seq(0, 3, length.out = 301)
+  expect_equal(
+    res$env$pulse()$run(t),
+    res$env$pulse2()$run(t))
+})
+
 test_that("error cases", {
   name <- "example"
   pkg <- file.path(tempfile(), name)

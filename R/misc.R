@@ -8,17 +8,32 @@ join_library <- function(x) {
 
 
 combine_include <- function(x) {
-  xx <- unique(unlist(x, FALSE))
-  nms <- vcapply(xx, "[[", "name")
-  if (any(duplicated(nms))) {
-    stop("Duplicated entries in included C support not allowed")
+  declarations <- unlist(lapply(x, "[[", "declarations"), FALSE)
+  definitions <- unlist(lapply(x, "[[", "definitions"), FALSE)
+
+  check <- function(x) {
+    dups <- unique(names(x)[duplicated(names(x))])
+    for (nm in dups) {
+      if (length(unique(x[names(x) == nm])) > 1) {
+        stop(sprintf(
+          "Duplicated entries in included C support not allowed (check '%s')",
+          nm))
+      }
+    }
+    unique(x)
   }
-  list(declarations = lapply(xx, "[[", "declaration"),
-       definitions = lapply(xx, "[[", "definition"))
+
+  list(declarations = check(declarations),
+       definitions = check(definitions))
 }
 
 
 read_user_c <- function(filename) {
+  read_include_c(filename)$data
+}
+
+
+read_include_c <- function(filename) {
   d <- readLines(filename)
 
   re1 <- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)"
@@ -32,7 +47,28 @@ read_user_c <- function(filename) {
     paste(d[i1[[k]]:i2[[k]]], collapse = "\n")), name)
   decl <- sub("^([^{]*?)\\s*\\{.*", "\\1;", defn)
 
-  list(declarations = decl, definitions = defn, filename = filename)
+  list(
+    names = name,
+    data = list(names = name,
+                declarations = decl,
+                definitions = defn,
+                filename = filename))
+}
+
+
+read_include_r <- function(filename) {
+  e <- new.env(parent = baseenv())
+  sys.source(filename, e)
+  list(names = names(e),
+       data = list(source = readLines(filename)))
+}
+
+
+read_include_unsupported <- function(target) {
+  force(target)
+  function(filename) {
+    stop(sprintf("'config(include)' is not supported for target '%s'", target))
+  }
 }
 
 

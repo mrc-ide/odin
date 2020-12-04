@@ -222,6 +222,28 @@ test_that_odin("user c", {
   expect_equal(y[, 2L], cmp, tolerance = 1e-5)
 })
 
+test_that_odin("user r", {
+  ## mrc-2027 would minimise duplication here
+  skip_for_target("c")
+  gen <- odin({
+    config(include) <- "user_fns.R"
+    z <- squarepulse(t, 1, 2)
+    output(z) <- z
+    deriv(y) <- z
+    initial(y) <- 0
+  })
+
+  mod <- gen()
+  t <- seq(0, 3, length.out = 301)
+  y <- mod$run(t)
+
+  expect_equal(y[, 3L], as.numeric(t >= 1 & t < 2))
+  cmp <- -1 + t
+  cmp[t < 1] <- 0
+  cmp[t > 2] <- 1
+  expect_equal(y[, 2L], cmp, tolerance = 1e-5)
+})
+
 test_that_odin("user c in subdir", {
   skip_for_target("r")
   dest <- tempfile()
@@ -1305,4 +1327,25 @@ test_that_odin("force integer on a numeric vector truncates", {
   expect_equal(gen(idx = 1.5)$initial(0), 1)
   expect_equal(gen(idx = 3 - 1e-8)$initial(0), 2)
   expect_equal(gen(idx = 3 + 1e-8)$initial(0), 3)
+})
+
+
+test_that("user c functions can be passed arrays and indexes", {
+  skip_for_target("r")
+  gen <- odin({
+    config(include) <- "user_fns4.c"
+    n <- 5
+    x[] <- user()
+    y[] <- f(i, x)
+    dim(x) <- n
+    dim(y) <- n
+    output(y) <- TRUE
+    initial(a) <- 0
+    deriv(a) <- 0
+  })
+
+  x <- runif(5)
+  mod <- gen(user = list(x = x))
+  y <- mod$run(c(0, 1))
+  expect_equal(mod$transform_variables(y[2, ])$y, cumsum(x))
 })

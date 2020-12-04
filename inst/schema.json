@@ -147,10 +147,10 @@
                     "type": "string"
                 },
                 "include": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/include"
-                    }
+                    "oneOf": [
+                        {"$ref": "#/definitions/include"},
+                        {"type": "null"}
+                    ]
                 }
             },
             "required": ["base", "include"],
@@ -160,17 +160,13 @@
         "include": {
             "type": "object",
             "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "definition": {
+                "names": {
                     "$ref": "#/definitions/basic/character_vector"
                 },
-                "declaration": {
-                    "$ref": "#/definitions/basic/character_vector"
+                "data": {
                 }
             },
-            "required": ["name", "definition", "declaration"],
+            "required": ["names", "data"],
             "additionalProperties": false
         },
 
