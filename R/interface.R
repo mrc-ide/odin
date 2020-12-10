@@ -1,5 +1,5 @@
 ##' Return detailed information about an odin model.  This is the
-##' mechanism through which \code{\link{coef}} works with odin.
+##' mechanism through which [coef] works with odin.
 ##'
 ##' @section Warning:
 ##'
@@ -8,11 +8,11 @@
 ##'
 ##' @title Return detailed information about an odin model
 ##'
-##' @param x An \code{odin_generator} function, as created by
-##'   \code{\link{odin}}
+##' @param x An `odin_generator` function, as created by
+##'   `odin::odin`
 ##'
 ##' @param parsed Logical, indicating if the representation should be
-##'   parsed and converted into an R object.  If \code{FALSE} we
+##'   parsed and converted into an R object.  If `FALSE` we
 ##'   return a json string.
 ##'
 ##' @export

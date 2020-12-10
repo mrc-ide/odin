@@ -7,7 +7,7 @@
 ##' @title Deserialise odin's IR
 ##' @param x An intermediate representation as a json string
 ##' @return A named list
-##' @seealso \code{\link{odin_parse}}
+##' @seealso [odin::odin_parse]
 ##' @export
 ##' @examples
 ##' # Parse a model of exponential decay

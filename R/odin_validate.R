@@ -1,20 +1,20 @@
 ##' Validate an odin model.  This function is closer to
-##' \code{\link{odin_parse_}} than \code{\link{odin_parse}} because it
+##' [odin::odin_parse_] than [odin::odin_parse] because it
 ##' does not do any quoting of the code.  It is primarily intended for
 ##' use within other applications.
 ##'
-##' \code{odin_validate} will always return a list with the same
+##' `odin_validate` will always return a list with the same
 ##' elements:
 ##'
 ##' \describe{
-##' \item{success}{A boolean, \code{TRUE} if validation was successful}
+##' \item{success}{A boolean, `TRUE` if validation was successful}
 ##'
 ##' \item{result}{The intermediate representation, as returned by
-##' \code{\link{odin_parse_}}, if the validation was successful,
-##' otherwise \code{NULL}}
+##' [odin::odin_parse_], if the validation was successful,
+##' otherwise `NULL`}
 ##'
 ##' \item{error}{An error object if the validation was unsuccessful,
-##' otherwise \code{NULL}.  This may be a classed odin error, in which
+##' otherwise `NULL`.  This may be a classed odin error, in which
 ##' case it will contain source location information - see the
 ##' examples for details.}
 ##'

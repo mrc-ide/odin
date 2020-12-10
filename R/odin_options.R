@@ -1,5 +1,5 @@
-##' For lower-level odin functions \code{\link{odin_parse}},
-##' \code{\link{odin_validate}} we accept a list of options rather
+##' For lower-level odin functions [odin::odin_parse],
+##' [odin::odin_validate] we accept a list of options rather
 ##' than individually named options.
 ##'
 ##' @title Odin options

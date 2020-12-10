@@ -1,14 +1,14 @@
 ##' Test if compilation appears possible.  This is used in some
 ##' examples, and tries compiling a trivial C program with
-##' \code{pkgbuild}.  Results are cached between runs within a session
+##' `pkgbuild`.  Results are cached between runs within a session
 ##' so this should be fast to rely on.
 ##'
-##' We use \code{pkgbuild} in order to build packages, and it includes
-##' a set of heuristics to locate and organise your C compiler. The
-##' most likely people affected here are Windows users; if you get
-##' this ensure that you have rtools installed.  If you have
-##' \code{devtools} installed, \code{pkgbuild::find_rtools(TRUE)} may
-##' be helpful for diagnosing compiler issues.
+##' We use `pkgbuild` in order to build packages, and it includes a
+##' set of heuristics to locate and organise your C compiler. The most
+##' likely people affected here are Windows users; if you get this
+##' ensure that you have rtools installed.  Using
+##' [pkgbuild::find_rtools()] with `debug = TRUE` may be helpful for
+##' diagnosing compiler issues.
 ##'
 ##' @title Test if compilation is possible
 ##'

@@ -16,31 +16,22 @@ Create an odin model within an existing package.
 \details{
 I am resisting the urge to actually create the package here.
 There are better options than I can come up with; for example
-\code{devtools::create}, \code{pkgkitten::kitten},
-\code{mason::mason}, or creating \code{DESCRIPTION} files using
-\code{desc}.  What is required here is that your package:
-
+\code{devtools::create}, \code{pkgkitten::kitten}, \code{mason::mason}, or
+creating \code{DESCRIPTION} files using \code{desc}.  What is required here
+is that your package:
 \itemize{
-\item{Lists \code{odin} in \code{Imports:}}
-\item{Includes \code{useDynLib{<your package name>}} in
-  \code{NAMESPACE} (possibly via a roxygen comment \code{@useDynLib
-  <your package name>}}
-\item{To avoid a NOTE in \code{R CMD check}, import something from
-  \code{odin} in your namespace (e.g., \code{importFrom("odin", "odin")}
-  or roxygen \code{@importFrom(odin, odin)}}
+\item Lists \code{odin} in \verb{Imports:}
+\item Includes \verb{useDynLib(<your package name>)} in
+\code{NAMESPACE} (possibly via a roxygen comment \verb{@useDynLib <your package name>}
+\item To avoid a NOTE in \verb{R CMD check}, import something from
+\code{odin} in your namespace (e.g., \code{importFrom("odin", "odin")}s
+or roxygen \verb{@importFrom(odin, odin)}
 }
 
 Point this function at the package root (the directory containing
 \code{DESCRIPTION} and it will write out files \code{src/odin.c}
 and \code{odin.R}.  These files will be overwritten without
 warning by running this again.
-
-There are a few unresolved issues with this approach, notably
-activating "native symbol registration", and the interaction with
-packages such as Rcpp that automatically collate a list of
-symbols.  The mechanism may change in a future version, though the
-interface (with source files in \code{inst/odin} will remain the
-same.
 }
 \examples{
 path <- tempfile()

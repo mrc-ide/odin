@@ -8,7 +8,7 @@ odin_ir(x, parsed = FALSE)
 }
 \arguments{
 \item{x}{An \code{odin_generator} function, as created by
-\code{\link{odin}}}
+\code{odin::odin}}
 
 \item{parsed}{Logical, indicating if the representation should be
 parsed and converted into an R object.  If \code{FALSE} we
@@ -16,13 +16,13 @@ return a json string.}
 }
 \description{
 Return detailed information about an odin model.  This is the
-mechanism through which \code{\link{coef}} works with odin.
+mechanism through which \link{coef} works with odin.
 }
 \section{Warning}{
 
 
 The returned data is subject to change for a few versions while I
-  work out how we'll use it.
+work out how we'll use it.
 }
 
 \examples{

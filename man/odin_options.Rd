@@ -19,7 +19,7 @@ defaulting to the option \code{odin.target} or "c" otherwise.}
 
 \item{workdir}{Directory to use for any generated files.  This is
 only relevant for the "c" target.  Defaults to the value of the
-option \code{odin.workdir} or \code{tempdir()} otherwise.}
+option \code{odin.workdir} or \code{\link[=tempdir]{tempdir()}} otherwise.}
 
 \item{validate}{Validate the model's intermediate representation
 against the included schema.  Normally this is not needed and is
@@ -49,7 +49,7 @@ messages about unused variables.  Defaults to the option
 variable (\code{i}, \code{j}, ...) is used outside of an array
 subset (e.g., \code{x[] <- i}) then a notice is printed.  The
 behaviour of this functionality changed in odin version
-\code{0.2.0} and this flag is intended to notify users about the
+\verb{0.2.0} and this flag is intended to notify users about the
 change.  See \url{https://github.com/mrc-ide/odin/issues/136}
 for more information.  Defaults to the option
 \code{odin.no_check_naked_index} or \code{FALSE} otherwise.}
@@ -58,8 +58,8 @@ for more information.  Defaults to the option
 options are ignored.}
 }
 \description{
-For lower-level odin functions \code{\link{odin_parse}},
-\code{\link{odin_validate}} we accept a list of options rather
+For lower-level odin functions \link{odin_parse},
+\link{odin_validate} we accept a list of options rather
 than individually named options.
 }
 \examples{
