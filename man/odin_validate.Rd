@@ -15,13 +15,13 @@ must be one of \code{expression}, \code{file} or \code{text} if
 provided.  This skips the type detection code used by odin and
 makes validating user input easier.}
 
-\item{options}{odin options; see \code{\link{odin_options}}.  The
+\item{options}{odin options; see \link{odin_options}.  The
 primary options that affect the parse stage are \code{validate}
 and \code{pretty}.}
 }
 \description{
 Validate an odin model.  This function is closer to
-\code{\link{odin_parse_}} than \code{\link{odin_parse}} because it
+\link{odin_parse_} than \link{odin_parse} because it
 does not do any quoting of the code.  It is primarily intended for
 use within other applications.
 }
@@ -33,7 +33,7 @@ elements:
 \item{success}{A boolean, \code{TRUE} if validation was successful}
 
 \item{result}{The intermediate representation, as returned by
-\code{\link{odin_parse_}}, if the validation was successful,
+\link{odin_parse_}, if the validation was successful,
 otherwise \code{NULL}}
 
 \item{error}{An error object if the validation was unsuccessful,

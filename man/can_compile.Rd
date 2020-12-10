@@ -21,12 +21,12 @@ examples, and tries compiling a trivial C program with
 so this should be fast to rely on.
 }
 \details{
-We use \code{pkgbuild} in order to build packages, and it includes
-a set of heuristics to locate and organise your C compiler. The
-most likely people affected here are Windows users; if you get
-this ensure that you have rtools installed.  If you have
-\code{devtools} installed, \code{pkgbuild::find_rtools(TRUE)} may
-be helpful for diagnosing compiler issues.
+We use \code{pkgbuild} in order to build packages, and it includes a
+set of heuristics to locate and organise your C compiler. The most
+likely people affected here are Windows users; if you get this
+ensure that you have rtools installed.  Using
+\code{\link[pkgbuild:has_rtools]{pkgbuild::find_rtools()}} with \code{debug = TRUE} may be helpful for
+diagnosing compiler issues.
 }
 \examples{
 can_compile() # will take ~0.1s the first time

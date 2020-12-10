@@ -1,9 +1,9 @@
-#' Parse an odin model, returning an intermediate representation.
-##' The \code{odin_parse_} version is a "standard evaluation" escape
+##' Parse an odin model, returning an intermediate representation.
+##' The `odin_parse_` version is a "standard evaluation" escape
 ##' hatch.
 ##'
 ##' A schema for the intermediate representation is available in the
-##' package as \code{schema.json}.  It is subject to change at this
+##' package as `schema.json`.  It is subject to change at this
 ##' point.
 ##'
 ##' @title Parse an odin model
@@ -11,19 +11,19 @@
 ##' @param x An expression, character vector or filename with the odin
 ##'   code
 ##'
-##' @param options odin options; see \code{\link{odin_options}}.  The
-##'   primary options that affect the parse stage are \code{validate}
-##'   and \code{pretty}.
+##' @param options odin options; see [odin::odin_options].  The
+##'   primary options that affect the parse stage are `validate`
+##'   and `pretty`.
 ##'
 ##' @param type An optional string indicating the the type of input -
-##'   must be one of \code{expression}, \code{file} or \code{text} if
+##'   must be one of `expression`, `file` or `text` if
 ##'   provided.  This skips the type detection code used by odin and
 ##'   makes validating user input easier.
 ##'
 ##' @export
 ##'
-##' @seealso \code{\link{odin_validate}}, which wraps this function
-##'   where parsing might fail, and \code{\link{odin_build}} for
+##' @seealso [odin::odin_validate], which wraps this function
+##'   where parsing might fail, and [odin::odin_build] for
 ##'   building odin models from an intermediate representation.
 ##'
 ##' @examples

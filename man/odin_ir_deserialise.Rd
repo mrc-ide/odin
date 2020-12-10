@@ -29,5 +29,5 @@ ir <- odin::odin_parse({
 odin::odin_ir_deserialise(ir)
 }
 \seealso{
-\code{\link{odin_parse}}
+\link{odin_parse}
 }

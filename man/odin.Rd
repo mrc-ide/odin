@@ -28,7 +28,7 @@ defaulting to the option \code{odin.target} or "c" otherwise.}
 
 \item{workdir}{Directory to use for any generated files.  This is
 only relevant for the "c" target.  Defaults to the value of the
-option \code{odin.workdir} or \code{tempdir()} otherwise.}
+option \code{odin.workdir} or \code{\link[=tempdir]{tempdir()}} otherwise.}
 
 \item{validate}{Validate the model's intermediate representation
 against the included schema.  Normally this is not needed and is
@@ -58,7 +58,7 @@ messages about unused variables.  Defaults to the option
 variable (\code{i}, \code{j}, ...) is used outside of an array
 subset (e.g., \code{x[] <- i}) then a notice is printed.  The
 behaviour of this functionality changed in odin version
-\code{0.2.0} and this flag is intended to notify users about the
+\verb{0.2.0} and this flag is intended to notify users about the
 change.  See \url{https://github.com/mrc-ide/odin/issues/136}
 for more information.  Defaults to the option
 \code{odin.no_check_naked_index} or \code{FALSE} otherwise.}
@@ -71,26 +71,22 @@ Create an odin model from a file, text string(s) or expression.
 The \code{odin_} version is a "standard evaluation" escape hatch.
 }
 \details{
-\emph{Do not use \code{odin::odin} in a package; you almost
-certainly want to use \code{\link{odin_package}} instead; see the
-\code{odin_package} vignette for more information.}
+\strong{Do not use \code{odin::odin} in a package; you almost certainly want
+to use \link{odin_package} instead.}
 
 A generated model can return information about itself;
-\code{\link{odin_ir}}
+\link{odin_ir}
 }
 \section{User parameters}{
 
 
 If the model accepts user parameters, then the parameter to the
-constructor or the \code{set_user} method can be used to control
+constructor or the \verb{$set_user()} method can be used to control
 the behaviour when unknown user actions are passed into the
-model.Possible values are the strings \code{stop} (throw an
-error), \code{warning} (issue a warning but keep going),
-\code{message} (print a message and keep going) or \code{ignore}
-(do nothing).  Defaults to the option
-\code{odin.unused_user_action}, or \code{warning} otherwise.  The
-default behaviour prior to odin version 0.2.0 was equivalent to
-\code{ignore}.
+model. Possible values are the strings \code{stop} (throw an error),
+\code{warning} (issue a warning but keep going), \code{message} (print a
+message and keep going) or \code{ignore} (do nothing).  Defaults to
+the option \code{odin.unused_user_action}, or \code{warning} otherwise.
 }
 
 \section{Delay equations with dde}{

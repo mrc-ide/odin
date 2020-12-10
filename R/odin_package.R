@@ -2,35 +2,27 @@
 ##'
 ##' I am resisting the urge to actually create the package here.
 ##' There are better options than I can come up with; for example
-##' \code{devtools::create}, \code{pkgkitten::kitten},
-##' \code{mason::mason}, or creating \code{DESCRIPTION} files using
-##' \code{desc}.  What is required here is that your package:
+##' `devtools::create`, `pkgkitten::kitten`, `mason::mason`, or
+##' creating `DESCRIPTION` files using `desc`.  What is required here
+##' is that your package:
 ##'
-##' \itemize{
-##' \item{Lists \code{odin} in \code{Imports:}}
-##' \item{Includes \code{useDynLib{<your package name>}} in
-##'   \code{NAMESPACE} (possibly via a roxygen comment \code{@useDynLib
-##'   <your package name>}}
-##' \item{To avoid a NOTE in \code{R CMD check}, import something from
-##'   \code{odin} in your namespace (e.g., \code{importFrom("odin", "odin")}
-##'   or roxygen \code{@importFrom(odin, odin)}}
-##' }
+##' * Lists `odin` in `Imports:`
+##' * Includes `useDynLib(<your package name>)` in
+##'   `NAMESPACE` (possibly via a roxygen comment `@useDynLib
+##'   <your package name>`
+##' * To avoid a NOTE in `R CMD check`, import something from
+##'   `odin` in your namespace (e.g., `importFrom("odin", "odin")`s
+##'   or roxygen `@importFrom(odin, odin)`
 ##'
 ##' Point this function at the package root (the directory containing
-##' \code{DESCRIPTION} and it will write out files \code{src/odin.c}
-##' and \code{odin.R}.  These files will be overwritten without
+##' `DESCRIPTION` and it will write out files `src/odin.c`
+##' and `odin.R`.  These files will be overwritten without
 ##' warning by running this again.
 ##'
-##' There are a few unresolved issues with this approach, notably
-##' activating "native symbol registration", and the interaction with
-##' packages such as Rcpp that automatically collate a list of
-##' symbols.  The mechanism may change in a future version, though the
-##' interface (with source files in \code{inst/odin} will remain the
-##' same.
-##'
 ##' @title Create odin model in a package
+##'
 ##' @param path_package Path to the package root (the directory that
-##'   contains \code{DESCRIPTION})
+##'   contains `DESCRIPTION`)
 ##'
 ##' @export
 ##' @examples

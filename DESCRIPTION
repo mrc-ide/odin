@@ -48,6 +48,6 @@ Suggests:
     testthat
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
-Roxygen: list(old_usage = TRUE)
+Roxygen: list(old_usage = TRUE, markdown = TRUE)
 Encoding: UTF-8
 Language: en-GB

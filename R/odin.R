@@ -1,36 +1,32 @@
 ##' Create an odin model from a file, text string(s) or expression.
-##' The \code{odin_} version is a "standard evaluation" escape hatch.
+##' The `odin_` version is a "standard evaluation" escape hatch.
 ##'
-##' \emph{Do not use \code{odin::odin} in a package; you almost
-##' certainly want to use \code{\link{odin_package}} instead; see the
-##' \code{odin_package} vignette for more information.}
+##' **Do not use `odin::odin` in a package; you almost certainly want
+##' to use [odin::odin_package] instead.**
 ##'
 ##' A generated model can return information about itself;
-##' \code{\link{odin_ir}}
+##' [odin::odin_ir]
 ##'
 ##' @section User parameters:
 ##'
 ##' If the model accepts user parameters, then the parameter to the
-##' constructor or the \code{set_user} method can be used to control
-##' the behaviour when unknown user actions are passed into the
-##' model.Possible values are the strings \code{stop} (throw an
-##' error), \code{warning} (issue a warning but keep going),
-##' \code{message} (print a message and keep going) or \code{ignore}
-##' (do nothing).  Defaults to the option
-##' \code{odin.unused_user_action}, or \code{warning} otherwise.  The
-##' default behaviour prior to odin version 0.2.0 was equivalent to
-##' \code{ignore}.
+##'   constructor or the `$set_user()` method can be used to control
+##'   the behaviour when unknown user actions are passed into the
+##'   model. Possible values are the strings `stop` (throw an error),
+##'   `warning` (issue a warning but keep going), `message` (print a
+##'   message and keep going) or `ignore` (do nothing).  Defaults to
+##'   the option `odin.unused_user_action`, or `warning` otherwise.
 ##'
 ##' @section Delay equations with dde:
 ##'
 ##' When generating a model one must chose between using the
-##' \code{dde} package to solve the system or the default
-##' \code{deSolve}.  Future versions may allow this to switch when
-##' using \code{run}, but for now this requires tweaking the generated
-##' code to a point where one must decide at generation.  \code{dde}
+##' `dde` package to solve the system or the default
+##' `deSolve`.  Future versions may allow this to switch when
+##' using `run`, but for now this requires tweaking the generated
+##' code to a point where one must decide at generation.  `dde`
 ##' implements only the Dormand-Prince 5th order dense output solver,
 ##' with a delay equation solver that may perform better than the
-##' solvers in deSolve.  For non-delay equations, \code{deSolve} is
+##' solvers in deSolve.  For non-delay equations, `deSolve` is
 ##' very likely to outperform the simple solver implemented.
 ##'
 ##' @title Create an odin model
@@ -41,47 +37,47 @@
 ##'
 ##' @param verbose Logical scalar indicating if the compilation should
 ##'   be verbose.  Defaults to the value of the option
-##'   \code{odin.verbose} or \code{FALSE} otherwise.
+##'   `odin.verbose` or `FALSE` otherwise.
 ##'
 ##' @param target Compilation target.  Options are "c" and "r",
-##'   defaulting to the option \code{odin.target} or "c" otherwise.
+##'   defaulting to the option `odin.target` or "c" otherwise.
 ##'
 ##' @param workdir Directory to use for any generated files.  This is
 ##'   only relevant for the "c" target.  Defaults to the value of the
-##'   option \code{odin.workdir} or \code{tempdir()} otherwise.
+##'   option `odin.workdir` or [tempdir()] otherwise.
 ##'
 ##' @param validate Validate the model's intermediate representation
 ##'   against the included schema.  Normally this is not needed and is
 ##'   intended primarily for development use.  Defaults to the value
-##'   of the option \code{odin.validate} or \code{FALSE} otherwise.
+##'   of the option `odin.validate` or `FALSE` otherwise.
 ##'
 ##' @param pretty Pretty-print the model's intermediate
 ##'   representation.  Normally this is not needed and is intended
 ##'   primarily for development use.  Defaults to the value of the
-##'   option \code{odin.pretty} or \code{FALSE} otherwise.
+##'   option `odin.pretty` or `FALSE` otherwise.
 ##'
 ##' @param skip_cache Skip odin's cache.  This might be useful if the
 ##'   model appears not to compile when you would expect it to.
 ##'   Hopefully this will not be needed often.  Defaults to the option
-##'   \code{odin.skip_cache} or \code{FALSE} otherwise.
+##'   `odin.skip_cache` or `FALSE` otherwise.
 ##'
 ##' @param compiler_warnings Previously this attempted detection of
 ##'   compiler warnings (with some degree of success), but is
 ##'   currently ignored. This may become supported again in a future
 ##'   version depending on underlying support in pkgbuild.
 ##'
-##' @param no_check_unused_equations If \code{TRUE}, then don't print
+##' @param no_check_unused_equations If `TRUE`, then don't print
 ##'   messages about unused variables.  Defaults to the option
-##'   \code{odin.no_check_unused_equations} or \code{FALSE} otherwise.
+##'   `odin.no_check_unused_equations` or `FALSE` otherwise.
 ##'
-##' @param no_check_naked_index If \code{TRUE}, then if an index
-##'   variable (\code{i}, \code{j}, ...) is used outside of an array
-##'   subset (e.g., \code{x[] <- i}) then a notice is printed.  The
+##' @param no_check_naked_index If `TRUE`, then if an index
+##'   variable (`i`, `j`, ...) is used outside of an array
+##'   subset (e.g., `x[] <- i`) then a notice is printed.  The
 ##'   behaviour of this functionality changed in odin version
-##'   \code{0.2.0} and this flag is intended to notify users about the
-##'   change.  See \url{https://github.com/mrc-ide/odin/issues/136}
+##'   `0.2.0` and this flag is intended to notify users about the
+##'   change.  See <https://github.com/mrc-ide/odin/issues/136>
 ##'   for more information.  Defaults to the option
-##'   \code{odin.no_check_naked_index} or \code{FALSE} otherwise.
+##'   `odin.no_check_naked_index` or `FALSE` otherwise.
 ##'
 ##' @return A function that can generate the model
 ##'

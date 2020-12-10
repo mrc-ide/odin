@@ -18,7 +18,7 @@ must be one of \code{expression}, \code{file} or \code{text} if
 provided.  This skips the type detection code used by odin and
 makes validating user input easier.}
 
-\item{options}{odin options; see \code{\link{odin_options}}.  The
+\item{options}{odin options; see \link{odin_options}.  The
 primary options that affect the parse stage are \code{validate}
 and \code{pretty}.}
 }
@@ -53,7 +53,7 @@ code <- quote({
 odin::odin_parse_(code)
 }
 \seealso{
-\code{\link{odin_validate}}, which wraps this function
-  where parsing might fail, and \code{\link{odin_build}} for
-  building odin models from an intermediate representation.
+\link{odin_validate}, which wraps this function
+where parsing might fail, and \link{odin_build} for
+building odin models from an intermediate representation.
 }
