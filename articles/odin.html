@@ -38,7 +38,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.4</span>
       </span>
     </div>
 
@@ -46,7 +46,7 @@
       <ul class="nav navbar-nav">
 <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -78,7 +78,7 @@
 <ul class="nav navbar-nav navbar-right">
 <li>
   <a href="https://github.com/mrc-ide/odin/">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -92,14 +92,13 @@
 
       
 
-      </header><script src="odin_files/accessible-code-block-0.0.1/empty-anchor.js"></script><link href="odin_files/anchor-sections-1.0/anchor-sections.css" rel="stylesheet">
-<script src="odin_files/anchor-sections-1.0/anchor-sections.js"></script><div class="row">
+      </header><script src="odin_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Odin</h1>
                         <h4 class="author">Rich FitzJohn</h4>
             
-            <h4 class="date">2020-12-10</h4>
+            <h4 class="date">2020-12-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/master/vignettes/odin.Rmd"><code>vignettes/odin.Rmd</code></a></small>
       <div class="hidden name"><code>odin.Rmd</code></div>
@@ -144,7 +143,7 @@
 ##     transform_variables: function (y) 
 ##   Private:
 ##     cfuns: list
-##     dll: logisticbd74032c
+##     dll: logistic5cbfe8b4
 ##     interpolate_t: NULL
 ##     n_out: 0
 ##     odin: environment
@@ -268,7 +267,7 @@
 <code class="sourceCode R"><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">20000</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.009   0.000   0.009</code></pre>
+##   0.008   0.001   0.009</code></pre>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, lwd <span class="op">=</span> <span class="fl">.2</span>, col <span class="op">=</span> <span class="st">"#00000055"</span><span class="op">)</span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-20-1.png" width="672"></p>
