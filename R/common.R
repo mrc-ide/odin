@@ -24,8 +24,18 @@ SPECIAL_LHS <- c("initial", "deriv", "update", "output", "dim", "config")
 SPECIAL_RHS <- c("user", "interpolate", "delay")
 INDEX <- c("i", "j", "k", "l", "i5", "i6", "i7", "i8") # TODO: make open
 INTERNAL <- "internal"
+
+## Keyword list from:
+## http://en.cppreference.com/w/c/keyword
+RESERVED_C <-
+  c("auto", "break", "case", "char", "const", "continue", "default",
+    "do", "double", "else", "enum", "extern", "float", "for", "goto",
+    "if", "inline", "int", "long", "register", "restrict", "return",
+    "short", "signed", "sizeof", "static", "struct", "switch", "typedef",
+    "union", "unsigned", "void", "volatile", "while")
+
 RESERVED <- c(INDEX, TIME, STEP, STATE, DSTATEDT, STATE_NEXT, USER,
-              SPECIAL_LHS, "delay", "dde", INTERNAL)
+              SPECIAL_LHS, "delay", "dde", INTERNAL, RESERVED_C)
 RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[", "as.integer")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")

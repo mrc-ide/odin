@@ -869,3 +869,14 @@ test_that("can't use array indices that exceed the rank of the lhs", {
     "Index variable 'j', 'k' not possible for array of rank 1",
     fixed = TRUE, class = "odin_error")
 })
+
+
+## Reported by Charlie
+test_that("can't use C identifier", {
+  expect_error(
+    odin_parse({
+      initial(int) <- 1
+      deriv(int) <- 0
+    }),
+    "Reserved name 'int' for lhs")
+})

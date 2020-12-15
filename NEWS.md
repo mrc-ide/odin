@@ -1,3 +1,7 @@
+# odin 1.1.4
+
+* Better error messages when C identifiers (e.g., `int`) are used in equations (reported by @rhysinward, @katietiley and @cwhittaker1000)
+
 # odin 1.1.2
 
 * Support for `config(include)` has been expanded, working for R models and designed to be extensible for other targets (mrc-2016)
