@@ -777,7 +777,7 @@ ir_parse_expr_check_lhs_name <- function(lhs, special, line, source) {
   name <- deparse(lhs)
 
   if (name %in% RESERVED) {
-    ir_parse_error("Reserved name for lhs", line, source)
+    ir_parse_error(sprintf("Reserved name '%s' for lhs", name), line, source)
   }
   re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse = "|"))
   if (grepl(re, name)) {
