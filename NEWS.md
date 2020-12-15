@@ -1,6 +1,6 @@
 # odin 1.1.4
 
-* Better error messages when C identifiers (e.g., `int`) are used in equations (reported by @cwhittaker1000)
+* Better error messages when C identifiers (e.g., `int`) are used in equations (reported by @rhysinward, @katietiley and @cwhittaker1000)
 
 # odin 1.1.2
 
