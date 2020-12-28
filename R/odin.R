@@ -70,15 +70,6 @@
 ##'   messages about unused variables.  Defaults to the option
 ##'   `odin.no_check_unused_equations` or `FALSE` otherwise.
 ##'
-##' @param no_check_naked_index If `TRUE`, then if an index
-##'   variable (`i`, `j`, ...) is used outside of an array
-##'   subset (e.g., `x[] <- i`) then a notice is printed.  The
-##'   behaviour of this functionality changed in odin version
-##'   `0.2.0` and this flag is intended to notify users about the
-##'   change.  See <https://github.com/mrc-ide/odin/issues/136>
-##'   for more information.  Defaults to the option
-##'   `odin.no_check_naked_index` or `FALSE` otherwise.
-##'
 ##' @return A function that can generate the model
 ##'
 ##' @author Rich FitzJohn
@@ -107,8 +98,7 @@
 ##' plot(y, xlab = "Time", ylab = "y", main = "", las = 1)
 odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                  validate = NULL, pretty = NULL, skip_cache = NULL,
-                 compiler_warnings = NULL, no_check_unused_equations = NULL,
-                 no_check_naked_index = NULL) {
+                 compiler_warnings = NULL, no_check_unused_equations = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -117,7 +107,7 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
     xx <- force(x)
   }
   odin_(xx, verbose, target, workdir, validate, pretty, skip_cache,
-        compiler_warnings, no_check_unused_equations, no_check_naked_index)
+        compiler_warnings, no_check_unused_equations)
 }
 
 
@@ -125,8 +115,7 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 ##' @rdname odin
 odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                   validate = NULL, pretty = NULL, skip_cache = NULL,
-                  compiler_warnings = NULL, no_check_unused_equations = NULL,
-                  no_check_naked_index = NULL) {
+                  compiler_warnings = NULL, no_check_unused_equations = NULL) {
   options <- odin_options(verbose = verbose,
                           target = target,
                           workdir = workdir,
@@ -134,7 +123,6 @@ odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                           pretty = pretty,
                           skip_cache = skip_cache,
                           no_check_unused_equations = no_check_unused_equations,
-                          no_check_naked_index = no_check_naked_index,
                           compiler_warnings = compiler_warnings)
 
   ir <- odin_parse_(x, options)
