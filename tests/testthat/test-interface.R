@@ -72,6 +72,15 @@ test_that("force a vector of strings (parse)", {
 })
 
 
+test_that("force a symbol containing code", {
+  code <- c("deriv(y) <- 0.5", "initial(y) <- 1")
+  gen <- odin(code, target = "r")
+  mod <- gen()
+  y <- mod$run(0:10)[, "y"]
+  expect_equal(y, seq(1, by = 0.5, length.out = 11))
+})
+
+
 test_that("odin_ir requires sensible object", {
   expect_error(odin_ir(NULL), "Expected an odin_generator or odin_model object")
 })
