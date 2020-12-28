@@ -148,8 +148,10 @@ ir_parse_data_element <- function(x, stage) {
     dimnames <- x$array$dimnames
   }
 
+  stage <- stage[[x$name]]
+
   if (is.null(x$lhs$special)) {
-    if (rank == 0L && stage[[x$name]] == STAGE_TIME) {
+    if (rank == 0L && stage == STAGE_TIME) {
       location <- "transient"
     } else {
       location <- "internal"
@@ -167,6 +169,7 @@ ir_parse_data_element <- function(x, stage) {
 
   list(name = name,
        location = location,
+       stage = stage,
        storage_type = storage_type,
        rank = rank,
        dimnames = dimnames)

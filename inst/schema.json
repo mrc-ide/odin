@@ -73,7 +73,7 @@
 
             "stage": {
                 "type": "string",
-                "enum": ["constant", "user", "time", "output"]
+                "enum": ["null", "constant", "user", "time"]
             },
 
             "index": {
@@ -235,6 +235,9 @@
                 },
                 "storage_type": {
                     "$ref": "#/definitions/enum/storage_type"
+                },
+                "stage": {
+                    "$ref": "#/definitions/enum/stage"
                 },
                 "rank": {
                     "type": "integer",

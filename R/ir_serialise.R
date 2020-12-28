@@ -64,6 +64,7 @@ ir_serialise_data <- function(data) {
       ret$dimnames <- x$dimnames
       ret$dimnames$length <- ir_serialise_expression(x$dimnames$length)
     }
+    ret$stage <- scalar(names(STAGE_NAME)[x$stage + 1L])
     ret
   }
   ## TODO: this can be modified later on when we move initial out of
