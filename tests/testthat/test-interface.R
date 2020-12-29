@@ -81,6 +81,14 @@ test_that("force a symbol containing code", {
 })
 
 
+test_that("force a symbol containing code (parse)", {
+  code <- c("deriv(y) <- 0.5", "initial(y) <- 1")
+  ir <- odin_parse(code)
+  dat <- ir_deserialise(ir)
+  expect_equal(names(dat$data$variable$contents), "y")
+})
+
+
 test_that("odin_ir requires sensible object", {
   expect_error(odin_ir(NULL), "Expected an odin_generator or odin_model object")
 })
