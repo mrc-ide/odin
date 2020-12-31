@@ -1,4 +1,4 @@
-# odin 1.1.5
+# odin 1.1.6
 
 * odin no longer warns about use of index variables on rhs as new behaviour has been established for a while (#136)
 
