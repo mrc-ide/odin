@@ -82,7 +82,7 @@ than individually named options." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.5</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.6</span>
       </span>
     </div>
 
@@ -153,7 +153,7 @@ than individually named options.</p>
     <pre class="usage"><span class='fu'>odin_options</span><span class='op'>(</span>verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>,
   validate <span class='op'>=</span> <span class='cn'>NULL</span>, pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>,
   compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>, no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span>,
-  no_check_naked_index <span class='op'>=</span> <span class='cn'>NULL</span>, options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+  options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -210,17 +210,6 @@ messages about unused variables.  Defaults to the option
 <code>odin.no_check_unused_equations</code> or <code>FALSE</code> otherwise.</p></td>
     </tr>
     <tr>
-      <th>no_check_naked_index</th>
-      <td><p>If <code>TRUE</code>, then if an index
-variable (<code>i</code>, <code>j</code>, ...) is used outside of an array
-subset (e.g., <code>x[] &lt;- i</code>) then a notice is printed.  The
-behaviour of this functionality changed in odin version
-<code>0.2.0</code> and this flag is intended to notify users about the
-change.  See <a href='https://github.com/mrc-ide/odin/issues/136'>https://github.com/mrc-ide/odin/issues/136</a>
-for more information.  Defaults to the option
-<code>odin.no_check_naked_index</code> or <code>FALSE</code> otherwise.</p></td>
-    </tr>
-    <tr>
       <th>options</th>
       <td><p>Named list of options.  If provided, then all other
 options are ignored.</p></td>
@@ -243,15 +232,12 @@ options are ignored.</p></td>
 #&gt; [1] FALSE
 #&gt; 
 #&gt; $workdir
-#&gt; [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpNZ9V3a/file8d87201568f"
+#&gt; [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmptQHA4H/file8b54438f6db"
 #&gt; 
 #&gt; $skip_cache
 #&gt; [1] FALSE
 #&gt; 
 #&gt; $no_check_unused_equations
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $no_check_naked_index
 #&gt; [1] FALSE
 #&gt; 
 #&gt; $compiler_warnings
@@ -274,7 +260,7 @@ options are ignored.</p></td>
 #&gt;     list(names = name, data = list(names = name, declarations = decl, 
 #&gt;         definitions = defn, filename = filename))
 #&gt; }
-#&gt; &lt;bytecode: 0x7fc150c62d60&gt;
+#&gt; &lt;bytecode: 0x7fd1cf12ece0&gt;
 #&gt; &lt;environment: namespace:odin&gt;
 #&gt; </div></pre>
   </div>
