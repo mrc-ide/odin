@@ -1,3 +1,7 @@
+# odin 1.1.6
+
+* odin no longer warns about use of index variables on rhs as new behaviour has been established for a while (#136)
+
 # odin 1.1.4
 
 * Better error messages when C identifiers (e.g., `int`) are used in equations (reported by @rhysinward, @katietiley and @cwhittaker1000)

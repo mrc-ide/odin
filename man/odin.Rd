@@ -7,12 +7,11 @@
 \usage{
 odin(x, verbose = NULL, target = NULL, workdir = NULL, validate = NULL,
   pretty = NULL, skip_cache = NULL, compiler_warnings = NULL,
-  no_check_unused_equations = NULL, no_check_naked_index = NULL)
+  no_check_unused_equations = NULL)
 
 odin_(x, verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,
-  compiler_warnings = NULL, no_check_unused_equations = NULL,
-  no_check_naked_index = NULL)
+  compiler_warnings = NULL, no_check_unused_equations = NULL)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -53,15 +52,6 @@ version depending on underlying support in pkgbuild.}
 \item{no_check_unused_equations}{If \code{TRUE}, then don't print
 messages about unused variables.  Defaults to the option
 \code{odin.no_check_unused_equations} or \code{FALSE} otherwise.}
-
-\item{no_check_naked_index}{If \code{TRUE}, then if an index
-variable (\code{i}, \code{j}, ...) is used outside of an array
-subset (e.g., \code{x[] <- i}) then a notice is printed.  The
-behaviour of this functionality changed in odin version
-\verb{0.2.0} and this flag is intended to notify users about the
-change.  See \url{https://github.com/mrc-ide/odin/issues/136}
-for more information.  Defaults to the option
-\code{odin.no_check_naked_index} or \code{FALSE} otherwise.}
 }
 \value{
 A function that can generate the model

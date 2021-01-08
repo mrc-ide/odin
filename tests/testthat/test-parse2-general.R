@@ -748,20 +748,6 @@ test_that("detect integers", {
 })
 
 
-test_that("notify on naked index", {
-  code <- c(
-    "deriv(x[]) <- i",
-    "initial(x[]) <- 1",
-    "dim(x) <- 5")
-  expect_message(
-    odin_parse(code),
-    "Equations use index variables i on the rhs outside of an index.")
-  expect_message(
-    odin_parse(code, options = odin_options(no_check_naked_index = TRUE)),
-    NA)
-})
-
-
 test_that("no variables", {
   expect_error(odin_parse({
     x <- 1
@@ -781,50 +767,6 @@ test_that("dim on rhs", {
       dim(r) <- dim(y, n)
   }),
   "Invalid dim call; expected integer second argument", class = "odin_error")
-})
-
-
-test_that("skip sum in naked index check", {
-  ## In the first version of the naked index check, this produced a
-  ## note because the sum expression expands out to
-  ##
-  ## >  odin_sum(m, i, i, 1, dim(m, 2))
-  ##
-  ## which looks like a naked index.
-  expect_silent(
-    odin_parse({
-      deriv(y) <- sum(v)
-      initial(y) <- 1
-      m[, ] <- user()
-      v[] <- sum(m[i, ])
-      dim(m) <- c(4, 4)
-      dim(v) <- 4
-    }))
-})
-
-
-test_that("skip some equality operations in naked index check", {
-  ## This turns up in lily's model
-  expect_silent(odin_parse({
-    deriv(y) <- 1
-    initial(y) <- sum(m)
-    m[, ] <- if (i == j) 1 else 0
-    dim(m) <- c(4, 4)
-  }))
-
-  expect_message(odin_parse({
-    deriv(y) <- 1
-    initial(y) <- sum(m)
-    m[, ] <- if (i == 1) 1 else 0
-    dim(m) <- c(4, 4)
-  }), "Equations use index variables i on the rhs outside of an index")
-
-  expect_message(odin_parse({
-    deriv(y) <- 1
-    initial(y) <- sum(m)
-    m[, ] <- if (i == j + 0) 1 else 0
-    dim(m) <- c(4, 4)
-  }), "Equations use index variables i, j on the rhs outside of an index")
 })
 
 
