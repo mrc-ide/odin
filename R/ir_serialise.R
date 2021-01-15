@@ -19,7 +19,16 @@ ir_serialise_version <- function(version) {
 
 
 ir_serialise_config <- function(config) {
-  list(base = scalar(config$base), include = config$include)
+  custom <- config$custom
+  if (!is.null(config$custom)) {
+    for (i in seq_along(custom)) {
+      custom[[i]]$name <- scalar(custom[[i]]$name)
+      custom[[i]]$value <- scalar(custom[[i]]$value)
+    }
+  }
+  list(base = scalar(config$base),
+       include = config$include,
+       custom = custom)
 }
 
 
