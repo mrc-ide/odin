@@ -84,3 +84,29 @@ test_that("don't be too noisy", {
     dim(y) <- c(2, 3, 4)
   }))
 })
+
+
+test_that("Can suppress unused variables with a comment", {
+  f <- function(code) {
+    odin_parse_(c("initial(x) <- 0", "deriv(x) <- 0", code))
+  }
+  expect_silent(f("a <- user(1) # ignore.unused"))
+  ## If the expression is split over two lines we pick it up:
+  expect_silent(f(c("a <-", "  user(1) # ignore.unused")))
+  expect_silent(f(c("a <- # ignore.unused", "  user(1)")))
+
+  expect_message(f("a <- user(1) # ignoreUnused"),
+                 "Unused equation: a")
+  expect_message(f(c("a <- user(1) # ignore.unused",
+                     "b <- user(2)")),
+                 "Unused equation: b")
+
+  ## Constants are ok
+  expect_silent(f("xxx <- 10 # ignore.unused"))
+
+  ## Time varying things should not be removed because they won't be
+  ## calculated
+  expect_message(
+    f("xxx <- 10 * t # ignore.unused"),
+    "Unused equation marked as ignored will be dropped: xxx")
+})

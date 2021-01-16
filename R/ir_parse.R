@@ -478,6 +478,27 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     check <- names_if(vlapply(eqs, function(x) !isTRUE(x$implicit)))
     unused <- setdiff(check, used)
 
+    ## Check to make sure that we don't mark equations as
+    ## ignorable. Practically this will just be for user and constant
+    ## variables as missing time-varying variables will be excluded
+    ## due to not contributing to the graph.
+    ignored <- vlapply(eqs[unused], function(x)
+      any(grepl("#\\s*ignore\\.unused", source[x$source])),
+      USE.NAMES = FALSE)
+
+    ## This is almost certainly not what is wanted, but for now we'll
+    ## just raise a message rather than an error:
+    if (length(ignored) > 0) {
+      dropped <- names_if(stage[unused[ignored]] == STAGE_TIME)
+      if (length(dropped) > 0) {
+        ir_parse_note(sprintf(
+          "Unused equation marked as ignored will be dropped: %s",
+          paste(sort(dropped), collapse = ", ")),
+          ir_parse_error_lines(eqs[dropped]), source)
+      }
+    }
+
+    unused <- unused[!ignored]
     if (length(unused) > 0L) {
       ## NOTE: at this point it would be nicest to unravel the
       ## dependency graph a bit to find the variables that are really
