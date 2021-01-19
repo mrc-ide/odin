@@ -151,9 +151,11 @@
                         {"$ref": "#/definitions/include"},
                         {"type": "null"}
                     ]
+                },
+                "custom": {
                 }
             },
-            "required": ["base", "include"],
+            "required": ["base", "include", "custom"],
             "additionalProperties": false
         },
 

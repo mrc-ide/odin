@@ -1,15 +1,21 @@
-ir_parse_config <- function(eqs, base_default, root, source, read_include) {
+ir_parse_config <- function(eqs, base_default, root, source,
+                            read_include, custom) {
   i <- vcapply(eqs, "[[", "type") == "config"
 
-  config <- lapply(unname(eqs[i]), ir_parse_config1, source)
+  config <- lapply(unname(eqs[i]), ir_parse_config1, source, custom)
 
   nms <- vcapply(config, function(x) x$lhs$name_data)
 
   base <- ir_parse_config_base(config[nms == "base"], base_default, source)
   include <- ir_parse_config_include(config[nms == "include"], root, source,
                                      read_include)
+  custom <- ir_parse_config_custom(config[nms %in% custom], source)
 
-  list(base = base, include = include)
+  ret <- list(base = base, include = include)
+  if (length(custom) > 0) {
+    ret$custom <- custom
+  }
+  ret
 }
 
 
@@ -71,7 +77,22 @@ ir_parse_config_include <- function(include, root, source, read_include) {
 }
 
 
-ir_parse_config1 <- function(eq, source) {
+ir_parse_config_custom <- function(x, source) {
+  if (length(x) == 0) {
+    return(NULL)
+  }
+
+  ## Is there any other validation that can really be done? We could
+  ## require that custom cases conform to particular types or are
+  ## unique? For now we'll be really leniant since we don't document
+  ## this as a public interface yet.
+  name <- vcapply(x, function(el) el$lhs$name_lhs)
+  value <- lapply(x, function(el) el$rhs$value)
+  unname(Map(list, name = name, value = value))
+}
+
+
+ir_parse_config1 <- function(eq, source, custom) {
   target <- eq$lhs$name_data
   value <- eq$rhs$value
 
@@ -79,19 +100,20 @@ ir_parse_config1 <- function(eq, source) {
     target,
     base = "character",
     include = "character",
-    ir_parse_error(sprintf("Unknown configuration option: %s", target),
-                   eq$source, source))
+    NULL)
 
-  if (!is.atomic(value)) {
-    ir_parse_error("config() rhs must be atomic (not an expression or symbol)",
-                   eq$source, source)
-  }
-
-  if (storage.mode(value) != expected_type) {
-    ir_parse_error(sprintf(
-      "Expected a %s for config(%s) but recieved a %s",
-      expected_type, target, storage.mode(value)),
-      eq$source, source)
+  if (is.null(expected_type)) {
+    if (!(target %in% custom)) {
+      ir_parse_error(sprintf("Unknown configuration option: %s", target),
+                     eq$source, source)
+    }
+  } else {
+    if (storage.mode(value) != expected_type) {
+      ir_parse_error(sprintf(
+        "Expected a %s for config(%s) but recieved a %s",
+        expected_type, target, storage.mode(value)),
+        eq$source, source)
+    }
   }
 
   eq

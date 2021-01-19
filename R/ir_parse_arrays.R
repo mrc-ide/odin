@@ -86,6 +86,7 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   is_user <- vlapply(eqs, function(x) x$type == "user")
   is_copy <- vlapply(eqs, function(x) x$type == "copy")
   is_delay <- vlapply(eqs, function(x) x$type == "delay")
+  is_config <- vlapply(eqs, function(x) x$type == "config")
   is_delay_array <- vlapply(eqs, function(x)
     x$type == "delay" && !is.null(x$lhs$index))
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
@@ -126,7 +127,7 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   }
 
   ## Then, start checking for duplicates:
-  err <- is_duplicated(names(eqs)) & !is_array & !is_inplace
+  err <- is_duplicated(names(eqs)) & !is_array & !is_inplace & !is_config
   if (any(err)) {
     ir_parse_error(
       sprintf("Duplicate entries must all be array assignments (%s)",
