@@ -1,3 +1,7 @@
+# odin 1.1.8
+
+* Annotate equations with `# ignore.unused` to locally suppress messages about unused variables (mrc-2122)
+
 # odin 1.1.6
 
 * odin no longer warns about use of index variables on rhs as new behaviour has been established for a while (#136)
