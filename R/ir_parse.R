@@ -350,8 +350,11 @@ ir_parse_packing_new <- function(eqs, variables, offset_prefix) {
 
 ir_parse_packing_internal <- function(names, rank, len, variables,
                                       offset_prefix) {
-  ## We'll pack from least to most complex:
-  i <- order(rank)
+  ## We'll pack from least to most complex and everything with a fixed
+  ## offset first. This puts all scalars first, then all arrays that
+  ## have compile-time size next (in order of rank), then all arrays
+  ## with user-time size (in order of rank).
+  i <- order(!vlapply(len, is.numeric), rank)
   names <- names[i]
   rank <- rank[i]
   len <- len[i]

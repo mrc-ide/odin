@@ -844,5 +844,4 @@ test_that("rewrite arrays", {
     dim(S0) <- c(n, m)
   })
 
-
 })
