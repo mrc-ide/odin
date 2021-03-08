@@ -266,7 +266,7 @@ test_that_odin("array support", {
     n <- 3
     dim(r) <- n
     dim(x) <- n
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   mod <- gen()
 
@@ -310,7 +310,7 @@ test_that_odin("3d array", {
     initial(y[, , ]) <- 1
     deriv(y[, , ]) <- y[i, j, k] * 0.1
     dim(y) <- c(2, 3, 4)
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   mod <- gen()
   d <- mod$contents()
@@ -388,7 +388,7 @@ test_that_odin("user array - indirect", {
     dim(r) <- n
     dim(x) <- n
     n <- user()
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   mod <- gen(n = 3, r = 1:3)
   expect_equal(sort_list(mod$contents()),
@@ -432,7 +432,7 @@ test_that_odin("user array - direct 3d", {
     deriv(y) <- 1
     r[, , ] <- user()
     dim(r) <- user()
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   m <- array(runif(24), 2:4)
   mod <- gen(r = m)
@@ -459,7 +459,7 @@ test_that_odin("interpolation", {
     dim(tp) <- user()
     dim(zp) <- user()
     output(p) <- pulse
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   tt <- seq(0, 3, length.out = 301)
   tp <- c(0, 1, 2)
@@ -578,7 +578,7 @@ test_that_odin("3d array time dependent and variable", {
     dim(y) <- c(2, 3, 4)
     dim(r) <- c(2, 3, 4)
     r[, , ] <- t * 0.1
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   mod <- gen()
   d <- mod$contents()

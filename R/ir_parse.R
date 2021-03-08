@@ -1515,7 +1515,9 @@ ir_parse_rewrite_dims <- function(eqs) {
       ## passed through (that will be an error elsewhere).
       if (identical(x_eq$type, "expression_scalar")) {
         compute(x_eq$rhs$value)
-      } else if (is.null(x_eq) || x_eq$type == "user") {
+      } else if (is.null(x_eq) || x_eq$type %in% c("user", "null")) {
+        ## TODO: we get 'null' here from interpolated variables that
+        ## are problematic.
         x
       } else {
         stop("CHECK") # I don't think this is possible and return 'x'?

@@ -488,7 +488,7 @@ ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
           implicit = TRUE,
           source = eq$source,
           depends = list(functions = character(0),
-                         variables = dimnames$dim[j]))
+                         variables = list_to_character(dimnames$dim[j])))
       }
       eq_mult <- lapply(3:rank, f_eq_mult)
     }
