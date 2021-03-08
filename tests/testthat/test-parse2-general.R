@@ -822,3 +822,27 @@ test_that("can't use C identifier", {
     }),
     "Reserved name 'int' for lhs")
 })
+
+
+test_that("rewrite arrays", {
+  ## This does break
+  ## * dependencies.R:23
+  ## * ir_pase.R: 769
+  ## * ir_parse_arrays (465, 480)
+
+  ## so not too bad.
+
+  ir <- odin_parse({
+    n <- 2
+    m <- 2
+    deriv(S[, ]) <- 0
+    deriv(I) <- S[n, m]
+    dim(S) <- c(n, m)
+    initial(S[, ]) <- S0[i, j]
+    initial(I) <- 0
+    S0[, ] <- user()
+    dim(S0) <- c(n, m)
+  })
+
+
+})

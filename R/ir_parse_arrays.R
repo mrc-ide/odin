@@ -465,13 +465,13 @@ ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
         depends = depends_dim)
     }
     eq_dim <- lapply(seq_len(rank), f_eq_dim)
-    dimnames$dim <- vcapply(eq_dim, "[[", "name")
+    dimnames$dim <- lapply(eq_dim, "[[", "name")
 
     ## At this point, modify how we compute total length:
     dims <- lapply(dimnames$dim, as.name)
     eq_length$rhs$value <- r_fold_call("*", dims)
     eq_length$depends <- list(functions = character(0),
-                              variables = dimnames$dim)
+                              variables = list_to_character(dimnames$dim))
 
     ## Even more bits
     if (rank > 2L) {
@@ -492,7 +492,8 @@ ir_parse_arrays_dims <- function(eq, eqs, rank, variables, output) {
       }
       eq_mult <- lapply(3:rank, f_eq_mult)
     }
-    dimnames$mult <- c("", dimnames$dim[[1]], vcapply(eq_mult, "[[", "name"))
+    dimnames$mult <- c(list("", dimnames$dim[[1]]),
+                       lapply(eq_mult, "[[", "name"))
   }
 
   no_alloc <-

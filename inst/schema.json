@@ -783,17 +783,17 @@
             "type": "object",
             "properties": {
                 "length": {
-                    "type": "string"
+                    "$ref": "#/definitions/sexpression"
                 },
                 "dim": {
                     "oneOf": [
-                        {"$ref": "#/definitions/basic/character_vector"},
+                        {"$ref": "#/definitions/sexpression_vector"},
                         {"type": "null"}
                     ]
                 },
                 "mult": {
                     "oneOf": [
-                        {"$ref": "#/definitions/basic/character_vector"},
+                        {"$ref": "#/definitions/sexpression_vector"},
                         {"type": "null"}
                     ]
                 }

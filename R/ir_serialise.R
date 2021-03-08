@@ -72,6 +72,8 @@ ir_serialise_data <- function(data) {
     } else {
       ret$dimnames <- x$dimnames
       ret$dimnames$length <- ir_serialise_expression(x$dimnames$length)
+      ret$dimnames$dim <- lapply(ret$dimnames$dim, ir_serialise_expression)
+      ret$dimnames$mult <- lapply(ret$dimnames$mult, ir_serialise_expression)
     }
     ret$stage <- scalar(STAGE_NAME[x$stage + 1L])
     ret

@@ -70,6 +70,9 @@
 ##'   messages about unused variables.  Defaults to the option
 ##'   `odin.no_check_unused_equations` or `FALSE` otherwise.
 ##'
+##' @param options An [odin_options] object; if given then this
+##'   overrides all options above.
+##'
 ##' @return A function that can generate the model
 ##'
 ##' @author Rich FitzJohn
@@ -98,7 +101,8 @@
 ##' plot(y, xlab = "Time", ylab = "y", main = "", las = 1)
 odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                  validate = NULL, pretty = NULL, skip_cache = NULL,
-                 compiler_warnings = NULL, no_check_unused_equations = NULL) {
+                 compiler_warnings = NULL, no_check_unused_equations = NULL,
+                 options = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -107,7 +111,7 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
     xx <- force(x)
   }
   odin_(xx, verbose, target, workdir, validate, pretty, skip_cache,
-        compiler_warnings, no_check_unused_equations)
+        compiler_warnings, no_check_unused_equations, options)
 }
 
 
@@ -115,15 +119,18 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 ##' @rdname odin
 odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                   validate = NULL, pretty = NULL, skip_cache = NULL,
-                  compiler_warnings = NULL, no_check_unused_equations = NULL) {
-  options <- odin_options(verbose = verbose,
-                          target = target,
-                          workdir = workdir,
-                          validate = validate,
-                          pretty = pretty,
-                          skip_cache = skip_cache,
-                          no_check_unused_equations = no_check_unused_equations,
-                          compiler_warnings = compiler_warnings)
+                  compiler_warnings = NULL, no_check_unused_equations = NULL,
+                  options = NULL) {
+  options <- odin_options(
+    verbose = verbose,
+    target = target,
+    workdir = workdir,
+    validate = validate,
+    pretty = pretty,
+    skip_cache = skip_cache,
+    no_check_unused_equations = no_check_unused_equations,
+    compiler_warnings = compiler_warnings,
+    options = options)
 
   ir <- odin_parse_(x, options)
   odin_generate(ir, options)

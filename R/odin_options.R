@@ -16,6 +16,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          validate = NULL, pretty = NULL, skip_cache = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
+                         rewrite_dims = NULL,
                          options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
@@ -26,6 +27,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     workdir = tempfile(),
     pretty = FALSE,
     skip_cache = FALSE,
+    rewrite_dims = FALSE,
     no_check_unused_equations = FALSE,
     compiler_warnings = FALSE)
   if (is.null(options)) {
@@ -35,6 +37,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                  pretty = pretty,
                  workdir = workdir,
                  skip_cache = skip_cache,
+                 rewrite_dims = rewrite_dims,
                  no_check_unused_equations = no_check_unused_equations,
                  compiler_warnings = compiler_warnings)
   }

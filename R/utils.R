@@ -156,6 +156,11 @@ list_to_character <- function(x) {
 }
 
 
+list_to_numeric <- function(x) {
+  vnapply(x, identity)
+}
+
+
 sort_list <- function(x) {
   x[order(names(x))]
 }
@@ -235,4 +240,14 @@ read_lines <- function(path) {
 
 clean_package_name <- function(name) {
   gsub("_", ".", name)
+}
+
+
+flatten1 <- function(x) {
+  unlist(x, FALSE, FALSE)
+}
+
+
+na_drop <- function(x) {
+  x[!is.na(x)]
 }

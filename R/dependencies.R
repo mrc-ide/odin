@@ -20,6 +20,7 @@ find_symbols <- function(expr, hide_errors = TRUE) {
         if (length(e) >= 2L) {
           ## The if here avoids an invalid parse, e.g. length(); we'll
           ## pick that up later on.
+          ## This is the one problematic use
           variables$add(array_dim_name(deparse(e[[2L]])))
         }
         ## Still need to declare the function as used because we'll

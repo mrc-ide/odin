@@ -579,12 +579,16 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
       sprintf_safe("SET_VECTOR_ELT(%s, %d, ScalarInteger(%s));",
                    target, i - 1L, rewrite(d$dimnames$length))
     } else {
+      ## NOTE: need to use array_dim_name here because we might have
+      ## removed the dimension variable. However, this exists only
+      ## through a short scope here and we could really use anything.
+      name <- array_dim_name(d$name)
       c(sprintf_safe("SET_VECTOR_ELT(%s, %d, allocVector(INTSXP, %d));",
                      target, i - 1L, d$rank),
         sprintf_safe("int * %s = INTEGER(VECTOR_ELT(%s, %d));",
-                     d$dimnames$length, target, i - 1L),
+                     name, target, i - 1L),
         sprintf_safe("%s[%d] = %s;",
-                     d$dimnames$length, seq_len(d$rank) - 1L,
+                     name, seq_len(d$rank) - 1L,
                      vcapply(d$dimnames$dim, rewrite, USE.NAMES = FALSE)))
     }
   }

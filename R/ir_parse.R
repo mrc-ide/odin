@@ -19,6 +19,13 @@ ir_parse <- function(x, options, type = NULL) {
 
   eqs <- ir_parse_arrays(eqs, variables, config$include$names, source)
 
+  ## This performs a round of optimisation where we try to simplify
+  ## away expressions for the dimensions, which reduces the number of
+  ## required variables.
+  if (options$rewrite_dims && features$has_array) {
+    eqs <- ir_parse_rewrite_dims(eqs)
+  }
+
   packing <- ir_parse_packing(eqs, variables, source)
   eqs <- c(eqs, packing$offsets)
   packing$offsets <- NULL
@@ -318,13 +325,14 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name, source) {
   stage[names_if(vlapply(eqs, is_null))] <- STAGE_NULL
 
   i <- vlapply(eqs, function(x) !is.null(x$array))
-  len <- unique(vcapply(eqs[i], function(x) x$array$dimnames$length))
-  err <- stage[len] == STAGE_TIME
+  len <- lapply(eqs[i], function(x) x$array$dimnames$length)
+  len_var <- list_to_character(len[vlapply(len, is.character)])
+  err <- stage[len_var] == STAGE_TIME
 
   if (any(err)) {
     ir_parse_error(
       "Array extent is determined by time",
-      ir_parse_error_lines(eqs[len[err]]), source)
+      ir_parse_error_lines(eqs[len_var[err]]), source)
   }
 
   stage
@@ -358,7 +366,8 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
     } else if (identical(offset[[i]], 0L)) {
       offset[[i + 1L]] <- as.name(len[[i]])
     } else {
-      offset[[i + 1L]] <- call("+", offset[[i]], as.name(len[[i]]))
+      len_i <- if (is.numeric(len[[i]])) len[[i]] else as.name(len[[i]])
+      offset[[i + 1L]] <- static_eval(call("+", offset[[i]], len_i))
     }
   }
 
@@ -1489,4 +1498,76 @@ ir_parse_expr_rhs_check_inplace <- function(lhs, rhs, line, source) {
       "Expected an array on the lhs of inplace function '%s'", fn),
       line, source)
   }
+}
+
+
+## This approach could probably be applied over the whole tree really,
+## as we might be able to eliminate some other compile time
+## things. However, doing that will make the models less debuggable.
+ir_parse_rewrite_dims <- function(eqs) {
+  compute <- function(x) {
+    if (is.numeric(x)) {
+      x
+    } else if (is.symbol(x)) {
+      x_eq <- eqs[[deparse_str(x)]]
+      if (x_eq$type == "expression_scalar") {
+        compute(x_eq$rhs$value)
+      } else if (x_eq$type == "user") {
+        x
+      } else {
+        stop("CHECK") # I don't think this is possible and return 'x'?
+      }
+    } else if (is.recursive(x)) {
+      x[-1] <- lapply(x[-1], compute)
+      x
+    }
+  }
+
+  ## alternatively look in all $array$dimnames elements
+  nms <- grep("dim_", names(eqs), value = TRUE)
+
+  val <- lapply(eqs[nms], function(eq)
+    static_eval(compute(eq$rhs$value)))
+
+  rewrite <- vlapply(val, function(x) is.symbol(x) || is.numeric(x))
+
+  subs <- val[rewrite]
+
+  ## Try and deduplicate the rest. However, it's not totally obvious
+  ## that we can do this without creating some weird dependency
+  ## issues.
+  leave <- val[!rewrite]
+  dup <- duplicated(leave)
+  if (any(dup)) {
+    i <- match(leave[dup], leave)
+    subs <- c(subs,
+              set_names(lapply(names(leave)[i], as.name), names(leave)[dup]))
+  }
+
+  replace <- function(x, y) {
+    i <- match(vcapply(x, function(x) x %||% ""), names(y))
+    j <- which(!is.na(i))
+    x[j] <- unname(y)[i[j]]
+    na_drop(x)
+  }
+
+  subs_env <- list2env(subs, parent = emptyenv())
+  subs_dep <- vcapply(subs, function(x)
+    if (is.numeric(x)) NA_character_ else deparse_str(x))
+
+  rewrite_eq <- function(eq) {
+    eq$rhs$value <- substitute_(eq$rhs$value, subs_env)
+
+    eq$depends$variables <- replace(eq$depends$variables, subs_dep)
+    eq$lhs$depends$variables <- replace(eq$lhs$depends$variables, subs_dep)
+
+    if (!is.null(eq$array$dimnames)) {
+      eq$array$dimnames$length <- replace(eq$array$dimnames$length, subs)[[1]]
+      eq$array$dimnames$dim <- replace(eq$array$dimnames$dim, subs)
+      eq$array$dimnames$mult <- replace(eq$array$dimnames$mult, subs)
+    }
+    eq
+  }
+
+  lapply(eqs[setdiff(names(eqs), names(subs))], rewrite_eq)
 }
