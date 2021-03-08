@@ -653,7 +653,7 @@ test_that_odin("discrete delays: matrix", {
     dim(y) <- c(2, 3)
     dim(z) <- c(2, 3)
     dim(a) <- c(2, 3)
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   mod <- gen()
   tt <- 0:10

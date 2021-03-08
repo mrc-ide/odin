@@ -1232,8 +1232,11 @@ ir_parse_delay_discrete <- function(eq, eqs, source) {
   nm <- eq$name
   nm_ring <- sprintf("delay_ring_%s", nm)
 
-  depends_ring <- list(functions = character(0),
-                       variables = eq$array$dimnames$length %||% character(0))
+  len <- eq$array$dimnames$length
+  depends_ring <- list(
+    functions = character(0),
+    variables = if (is.character(len)) len else character(0))
+
   lhs_ring <- list(name_data = nm_ring, name_equation = nm_ring,
                    name_lhs = nm_ring, storage_type = "ring_buffer")
   eq_ring <- list(
@@ -1522,8 +1525,17 @@ ir_parse_rewrite_dims <- function(eqs) {
       } else {
         stop("CHECK") # I don't think this is possible and return 'x'?
       }
+    } else if (is_call(x, "length")) {
+      ## NOTE: use array_dim_name because we might hit things like
+      ## length(y) where 'y' is one of the variables; we can't look up
+      ## eqs[[name]]$array$length without checking that.
+      compute(as.name(array_dim_name(as.character(x[[2]]))))
+    } else if (is_call(x, "dim")) {
+      compute(as.name(array_dim_name(as.character(x[[2]]), x[[3]])))
     } else if (is.recursive(x)) {
       x[-1] <- lapply(x[-1], compute)
+      x
+    } else { # NULL
       x
     }
   }
@@ -1542,7 +1554,8 @@ ir_parse_rewrite_dims <- function(eqs) {
   ## that we can do this without creating some weird dependency
   ## issues.
   leave <- val[!rewrite]
-  dup <- duplicated(leave)
+  ## Do not deduplicate NULL dimensions; these are set by user() later.
+  dup <- duplicated(leave) & !vlapply(leave, is.null)
   if (any(dup)) {
     i <- match(leave[dup], leave)
     subs <- c(subs,
