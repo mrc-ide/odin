@@ -326,7 +326,7 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name, source) {
 
   i <- vlapply(eqs, function(x) !is.null(x$array))
   len <- lapply(eqs[i], function(x) x$array$dimnames$length)
-  len_var <- list_to_character(len[vlapply(len, is.character)])
+  len_var <- vcapply(len[vlapply(len, is.name)], deparse_str)
   err <- stage[len_var] == STAGE_TIME
 
   if (any(err)) {
@@ -366,8 +366,6 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
   for (i in seq_along(names)) {
     if (!is_array[[i]]) {
       offset[[i + 1L]] <- i
-    } else if (identical(offset[[i]], 0L)) {
-      offset[[i + 1L]] <- as.name(len[[i]])
     } else {
       len_i <- if (is.numeric(len[[i]])) len[[i]] else as.name(len[[i]])
       offset[[i + 1L]] <- static_eval(call("+", offset[[i]], len_i))
@@ -1513,9 +1511,11 @@ ir_parse_rewrite_dims <- function(eqs) {
       x
     } else if (is.symbol(x)) {
       x_eq <- eqs[[deparse_str(x)]]
-      if (x_eq$type == "expression_scalar") {
+      ## use identical() here to cope with x_eq being NULL when 't' is
+      ## passed through (that will be an error elsewhere).
+      if (identical(x_eq$type, "expression_scalar")) {
         compute(x_eq$rhs$value)
-      } else if (x_eq$type == "user") {
+      } else if (is.null(x_eq) || x_eq$type == "user") {
         x
       } else {
         stop("CHECK") # I don't think this is possible and return 'x'?
