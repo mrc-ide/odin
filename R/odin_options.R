@@ -38,15 +38,17 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     no_check_unused_equations = FALSE,
     compiler_warnings = FALSE)
   if (is.null(options)) {
-    options <- list(validate = validate,
-                 verbose = verbose,
-                 target = target,
-                 pretty = pretty,
-                 workdir = workdir,
-                 skip_cache = skip_cache,
-                 rewrite_dims = rewrite_dims,
-                 no_check_unused_equations = no_check_unused_equations,
-                 compiler_warnings = compiler_warnings)
+    options <- list(
+      validate = assert_scalar_logical_or_null(validate),
+      verbose = assert_scalar_logical_or_null(verbose),
+      target = target,
+      pretty = assert_scalar_logical_or_null(pretty),
+      workdir = workdir,
+      skip_cache = assert_scalar_logical_or_null(skip_cache),
+      rewrite_dims = assert_scalar_logical_or_null(rewrite_dims),
+      no_check_unused_equations =
+        assert_scalar_logical_or_null(no_check_unused_equations),
+      compiler_warnings = assert_scalar_logical_or_null(compiler_warnings))
   }
   stopifnot(all(names(defaults) %in% names(options)))
 
