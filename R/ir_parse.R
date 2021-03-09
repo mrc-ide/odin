@@ -1287,24 +1287,32 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
     substitutions <- lapply(arrays, function(x)
       list(from = x,
            to = sprintf("delay_array_%s", x),
-           dim = eqs[[x]]$array$dimnames$length))
+           dim = as.character(eqs[[x]]$array$dimnames$length)))
   } else {
     substitutions <- list()
   }
 
-  eq_len <- list(
-    name = nm_dim,
-    type = "expression_scalar",
-    source = eq$source,
-    depends = find_symbols(graph$packing$length),
-    lhs = list(name_data = nm_dim, name_equation = nm_dim, name_lhs = nm_dim,
-               storage_type = "int"),
-    rhs = list(value = graph$packing$length))
+  if (is.numeric(graph$packing$length)) {
+    eq_len <- NULL
+    val_len <- graph$packing$length
+    dep_len <- character(0)
+  } else {
+    eq_len <- list(
+      name = nm_dim,
+      type = "expression_scalar",
+      source = eq$source,
+      depends = find_symbols(graph$packing$length),
+      lhs = list(name_data = nm_dim, name_equation = nm_dim, name_lhs = nm_dim,
+                 storage_type = "int"),
+      rhs = list(value = graph$packing$length))
+    val_len <- nm_dim
+    dep_len <- nm_dim
+  }
 
   lhs_use <- eq$lhs[c("name_data", "name_equation", "name_lhs", "special")]
   subs_from <- vcapply(substitutions, "[[", "to")
   depends_use <- join_deps(list(
-    eq$depends, ir_parse_depends(variables = c(nm_dim, subs_from, TIME))))
+    eq$depends, ir_parse_depends(variables = c(dep_len, subs_from, TIME))))
 
   eq_use <- list(
     name = nm,
@@ -1317,7 +1325,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
       state = nm_state,
       index = nm_index,
       substitutions = substitutions,
-      variables = list(length = eq_len$name,
+      variables = list(length = val_len,
                        contents = graph$packing$contents),
       equations = graph$equations,
       default = eq$delay$default,
@@ -1325,7 +1333,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
       depends = eq$delay$depends),
     array = eq$array)
 
-  array <- list(dimnames = list(length = nm_dim, dim = NULL, mult = NULL),
+  array <- list(dimnames = list(length = val_len, dim = NULL, mult = NULL),
                 rank = 1L)
   lhs_index <-
     list(name_data = nm_index, name_equation = nm_index, name_lhs = nm_index,
@@ -1335,7 +1343,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
   offsets <- lapply(variables$contents[match(graph$variables, variable_names)],
                     "[[", "offset")
   depends_index <- join_deps(lapply(offsets, find_symbols))
-  depends_index$variables <- union(depends_index$variables, nm_dim)
+  depends_index$variables <- union(depends_index$variables, dep_len)
   eq_index <- list(
     name = nm_index,
     type = "delay_index",
@@ -1352,7 +1360,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
     name = nm_state,
     type = "null",
     source = eq$source,
-    depends = ir_parse_depends(variables = nm_dim),
+    depends = ir_parse_depends(variables = dep_len),
     lhs = lhs_state,
     array = array)
 
@@ -1361,7 +1369,9 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
     eq_index$depends$variables <- c(eq_index$depends$variables, names(offsets))
   }
 
-  extra <- c(list(eq_len, eq_index, eq_state, eq_use), offsets)
+  extra <- c(if (is.null(eq_len)) NULL else list(eq_len),
+             list(eq_index, eq_state, eq_use),
+             offsets)
   names(extra) <- vcapply(extra, "[[", "name")
 
   stopifnot(sum(names(eqs) == eq$name) == 1)
@@ -1584,6 +1594,12 @@ ir_parse_rewrite_dims <- function(eqs) {
       eq$array$dimnames$dim <- replace(eq$array$dimnames$dim, subs)
       eq$array$dimnames$mult <- replace(eq$array$dimnames$mult, subs)
     }
+
+    if (!is.null(eq$delay)) {
+      eq$delay$depends$variables <-
+        replace(eq$delay$depends$variables, subs_dep)
+    }
+
     eq
   }
 

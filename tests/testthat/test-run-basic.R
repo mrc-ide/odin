@@ -411,7 +411,7 @@ test_that_odin("user array - direct", {
     r[] <- user()
     dim(r) <- user()
     dim(x) <- length(r)
-  })
+  }, options = odin_options(rewrite_dims = FALSE))
 
   mod <- gen(r = 1:3)
   expect_equal(
