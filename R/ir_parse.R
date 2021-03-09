@@ -1200,10 +1200,11 @@ ir_parse_delay <- function(eqs, discrete, variables, source) {
       ## TODO: ideally we'd get the correct lines here for source, but
       ## that's low down the list of needs.
       f <- function(x) {
+        depends <- if (is.numeric(x$dim)) character(0) else as.character(x$dim)
         list(name = x$to,
              type = "alloc",
              source = integer(0),
-             depends = ir_parse_depends(variables = x$dim),
+             depends = ir_parse_depends(variables = depends),
              lhs = list(name_data = x$to,
                         name_lhs = x$to,
                         name_equation = x$to),
@@ -1287,7 +1288,7 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
     substitutions <- lapply(arrays, function(x)
       list(from = x,
            to = sprintf("delay_array_%s", x),
-           dim = as.character(eqs[[x]]$array$dimnames$length)))
+           dim = eqs[[x]]$array$dimnames$length))
   } else {
     substitutions <- list()
   }
