@@ -156,11 +156,6 @@ list_to_character <- function(x) {
 }
 
 
-list_to_numeric <- function(x) {
-  vnapply(x, identity)
-}
-
-
 sort_list <- function(x) {
   x[order(names(x))]
 }
