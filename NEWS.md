@@ -1,3 +1,7 @@
+# odin 1.1.9
+
+* New option `rewrite_dims` (via `odin::odin_options`) which will attempt to simplify common dimensions. This can reduce the number of variables carried around in the model as these are typically very redundant and also known at compile time (mrc-2093)
+
 # odin 1.1.8
 
 * Annotate equations with `# ignore.unused` to locally suppress messages about unused variables (mrc-2122)
