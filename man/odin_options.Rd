@@ -45,6 +45,14 @@ version depending on underlying support in pkgbuild.}
 messages about unused variables.  Defaults to the option
 \code{odin.no_check_unused_equations} or \code{FALSE} otherwise.}
 
+\item{rewrite_dims}{Logical, indicating if odin should try and
+rewrite your model dimensions (if using arrays). If \code{TRUE} then
+we replace dimensions known at compile-time with literal
+integers, and those known at initialisation with simplified and
+shared expressions. You may get less-comprehensible error
+messages with this option set to \code{TRUE} because parts of the
+model have been effectively evaluated during processing.}
+
 \item{options}{Named list of options.  If provided, then all other
 options are ignored.}
 }

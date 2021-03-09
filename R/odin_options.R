@@ -6,6 +6,14 @@
 ##'
 ##' @inheritParams odin
 ##'
+##' @param rewrite_dims Logical, indicating if odin should try and
+##'   rewrite your model dimensions (if using arrays). If `TRUE` then
+##'   we replace dimensions known at compile-time with literal
+##'   integers, and those known at initialisation with simplified and
+##'   shared expressions. You may get less-comprehensible error
+##'   messages with this option set to `TRUE` because parts of the
+##'   model have been effectively evaluated during processing.
+##'
 ##' @export
 ##' @examples
 ##' odin_options()
