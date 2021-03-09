@@ -56,6 +56,9 @@ model have been effectively evaluated during processing.}
 \item{options}{Named list of options.  If provided, then all other
 options are ignored.}
 }
+\value{
+A list of parameters, of class \code{odin_options}
+}
 \description{
 For lower-level odin functions \link{odin_parse},
 \link{odin_validate} we only accept a list of options rather

@@ -1,5 +1,11 @@
 context("odin_options")
 
+test_that("odin_options creates a classed list", {
+  opts <- odin_options()
+  expect_s3_class(opts, "odin_options")
+  expect_true(is.list(opts))
+})
+
 test_that("can create placeholder handler for include parsing", {
   opts <- odin_options(target = "fortran")
   expect_error(

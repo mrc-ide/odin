@@ -14,6 +14,8 @@
 ##'   messages with this option set to `TRUE` because parts of the
 ##'   model have been effectively evaluated during processing.
 ##'
+##' @return A list of parameters, of class `odin_options`
+##'
 ##' @export
 ##' @examples
 ##' odin_options()
@@ -62,5 +64,6 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
       read_include_unsupported(options$target))
   }
 
+  class(options) <- "odin_options"
   options
 }
