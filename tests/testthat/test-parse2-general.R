@@ -370,26 +370,34 @@ test_that("recursive variables", {
 })
 
 test_that("array extent and time", {
-  expect_error(odin_parse_(quote({
-    deriv(y[]) <- 1
-    initial(y[]) <- 0
-    dim(y) <- t
-  })), "Array extent is determined by time", class = "odin_error")
+  for (rewrite_dims in c(FALSE, TRUE)) {
+    expect_error(
+      odin_parse_(quote({
+        deriv(y[]) <- 1
+        initial(y[]) <- 0
+        dim(y) <- t
+      }), options = odin_options(rewrite_dims = rewrite_dims)),
+      "Array extent is determined by time", class = "odin_error")
 
-  expect_error(odin_parse_(quote({
-    deriv(y[]) <- 1
-    initial(y[]) <- 0
-    a <- t
-    dim(y) <- a
-  })), "Array extent is determined by time", class = "odin_error")
+    expect_error(
+      odin_parse_(quote({
+        deriv(y[]) <- 1
+        initial(y[]) <- 0
+        a <- t
+        dim(y) <- a
+      }), options = odin_options(rewrite_dims = rewrite_dims)),
+      "Array extent is determined by time", class = "odin_error")
 
-  expect_error(odin_parse_(quote({
-    deriv(y[]) <- 1
-    initial(y[]) <- 0
-    deriv(z) <- 1
-    initial(z) <- 0
-    dim(y) <- z
-  })), "Array extent is determined by time", class = "odin_error")
+    expect_error(
+      odin_parse_(quote({
+        deriv(y[]) <- 1
+        initial(y[]) <- 0
+        deriv(z) <- 1
+        initial(z) <- 0
+        dim(y) <- z
+      }), options = odin_options(rewrite_dims = rewrite_dims)),
+      "Array extent is determined by time", class = "odin_error")
+  }
 })
 
 test_that("lhs checking", {

@@ -326,10 +326,14 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name, source) {
 
   i <- vlapply(eqs, function(x) !is.null(x$array))
   len <- lapply(eqs[i], function(x) x$array$dimnames$length)
-  len_var <- vcapply(len[vlapply(len, is.name)], deparse_str)
+  ## We end up with sometimes a string and sometimes a symbol here
+  ## which is unsatisfactory.
+  len_var <- vcapply(len[!vlapply(len, is.numeric)], as.character)
   err <- stage[len_var] == STAGE_TIME
 
   if (any(err)) {
+    ## TODO: in the case where we rewrite dimensions this error is not
+    ## great beause we've lost the dim() call!
     ir_parse_error(
       "Array extent is determined by time",
       ir_parse_error_lines(eqs[len_var[err]]), source)
