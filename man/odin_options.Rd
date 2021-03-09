@@ -7,7 +7,7 @@
 odin_options(verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,
   compiler_warnings = NULL, no_check_unused_equations = NULL,
-  options = NULL)
+  rewrite_dims = NULL, options = NULL)
 }
 \arguments{
 \item{verbose}{Logical scalar indicating if the compilation should
@@ -50,7 +50,7 @@ options are ignored.}
 }
 \description{
 For lower-level odin functions \link{odin_parse},
-\link{odin_validate} we accept a list of options rather
+\link{odin_validate} we only accept a list of options rather
 than individually named options.
 }
 \examples{

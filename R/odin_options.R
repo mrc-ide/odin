@@ -1,13 +1,10 @@
 ##' For lower-level odin functions [odin::odin_parse],
-##' [odin::odin_validate] we accept a list of options rather
+##' [odin::odin_validate] we only accept a list of options rather
 ##' than individually named options.
 ##'
 ##' @title Odin options
 ##'
 ##' @inheritParams odin
-##'
-##' @param options Named list of options.  If provided, then all other
-##'   options are ignored.
 ##'
 ##' @export
 ##' @examples

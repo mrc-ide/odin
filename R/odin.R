@@ -70,8 +70,8 @@
 ##'   messages about unused variables.  Defaults to the option
 ##'   `odin.no_check_unused_equations` or `FALSE` otherwise.
 ##'
-##' @param options An [odin_options] object; if given then this
-##'   overrides all options above.
+##' @param options Named list of options.  If provided, then all other
+##'   options are ignored.
 ##'
 ##' @return A function that can generate the model
 ##'
