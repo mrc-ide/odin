@@ -23,7 +23,7 @@
 * The basic infrastructure has been overhauled, which will make some alternative compilation targets easier to support. We now use `pkgbuild` for the compilation which should ease debugging, and odin code compiled into packages will no longer issue a slew of warnings (and cooperate with automatic routine registration). This refactor has caused a few minor breaking changes:
   - `$initial()` always requires time, even if it is ignored
   - `$set_user()` and construction no longer work with positional argument matching - all arguments must be named
-  - The `$ir` field has become a method; add parens after it
+  - The `$ir` field has become a method; add parentheses after it
   - The `compiler_warnings` option has been removed
 
 # odin 1.0.7
