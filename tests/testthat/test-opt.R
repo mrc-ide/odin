@@ -56,5 +56,5 @@ test_that("sort expressions", {
     quote(a + b + 3))
   expect_equal(
     static_eval(quote(1 + b + a + 2 + x * y)),
-    quote(x * y a + b + 3))
+    quote(x * y + a + b + 3))
 })
