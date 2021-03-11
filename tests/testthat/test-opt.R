@@ -45,3 +45,16 @@ test_that("More complex examples", {
   expect_equal(static_eval(quote((1 + 4) * (b + 3))),
                quote((b + 3) * 5))
 })
+
+
+test_that("sort expressions", {
+  expect_equal(
+    static_eval(quote(a + 1 + b + 2)),
+    quote(a + b + 3))
+  expect_equal(
+    static_eval(quote(1 + b + a + 2)),
+    quote(a + b + 3))
+  expect_equal(
+    static_eval(quote(1 + b + a + 2 + x * y)),
+    quote(x * y a + b + 3))
+})

@@ -58,5 +58,5 @@ collect_assoc <- function(args, fn) {
 
 order_args <- function(args) {
   i <- viapply(args, function(x) is.language(x) + is.recursive(x))
-  args[order(i, decreasing = TRUE)]
+  args[order(-i, vcapply(args, deparse_str))]
 }
