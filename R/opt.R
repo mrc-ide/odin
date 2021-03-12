@@ -36,6 +36,17 @@ static_eval_assoc <- function(expr) {
     args <- c(args[!i], eval(r_fold_call(fn, args[i]), baseenv()))
   }
 
+  if (fn == "+") {
+    args <- args[!vlapply(args, function(x) is.numeric(x) && x == 0)]
+  }
+
+  if (fn == "*") {
+    if (any(vlapply(args, function(x) is.numeric(x) && x == 0))) {
+      args <- list(0)
+    }
+    args <- args[!vlapply(args, function(x) is.numeric(x) && x == 1)]
+  }
+
   if (length(args) == 1L) {
     return(args[[1L]])
   }

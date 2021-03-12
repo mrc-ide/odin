@@ -58,3 +58,21 @@ test_that("sort expressions", {
     static_eval(quote(1 + b + a + 2 + x * y)),
     quote(x * y + a + b + 3))
 })
+
+
+test_that("Addition of zero is a noop", {
+  expect_equal(static_eval(quote(a + 0)), quote(a))
+  expect_equal(static_eval(quote(a + 0 + b)), quote(a + b))
+})
+
+
+test_that("Multiplication by one is a noop", {
+  expect_equal(static_eval(quote(a * 1)), quote(a))
+  expect_equal(static_eval(quote(a * 1 * b)), quote(a * b))
+})
+
+
+test_that("Multiplication by one is a noop", {
+  expect_equal(static_eval(quote(a * 1)), quote(a))
+  expect_equal(static_eval(quote(a * 1 * b)), quote(a * b))
+})
