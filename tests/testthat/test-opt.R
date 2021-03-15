@@ -23,14 +23,6 @@ test_that("static_eval collects numbers up associatively", {
 })
 
 
-test_that("collect_assoc unfolds expressions", {
-  expect_equal(collect_assoc(quote(a + b + c), quote(`+`)),
-               list(quote(`+`), quote(a), quote(b), quote(c)))
-  expect_equal(collect_assoc(quote(a + 1 + b + 2 + c + 3), quote(`+`)),
-               list(quote(`+`), quote(a), 1, quote(b), 2, quote(c), 3))
-})
-
-
 test_that("static_eval removes superfluous parens", {
   expect_equal(static_eval(quote(1 + (a + 2))), quote(a + 3))
   expect_equal(static_eval(quote(1 + (a + 2) + 3)), quote(a + 6))
@@ -72,7 +64,27 @@ test_that("Multiplication by one is a noop", {
 })
 
 
-test_that("Multiplication by one is a noop", {
-  expect_equal(static_eval(quote(a * 1)), quote(a))
-  expect_equal(static_eval(quote(a * 1 * b)), quote(a * b))
+test_that("Multiplication by zero is catatrophic", {
+  expect_equal(static_eval(quote(a * 0)), 0)
+  expect_equal(static_eval(quote(a * 0 * b)), 0)
+})
+
+
+test_that("Can evaluate very long expressions", {
+  v <- sprintf("x%d", seq_len(200))
+  e <- parse(text = paste(v, collapse = " + "))[[1]]
+  expect_equal(
+    static_eval(e),
+    r_fold_call("+", lapply(sort(v), as.name)))
+})
+
+
+test_that("Can collect linear combinations", {
+  expect_equal(
+    static_eval(quote(a + b + a + b + a + 4)),
+    quote(a * 3 + b * 2 + 4))
+  ## This is something to pick up later
+  expect_equal(
+    static_eval(quote(a + 1 * (a + a))),
+    quote(a * 2 + a))
 })

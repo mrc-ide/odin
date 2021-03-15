@@ -28,8 +28,14 @@ static_eval <- function(expr) {
 
 
 static_eval_assoc <- function(expr) {
+  expr <- flatten_assoc(expr)
+  expr[-1] <- lapply(expr[-1], static_eval)
+
+  ## We need a *second* round here of flatten_assoc
+  expr <- flatten_assoc(expr)
+
   fn <- as.character(expr[[1]])
-  args <- collect_assoc(lapply(expr[-1], static_eval), fn)
+  args <- expr[-1L]
 
   i <- vlapply(args, is.numeric)
   if (any(i)) {
@@ -38,6 +44,18 @@ static_eval_assoc <- function(expr) {
 
   if (fn == "+") {
     args <- args[!vlapply(args, function(x) is.numeric(x) && x == 0)]
+
+    ## Collect linear combinations of shared parameters here; this
+    ## causes issues for simplifying general expressions (e.g., a + 1
+    ## * (a + a) will end up as 2 * a + a) but odin doesn't generate
+    ## things like that (yet).
+    i <- match(args, args)
+    if (anyDuplicated(i)) {
+      for (k in unique(i[duplicated(i)])) {
+        args[[k]] <- call("*", args[[k]], as.numeric(sum(i == k)))
+      }
+      args <- args[!duplicated(i)]
+    }
   }
 
   if (fn == "*") {
@@ -55,19 +73,21 @@ static_eval_assoc <- function(expr) {
 }
 
 
-collect_assoc <- function(args, fn) {
-  args <- as.list(args)
-  i <- vlapply(args, is_call, fn)
-  if (any(i)) {
-    args[i] <- lapply(args[i], function(x) collect_assoc(x[-1], fn))
-    flatten1(args)
-  } else {
-    args
-  }
-}
-
-
 order_args <- function(args) {
   i <- viapply(args, function(x) is.language(x) + is.recursive(x))
   args[order(-i, vcapply(args, deparse_str))]
+}
+
+
+flatten_assoc <- function(expr) {
+  fn <- expr[[1L]]
+  check <- as.list(expr[-1L])
+  args <- list()
+  while (length(check) > 0) {
+    i <- vlapply(check, is_call, fn)
+    args <- c(args, check[!i])
+    check <- unlist(lapply(check[i], function(x) as.list(x[-1])), FALSE)
+  }
+
+  c(list(fn), args)
 }
