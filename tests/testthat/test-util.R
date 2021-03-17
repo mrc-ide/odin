@@ -161,3 +161,20 @@ test_that("Don't set envvar if not needed", {
     mockery::mock_args(mock_compile_dll)[[1]],
     list(path, compile_attributes, quiet))
 })
+
+
+test_that("validate inputs", {
+  expect_silent(assert_scalar_logical_or_null(NULL))
+  expect_silent(assert_scalar_logical_or_null(TRUE))
+  expect_silent(assert_scalar_logical_or_null(FALSE))
+
+  thing <- "true"
+  expect_error(
+    assert_scalar_logical_or_null(thing),
+    "Expected 'thing' to be a logical scalar (or NULL)",
+    fixed = TRUE)
+  expect_error(assert_scalar_logical_or_null(NA),
+               "Expected '.+' to be a logical scalar \\(or NULL\\)")
+  expect_error(assert_scalar_logical_or_null(logical(0)),
+               "Expected '.+' to be a logical scalar \\(or NULL\\)")
+})

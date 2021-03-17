@@ -7,11 +7,12 @@
 \usage{
 odin(x, verbose = NULL, target = NULL, workdir = NULL, validate = NULL,
   pretty = NULL, skip_cache = NULL, compiler_warnings = NULL,
-  no_check_unused_equations = NULL)
+  no_check_unused_equations = NULL, options = NULL)
 
 odin_(x, verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,
-  compiler_warnings = NULL, no_check_unused_equations = NULL)
+  compiler_warnings = NULL, no_check_unused_equations = NULL,
+  options = NULL)
 }
 \arguments{
 \item{x}{Either the name of a file to read, a text string (if
@@ -52,6 +53,9 @@ version depending on underlying support in pkgbuild.}
 \item{no_check_unused_equations}{If \code{TRUE}, then don't print
 messages about unused variables.  Defaults to the option
 \code{odin.no_check_unused_equations} or \code{FALSE} otherwise.}
+
+\item{options}{Named list of options.  If provided, then all other
+options are ignored.}
 }
 \value{
 A function that can generate the model

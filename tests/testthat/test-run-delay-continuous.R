@@ -219,16 +219,27 @@ test_that_odin("delay index packing", {
     dim(e) <- 14
   })
 
+  dim_a <- 10
+  dim_b <- 11
+  dim_c <- 12
+  dim_d <- 13
+  dim_e <- 14
+  dim_foo <- 9
+  offset_variable_c <- 21 # i.e., 10 + 11
+  offset_variable_e <- 46 # i.e., 10 + 11 + 12 + 13
+
   mod <- gen()
   dat <- mod$contents()
 
   seq0 <- function(n) seq_len(n)
 
-  expect_equal(dat$dim_delay_foo, dat$dim_b + dat$dim_c + dat$dim_e)
+  if (odin_target_name() == "c") {
+    expect_length(dat$delay_state_foo, dim_b + dim_c + dim_e)
+  }
 
-  delay_index_foo <- c(dat$dim_a + seq0(dat$dim_b),
-                       dat$offset_variable_c + seq0(dat$dim_c),
-                       dat$offset_variable_e + seq0(dat$dim_e))
+  delay_index_foo <- c(dim_a + seq0(dim_b),
+                       offset_variable_c + seq0(dim_c),
+                       offset_variable_e + seq0(dim_e))
   if (odin_target_name() == "c") {
     delay_index_foo <- delay_index_foo - 1L
   }
@@ -237,7 +248,7 @@ test_that_odin("delay index packing", {
   tt <- seq(0, 10, length.out = 11)
   yy <- mod$transform_variables(mod$run(tt))
 
-  i <- seq_len(dat$dim_foo)
+  i <- seq_len(dim_foo)
   expect_equal(yy$foo[1, ],
                yy$b[1, i] + yy$c[1, i + 1] + yy$e[1, i + 2])
   expect_equal(yy$foo[8, ],

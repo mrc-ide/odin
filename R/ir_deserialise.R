@@ -30,10 +30,6 @@ ir_deserialise <- function(ir) {
   dat$version <- numeric_version(dat$version)
   dat$components <- lapply(dat$components, lapply, list_to_character)
 
-  if (dat$features$has_array) {
-    dat$data$elements <- lapply(dat$data$elements, ir_deserialise_data_dimnames)
-  }
-
   names(dat$data$elements) <- vcapply(dat$data$elements, "[[", "name")
   names(dat$data$variable$contents) <-
     vcapply(dat$data$variable$contents, "[[", "name")
@@ -64,13 +60,4 @@ ir_deserialise_equation <- function(eq) {
         vcapply(eq$delay$substitutions, "[[", "from"))
   }
   eq
-}
-
-
-ir_deserialise_data_dimnames <- function(x) {
-  if (x$rank > 0L) {
-    v <- c("dim", "mult")
-    x$dimnames[v] <- lapply(x$dimnames[v], list_to_character)
-  }
-  x
 }

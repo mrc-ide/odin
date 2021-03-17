@@ -236,3 +236,28 @@ read_lines <- function(path) {
 clean_package_name <- function(name) {
   gsub("_", ".", name)
 }
+
+
+na_drop <- function(x) {
+  x[!is.na(x)]
+}
+
+
+assert_scalar_logical_or_null <- function(x, name = deparse(substitute(x))) {
+  if (!is.null(x)) {
+    if (length(x) != 1 || !is.logical(x) || !is.na(x)) {
+      stop(sprintf("Expected '%s' to be a logical scalar (or NULL)", name))
+    }
+  }
+  invisible(x)
+}
+
+
+assert_scalar_logical_or_null <- function(x, name = deparse(substitute(x))) {
+  if (!is.null(x)) {
+    if (length(x) != 1 || !is.logical(x) || is.na(x)) {
+      stop(sprintf("Expected '%s' to be a logical scalar (or NULL)", name))
+    }
+  }
+  invisible(x)
+}

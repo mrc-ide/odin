@@ -119,7 +119,8 @@ test_that_odin("user arrays", {
 
   dat3 <- mod3$contents()
   dat1 <- mod1$contents()
-  expect_true(setequal(names(dat1), names(dat3)))
+  expect_true(all(names(dat1) %in% names(dat3)))
+  expect_true(all(grepl("^offset_", setdiff(names(dat3), names(dat1)))))
   expect_equal(dat3[names(dat1)], dat1)
 
   ## Now, let's set some different parameters here and check enforcement:
@@ -142,7 +143,8 @@ test_that_odin("user arrays", {
   mod4 <- gen4(age_width = age_width)
 
   dat4 <- mod4$contents()
-  expect_true(setequal(names(dat1), names(dat4)))
+  expect_true(all(names(dat1) %in% names(dat4)))
+  expect_true(all(grepl("^(dim|offset)_", setdiff(names(dat4), names(dat1)))))
   expect_equal(dat4[names(dat1)], dat1)
 
   res4 <- mod4$run(t)

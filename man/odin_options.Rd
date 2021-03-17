@@ -7,7 +7,7 @@
 odin_options(verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,
   compiler_warnings = NULL, no_check_unused_equations = NULL,
-  options = NULL)
+  rewrite_dims = NULL, options = NULL)
 }
 \arguments{
 \item{verbose}{Logical scalar indicating if the compilation should
@@ -45,12 +45,23 @@ version depending on underlying support in pkgbuild.}
 messages about unused variables.  Defaults to the option
 \code{odin.no_check_unused_equations} or \code{FALSE} otherwise.}
 
+\item{rewrite_dims}{Logical, indicating if odin should try and
+rewrite your model dimensions (if using arrays). If \code{TRUE} then
+we replace dimensions known at compile-time with literal
+integers, and those known at initialisation with simplified and
+shared expressions. You may get less-comprehensible error
+messages with this option set to \code{TRUE} because parts of the
+model have been effectively evaluated during processing.}
+
 \item{options}{Named list of options.  If provided, then all other
 options are ignored.}
 }
+\value{
+A list of parameters, of class \code{odin_options}
+}
 \description{
 For lower-level odin functions \link{odin_parse},
-\link{odin_validate} we accept a list of options rather
+\link{odin_validate} we only accept a list of options rather
 than individually named options.
 }
 \examples{

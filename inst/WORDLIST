@@ -1,4 +1,5 @@
 AppVeyor
+CodeFactor
 Deserialise
 Dormand
 FitzJohn
@@ -40,7 +41,10 @@ json
 knitr
 lorenz
 mathcal
+mrc
 odin's
+pkgbuild
+proc
 rightarrow
 rmarkdown
 roxygen

@@ -1,13 +1,20 @@
 ##' For lower-level odin functions [odin::odin_parse],
-##' [odin::odin_validate] we accept a list of options rather
+##' [odin::odin_validate] we only accept a list of options rather
 ##' than individually named options.
 ##'
 ##' @title Odin options
 ##'
 ##' @inheritParams odin
 ##'
-##' @param options Named list of options.  If provided, then all other
-##'   options are ignored.
+##' @param rewrite_dims Logical, indicating if odin should try and
+##'   rewrite your model dimensions (if using arrays). If `TRUE` then
+##'   we replace dimensions known at compile-time with literal
+##'   integers, and those known at initialisation with simplified and
+##'   shared expressions. You may get less-comprehensible error
+##'   messages with this option set to `TRUE` because parts of the
+##'   model have been effectively evaluated during processing.
+##'
+##' @return A list of parameters, of class `odin_options`
 ##'
 ##' @export
 ##' @examples
@@ -16,6 +23,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          validate = NULL, pretty = NULL, skip_cache = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
+                         rewrite_dims = NULL,
                          options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
@@ -26,17 +34,21 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     workdir = tempfile(),
     pretty = FALSE,
     skip_cache = FALSE,
+    rewrite_dims = FALSE,
     no_check_unused_equations = FALSE,
     compiler_warnings = FALSE)
   if (is.null(options)) {
-    options <- list(validate = validate,
-                 verbose = verbose,
-                 target = target,
-                 pretty = pretty,
-                 workdir = workdir,
-                 skip_cache = skip_cache,
-                 no_check_unused_equations = no_check_unused_equations,
-                 compiler_warnings = compiler_warnings)
+    options <- list(
+      validate = assert_scalar_logical_or_null(validate),
+      verbose = assert_scalar_logical_or_null(verbose),
+      target = target,
+      pretty = assert_scalar_logical_or_null(pretty),
+      workdir = workdir,
+      skip_cache = assert_scalar_logical_or_null(skip_cache),
+      rewrite_dims = assert_scalar_logical_or_null(rewrite_dims),
+      no_check_unused_equations =
+        assert_scalar_logical_or_null(no_check_unused_equations),
+      compiler_warnings = assert_scalar_logical_or_null(compiler_warnings))
   }
   stopifnot(all(names(defaults) %in% names(options)))
 
@@ -54,5 +66,6 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
       read_include_unsupported(options$target))
   }
 
+  class(options) <- "odin_options"
   options
 }
