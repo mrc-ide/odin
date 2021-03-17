@@ -238,11 +238,6 @@ clean_package_name <- function(name) {
 }
 
 
-flatten1 <- function(x) {
-  unlist(x, FALSE, FALSE)
-}
-
-
 na_drop <- function(x) {
   x[!is.na(x)]
 }
