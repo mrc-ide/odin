@@ -88,3 +88,13 @@ test_that("Can collect linear combinations", {
     static_eval(quote(a + 1 * (a + a))),
     quote(a * 2 + a))
 })
+
+
+test_that("cope with adding zeros", {
+  expect_equal(
+    static_eval(quote(0 + 0)),
+    0)
+  expect_equal(
+    static_eval(quote(0 * x + 1 * 0)),
+    0)
+})

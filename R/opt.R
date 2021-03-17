@@ -44,6 +44,9 @@ static_eval_assoc <- function(expr) {
 
   if (fn == "+") {
     args <- args[!vlapply(args, function(x) is.numeric(x) && x == 0)]
+    if (length(args) == 0) {
+      return(0)
+    }
 
     ## Collect linear combinations of shared parameters here; this
     ## causes issues for simplifying general expressions (e.g., a + 1
