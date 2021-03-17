@@ -45,6 +45,8 @@ generate_c_sexp <- function(x, data, meta, supported) {
       ret <- generate_c_sexp_sum(args, data, meta, supported)
     } else if (fn == "as.integer") {
       ret <- sprintf("(int) (%s)", values[[1L]])
+    } else if (fn == "as.numeric") {
+      ret <- sprintf("(double) (%s)", values[[1L]])
     } else {
       if (fn == "rbinom") {
         ## This is a little extreme but is useful in at least some
