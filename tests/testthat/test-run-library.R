@@ -234,3 +234,16 @@ test_that_odin("Throw an error if requesting more elements than possible", {
                "Requesting too many elements in rmhyper (10 from 0)",
                fixed = TRUE)
 })
+
+
+test_that_odin("Can use as.numeric", {
+  gen <- odin({
+    a <- user(integer = TRUE)
+    b <- as.numeric(a)
+    initial(x) <- 0
+    update(x) <- x + b
+  })
+  mod <- gen(a = 5L)
+  y <- mod$run(0:10)
+  expect_equal(y[, "x"], seq(0, 50, by = 5))
+})

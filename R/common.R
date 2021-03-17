@@ -106,6 +106,7 @@ FUNCTIONS <- list(
   floor = 1L,
   ceil = 1L,
   as.integer = 1L,
+  as.numeric = 1L,
   ## Big pile of trig:
   cos = 1L,   sin = 1L,   tan = 1L,
   acos = 1L,  asin = 1L,  atan = 1L,  atan2 = 2L,
