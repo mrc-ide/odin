@@ -81,7 +81,7 @@ The odin_ version is a &quot;standard evaluation&quot; escape hatch." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.9</span>
       </span>
     </div>
 
@@ -150,11 +150,12 @@ The <code>odin_</code> version is a "standard evaluation" escape hatch.</p>
 
     <pre class="usage"><span class='fu'>odin</span><span class='op'>(</span><span class='va'>x</span>, verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>, validate <span class='op'>=</span> <span class='cn'>NULL</span>,
   pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>, compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>,
-  no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span>
+  no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span>, options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span>
 
 <span class='fu'>odin_</span><span class='op'>(</span><span class='va'>x</span>, verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>,
   validate <span class='op'>=</span> <span class='cn'>NULL</span>, pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>,
-  compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>, no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+  compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>, no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span>,
+  options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -215,6 +216,11 @@ version depending on underlying support in pkgbuild.</p></td>
       <td><p>If <code>TRUE</code>, then don't print
 messages about unused variables.  Defaults to the option
 <code>odin.no_check_unused_equations</code> or <code>FALSE</code> otherwise.</p></td>
+    </tr>
+    <tr>
+      <th>options</th>
+      <td><p>Named list of options.  If provided, then all other
+options are ignored.</p></td>
     </tr>
     </table>
 

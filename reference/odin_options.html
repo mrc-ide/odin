@@ -48,7 +48,7 @@
 
 <meta property="og:title" content="Odin options — odin_options" />
 <meta property="og:description" content="For lower-level odin functions odin_parse,
-odin_validate we accept a list of options rather
+odin_validate we only accept a list of options rather
 than individually named options." />
 <meta property="og:image" content="/logo.png" />
 
@@ -82,7 +82,7 @@ than individually named options." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.9</span>
       </span>
     </div>
 
@@ -146,14 +146,14 @@ than individually named options." />
 
     <div class="ref-description">
     <p>For lower-level odin functions <a href='odin_parse.html'>odin_parse</a>,
-<a href='odin_validate.html'>odin_validate</a> we accept a list of options rather
+<a href='odin_validate.html'>odin_validate</a> we only accept a list of options rather
 than individually named options.</p>
     </div>
 
     <pre class="usage"><span class='fu'>odin_options</span><span class='op'>(</span>verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>,
   validate <span class='op'>=</span> <span class='cn'>NULL</span>, pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>,
   compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>, no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span>,
-  options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+  rewrite_dims <span class='op'>=</span> <span class='cn'>NULL</span>, options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -210,12 +210,25 @@ messages about unused variables.  Defaults to the option
 <code>odin.no_check_unused_equations</code> or <code>FALSE</code> otherwise.</p></td>
     </tr>
     <tr>
+      <th>rewrite_dims</th>
+      <td><p>Logical, indicating if odin should try and
+rewrite your model dimensions (if using arrays). If <code>TRUE</code> then
+we replace dimensions known at compile-time with literal
+integers, and those known at initialisation with simplified and
+shared expressions. You may get less-comprehensible error
+messages with this option set to <code>TRUE</code> because parts of the
+model have been effectively evaluated during processing.</p></td>
+    </tr>
+    <tr>
       <th>options</th>
       <td><p>Named list of options.  If provided, then all other
 options are ignored.</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>A list of parameters, of class <code>odin_options</code></p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'>odin_options</span><span class='op'>(</span><span class='op'>)</span>
@@ -232,9 +245,12 @@ options are ignored.</p></td>
 #&gt; [1] FALSE
 #&gt; 
 #&gt; $workdir
-#&gt; [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//Rtmppt7gaf/file9f9690a2541"
+#&gt; [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpAJ0Cqa/file7cb19e82b62"
 #&gt; 
 #&gt; $skip_cache
+#&gt; [1] FALSE
+#&gt; 
+#&gt; $rewrite_dims
 #&gt; [1] FALSE
 #&gt; 
 #&gt; $no_check_unused_equations
@@ -260,9 +276,11 @@ options are ignored.</p></td>
 #&gt;     list(names = name, data = list(names = name, declarations = decl, 
 #&gt;         definitions = defn, filename = filename))
 #&gt; }
-#&gt; &lt;bytecode: 0x7fa123fabc78&gt;
+#&gt; &lt;bytecode: 0x7fb5ef18f820&gt;
 #&gt; &lt;environment: namespace:odin&gt;
-#&gt; </div></pre>
+#&gt; 
+#&gt; attr(,"class")
+#&gt; [1] "odin_options"</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

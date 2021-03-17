@@ -79,7 +79,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.9</span>
       </span>
     </div>
 
@@ -140,6 +140,14 @@
       <small>Source: <a href='https://github.com/mrc-ide/odin/blob/master/NEWS.md'><code>NEWS.md</code></a></small>
     </div>
 
+    <div id="odin-119" class="section level1">
+<h1 class="page-header" data-toc-text="1.1.9">
+<a href="#odin-119" class="anchor"></a>odin 1.1.9<small> Unreleased </small>
+</h1>
+<ul>
+<li>New option <code>rewrite_dims</code> (via <code><a href="../reference/odin_options.html">odin::odin_options</a></code>) which will attempt to simplify common dimensions. This can reduce the number of variables carried around in the model as these are typically very redundant and also known at compile time (mrc-2093)</li>
+</ul>
+</div>
     <div id="odin-118" class="section level1">
 <h1 class="page-header" data-toc-text="1.1.8">
 <a href="#odin-118" class="anchor"></a>odin 1.1.8<small> Unreleased </small>
@@ -183,7 +191,7 @@
 <code>$initial()</code> always requires time, even if it is ignored</li>
 <li>
 <code>$set_user()</code> and construction no longer work with positional argument matching - all arguments must be named</li>
-<li>The <code>$ir</code> field has become a method; add parens after it</li>
+<li>The <code>$ir</code> field has become a method; add parentheses after it</li>
 <li>The <code>compiler_warnings</code> option has been removed</li>
 </ul>
 </li>
