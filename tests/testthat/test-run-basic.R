@@ -31,7 +31,6 @@ test_that_odin("trivial model", {
 ##
 ## This should integrate to a parabola y = 1 + t^2
 test_that_odin("Time dependent rhs", {
-  ## This has obliterated things
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -129,6 +128,7 @@ test_that_odin("user variables", {
                "Expected a scalar numeric for 'r'")
   expect_error(gen(r = numeric(0)),
                "Expected a scalar numeric for 'r'")
+
   expect_equal(gen(r = pi)$contents()[c("N0", "r")],
                list(N0 = 1, r = pi))
   expect_equal(gen(r = pi, N0 = 10)$contents()[c("N0", "r")],
@@ -142,6 +142,7 @@ test_that_odin("user variables", {
   expect_equal(mod$contents()$r, pi)
   expect_equal(mod$contents()$N0, exp(1))
 })
+
 
 
 test_that_odin("simple operations in user variables are allowed", {

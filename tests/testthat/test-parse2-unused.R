@@ -8,7 +8,6 @@ test_that("no unused variables", {
 })
 
 test_that("one unused variable", {
-  ## TODO: it's not totally clear _why_ this doesn't still print
   expect_message(odin_parse({
     deriv(y) <- 1
     initial(y) <- 0

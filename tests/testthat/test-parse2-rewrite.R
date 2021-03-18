@@ -26,7 +26,8 @@ test_that("rewrite arrays drops references to dim_ variables", {
     initial(I) <- 0
     S0[, ] <- user()
     dim(S0) <- c(n, m)
-  }, options = odin_options(rewrite_dims = TRUE))
+  }, options = odin_options(rewrite_dims = TRUE,
+                            rewrite_constants = FALSE))
   expect_false(grepl("dim_S_1", ir))
   expect_false(grepl("dim_S", ir))
 })
