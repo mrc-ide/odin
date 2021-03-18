@@ -59,8 +59,8 @@ test_that_odin("%%", {
   tt <- seq(-5, 5, length.out = 101)
   mod <- gen()
   res <- mod$run(tt)
-  s <- mod$contents()[["s"]]
-  q <- mod$contents()[["q"]]
+  s <- sin(1)
+  q <- 1.0
 
   expect_equal(res[, "s1"],  tt %%  s)
   expect_equal(res[, "s2"], -tt %%  s)
@@ -93,8 +93,8 @@ test_that_odin("%/%", {
   tt <- seq(-5, 5, length.out = 101)
   mod <- gen()
   res <- mod$run(tt)
-  s <- mod$contents()[["s"]]
-  q <- mod$contents()[["q"]]
+  s <- sin(1)
+  q <- 1.0
 
   expect_equal(res[, "s1"],  tt %/%  s)
   expect_equal(res[, "s2"], -tt %/%  s)

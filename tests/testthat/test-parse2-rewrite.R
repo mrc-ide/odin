@@ -44,6 +44,7 @@ test_that("Can create compile-time constants", {
     S0[, ] <- user()
     dim(S0) <- c(n, m)
   }, options = odin_options(rewrite_dims = TRUE,
+                            rewrite_constants = FALSE,
                             substitutions = list(n = 2, m = 3)))
   dat <- ir_deserialise(ir)
   expect_equal(dat$equations$n$type, "expression_scalar")
