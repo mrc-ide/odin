@@ -30,3 +30,75 @@ test_that("rewrite arrays drops references to dim_ variables", {
   expect_false(grepl("dim_S_1", ir))
   expect_false(grepl("dim_S", ir))
 })
+
+
+test_that("Can create compile-time constants", {
+  ir <- odin_parse({
+    n <- user(integer = TRUE)
+    m <- user()
+    deriv(S[, ]) <- 0
+    deriv(I) <- S[n, m]
+    dim(S) <- c(n, m)
+    initial(S[, ]) <- S0[i, j]
+    initial(I) <- 0
+    S0[, ] <- user()
+    dim(S0) <- c(n, m)
+  }, options = odin_options(rewrite_dims = TRUE,
+                            substitutions = list(n = 2, m = 3)))
+  dat <- ir_deserialise(ir)
+  expect_equal(dat$equations$n$type, "expression_scalar")
+})
+
+
+test_that("Can validate substitutions", {
+  code <- quote({
+    n <- user(integer = TRUE, min = 2)
+    m <- user(max = 10)
+    a <- 1
+    deriv(S[, ]) <- 0
+    deriv(I) <- S[n, m]
+    dim(S) <- c(n, m)
+    initial(S[, ]) <- S0[i, j] * a
+    initial(I) <- 0
+    S0[, ] <- user()
+    dim(S0) <- c(n, m)
+  })
+
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = list(y = 1))),
+    "Substitution failed: 'y' is not an equation")
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = list(a = 1))),
+    "Substitution failed: 'a' is not a user() equation", fixed = TRUE)
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = list(S0 = 1))),
+    "Substitution failed: 'S0' is an array", fixed = TRUE)
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = list(n = 1))),
+    "Expected 'n' to be at least 2")
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = list(n = 2.4))),
+    "Expected 'n' to be integer-like")
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = list(m = 20))),
+    "Expected 'm' to be at most 10")
+  expect_error(
+    odin_parse(code,
+               options = odin_options(substitutions = list(m = NA_real_))),
+    "'m' must not contain any NA values")
+  expect_error(
+    odin_parse(code,
+               options = odin_options(substitutions =
+                                        list(m = NULL, n = NULL))),
+    "Invalid entry in substitutions: 'm', 'n'")
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = list(1, 2))),
+    "'substitutions' must be named")
+  expect_error(
+    odin_parse(code, options =
+                       odin_options(substitutions = list(n = 1, n = 1))),
+    "'substitutions' must have unique names")
+  expect_error(
+    odin_parse(code, options = odin_options(substitutions = c(n = 1))),
+    "'substitutions' must be a list")
+})

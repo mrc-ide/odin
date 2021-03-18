@@ -245,7 +245,7 @@ na_drop <- function(x) {
 
 assert_scalar_logical_or_null <- function(x, name = deparse(substitute(x))) {
   if (!is.null(x)) {
-    if (length(x) != 1 || !is.logical(x) || !is.na(x)) {
+    if (length(x) != 1 || !is.logical(x) || is.na(x)) {
       stop(sprintf("Expected '%s' to be a logical scalar (or NULL)", name))
     }
   }
@@ -253,11 +253,31 @@ assert_scalar_logical_or_null <- function(x, name = deparse(substitute(x))) {
 }
 
 
-assert_scalar_logical_or_null <- function(x, name = deparse(substitute(x))) {
+assert_scalar_character_or_null <- function(x, name = deparse(substitute(x))) {
   if (!is.null(x)) {
-    if (length(x) != 1 || !is.logical(x) || is.na(x)) {
-      stop(sprintf("Expected '%s' to be a logical scalar (or NULL)", name))
+    if (length(x) != 1 || !is.character(x) || is.na(x)) {
+      stop(sprintf("Expected '%s' to be a character scalar (or NULL)", name))
     }
+  }
+  invisible(x)
+}
+
+
+assert_named <- function(x, unique = FALSE, name = deparse(substitute(x))) {
+  if (is.null(names(x))) {
+    stop(sprintf("'%s' must be named", name), call. = FALSE)
+  }
+  if (unique && any(duplicated(names(x)))) {
+    stop(sprintf("'%s' must have unique names", name), call. = FALSE)
+  }
+  invisible(x)
+}
+
+
+assert_is <- function(x, what, name = deparse(substitute(x))) {
+  if (!inherits(x, what)) {
+    stop(sprintf("'%s' must be a %s", name, paste(what, collapse = " / ")),
+         call. = FALSE)
   }
   invisible(x)
 }

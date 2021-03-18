@@ -739,3 +739,26 @@ test_that_odin("Can set initial conditions directly in an ode", {
   y <- mod$run(0:10, 2)
   expect_equal(y[, "y"], seq(2, by = 2, length.out = 11))
 })
+
+
+test_that_odin("Can substitute user variables", {
+  gen <- odin({
+    n <- user(integer = TRUE)
+    m <- user()
+    deriv(S[, ]) <- 0
+    deriv(I) <- S[n, m]
+    dim(S) <- c(n, m)
+    initial(S[, ]) <- S0[i, j]
+    initial(I) <- 0
+    S0[, ] <- user()
+    dim(S0) <- c(n, m)
+  }, options = odin_options(rewrite_dims = TRUE,
+                            substitutions = list(n = 2, m = 3)))
+  expect_equal(nrow(coef(gen)), 1) # only S0 now
+  S0 <- matrix(rpois(6, 10), 2, 3)
+  mod <- gen(S0 = S0)
+  dat <- mod$contents()
+  expect_equal(dat$n, 2)
+  expect_equal(dat$m, 3)
+  expect_equal(dat$initial_S, S0)
+})
