@@ -1,3 +1,7 @@
+# odin 1.1.11
+
+* New option `substitutions` (via `odin::odin_options`) which can substitute in scalar `user` values at compile time (#220)
+
 # odin 1.1.9
 
 * New option `rewrite_dims` (via `odin::odin_options`) which will attempt to simplify common dimensions. This can reduce the number of variables carried around in the model as these are typically very redundant and also known at compile time (mrc-2093)
