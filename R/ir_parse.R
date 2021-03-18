@@ -1555,8 +1555,7 @@ ir_parse_substitute <- function(eqs, subs) {
 
 
 ir_parse_rewrite_dims <- function(eqs) {
-  ## alternatively look in all $array$dimnames elements
-  nms <- grep("dim_", names(eqs), value = TRUE)
+  nms <- names_if(vlapply(eqs, function(x) isTRUE(x$lhs$dim)))
   ir_parse_rewrite(nms, eqs)
 }
 
