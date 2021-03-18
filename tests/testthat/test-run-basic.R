@@ -753,6 +753,7 @@ test_that_odin("Can substitute user variables", {
     S0[, ] <- user()
     dim(S0) <- c(n, m)
   }, options = odin_options(rewrite_dims = TRUE,
+                            rewrite_constants = FALSE,
                             substitutions = list(n = 2, m = 3)))
   expect_equal(nrow(coef(gen)), 1) # only S0 now
   S0 <- matrix(rpois(6, 10), 2, 3)

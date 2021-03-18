@@ -31,7 +31,8 @@ test_that_odin("delays: scalar variable", {
 
   ## Check that the underlying data are correct:
   dat <- mod$contents()
-  cmp <- logistic_map(dat$r, dat$initial_y, diff(range(tt)))
+  cmp <- logistic_map(3.6, dat$initial_y, diff(range(tt)))
+  expect_equal(yy$y, drop(cmp))
 
   ## Then check the delayed expression:
   i <- seq_len(length(tt) - 2)
@@ -56,7 +57,8 @@ test_that_odin("delays: scalar expression", {
 
   ## Check that the underlying data are correct:
   dat <- mod$contents()
-  cmp <- logistic_map(dat$r, dat$initial_y, diff(range(tt)))
+  cmp <- logistic_map(3.6, dat$initial_y, diff(range(tt)))
+  expect_equal(yy$y, cmp)
 
   ## Then check the delayed expression:
   i <- seq_len(length(tt) - 2)
@@ -81,7 +83,8 @@ test_that_odin("delays: vector variable", {
 
   ## Check that the underlying data are correct:
   dat <- mod$contents()
-  cmp <- logistic_map(dat$r, dat$initial_y, diff(range(tt)))
+  cmp <- logistic_map(3.6, dat$initial_y, diff(range(tt)))
+  expect_equal(yy$y, cmp)
 
   ## Then check the delayed expression:
   i <- seq_len(length(tt) - 2)
@@ -107,7 +110,7 @@ test_that_odin("delays: vector expression", {
 
   ## Check that the underlying data are correct:
   dat <- mod$contents()
-  cmp <- logistic_map(dat$r, dat$initial_y, diff(range(tt)))
+  cmp <- logistic_map(3.6, dat$initial_y, diff(range(tt)))
   expect_equal(yy$y, cmp)
 
   ## Then check the delayed expression:
@@ -165,7 +168,8 @@ test_that_odin("default (scalar)", {
 
   ## Check that the underlying data are correct:
   dat <- mod$contents()
-  cmp <- logistic_map(dat$r, dat$initial_y, diff(range(tt)))
+  cmp <- logistic_map(3.6, dat$initial_y, diff(range(tt)))
+  expect_equal(yy$y, drop(cmp))
 
   ## Then check the delayed expression:
   i <- seq_len(length(tt) - 2)
@@ -196,7 +200,8 @@ test_that_odin("default (vector)", {
 
   ## Check that the underlying data are correct:
   dat <- mod$contents()
-  cmp <- logistic_map(dat$r, dat$initial_y, diff(range(tt)))
+  cmp <- logistic_map(3.6, dat$initial_y, diff(range(tt)))
+  expect_equal(yy$y, cmp)
 
   ## Then check the delayed expression:
   i <- seq_len(length(tt) - 2)

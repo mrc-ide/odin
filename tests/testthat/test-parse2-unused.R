@@ -8,17 +8,20 @@ test_that("no unused variables", {
 })
 
 test_that("one unused variable", {
+  ## TODO: it's not totally clear _why_ this doesn't still print
   expect_message(odin_parse({
     deriv(y) <- 1
     initial(y) <- 0
     a <- 1
-  }), "Unused equation: a")
+  }, options = odin_options(rewrite_constants = FALSE)),
+  "Unused equation: a")
 
   expect_silent(odin_parse({
     deriv(y) <- 1
     initial(y) <- 0
     a <- 1
-  }, options = odin_options(no_check_unused_equations = TRUE)))
+  }, options = odin_options(rewrite_constants = FALSE,
+                            no_check_unused_equations = TRUE)))
 })
 
 test_that("more than one unused variable", {
@@ -27,7 +30,7 @@ test_that("more than one unused variable", {
     initial(y) <- 0
     a <- 1
     b <- 2
-  }),
+  }, options = odin_options(rewrite_constants = FALSE)),
   "Unused equations: a, b")
 })
 
@@ -37,7 +40,7 @@ test_that("dependent unused variables", {
     initial(y) <- 0
     a <- 1
     b <- a * 2
-  }),
+  }, options = odin_options(rewrite_constants = FALSE)),
   "Unused equations: a, b")
 })
 
@@ -47,7 +50,7 @@ test_that("dependent non-unused variables", {
     initial(y) <- 0
     a <- 1
     b <- a * 2
-  }))
+  }, options = odin_options(rewrite_constants = FALSE)))
 })
 
 test_that("delayed non-unused variables", {

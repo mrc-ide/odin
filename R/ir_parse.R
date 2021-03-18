@@ -1633,10 +1633,16 @@ ir_parse_rewrite_compute <- function(x, eqs, cache) {
 
 ir_parse_rewrite <- function(nms, eqs) {
   val <- ir_parse_rewrite_compute_eqs(nms, eqs)
-
   rewrite <- vlapply(val, function(x) is.symbol(x) || is.numeric(x))
 
   subs <- val[rewrite]
+  ## Exclude substitutions that are identical:
+  cmp <- lapply(eqs[names(subs)], function(x) x$rhs$value)
+  subs <- subs[!vlapply(Map(identical, subs, cmp), identity)]
+
+  if (length(subs) == 0) {
+    return(eqs)
+  }
 
   is_dim <- vlapply(eqs, function(x) isTRUE(x$lhs$dim))
 
@@ -1703,8 +1709,13 @@ ir_parse_rewrite <- function(nms, eqs) {
   }
 
   ## Can't drop initial(), deriv(), or update() calls even if they are
-  ## constants
-  keep <- names_if(!vlapply(eqs, function(x) is.null(x$lhs$special)))
+  ## constants. There is one complicating factor though, which is
+  ## `output(x) <- TRUE` type statements; these require one more check
+  keep <- union(
+    names_if(!vlapply(eqs, function(x) is.null(x$lhs$special))),
+    unlist(lapply(eqs, function(x)
+      if (x$type == "copy") x$lhs$name_data), FALSE))
+
   i <- setdiff(names(eqs), setdiff(names(subs), keep))
 
   ret <- lapply(eqs[i], rewrite_eq)

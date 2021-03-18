@@ -1349,3 +1349,16 @@ test_that("user c functions can be passed arrays and indexes", {
   y <- mod$run(c(0, 1))
   expect_equal(mod$transform_variables(y[2, ])$y, cumsum(x))
 })
+
+
+test_that_odin("self output for scalar: rewrite corner case", {
+  gen <- odin({
+    initial(a) <- 1
+    deriv(a) <- 0
+    x <- 2 + 5
+    output(x) <- TRUE
+  })
+
+  tt <- seq(0, 10, length.out = 11)
+  expect_equal(gen()$run(tt)[, "x"], rep(7, 11))
+})
