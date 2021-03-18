@@ -1574,30 +1574,6 @@ ir_parse_rewrite_compute_eqs <- function(nms, eqs) {
 }
 
 
-## The issue here is if that we involve a variable that is time
-## sensitive we should not do this at all.
-##
-## So if we have:
-## a <- 2 * t
-## deriv(x) <- a * 3
-## deriv(y) <- a * 4
-## we should leave 'a' alone and not substitute it into the expression!
-##
-## The things that we care about for this:
-## * do you use a variable?
-## * are you stochastic?
-## * do you use time?
-##
-## If so you're time varying!
-##
-## However, if we have:
-##
-## a <- 2 * t
-## b <- 2 * n
-## n <- 4
-## deriv(x) <- a + b
-##
-## We should be free to eliminate b.
 ir_parse_rewrite_compute <- function(x, eqs, cache) {
   key <- deparse_str(x)
   if (key %in% names(cache)) {
