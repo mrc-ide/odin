@@ -16,14 +16,15 @@ ir_parse <- function(x, options, type = NULL) {
   variables <- ir_parse_find_variables(eqs, features$discrete, source)
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
-
   eqs <- ir_parse_arrays(eqs, variables, config$include$names, source)
 
   ## This performs a round of optimisation where we try to simplify
   ## away expressions for the dimensions, which reduces the number of
   ## required variables.
   eqs <- ir_parse_substitute(eqs, options$substitutions)
-  if (options$rewrite_dims && features$has_array) {
+  if (options$rewrite_constants) {
+    eqs <- ir_parse_rewrite_constants(eqs)
+  } else if (options$rewrite_dims && features$has_array) {
     eqs <- ir_parse_rewrite_dims(eqs)
   }
 
@@ -1553,58 +1554,112 @@ ir_parse_substitute <- function(eqs, subs) {
 }
 
 
-## This approach could probably be applied over the whole tree really,
-## as we might be able to eliminate some other compile time
-## things. However, doing that will make the models less debuggable.
 ir_parse_rewrite_dims <- function(eqs) {
-  compute <- function(x) {
-    if (is.numeric(x)) {
-      x
-    } else if (is.symbol(x)) {
+  ## alternatively look in all $array$dimnames elements
+  nms <- grep("dim_", names(eqs), value = TRUE)
+  ir_parse_rewrite(nms, eqs)
+}
+
+
+ir_parse_rewrite_constants <- function(eqs) {
+  nms <- names_if(vlapply(eqs, function(x) x$type == "expression_scalar"))
+  ir_parse_rewrite(nms, eqs)
+}
+
+
+ir_parse_rewrite_compute_eqs <- function(nms, eqs) {
+  cache <- new_empty_env()
+  lapply(eqs[nms], function(eq)
+    static_eval(ir_parse_rewrite_compute(eq$rhs$value, eqs, cache)))
+}
+
+
+## The issue here is if that we involve a variable that is time
+## sensitive we should not do this at all.
+##
+## So if we have:
+## a <- 2 * t
+## deriv(x) <- a * 3
+## deriv(y) <- a * 4
+## we should leave 'a' alone and not substitute it into the expression!
+##
+## The things that we care about for this:
+## * do you use a variable?
+## * are you stochastic?
+## * do you use time?
+##
+## If so you're time varying!
+##
+## However, if we have:
+##
+## a <- 2 * t
+## b <- 2 * n
+## n <- 4
+## deriv(x) <- a + b
+##
+## We should be free to eliminate b.
+ir_parse_rewrite_compute <- function(x, eqs, cache) {
+  key <- deparse_str(x)
+  if (key %in% names(cache)) {
+    return(cache[[key]])
+  }
+
+  if (!is.numeric(x)) {
+    if (is.symbol(x)) {
       x_eq <- eqs[[deparse_str(x)]]
       ## use identical() here to cope with x_eq being NULL when 't' is
       ## passed through (that will be an error elsewhere).
       if (identical(x_eq$type, "expression_scalar")) {
-        compute(x_eq$rhs$value)
-      } else {
-        x
+        x <- ir_parse_rewrite_compute(x_eq$rhs$value, eqs, cache)
       }
     } else if (is_call(x, "length")) {
       ## NOTE: use array_dim_name because we might hit things like
       ## length(y) where 'y' is one of the variables; we can't look up
       ## eqs[[name]]$array$length without checking that.
-      compute(as.name(array_dim_name(as.character(x[[2]]))))
+      length_name <- as.name(array_dim_name(as.character(x[[2]])))
+      x <- ir_parse_rewrite_compute(length_name, eqs, cache)
     } else if (is_call(x, "dim")) {
-      compute(as.name(array_dim_name(as.character(x[[2]]), x[[3]])))
+      dim_name <- as.name(array_dim_name(as.character(x[[2]]), x[[3]]))
+      x <- ir_parse_rewrite_compute(dim_name, eqs, cache)
     } else if (is.recursive(x)) {
-      x[-1] <- lapply(x[-1], compute)
-      x
-    } else { # NULL
-      x
+      x[-1] <- lapply(x[-1], ir_parse_rewrite_compute, eqs, cache)
     }
   }
 
-  ## alternatively look in all $array$dimnames elements
-  nms <- grep("dim_", names(eqs), value = TRUE)
+  cache[[key]] <- x
+  x
+}
 
-  val <- lapply(eqs[nms], function(eq)
-    static_eval(compute(eq$rhs$value)))
+
+ir_parse_rewrite <- function(nms, eqs) {
+  val <- ir_parse_rewrite_compute_eqs(nms, eqs)
 
   rewrite <- vlapply(val, function(x) is.symbol(x) || is.numeric(x))
 
   subs <- val[rewrite]
 
+  is_dim <- vlapply(eqs, function(x) isTRUE(x$lhs$dim))
+
   ## Try and deduplicate the rest. However, it's not totally obvious
   ## that we can do this without creating some weird dependency
-  ## issues.
-  leave <- val[!rewrite]
-  ## Do not deduplicate NULL dimensions; these are set by user() later.
-  dup <- duplicated(leave) & !vlapply(leave, is.null)
-  if (any(dup)) {
-    i <- match(leave[dup], leave)
-    subs <- c(subs,
-              set_names(lapply(names(leave)[i], as.name), names(leave)[dup]))
+  ## issues. Also we need to only treat dimensions (and possibly
+  ## offsets); we could do any compile-time thing really but we don't
+  ## know it yet. Propagating other expressions through though can
+  ## create problems.
+  check <- val[intersect(names_if(!rewrite), names_if(is_dim))]
+
+  if (length(check) > 0) {
+    dup <- duplicated(check) & !vlapply(check, is.null)
+    if (any(dup)) {
+      i <- match(check[dup], check)
+      subs <- c(subs,
+                set_names(lapply(names(check)[i], as.name), names(check)[dup]))
+    }
   }
+
+  subs_env <- list2env(subs, parent = emptyenv())
+  subs_dep <- vcapply(subs, function(x)
+    if (is.numeric(x)) NA_character_ else deparse_str(x))
 
   replace <- function(x, y) {
     i <- match(vcapply(x, function(x) x %||% ""), names(y))
@@ -1613,12 +1668,22 @@ ir_parse_rewrite_dims <- function(eqs) {
     na_drop(x)
   }
 
-  subs_env <- list2env(subs, parent = emptyenv())
-  subs_dep <- vcapply(subs, function(x)
-    if (is.numeric(x)) NA_character_ else deparse_str(x))
+  rewrite_eq_array_part <- function(el) {
+    el$value <- substitute_(el$value, subs_env)
+    for (i in seq_along(el$index)) {
+      el$index[[i]]$value <- substitute_(el$index[[i]]$value, subs_env)
+    }
+    el
+  }
 
   rewrite_eq <- function(eq) {
-    eq$rhs$value <- substitute_(eq$rhs$value, subs_env)
+    if (eq$type == "expression_array") {
+      eq$rhs <- lapply(eq$rhs, rewrite_eq_array_part)
+    } else if (eq$name %in% names(subs)) {
+      eq$rhs$value <- subs[[eq$name]]
+    } else {
+      eq$rhs$value <- substitute_(eq$rhs$value, subs_env)
+    }
 
     eq$depends$variables <- replace(eq$depends$variables, subs_dep)
     eq$lhs$depends$variables <- replace(eq$lhs$depends$variables, subs_dep)
@@ -1637,5 +1702,10 @@ ir_parse_rewrite_dims <- function(eqs) {
     eq
   }
 
-  lapply(eqs[setdiff(names(eqs), names(subs))], rewrite_eq)
+  ## Can't drop initial(), deriv(), or update() calls even if they are
+  ## constants
+  keep <- names_if(!vlapply(eqs, function(x) is.null(x$lhs$special)))
+  i <- setdiff(names(eqs), setdiff(names(subs), keep))
+
+  ret <- lapply(eqs[i], rewrite_eq)
 }

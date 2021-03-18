@@ -14,11 +14,21 @@
 ##'   messages with this option set to `TRUE` because parts of the
 ##'   model have been effectively evaluated during processing.
 ##'
-##' @param substitutions Optionally, a list of values to substitute into
-##'   model specification as constants, even though they are declared
-##'   as `user()`. This will be most useful in conjunction with
-##'   `rewrite_dims` to create a copy of your model with dimensions
-##'   known at compile time and all loops using literal integers.
+##' @param rewrite_constants Logical, indicating if odin should try
+##'   and rewrite *all* constant scalars. This is a superset of
+##'   `rewrite_dims` and may be slow for large models. Doing this will
+##'   make your model less debuggable; error messages will reference
+##'   expressions that have been extensively rewritten, some variables
+##'   will have been removed entirely or merged with other identical
+##'   expressions, and the generated code may not be obviously
+##'   connected to the original code.
+##'
+##' @param substitutions Optionally, a list of values to substitute
+##'   into model specification as constants, even though they are
+##'   declared as `user()`. This will be most useful in conjunction
+##'   with `rewrite_dims` to create a copy of your model with
+##'   dimensions known at compile time and all loops using literal
+##'   integers.
 ##'
 ##' @return A list of parameters, of class `odin_options`
 ##'
@@ -29,7 +39,8 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          validate = NULL, pretty = NULL, skip_cache = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
-                         rewrite_dims = NULL, substitutions = NULL,
+                         rewrite_dims = NULL, rewrite_constants = NULL,
+                         substitutions = NULL,
                          options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
@@ -41,6 +52,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     pretty = FALSE,
     skip_cache = FALSE,
     rewrite_dims = FALSE,
+    rewrite_constants = FALSE,
     substitutions = NULL,
     no_check_unused_equations = FALSE,
     compiler_warnings = FALSE)
@@ -53,6 +65,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
       workdir = workdir,
       skip_cache = assert_scalar_logical_or_null(skip_cache),
       rewrite_dims = assert_scalar_logical_or_null(rewrite_dims),
+      rewrite_constants = assert_scalar_logical_or_null(rewrite_constants),
       substitutions = check_substitutions(substitutions),
       no_check_unused_equations =
         assert_scalar_logical_or_null(no_check_unused_equations),

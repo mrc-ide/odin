@@ -370,13 +370,18 @@ test_that("recursive variables", {
 })
 
 test_that("array extent and time", {
-  for (rewrite_dims in c(FALSE, TRUE)) {
+  opts <- list(
+    odin_options(rewrite_dims = FALSE, rewrite_constants = FALSE),
+    odin_options(rewrite_dims = TRUE, rewrite_constants = FALSE),
+    odin_options(rewrite_dims = FALSE, rewrite_constants = TRUE))
+
+  for (o in opts) {
     expect_error(
       odin_parse_(quote({
         deriv(y[]) <- 1
         initial(y[]) <- 0
         dim(y) <- t
-      }), options = odin_options(rewrite_dims = rewrite_dims)),
+      }), options = o),
       "Array extent is determined by time", class = "odin_error")
 
     expect_error(
@@ -385,7 +390,7 @@ test_that("array extent and time", {
         initial(y[]) <- 0
         a <- t
         dim(y) <- a
-      }), options = odin_options(rewrite_dims = rewrite_dims)),
+      }), options = o),
       "Array extent is determined by time", class = "odin_error")
 
     expect_error(
@@ -395,7 +400,7 @@ test_that("array extent and time", {
         deriv(z) <- 1
         initial(z) <- 0
         dim(y) <- z
-      }), options = odin_options(rewrite_dims = rewrite_dims)),
+      }), options = o),
       "Array extent is determined by time", class = "odin_error")
   }
 })

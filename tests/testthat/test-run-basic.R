@@ -5,7 +5,7 @@ test_that_odin("trivial model", {
     deriv(y) <- r
     initial(y) <- 1
     r <- 2
-  })
+  }, options = odin_options(rewrite_constants = FALSE))
 
   mod <- gen()
   expect_is(mod, "odin_model")
@@ -31,6 +31,7 @@ test_that_odin("trivial model", {
 ##
 ## This should integrate to a parabola y = 1 + t^2
 test_that_odin("Time dependent rhs", {
+  ## This has obliterated things
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -70,8 +71,7 @@ test_that_odin("Time dependent initial conditions", {
   expect_equal(mod$deriv(0, 1), f(0))
   expect_equal(mod$deriv(1, 1), f(1))
 
-  expect_equal(sort_list(mod$contents()),
-               sort_list(list(initial_y3 = f(1), r = 1)))
+  expect_equal(mod$contents()$initial_y3, f(1))
 })
 
 
@@ -130,10 +130,10 @@ test_that_odin("user variables", {
   expect_error(gen(r = numeric(0)),
                "Expected a scalar numeric for 'r'")
 
-  expect_equal(sort_list(gen(r = pi)$contents()),
-               sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
-  expect_equal(sort_list(gen(r = pi, N0 = 10)$contents()),
-               sort_list(list(K = 100, N0 = 10, initial_N = 10, r = pi)))
+  ## expect_equal(sort_list(gen(r = pi)$contents()),
+  ##              sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
+  ## expect_equal(sort_list(gen(r = pi, N0 = 10)$contents()),
+  ##              sort_list(list(K = 100, N0 = 10, initial_N = 10, r = pi)))
   expect_equal(gen(r = pi, N0 = 10)$initial(0), 10)
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))
@@ -266,7 +266,7 @@ test_that_odin("array support", {
     n <- 3
     dim(r) <- n
     dim(x) <- n
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   mod <- gen()
 
@@ -310,7 +310,7 @@ test_that_odin("3d array", {
     initial(y[, , ]) <- 1
     deriv(y[, , ]) <- y[i, j, k] * 0.1
     dim(y) <- c(2, 3, 4)
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   mod <- gen()
   d <- mod$contents()
@@ -388,7 +388,7 @@ test_that_odin("user array - indirect", {
     dim(r) <- n
     dim(x) <- n
     n <- user()
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   mod <- gen(n = 3, r = 1:3)
   expect_equal(sort_list(mod$contents()),
@@ -411,7 +411,7 @@ test_that_odin("user array - direct", {
     r[] <- user()
     dim(r) <- user()
     dim(x) <- length(r)
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   mod <- gen(r = 1:3)
   expect_equal(
@@ -432,7 +432,7 @@ test_that_odin("user array - direct 3d", {
     deriv(y) <- 1
     r[, , ] <- user()
     dim(r) <- user()
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   m <- array(runif(24), 2:4)
   mod <- gen(r = m)
@@ -459,7 +459,7 @@ test_that_odin("interpolation", {
     dim(tp) <- user()
     dim(zp) <- user()
     output(p) <- pulse
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   tt <- seq(0, 3, length.out = 301)
   tp <- c(0, 1, 2)
@@ -578,7 +578,7 @@ test_that_odin("3d array time dependent and variable", {
     dim(y) <- c(2, 3, 4)
     dim(r) <- c(2, 3, 4)
     r[, , ] <- t * 0.1
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   mod <- gen()
   d <- mod$contents()
@@ -653,7 +653,7 @@ test_that_odin("discrete delays: matrix", {
     dim(y) <- c(2, 3)
     dim(z) <- c(2, 3)
     dim(a) <- c(2, 3)
-  }, options = odin_options(rewrite_dims = FALSE))
+  }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   mod <- gen()
   tt <- 0:10
@@ -760,5 +760,27 @@ test_that_odin("Can substitute user variables", {
   dat <- mod$contents()
   expect_equal(dat$n, 2)
   expect_equal(dat$m, 3)
+  expect_equal(dat$initial_S, S0)
+})
+
+
+test_that("Can rewrite common dimensions", {
+  gen <- odin({
+    n <- user(integer = TRUE)
+    m <- user()
+    deriv(S[, ]) <- 0
+    deriv(I) <- S[n, m]
+    dim(S) <- c(n, m)
+    initial(S[, ]) <- S0[i, j]
+    initial(I) <- 0
+    S0[, ] <- user()
+    dim(S0) <- c(n, m)
+  }, options = odin_options(rewrite_constants = TRUE))
+
+  S0 <- matrix(rpois(6, 10), 2, 3)
+  mod <- gen(S0 = S0, n = 2, m = 3)
+  dat <- mod$contents()
+
+  expect_equal(sum(c("dim_S0", "dim_S") %in% names(dat)), 1)
   expect_equal(dat$initial_S, S0)
 })

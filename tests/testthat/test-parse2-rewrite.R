@@ -102,3 +102,18 @@ test_that("Can validate substitutions", {
     odin_parse(code, options = odin_options(substitutions = c(n = 1))),
     "'substitutions' must be a list")
 })
+
+
+test_that("Rewrite all constants", {
+  ir <- odin_parse({
+    a <- 10
+    b <- 20
+    c <- 30
+    initial(x) <- 0
+    deriv(x) <- a + b * c
+  }, options = odin_options(rewrite_constants = TRUE))
+  dat <- ir_deserialise(ir)
+  expect_length(dat$equations, 2)
+  expect_setequal(names(dat$equations), c("initial_x", "deriv_x"))
+  expect_equal(dat$equations$deriv_x$rhs$value, 610) # i.e., 10 + 20 * 30
+})

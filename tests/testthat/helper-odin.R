@@ -49,6 +49,7 @@ validate_ir <- function() {
 
 options(odin.verbose = FALSE,
         odin.validate = validate_ir(),
+        odin.rewrite_constants = TRUE,
         odin.target = NULL)
 
 
@@ -129,7 +130,8 @@ test_that_odin <- function(desc, code) {
   code_enq <- rlang::enquo(code)
   for (target in targets) {
     opts <- list(odin.target = target,
-                 odin.rewrite_dims = target == "c")
+                 odin.rewrite_dims = target == "c",
+                 odin.rewrite_constants = target == "c")
     testthat::test_that(sprintf("%s (%s)", desc, target),
                         withr::with_options(opts, rlang::eval_tidy(code_enq)))
   }
