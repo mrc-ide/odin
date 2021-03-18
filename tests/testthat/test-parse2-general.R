@@ -621,14 +621,17 @@ test_that("check array rhs", {
 
 ## Probably more needed here as there are some special cases...
 test_that("cyclic dependency", {
-  ## TODO: we need to fix the rewriting to be safe for this
-  opts <- odin_options(rewrite_constants = FALSE)
-  expect_error(
-    odin_parse_(ex("x <- y; y <- x"), options = opts),
-    "A cyclic dependency detected")
-  expect_error(
-    odin_parse_(ex("x <- y; y <- z; z <- x"), options = opts),
-    "A cyclic dependency detected")
+  opts <- list(
+    odin_options(rewrite_constants = FALSE),
+    odin_options(rewrite_constants = TRUE))
+  for (o in opts) {
+    expect_error(
+      odin_parse_(ex("x <- y; y <- x"), options = o),
+      "A cyclic dependency detected")
+    expect_error(
+      odin_parse_(ex("x <- y; y <- z; z <- x"), options = o),
+      "A cyclic dependency detected")
+  }
 })
 
 test_that("range operator on RHS", {

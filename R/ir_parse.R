@@ -1608,7 +1608,13 @@ ir_parse_rewrite_compute <- function(x, eqs, cache) {
 
 
 ir_parse_rewrite <- function(nms, eqs) {
-  val <- ir_parse_rewrite_compute_eqs(nms, eqs)
+  val <- tryCatch(
+    ir_parse_rewrite_compute_eqs(nms, eqs),
+    error = function(e) {
+      message("Rewrite failure: ", e$message)
+      list()
+    })
+
   rewrite <- vlapply(val, function(x) is.symbol(x) || is.numeric(x))
 
   subs <- val[rewrite]
