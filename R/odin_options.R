@@ -40,8 +40,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
                          rewrite_dims = NULL, rewrite_constants = NULL,
-                         substitutions = NULL,
-                         options = NULL) {
+                         substitutions = NULL, options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
   defaults <- list(
