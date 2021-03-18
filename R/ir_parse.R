@@ -1636,13 +1636,13 @@ ir_parse_rewrite <- function(nms, eqs) {
   rewrite <- vlapply(val, function(x) is.symbol(x) || is.numeric(x))
 
   subs <- val[rewrite]
-  ## Exclude substitutions that are identical:
-  cmp <- lapply(eqs[names(subs)], function(x) x$rhs$value)
-  subs <- subs[!vlapply(Map(identical, subs, cmp), identity)]
 
-  if (length(subs) == 0) {
-    return(eqs)
-  }
+  ## One small wrinkle here: don't rewrite things that are the target
+  ## of a copy as the rewrite is complicated. This affects almost
+  ## nothing in reality outside the tests?
+  copy_self <- unlist(lapply(eqs, function(x)
+    if (x$type == "copy") x$lhs$name_data), FALSE)
+  subs <- subs[setdiff(names(subs), copy_self)]
 
   is_dim <- vlapply(eqs, function(x) isTRUE(x$lhs$dim))
 
@@ -1701,6 +1701,7 @@ ir_parse_rewrite <- function(nms, eqs) {
     }
 
     if (!is.null(eq$delay)) {
+      eq$delay$time <- substitute_(eq$delay$time, subs_env)
       eq$delay$depends$variables <-
         replace(eq$delay$depends$variables, subs_dep)
     }
@@ -1709,14 +1710,8 @@ ir_parse_rewrite <- function(nms, eqs) {
   }
 
   ## Can't drop initial(), deriv(), or update() calls even if they are
-  ## constants. There is one complicating factor though, which is
-  ## `output(x) <- TRUE` type statements; these require one more check
-  keep <- union(
-    names_if(!vlapply(eqs, function(x) is.null(x$lhs$special))),
-    unlist(lapply(eqs, function(x)
-      if (x$type == "copy") x$lhs$name_data), FALSE))
-
+  ## constants.
+  keep <- names_if(!vlapply(eqs, function(x) is.null(x$lhs$special)))
   i <- setdiff(names(eqs), setdiff(names(subs), keep))
-
-  ret <- lapply(eqs[i], rewrite_eq)
+  lapply(eqs[i], rewrite_eq)
 }
