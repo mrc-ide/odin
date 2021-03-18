@@ -319,7 +319,7 @@ generate_c_compiled_rhs_r <- function(dat, rewrite) {
       sprintf_safe("const %s %s = %s;",
                    time_type, dat$meta$initial_time, initial_time),
       c_expr_if(sprintf_safe("ISNA(%s)", dat$meta$initial_time),
-                sprintf_safe('%s = %s(%s, "dat$meta$time");',
+                sprintf_safe('%s = %s(%s, "%s");',
                              initial_time, time_access, dat$meta$time,
                              dat$meta$time)))
     reset_initial_time <-
