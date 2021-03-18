@@ -7,7 +7,8 @@
 odin_options(verbose = NULL, target = NULL, workdir = NULL,
   validate = NULL, pretty = NULL, skip_cache = NULL,
   compiler_warnings = NULL, no_check_unused_equations = NULL,
-  rewrite_dims = NULL, substitutions = NULL, options = NULL)
+  rewrite_dims = NULL, rewrite_constants = NULL, substitutions = NULL,
+  options = NULL)
 }
 \arguments{
 \item{verbose}{Logical scalar indicating if the compilation should
@@ -53,11 +54,21 @@ shared expressions. You may get less-comprehensible error
 messages with this option set to \code{TRUE} because parts of the
 model have been effectively evaluated during processing.}
 
-\item{substitutions}{Optionally, a list of values to substitute into
-model specification as constants, even though they are declared
-as \code{user()}. This will be most useful in conjunction with
-\code{rewrite_dims} to create a copy of your model with dimensions
-known at compile time and all loops using literal integers.}
+\item{rewrite_constants}{Logical, indicating if odin should try
+and rewrite \emph{all} constant scalars. This is a superset of
+\code{rewrite_dims} and may be slow for large models. Doing this will
+make your model less debuggable; error messages will reference
+expressions that have been extensively rewritten, some variables
+will have been removed entirely or merged with other identical
+expressions, and the generated code may not be obviously
+connected to the original code.}
+
+\item{substitutions}{Optionally, a list of values to substitute
+into model specification as constants, even though they are
+declared as \code{user()}. This will be most useful in conjunction
+with \code{rewrite_dims} to create a copy of your model with
+dimensions known at compile time and all loops using literal
+integers.}
 
 \item{options}{Named list of options.  If provided, then all other
 options are ignored.}
