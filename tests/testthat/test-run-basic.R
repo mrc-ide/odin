@@ -129,11 +129,10 @@ test_that_odin("user variables", {
                "Expected a scalar numeric for 'r'")
   expect_error(gen(r = numeric(0)),
                "Expected a scalar numeric for 'r'")
-
-  ## expect_equal(sort_list(gen(r = pi)$contents()),
-  ##              sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
-  ## expect_equal(sort_list(gen(r = pi, N0 = 10)$contents()),
-  ##              sort_list(list(K = 100, N0 = 10, initial_N = 10, r = pi)))
+  expect_equal(gen(r = pi)$contents()[c("N0", "r")],
+               list(N0 = 1, r = pi))
+  expect_equal(gen(r = pi, N0 = 10)$contents()[c("N0", "r")],
+               list(N0 = 10, r = pi))
   expect_equal(gen(r = pi, N0 = 10)$initial(0), 10)
   expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))
@@ -143,7 +142,6 @@ test_that_odin("user variables", {
   expect_equal(mod$contents()$r, pi)
   expect_equal(mod$contents()$N0, exp(1))
 })
-
 
 
 test_that_odin("simple operations in user variables are allowed", {
