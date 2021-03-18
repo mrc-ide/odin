@@ -148,5 +148,5 @@ test_that("collapse complex constants into expressions", {
   dat <- ir_deserialise(ir)
   expect_equal(
     dat$equations$deriv_x$rhs$value,
-    list("*", "a", 8))
+    list("+", "a", 8))
 })
