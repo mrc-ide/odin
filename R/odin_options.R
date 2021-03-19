@@ -14,6 +14,12 @@
 ##'   messages with this option set to `TRUE` because parts of the
 ##'   model have been effectively evaluated during processing.
 ##'
+##' @param substitutions Optionally, a list of values to substitute into
+##'   model specification as constants, even though they are declared
+##'   as `user()`. This will be most useful in conjunction with
+##'   `rewrite_dims` to create a copy of your model with dimensions
+##'   known at compile time and all loops using literal integers.
+##'
 ##' @return A list of parameters, of class `odin_options`
 ##'
 ##' @export
@@ -23,7 +29,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          validate = NULL, pretty = NULL, skip_cache = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
-                         rewrite_dims = NULL,
+                         rewrite_dims = NULL, substitutions = NULL,
                          options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
@@ -35,6 +41,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     pretty = FALSE,
     skip_cache = FALSE,
     rewrite_dims = FALSE,
+    substitutions = NULL,
     no_check_unused_equations = FALSE,
     compiler_warnings = FALSE)
   if (is.null(options)) {
@@ -46,6 +53,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
       workdir = workdir,
       skip_cache = assert_scalar_logical_or_null(skip_cache),
       rewrite_dims = assert_scalar_logical_or_null(rewrite_dims),
+      substitutions = check_substitutions(substitutions),
       no_check_unused_equations =
         assert_scalar_logical_or_null(no_check_unused_equations),
       compiler_warnings = assert_scalar_logical_or_null(compiler_warnings))
@@ -53,7 +61,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
   stopifnot(all(names(defaults) %in% names(options)))
 
   for (i in names(defaults)) {
-    if (is.null(options[[i]])) {
+    if (is.null(options[[i]]) && i != "substitutions") {
       options[[i]] <- getOption(paste0("odin.", i), defaults[[i]])
     }
   }
@@ -68,4 +76,20 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
 
   class(options) <- "odin_options"
   options
+}
+
+
+check_substitutions <- function(substitutions) {
+  if (is.null(substitutions)) {
+    return(NULL)
+  }
+  assert_named(substitutions, TRUE)
+  assert_is(substitutions, "list")
+  ok <- vlapply(substitutions, function(x)
+    is.numeric(x) && length(x) == 1L)
+  if (any(!ok)) {
+    stop("Invalid entry in substitutions: ",
+         paste(squote(names_if(!ok)), collapse = ", "))
+  }
+  substitutions
 }

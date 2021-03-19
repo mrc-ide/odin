@@ -178,3 +178,43 @@ test_that("validate inputs", {
   expect_error(assert_scalar_logical_or_null(logical(0)),
                "Expected '.+' to be a logical scalar \\(or NULL\\)")
 })
+
+
+test_that("validate inputs", {
+  expect_silent(assert_scalar_character_or_null(NULL))
+  expect_silent(assert_scalar_character_or_null("a"))
+
+  thing <- TRUE
+  expect_error(
+    assert_scalar_character_or_null(thing),
+    "Expected 'thing' to be a character scalar (or NULL)",
+    fixed = TRUE)
+  expect_error(assert_scalar_character_or_null(NA),
+               "Expected '.+' to be a character scalar \\(or NULL\\)")
+  expect_error(assert_scalar_character_or_null(character(0)),
+               "Expected '.+' to be a character scalar \\(or NULL\\)")
+})
+
+
+test_that("check names", {
+  expect_error(
+    assert_named(list()),
+    "must be named")
+  expect_error(
+    assert_named(list(1, 2)),
+    "must be named")
+  expect_silent(
+    assert_named(list(a = 1, a = 2)))
+  expect_error(
+    assert_named(list(a = 1, a = 2), TRUE),
+    "must have unique names")
+})
+
+
+test_that("Check S3 class", {
+  expect_silent(assert_is(structure(1, class = "foo"), "foo"))
+  expect_error(assert_is(structure(1, class = "bar"), "foo"),
+               "must be a foo")
+  expect_error(assert_is(1, c("foo", "bar")),
+               "must be a foo / bar")
+})

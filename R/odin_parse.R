@@ -61,5 +61,6 @@ odin_parse <- function(x, type = NULL, options = NULL) {
 ##' @rdname odin_parse
 odin_parse_ <- function(x, options = NULL, type = NULL) {
   options <- odin_options(options = options)
+  assert_scalar_character_or_null(type)
   ir_parse(x, options, type)
 }

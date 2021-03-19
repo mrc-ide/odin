@@ -22,6 +22,7 @@ ir_parse <- function(x, options, type = NULL) {
   ## This performs a round of optimisation where we try to simplify
   ## away expressions for the dimensions, which reduces the number of
   ## required variables.
+  eqs <- ir_parse_substitute(eqs, options$substitutions)
   if (options$rewrite_dims && features$has_array) {
     eqs <- ir_parse_rewrite_dims(eqs)
   }
@@ -1517,6 +1518,38 @@ ir_parse_expr_rhs_check_inplace <- function(lhs, rhs, line, source) {
       "Expected an array on the lhs of inplace function '%s'", fn),
       line, source)
   }
+}
+
+
+ir_parse_substitute <- function(eqs, subs) {
+  if (is.null(subs)) {
+    return(eqs)
+  }
+
+  f <- function(nm) {
+    eq <- eqs[[nm]]
+    if (is.null(eq)) {
+      stop(sprintf("Substitution failed: '%s' is not an equation", nm),
+           call. = FALSE)
+    }
+    if (eq$type != "user") {
+      stop(sprintf("Substitution failed: '%s' is not a user() equation", nm),
+           call. = FALSE)
+    }
+    if (!is.null(eq$array)) {
+      stop(sprintf("Substitution failed: '%s' is an array", nm), call. = FALSE)
+    }
+    value <- support_coerce_mode(subs[[nm]], eq$user$integer,
+                                 eq$user$min, eq$user$max, nm)
+
+    eq$type <- "expression_scalar"
+    eq$rhs <- list(value = value)
+    eq$stochastic <- FALSE
+    eq
+  }
+
+  eqs[names(subs)] <- lapply(names(subs), f)
+  eqs
 }
 
 
