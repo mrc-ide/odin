@@ -82,7 +82,7 @@ than individually named options." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.10</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.11</span>
       </span>
     </div>
 
@@ -153,7 +153,7 @@ than individually named options.</p>
     <pre class="usage"><span class='fu'>odin_options</span><span class='op'>(</span>verbose <span class='op'>=</span> <span class='cn'>NULL</span>, target <span class='op'>=</span> <span class='cn'>NULL</span>, workdir <span class='op'>=</span> <span class='cn'>NULL</span>,
   validate <span class='op'>=</span> <span class='cn'>NULL</span>, pretty <span class='op'>=</span> <span class='cn'>NULL</span>, skip_cache <span class='op'>=</span> <span class='cn'>NULL</span>,
   compiler_warnings <span class='op'>=</span> <span class='cn'>NULL</span>, no_check_unused_equations <span class='op'>=</span> <span class='cn'>NULL</span>,
-  rewrite_dims <span class='op'>=</span> <span class='cn'>NULL</span>, options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+  rewrite_dims <span class='op'>=</span> <span class='cn'>NULL</span>, substitutions <span class='op'>=</span> <span class='cn'>NULL</span>, options <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -220,6 +220,14 @@ messages with this option set to <code>TRUE</code> because parts of the
 model have been effectively evaluated during processing.</p></td>
     </tr>
     <tr>
+      <th>substitutions</th>
+      <td><p>Optionally, a list of values to substitute into
+model specification as constants, even though they are declared
+as <code>user()</code>. This will be most useful in conjunction with
+<code>rewrite_dims</code> to create a copy of your model with dimensions
+known at compile time and all loops using literal integers.</p></td>
+    </tr>
+    <tr>
       <th>options</th>
       <td><p>Named list of options.  If provided, then all other
 options are ignored.</p></td>
@@ -245,13 +253,16 @@ options are ignored.</p></td>
 #&gt; [1] FALSE
 #&gt; 
 #&gt; $workdir
-#&gt; [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmplGMwb0/file6c44b7a2679"
+#&gt; [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpPjw6hK/file14d9743b3f30"
 #&gt; 
 #&gt; $skip_cache
 #&gt; [1] FALSE
 #&gt; 
 #&gt; $rewrite_dims
 #&gt; [1] FALSE
+#&gt; 
+#&gt; $substitutions
+#&gt; NULL
 #&gt; 
 #&gt; $no_check_unused_equations
 #&gt; [1] FALSE
@@ -276,7 +287,7 @@ options are ignored.</p></td>
 #&gt;     list(names = name, data = list(names = name, declarations = decl, 
 #&gt;         definitions = defn, filename = filename))
 #&gt; }
-#&gt; &lt;bytecode: 0x7ffc15543380&gt;
+#&gt; &lt;bytecode: 0x7fd2a3fc4c68&gt;
 #&gt; &lt;environment: namespace:odin&gt;
 #&gt; 
 #&gt; attr(,"class")
