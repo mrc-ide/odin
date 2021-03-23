@@ -26,7 +26,8 @@ test_that("rewrite arrays drops references to dim_ variables", {
     initial(I) <- 0
     S0[, ] <- user()
     dim(S0) <- c(n, m)
-  }, options = odin_options(rewrite_dims = TRUE))
+  }, options = odin_options(rewrite_dims = TRUE,
+                            rewrite_constants = FALSE))
   expect_false(grepl("dim_S_1", ir))
   expect_false(grepl("dim_S", ir))
 })
@@ -44,6 +45,7 @@ test_that("Can create compile-time constants", {
     S0[, ] <- user()
     dim(S0) <- c(n, m)
   }, options = odin_options(rewrite_dims = TRUE,
+                            rewrite_constants = FALSE,
                             substitutions = list(n = 2, m = 3)))
   dat <- ir_deserialise(ir)
   expect_equal(dat$equations$n$type, "expression_scalar")
@@ -101,4 +103,51 @@ test_that("Can validate substitutions", {
   expect_error(
     odin_parse(code, options = odin_options(substitutions = c(n = 1))),
     "'substitutions' must be a list")
+})
+
+
+test_that("Rewrite all constants", {
+  ir <- odin_parse({
+    a <- 10
+    b <- 20
+    c <- 30
+    initial(x) <- 0
+    deriv(x) <- a + b * c
+  }, options = odin_options(rewrite_constants = TRUE))
+  dat <- ir_deserialise(ir)
+  expect_length(dat$equations, 2)
+  expect_setequal(names(dat$equations), c("initial_x", "deriv_x"))
+  expect_equal(dat$equations$deriv_x$rhs$value, 610) # i.e., 10 + 20 * 30
+})
+
+
+test_that("leave time-varying expressions alone", {
+  ir <- odin_parse({
+    a <- 2 * t
+    deriv(x) <- a * 3
+    deriv(y) <- a * 4
+    initial(x) <- 0
+    initial(y) <- 0
+  }, options = odin_options(rewrite_constants = TRUE))
+  dat <- ir_deserialise(ir)
+  expect_equal(
+    dat$equations$deriv_x$rhs$value,
+    list("*", "a", 3))
+  expect_equal(
+    dat$equations$deriv_y$rhs$value,
+    list("*", "a", 4))
+})
+
+test_that("collapse complex constants into expressions", {
+  ir <- odin_parse({
+    a <- 2 * t
+    b <- 2 * n
+    n <- 4
+    deriv(x) <- a + b
+    initial(x) <- 0
+  }, options = odin_options(rewrite_constants = TRUE))
+  dat <- ir_deserialise(ir)
+  expect_equal(
+    dat$equations$deriv_x$rhs$value,
+    list("+", "a", 8))
 })

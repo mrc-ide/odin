@@ -120,7 +120,6 @@ test_that_odin("user arrays", {
   dat3 <- mod3$contents()
   dat1 <- mod1$contents()
   expect_true(all(names(dat1) %in% names(dat3)))
-  expect_true(all(grepl("^offset_", setdiff(names(dat3), names(dat1)))))
   expect_equal(dat3[names(dat1)], dat1)
 
   ## Now, let's set some different parameters here and check enforcement:

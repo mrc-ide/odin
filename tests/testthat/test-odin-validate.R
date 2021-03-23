@@ -23,7 +23,8 @@ test_that("invalid model", {
 
 test_that("unused variables can be detected", {
   code <- c("initial(x) <- 1", "deriv(x) <- 1", "a <- 1")
-  res <- odin_validate(code, "text")
+  res <- odin_validate(code, "text",
+                       odin_options(rewrite_constants = FALSE))
   expect_equal(length(res$messages), 1L)
   expect_match(res$messages[[1]]$msg, "Unused equation: a")
   expect_equivalent(res$messages[[1]]$line, 3)

@@ -1,3 +1,7 @@
+# odin 1.1.12
+
+* New option `rewrite_constants` (via `odin::odin_options`) which attempts to rewrite all constants in the model code before generation. This can considerably reduce the number of variable lookups (mrc-2252)
+
 # odin 1.1.11
 
 * New option `substitutions` (via `odin::odin_options`) which can substitute in scalar `user` values at compile time (#220)
