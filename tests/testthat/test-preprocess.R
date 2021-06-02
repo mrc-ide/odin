@@ -58,3 +58,22 @@ test_that("handle empty input", {
   ## Previously errored
   expect_equal(odin_preprocess_detect(character(0)), "text")
 })
+
+
+test_that("sanitise filenames", {
+  path <- tempfile()
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE))
+
+  code <- c("initial(x) <- 1", "deriv(x) <- 1")
+
+  path_hyphens <- file.path(path, "path-with-hyphens.R")
+  path_spaces <- file.path(path, "path with spaces.R")
+  writeLines(code, path_hyphens)
+  writeLines(code, path_spaces)
+
+  expect_equal(odin_preprocess(path_hyphens)$base,
+               "path_with_hyphens")
+  expect_equal(odin_preprocess(path_spaces)$base,
+               "path_with_spaces")
+})

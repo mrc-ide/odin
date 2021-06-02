@@ -18,7 +18,7 @@ odin_preprocess <- function(x, type = NULL) {
     file <- x
     root <- normalizePath(dirname(x))
     path <- c(root, normalizePath(getwd()))
-    base <- chartr("-", "_", tools::file_path_sans_ext(basename(file)))
+    base <- chartr("- ", "__", tools::file_path_sans_ext(basename(file)))
   } else {
     file <- NULL
     path <- getwd()
