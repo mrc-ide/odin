@@ -121,4 +121,19 @@ test_that("delay discrete models with defaults are prevented in C", {
 })
 
 
+test_that("Allow spaces in filenames", {
+  skip_on_cran()
+  path <- tempfile()
+  dir.create(path)
+  on.exit(unlink(path, recursive = TRUE))
+
+  filename <- file.path(path, "path with spaces.R")
+  writeLines(c("initial(x) <- 1", "deriv(x) <- 1"), filename)
+
+  mod <- odin(filename, target = "c")
+  expect_equal(ir_deserialise(odin_ir(mod))$config$base,
+               "path_with_spaces")
+})
+
+
 unload_dlls()
