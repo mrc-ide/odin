@@ -14,6 +14,7 @@
 }
 
 
+##' @importFrom utils .DollarNames
 ##' @export
 .DollarNames.odin_generator <- function(x, pattern) {
   ls(attr(x, "generator", exact = TRUE))
