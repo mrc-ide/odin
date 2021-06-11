@@ -1129,31 +1129,6 @@ test_that_odin("user variable information - when no user", {
 })
 
 
-test_that_odin("format/print", {
-  gen <- odin({
-    deriv(N) <- r[1] * N * (1 - N / K)
-    initial(N) <- N0
-    N0 <- user(1)
-    K <- user(100)
-    r[] <- user()
-    dim(r) <- 1
-  })
-
-  txt <- capture.output(x <- withVisible(print(gen)))
-  expect_match(txt,
-               capture.output(args(gen))[[1]],
-               fixed = TRUE, all = FALSE)
-  expect_match(txt,
-               "<an 'odin_generator' function>",
-               fixed = TRUE, all = FALSE)
-  expect_match(txt,
-               "use coef() to get information on user parameters",
-               fixed = TRUE, all = FALSE)
-
-  expect_identical(x, list(value = gen, visible = FALSE))
-})
-
-
 test_that_odin("multiline string", {
   ## Literal multiline string:
   gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"))

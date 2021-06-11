@@ -136,4 +136,13 @@ test_that("Allow spaces in filenames", {
 })
 
 
+test_that("compatibility layer passes to R6 class", {
+  gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"), target = "r")
+  gen_r6 <- attr(gen, "generator")
+
+  expect_equal(capture.output(print(gen)), capture.output(print(gen_r6)))
+  expect_equal(utils::.DollarNames(gen), utils::.DollarNames(gen_r6))
+})
+
+
 unload_dlls()
