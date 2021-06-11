@@ -73,7 +73,8 @@
 ##' @param options Named list of options.  If provided, then all other
 ##'   options are ignored.
 ##'
-##' @return A function that can generate the model
+##' @return An `odin_generator` object (an R6 class) which can be used
+##'   to create model instances.
 ##'
 ##' @author Rich FitzJohn
 ##' @export
@@ -93,7 +94,7 @@
 ##' ## required because in general you don't want to have to compile the
 ##' ## model every time it is used (so the generator will go in a
 ##' ## package).
-##' mod <- exp_decay()
+##' mod <- exp_decay$new()
 ##'
 ##' ## Run the model for a series of times from 0 to 10:
 ##' t <- seq(0, 10, length.out = 101)

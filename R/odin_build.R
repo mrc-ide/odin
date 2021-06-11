@@ -57,7 +57,7 @@
 ##' res
 ##'
 ##' # The model:
-##' mod <- res$model()
+##' mod <- res$model$new()
 ##' mod$run(0:10)
 odin_build <- function(x, options = NULL) {
   options <- odin_options(options = options)
