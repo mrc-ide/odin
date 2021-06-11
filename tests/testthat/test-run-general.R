@@ -1362,3 +1362,27 @@ test_that_odin("self output for scalar: rewrite corner case", {
   tt <- seq(0, 10, length.out = 11)
   expect_equal(gen()$run(tt)[, "x"], rep(7, 11))
 })
+
+
+test_that_odin("deprecation warning finds used constructor name", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- 2
+    config(base) <- "mymodel"
+  })
+  expect_warning(gen(), "'gen(...)' is deprecated", fixed = TRUE)
+  expect_warning(local(gen()), "'gen(...)' is deprecated", fixed = TRUE)
+  expect_silent(gen$new())
+})
+
+
+test_that_odin("deprecation warning falls back on base name", {
+  code <- c("deriv(y) <- r",
+            "initial(y) <- 1",
+            "r <- 2",
+            "config(base) <- 'mymodel'")
+  expect_warning(odin_(code)(), "'mymodel(...)' is deprecated",
+                 fixed = TRUE)
+  expect_silent(odin_(code)$new())
+})

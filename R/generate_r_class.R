@@ -171,7 +171,10 @@ generate_r_constructor <- function(base, discrete, user, ir, env, ...) {
     args <- c(args, alist(use_dde = FALSE))
   }
 
-  ret <- as_function(args, r_expr_block(list(as.call(call))), env)
+  deprecated <- bquote(
+    asNamespace("odin")$deprecated_constructor_call(.(base)))
+  body <- r_expr_block(list(deprecated, as.call(call)))
+  ret <- as_function(args, body, env)
   if (!is.null(env)) {
     class(ret) <- "odin_generator"
   }
