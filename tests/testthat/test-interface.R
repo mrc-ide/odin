@@ -21,11 +21,11 @@ test_that("n_history is configurable", {
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
   })
 
-  mod <- gen(use_dde = TRUE)
+  mod <- gen$new(use_dde = TRUE)
   expect_error(mod$run(seq(0, 200), n_history = 0),
                "Integration failure: can't use ylag in model with no history")
 
-  mod <- gen(use_dde = FALSE)
+  mod <- gen$new(use_dde = FALSE)
   ## Don't test for precice deSolve error message; just test fail/pass
   expect_error(mod$run(seq(0, 200), n_history = 1))
   expect_error(mod$run(seq(0, 200), n_history = 1000), NA)
@@ -58,7 +58,7 @@ test_that("prevent unknown target", {
 ## issue #88
 test_that("force a vector of strings (compile)", {
   gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"), target = "r")
-  mod <- gen()
+  mod <- gen$new()
   y <- mod$run(0:10)[, "y"]
   expect_equal(y, seq(1, by = 0.5, length.out = 11))
 })
@@ -75,7 +75,7 @@ test_that("force a vector of strings (parse)", {
 test_that("force a symbol containing code", {
   code <- c("deriv(y) <- 0.5", "initial(y) <- 1")
   gen <- odin(code, target = "r")
-  mod <- gen()
+  mod <- gen$new()
   y <- mod$run(0:10)[, "y"]
   expect_equal(y, seq(1, by = 0.5, length.out = 11))
 })

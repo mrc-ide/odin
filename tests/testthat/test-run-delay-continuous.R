@@ -39,7 +39,7 @@ test_that_odin("mixed delay model", {
     y0 <- runif(3)
     r <- runif(3)
     if (i == 1) {
-      mod <- gen(y0 = y0, r = r)
+      mod <- gen$new(y0 = y0, r = r)
     } else {
       mod$set_user(y0 = y0, r = r)
     }
@@ -83,7 +83,7 @@ test_that_odin("use subset of variables", {
   })
 
   tt <- seq(0, 10, length.out = 101)
-  mod <- gen()
+  mod <- gen$new()
   yy <- mod$run(tt)
   expect_equal(yy[, "tmp"],
                0.5 + ifelse(tt <= 2, 0, (tt - 2)) * 5)
@@ -117,7 +117,7 @@ test_that_odin("delay array storage", {
     y0 <- runif(2 + i)
     r <- runif(2 + i)
     if (i == 1) {
-      mod <- gen(y0 = y0, r = r)
+      mod <- gen$new(y0 = y0, r = r)
     } else {
       mod$set_user(y0 = y0, r = r)
     }
@@ -150,7 +150,7 @@ test_that_odin("3 arg delay", {
     config(base) <- "delay3"
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- seq(0, 3, length.out = 101)
   yy <- mod$run(tt)
   expect_equal(yy[, "ylag"], rep(2.0, length(tt)))
@@ -178,7 +178,7 @@ test_that_odin("3 arg delay with array", {
 
   tt <- seq(0, 2, length.out = 11)
   x <- -runif(5, 2, 3)
-  mod <- gen(alt = x)
+  mod <- gen$new(alt = x)
   yy <- mod$transform_variables(mod$run(tt))
   expect_equal(yy$tmp, matrix(x, length(tt), length(x), TRUE))
 
@@ -228,7 +228,7 @@ test_that_odin("delay index packing", {
   offset_variable_c <- 21 # i.e., 10 + 11
   offset_variable_e <- 46 # i.e., 10 + 11 + 12 + 13
 
-  mod <- gen()
+  mod <- gen$new()
   dat <- mod$contents()
 
   seq0 <- function(n) seq_len(n)
@@ -265,7 +265,7 @@ test_that_odin("nontrivial time", {
   })
 
   tt <- 0:10
-  y <- gen()$run(tt)
+  y <- gen$new()$run(tt)
   expect_equal(y[, "ylag"],
                c(rep(0.5, 6), seq(1.5, by = 1, length.out = 5)))
 })
@@ -301,7 +301,7 @@ test_that_odin("overlapping array storage", {
     y0 <- runif(2 + i)
     r <- runif(2 + i)
     if (i == 1) {
-      mod <- gen(y0 = y0, r = r)
+      mod <- gen$new(y0 = y0, r = r)
     } else {
       mod$set_user(y0 = y0, r = r)
     }
@@ -344,7 +344,7 @@ test_that_odin("delayed delays", {
   })
 
   tt <- seq(0, 7, length.out = 51)
-  yy <- gen()$run(tt)
+  yy <- gen$new()$run(tt)
 
   ## First delay
   a <- ifelse(tt > 2, exp(tt - 2) + 1, exp(0) + 1)
@@ -379,7 +379,7 @@ test_that_odin("compute derivative", {
   ## >  da/dt = sin(t)
   ## >  db/dt = if initialised => -cos(t)
   ## >          else           => -1
-  mod <- gen()
+  mod <- gen$new()
   expect_identical(mod$contents()$initial_t, NA_real_)
 
   ## First, uninitialised:
@@ -464,7 +464,7 @@ test_that_odin("delay with array and provide input", {
   real_y <- t(y0 * exp(outer(r, tt)))
   real_z <- exp(0.1 * tt)
 
-  mod <- gen(y0 = numeric(length(y0)), r = r)
+  mod <- gen$new(y0 = numeric(length(y0)), r = r)
   yy <- mod$run(tt, c(1, y0), rtol = 1e-8, atol = 1e-8)
   zz <- mod$transform_variables(yy)
 
@@ -482,7 +482,7 @@ test_that_odin("set initial conditions in delay differential equation", {
   })
 
   tt <- 0:10
-  y <- gen()$run(tt, 1)
+  y <- gen$new()$run(tt, 1)
   expect_equal(y[, "y"], 1:11)
   expect_equal(y[, "ylag"],
                c(rep(1, 6), seq(2, by = 1, length.out = 5)))
@@ -498,7 +498,7 @@ test_that_odin("can set/omit ynames", {
   })
 
   tt <- 0:10
-  mod <- gen()
+  mod <- gen$new()
   expect_equal(colnames(mod$run(tt)), c("t", "y", "ylag"))
   expect_null(colnames(mod$run(tt, use_names = FALSE)))
 })

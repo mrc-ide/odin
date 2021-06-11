@@ -7,7 +7,7 @@ test_that_odin("trivial model", {
     r <- 2
   }, options = odin_options(rewrite_constants = FALSE))
 
-  mod <- gen()
+  mod <- gen$new()
   expect_is(mod, "odin_model")
   expect_equal(mod$initial(0), 1)
   expect_equal(mod$initial(10), 1)
@@ -39,7 +39,7 @@ test_that_odin("Time dependent rhs", {
 
   ## This looks like a reasonable rhs but it's going through the
   ## internal storage instead of being transient.
-  mod <- gen()
+  mod <- gen$new()
 
   tt <- 0:10
   yy <- mod$run(tt, atol = 1e-8, rtol = 1e-8)
@@ -59,7 +59,7 @@ test_that_odin("Time dependent initial conditions", {
     initial(y3) <- y2
   })
 
-  mod <- gen()
+  mod <- gen$new()
 
   f <- function(t) {
     cos(t) * (1 + t)
@@ -83,7 +83,7 @@ test_that_odin("use state in derivative calculation", {
     r <- 2.0
   })
 
-  mod <- gen()
+  mod <- gen$new()
   ## two equilibria:
   expect_equal(mod$deriv(0, 0), 0)
   expect_equal(mod$deriv(0, 100), 0)
@@ -105,7 +105,7 @@ test_that_odin("multiple variables", {
     R     <- 28.0
     b     <-  8.0 / 3.0
   })
-  mod <- gen()
+  mod <- gen$new()
   expect_equal(mod$initial(0), c(10, 1, 1))
   expect_equal(mod$deriv(0, mod$initial(0)), c(-90, 269, 22 / 3))
 })
@@ -119,25 +119,25 @@ test_that_odin("user variables", {
     N0 <- user(1)
     K <- 100
     r <- user()
-  })
+  }, target = "r")
 
-  expect_error(gen())
-  expect_error(gen(r = NULL),
+  expect_error(gen$new())
+  expect_error(gen$new(r = NULL),
                "Expected a value for 'r'", fixed = TRUE)
-  expect_error(gen(r = 1:2),
+  expect_error(gen$new(r = 1:2),
                "Expected a scalar numeric for 'r'")
-  expect_error(gen(r = numeric(0)),
+  expect_error(gen$new(r = numeric(0)),
                "Expected a scalar numeric for 'r'")
 
-  expect_equal(gen(r = pi)$contents()[c("N0", "r")],
+  expect_equal(gen$new(r = pi)$contents()[c("N0", "r")],
                list(N0 = 1, r = pi))
-  expect_equal(gen(r = pi, N0 = 10)$contents()[c("N0", "r")],
+  expect_equal(gen$new(r = pi, N0 = 10)$contents()[c("N0", "r")],
                list(N0 = 10, r = pi))
-  expect_equal(gen(r = pi, N0 = 10)$initial(0), 10)
-  expect_equal(gen(r = pi, N0 = 10)$deriv(0, 10),
+  expect_equal(gen$new(r = pi, N0 = 10)$initial(0), 10)
+  expect_equal(gen$new(r = pi, N0 = 10)$deriv(0, 10),
                pi * 10 * (1 - 10 / 100))
 
-  mod <- gen(r = pi, N0 = exp(1))
+  mod <- gen$new(r = pi, N0 = exp(1))
   mod$set_user()
   expect_equal(mod$contents()$r, pi)
   expect_equal(mod$contents()$N0, exp(1))
@@ -152,7 +152,7 @@ test_that_odin("simple operations in user variables are allowed", {
     x0 <- user(-1 / (2 + 3 * 4))
   })
 
-  mod <- gen()
+  mod <- gen$new()
   expect_equal(mod$contents()$x0, -1 / (2 + 3 * 4))
 })
 
@@ -169,7 +169,7 @@ test_that_odin("output", {
 
   tt <- 0:10
 
-  mod <- gen()
+  mod <- gen$new()
 
   expect_equal(mod$deriv(0, 1), structure(2, output = 0))
   expect_equal(mod$deriv(10, 1), structure(2, output = 10))
@@ -180,7 +180,7 @@ test_that_odin("output", {
   expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
   expect_equal(yy1[, "z"], tt)
 
-  yy2 <- gen(use_dde = TRUE)$run(tt)
+  yy2 <- gen$new(use_dde = TRUE)$run(tt)
   expect_equal(colnames(yy2), c("t", "y", "z"))
   expect_equal(yy2[, "t"], tt)
   expect_equal(yy2[, "y"], seq(1, length.out = length(tt), by = 2))
@@ -197,7 +197,7 @@ test_that_odin("output", {
     a <- t + y
   })
 
-  mod <- gen()
+  mod <- gen$new()
   expect_equal(mod$deriv(0, 1), structure(2, output = 2))
   expect_equal(mod$deriv(10, 1), structure(2, output = 22))
 })
@@ -212,7 +212,7 @@ test_that_odin("copy output", {
     output(z[]) <- TRUE
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- 0:10
   y <- mod$run(tt)
   yy <- mod$transform_variables(y)
@@ -227,7 +227,7 @@ test_that_odin("discrete", {
     initial(x) <- 1
     update(x) <- x + 1
   })
-  mod <- gen()
+  mod <- gen$new()
 
   expect_equal(mod$initial(0), 1)
   expect_equal(mod$update(0, 1), 2)
@@ -244,7 +244,7 @@ test_that_odin("discrete with output", {
     update(x) <- x + 1
     output(y) <- x + step
   })
-  mod <- gen()
+  mod <- gen$new()
 
   expect_equal(mod$update(2, 3), structure(4, output = 5))
   tt <- 0:10
@@ -267,7 +267,7 @@ test_that_odin("array support", {
     dim(x) <- n
   }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
-  mod <- gen()
+  mod <- gen$new()
 
   ## internal data is ok:
   expect_equal(sort_list(mod$contents()),
@@ -300,7 +300,7 @@ test_that_odin("multi-line array expression", {
     dim(a) <- n
     n <- 10
   })
-  expect_equal(gen()$contents()$a, c(1, 1, 2, 3, 5, 8, 13, 21, 34, 55))
+  expect_equal(gen$new()$contents()$a, c(1, 1, 2, 3, 5, 8, 13, 21, 34, 55))
 })
 
 
@@ -311,7 +311,7 @@ test_that_odin("3d array", {
     dim(y) <- c(2, 3, 4)
   }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
-  mod <- gen()
+  mod <- gen$new()
   d <- mod$contents()
   expect_equal(d$initial_y, array(1, c(2, 3, 4)))
   expect_equal(d$dim_y, 24)
@@ -342,9 +342,9 @@ test_that_odin("user array", {
     dim(x) <- n
   })
 
-  mod <- gen(r = 1:3)
+  mod <- gen$new(r = 1:3)
   expect_identical(mod$contents()$r, as.numeric(1:3))
-  expect_error(gen(r = 1), "Expected length 3 value for r")
+  expect_error(gen$new(r = 1), "Expected length 3 value for r")
 })
 
 
@@ -358,7 +358,7 @@ test_that_odin("user matrix", {
   })
 
   r <- matrix(runif(6), 2, 3)
-  mod <- gen(r = r)
+  mod <- gen$new(r = r)
   expect_identical(mod$contents()$r, r)
 
   ## TODO: this would be nice to tidy up but it's really tricky to
@@ -370,12 +370,12 @@ test_that_odin("user matrix", {
     msg2 <- "Incorrect size of dimension 1 of r (expected 2)"
   }
 
-  expect_error(gen(r = c(r)), msg1, fixed = TRUE)
-  expect_error(gen(r = r[2, 2]), msg1, fixed = TRUE)
-  expect_error(gen(r = array(1, 2:4)), msg1, fixed = TRUE)
-  expect_error(gen(r = 1), msg1, fixed = TRUE)
+  expect_error(gen$new(r = c(r)), msg1, fixed = TRUE)
+  expect_error(gen$new(r = r[2, 2]), msg1, fixed = TRUE)
+  expect_error(gen$new(r = array(1, 2:4)), msg1, fixed = TRUE)
+  expect_error(gen$new(r = 1), msg1, fixed = TRUE)
 
-  expect_error(gen(r = t(r)), msg2, fixed = TRUE)
+  expect_error(gen$new(r = t(r)), msg2, fixed = TRUE)
 })
 
 
@@ -389,7 +389,7 @@ test_that_odin("user array - indirect", {
     n <- user()
   }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
-  mod <- gen(n = 3, r = 1:3)
+  mod <- gen$new(n = 3, r = 1:3)
   expect_equal(sort_list(mod$contents()),
                sort_list(list(
                  dim_r = 3,
@@ -398,7 +398,7 @@ test_that_odin("user array - indirect", {
                  n = 3,
                  r = 1:3)))
 
-  expect_error(gen(n = 4, r = 1:3),
+  expect_error(gen$new(n = 4, r = 1:3),
                "Expected length 4 value for r")
 })
 
@@ -412,13 +412,13 @@ test_that_odin("user array - direct", {
     dim(x) <- length(r)
   }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
-  mod <- gen(r = 1:3)
+  mod <- gen$new(r = 1:3)
   expect_equal(
     sort_list(mod$contents()),
     sort_list(list(dim_r = 3, dim_x = 3, initial_x = rep(1, 3), r = 1:3)))
-  expect_error(gen(r = matrix(1, 2, 3)),
+  expect_error(gen$new(r = matrix(1, 2, 3)),
                "Expected a numeric vector for 'r'")
-  expect_error(gen(r = NULL),
+  expect_error(gen$new(r = NULL),
                "Expected a value for 'r'")
   expect_silent(mod$set_user(r = NULL))
   expect_equal(mod$contents()$r, 1:3)
@@ -434,14 +434,15 @@ test_that_odin("user array - direct 3d", {
   }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
   m <- array(runif(24), 2:4)
-  mod <- gen(r = m)
+  mod <- gen$new(r = m)
   expect_equal(sort_list(mod$contents()),
                sort_list(list(dim_r = 24, dim_r_1 = 2, dim_r_12 = 6,
                               dim_r_2 = 3, dim_r_3 = 4, initial_y = 1,
                               r = m)))
 
-  expect_error(gen(r = 1), "Expected a numeric array of rank 3 for 'r'")
-  expect_error(gen(r = matrix(1)), "Expected a numeric array of rank 3 for 'r'")
+  expect_error(gen$new(r = 1), "Expected a numeric array of rank 3 for 'r'")
+  expect_error(gen$new(r = matrix(1)),
+               "Expected a numeric array of rank 3 for 'r'")
 })
 
 
@@ -463,7 +464,7 @@ test_that_odin("interpolation", {
   tt <- seq(0, 3, length.out = 301)
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
-  mod <- gen(tp = tp, zp = zp)
+  mod <- gen$new(tp = tp, zp = zp)
   dat <- mod$contents()
 
   expect_equal(sort(names(dat)),
@@ -489,7 +490,7 @@ test_that_odin("stochastic", {
     initial(x) <- 0
     update(x) <- x + norm_rand()
   })
-  mod <- gen()
+  mod <- gen$new()
   expect_equal(mod$initial(0), 0)
 
   set.seed(1)
@@ -515,7 +516,7 @@ test_that_odin("multiple arrays: constant", {
     dim(y) <- n
   })
 
-  mod <- gen()
+  mod <- gen$new()
   expect_equal(mod$initial(0), rep(1:2, each = 3))
   expect_equal(mod$deriv(0, mod$initial(0)), rep(1:3, 2))
 })
@@ -534,7 +535,7 @@ test_that_odin("multiple arrays: dynamic", {
     dim(y) <- n
   })
 
-  mod <- gen(n = 4)
+  mod <- gen$new(n = 4)
   expect_equal(mod$initial(0), rep(1:2, each = 4))
   expect_equal(mod$deriv(0, mod$initial(0)), rep(1:4, 2))
 })
@@ -553,7 +554,7 @@ test_that_odin("multiple output arrays", {
   })
 
   r <- runif(3)
-  mod <- gen(r = r)
+  mod <- gen$new(r = r)
 
   expect_equal(mod$initial(0), 1:3)
   expect_equal(
@@ -579,7 +580,7 @@ test_that_odin("3d array time dependent and variable", {
     r[, , ] <- t * 0.1
   }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
-  mod <- gen()
+  mod <- gen$new()
   d <- mod$contents()
   expect_equal(d$initial_y, array(1, c(2, 3, 4)))
   expect_equal(d$dim_y, 24)
@@ -613,12 +614,12 @@ test_that_odin("rich user arrays", {
   })
 
   r <- matrix(runif(6), 2, 3)
-  expect_error(gen(r = r), NA)
-  expect_error(gen(r = -r), "Expected 'r' to be at least 0")
+  expect_error(gen$new(r = r), NA)
+  expect_error(gen$new(r = -r), "Expected 'r' to be at least 0")
   r[5] <- -1
-  expect_error(gen(r = r), "Expected 'r' to be at least 0")
+  expect_error(gen$new(r = r), "Expected 'r' to be at least 0")
   r[5] <- NA
-  expect_error(gen(r = r), "'r' must not contain any NA values")
+  expect_error(gen$new(r = r), "'r' must not contain any NA values")
 })
 
 
@@ -633,10 +634,10 @@ test_that_odin("rich user sized arrays", {
 
   r <- matrix(runif(6), 2, 3)
 
-  expect_error(gen(r = r), NA)
-  expect_error(gen(r = -r), "Expected 'r' to be at least 0")
+  expect_error(gen$new(r = r), NA)
+  expect_error(gen$new(r = -r), "Expected 'r' to be at least 0")
   r[5] <- -1
-  expect_error(gen(r = r), "Expected 'r' to be at least 0")
+  expect_error(gen$new(r = r), "Expected 'r' to be at least 0")
 })
 
 
@@ -654,7 +655,7 @@ test_that_odin("discrete delays: matrix", {
     dim(a) <- c(2, 3)
   }, options = odin_options(rewrite_constants = FALSE, rewrite_dims = FALSE))
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- 0:10
   yy <- mod$run(tt)
   zz <- mod$transform_variables(yy)
@@ -678,7 +679,7 @@ test_that_odin("multinomial", {
 
   set.seed(1)
   p <- runif(5)
-  mod <- gen(q = p)
+  mod <- gen$new(q = p)
 
   set.seed(1)
   y <- mod$update(0, mod$initial(0))
@@ -706,7 +707,7 @@ test_that_odin("local scope of loop variables", {
     m <- 2
   })
 
-  mod <- gen()
+  mod <- gen$new()
   y0 <- mod$initial(0)
   y <- mod$transform_variables(mod$deriv(0, y0))
 
@@ -722,7 +723,7 @@ test_that_odin("Can set or omit names", {
     initial(y) <- 1
     r <- 2
   })
-  mod <- gen()
+  mod <- gen$new()
   expect_equal(colnames(mod$run(0:10)), c("t", "y"))
   expect_equal(colnames(mod$run(0:10, use_names = FALSE)), NULL)
 })
@@ -734,7 +735,7 @@ test_that_odin("Can set initial conditions directly in an ode", {
     initial(y) <- 1
     r <- 2
   })
-  mod <- gen()
+  mod <- gen$new()
   y <- mod$run(0:10, 2)
   expect_equal(y[, "y"], seq(2, by = 2, length.out = 11))
 })
@@ -756,7 +757,7 @@ test_that_odin("Can substitute user variables", {
                             substitutions = list(n = 2, m = 3)))
   expect_equal(nrow(coef(gen)), 1) # only S0 now
   S0 <- matrix(rpois(6, 10), 2, 3)
-  mod <- gen(S0 = S0)
+  mod <- gen$new(S0 = S0)
   dat <- mod$contents()
   expect_equal(dat$n, 2)
   expect_equal(dat$m, 3)
@@ -778,7 +779,7 @@ test_that_odin("Can rewrite common dimensions", {
   }, options = odin_options(rewrite_constants = TRUE))
 
   S0 <- matrix(rpois(6, 10), 2, 3)
-  mod <- gen(S0 = S0, n = 2, m = 3)
+  mod <- gen$new(S0 = S0, n = 2, m = 3)
   dat <- mod$contents()
 
   expect_equal(sum(c("dim_S0", "dim_S") %in% names(dat)), 1)
