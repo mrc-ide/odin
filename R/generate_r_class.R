@@ -101,7 +101,7 @@ generate_r_class <- function(core, dat, env) {
       ir = ir,
 
       ## Methods:
-      initialize = function(user = NULL, unused_user_action = NULL,
+      initialize = function(..., user = list(...), unused_user_action = NULL,
                             use_dde = FALSE) {
         ## TODO: why is 'use_dde' here in the initialiser and not in
         ## the run function?  We could take this as a default?
@@ -165,9 +165,10 @@ generate_r_constructor <- function(base, discrete, user, ir, env, ...) {
                unused_user_action = NULL)
 
   cl_init <- call("$", as.name(base), quote(new))
-  call <- list(cl_init, quote(user), quote(unused_user_action))
+  call <- list(cl_init, user = quote(user),
+               unused_user_action = quote(unused_user_action))
   if (!discrete) {
-    call <- c(call, list(quote(use_dde)))
+    call <- c(call, list(use_dde = quote(use_dde)))
     args <- c(args, alist(use_dde = FALSE))
   }
 
