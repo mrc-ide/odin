@@ -65,10 +65,14 @@ test_that_odin("constant array", {
   zp <- cbind(c(0, 1, 0),
               c(0, 2, 0))
   ## Two dimensions to check here:
-  expect_error(gen$new(tp = tp, zp = zp[1:2, ]), "zp to have size 3")
-  expect_error(gen$new(tp = tp, zp = zp[c(1:3, 1:3), ]), "zp to have size 3")
-  expect_error(gen$new(tp = tp, zp = zp[, 1, drop = FALSE]), "zp to have size 2")
-  expect_error(gen$new(tp = tp, zp = zp[, c(1:2, 1)]), "zp to have size 2")
+  expect_error(gen$new(tp = tp, zp = zp[1:2, ]),
+               "zp to have size 3")
+  expect_error(gen$new(tp = tp, zp = zp[c(1:3, 1:3), ]),
+               "zp to have size 3")
+  expect_error(gen$new(tp = tp, zp = zp[, 1, drop = FALSE]),
+               "zp to have size 2")
+  expect_error(gen$new(tp = tp, zp = zp[, c(1:2, 1)]),
+               "zp to have size 2")
 
   mod <- gen$new(tp = tp, zp = zp)
 
