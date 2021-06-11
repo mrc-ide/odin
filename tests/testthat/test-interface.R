@@ -142,6 +142,8 @@ test_that("compatibility layer passes to R6 class", {
 
   expect_equal(capture.output(print(gen)), capture.output(print(gen_r6)))
   expect_equal(utils::.DollarNames(gen), utils::.DollarNames(gen_r6))
+  expect_identical(gen$classname, gen_r6$classname)
+  expect_identical(gen[["classname"]], gen_r6[["classname"]])
 })
 
 
