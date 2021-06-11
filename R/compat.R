@@ -20,6 +20,10 @@
   ls(attr(x, "generator", exact = TRUE))
 }
 
+##' @export
+print.odin_generator <- function(x, ...) {
+  print(attr(x, "generator", exact = TRUE))
+}
 
 deprecated_constructor_call <- function(name) {
   calls <- sys.calls()
