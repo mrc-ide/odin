@@ -1330,7 +1330,7 @@ test_that_odin("force integer on a numeric vector truncates", {
 })
 
 
-test_that("user c functions can be passed arrays and indexes", {
+test_that_odin("user c functions can be passed arrays and indexes", {
   skip_for_target("r")
   gen <- odin({
     config(include) <- "user_fns4.c"

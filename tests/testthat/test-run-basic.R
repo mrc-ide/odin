@@ -764,7 +764,7 @@ test_that_odin("Can substitute user variables", {
 })
 
 
-test_that("Can rewrite common dimensions", {
+test_that_odin("Can rewrite common dimensions", {
   gen <- odin({
     n <- user(integer = TRUE)
     m <- user()
