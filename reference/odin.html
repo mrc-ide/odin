@@ -81,7 +81,7 @@ The odin_ version is a &quot;standard evaluation&quot; escape hatch." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.13</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.14</span>
       </span>
     </div>
 
@@ -226,7 +226,8 @@ options are ignored.</p></td>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>A function that can generate the model</p>
+    <p>An <code>odin_generator</code> object (an R6 class) which can be used
+to create model instances.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p><strong>Do not use <code>odin::odin</code> in a package; you almost certainly want
@@ -276,7 +277,7 @@ very likely to outperform the simple solver implemented.</p>
 <span class='co'>## required because in general you don't want to have to compile the</span>
 <span class='co'>## model every time it is used (so the generator will go in a</span>
 <span class='co'>## package).</span>
-<span class='va'>mod</span> <span class='op'>&lt;-</span> <span class='fu'>exp_decay</span><span class='op'>(</span><span class='op'>)</span>
+<span class='va'>mod</span> <span class='op'>&lt;-</span> <span class='va'>exp_decay</span><span class='op'>$</span><span class='fu'>new</span><span class='op'>(</span><span class='op'>)</span>
 
 <span class='co'>## Run the model for a series of times from 0 to 10:</span>
 <span class='va'>t</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/seq.html'>seq</a></span><span class='op'>(</span><span class='fl'>0</span>, <span class='fl'>10</span>, length.out <span class='op'>=</span> <span class='fl'>101</span><span class='op'>)</span>
