@@ -7,7 +7,7 @@ test_that_odin("delays", {
     yprev <- delay(y, 1)
   })
 
-  mod <- gen()
+  mod <- gen$new()
 
   tt <- seq(0:10)
   yy <- mod$run(tt)
@@ -25,7 +25,7 @@ test_that_odin("delays: scalar variable", {
     output(x) <- TRUE
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- seq(0:20)
   yy <- mod$transform_variables(mod$run(tt))
 
@@ -51,7 +51,7 @@ test_that_odin("delays: scalar expression", {
     dim(y) <- 2
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- seq(0:20)
   yy <- mod$transform_variables(mod$run(tt))
 
@@ -77,7 +77,7 @@ test_that_odin("delays: vector variable", {
     dim(x) <- 2
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- seq(0:20)
   yy <- mod$transform_variables(mod$run(tt))
 
@@ -104,7 +104,7 @@ test_that_odin("delays: vector expression", {
     dim(y) <- 2
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- seq(0:20)
   yy <- mod$transform_variables(mod$run(tt))
 
@@ -128,7 +128,7 @@ test_that_odin("delay vars that depend on time", {
     output(y) <- TRUE
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- 0:10
   yy <- mod$run(tt)
 
@@ -144,7 +144,7 @@ test_that_odin("disable update function", {
     yprev <- delay(y, 1)
   })
 
-  mod <- gen()
+  mod <- gen$new()
   y <- mod$initial(0)
   expect_error(mod$update(0, y),
                "Can't call update() on delay models",
@@ -162,7 +162,7 @@ test_that_odin("default (scalar)", {
     output(x) <- TRUE
   })
 
-  mod <- gen()
+  mod <- gen$new()
   tt <- 0:10
   yy <- mod$transform_variables(mod$run(tt))
 
@@ -194,7 +194,7 @@ test_that_odin("default (vector)", {
   })
 
   z <- c(0.3, 0.6)
-  mod <- gen(z = z)
+  mod <- gen$new(z = z)
   tt <- seq(0:20)
   yy <- mod$transform_variables(mod$run(tt))
 

@@ -61,7 +61,7 @@ res <- odin::odin_build(ir, options)
 res
 
 # The model:
-mod <- res$model()
+mod <- res$model$new()
 mod$run(0:10)
 }
 \seealso{

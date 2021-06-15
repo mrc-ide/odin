@@ -58,7 +58,8 @@ messages about unused variables.  Defaults to the option
 options are ignored.}
 }
 \value{
-A function that can generate the model
+An \code{odin_generator} object (an R6 class) which can be used
+to create model instances.
 }
 \description{
 Create an odin model from a file, text string(s) or expression.
@@ -110,7 +111,7 @@ exp_decay <- odin::odin({
 ## required because in general you don't want to have to compile the
 ## model every time it is used (so the generator will go in a
 ## package).
-mod <- exp_decay()
+mod <- exp_decay$new()
 
 ## Run the model for a series of times from 0 to 10:
 t <- seq(0, 10, length.out = 101)

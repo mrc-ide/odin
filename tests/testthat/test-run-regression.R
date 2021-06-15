@@ -14,7 +14,7 @@ test_that_odin("bug #78", {
   })
 
   parameters <- list(S0 = cbind(c(1, 2), c(3, 4)))
-  mod <- gen(user = parameters)
+  mod <- gen$new(user = parameters)
   expect_equal(mod$deriv(0, mod$initial(0)),
                c(4, rep(0, 4)))
 })
@@ -35,7 +35,7 @@ test_that_odin("bug #75", {
     I0 <- 1
   })
 
-  dat <- gen()$contents()
+  dat <- gen$new()$contents()
   expect_equal(dat$initial_S, 94)
   expect_equal(dat$initial_I, 1)
   expect_equal(dat$initial_R, 5)

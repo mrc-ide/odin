@@ -27,7 +27,7 @@ test_that_odin("basic interface", {
     ## thing to do here is, but it might be to add an R6 option to
     ## odin() that would return the class (for use with inheritence
     ## etc) rather that the generating function here.
-    mod_c <- gen()
+    mod_c <- gen$new()
     expect_is(mod_c, "odin_model")
 
     ## expect_equal(mod_c$init,
@@ -93,19 +93,19 @@ test_that_odin("user arrays", {
   gen1 <- odin("examples/array_odin.R")
   gen2 <- odin("examples/array_odin_user.R")
 
-  mod1 <- gen1()
+  mod1 <- gen1$new()
   age_width <- mod1$contents()$age_width
 
-  expect_error(gen2(age_width = age_width[-1L]),
+  expect_error(gen2$new(age_width = age_width[-1L]),
                "Expected length 5 value for age_width")
-  expect_error(gen2(age_width = NULL),
+  expect_error(gen2$new(age_width = NULL),
                "Expected a value for 'age_width'")
-  expect_error(gen2(age_width = numeric(0)),
+  expect_error(gen2$new(age_width = numeric(0)),
                "Expected length 5 value for age_width")
-  expect_error(gen2(age_width = rep(age_width, 2)),
+  expect_error(gen2$new(age_width = rep(age_width, 2)),
                "Expected length 5 value for age_width")
 
-  mod2 <- gen2(age_width = age_width)
+  mod2 <- gen2$new(age_width = age_width)
   expect_equal(mod2$contents(), mod1$contents())
 
   t <- seq(0, 100, length.out = 101)
@@ -115,7 +115,7 @@ test_that_odin("user arrays", {
 
   ## User _sized_ arrays.
   gen3 <- odin("examples/array_odin_user2.R")
-  mod3 <- gen3(age_width = age_width)
+  mod3 <- gen3$new(age_width = age_width)
 
   dat3 <- mod3$contents()
   dat1 <- mod1$contents()
@@ -124,11 +124,11 @@ test_that_odin("user arrays", {
 
   ## Now, let's set some different parameters here and check enforcement:
   age_width2 <- c(age_width, 365 * 25)
-  expect_error(gen3(age_width = age_width2),
+  expect_error(gen3$new(age_width = age_width2),
                "Expected length 5 value for age_width")
-  expect_error(gen3(age_width = age_width, N_age = 6L),
+  expect_error(gen3$new(age_width = age_width, N_age = 6L),
                "Expected length 6 value for age_width")
-  mod3 <- gen3(age_width = age_width2, N_age = 6L)
+  mod3 <- gen3$new(age_width = age_width2, N_age = 6L)
   expect_equal(mod3$contents()$age_width, age_width2)
   expect_equal(length(mod3$contents()$initial_R), length(age_width2))
 
@@ -139,7 +139,7 @@ test_that_odin("user arrays", {
 
   ## All in; this one is driven by a variable sized array.
   gen4 <- odin("examples/array_odin_user3.R")
-  mod4 <- gen4(age_width = age_width)
+  mod4 <- gen4$new(age_width = age_width)
 
   dat4 <- mod4$contents()
   expect_true(all(names(dat1) %in% names(dat4)))
@@ -174,7 +174,7 @@ test_that_odin("lv", {
   mod_r <- source1("examples/lv4_deSolve.R")
   invisible(mod_r$initial(pars = pars))
   gen <- odin("examples/lv4_odin.R")
-  mod_c <- gen(user = pars)
+  mod_c <- gen$new(user = pars)
 
   t <- seq_range(mod_r$t, 10000)
   t0 <- mod_r$t[[1L]]
@@ -218,8 +218,8 @@ test_that_odin("dde", {
     t0 <- mod_r$t[[1L]]
 
     gen <- odin(filename_o)
-    mod_ds <- gen()
-    mod_dde <- gen(use_dde = TRUE)
+    mod_ds <- gen$new()
+    mod_dde <- gen$new(use_dde = TRUE)
 
     ## Looks good:
     expect_false(r6_private(mod_ds)$use_dde)

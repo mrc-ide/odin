@@ -104,6 +104,7 @@
 
 {{name}} <- function(..., user = list(...), use_dde = FALSE,
                      unused_user_action = NULL) {
+  asNamespace("odin")$deprecated_constructor_call("{{name}}")
   {{name}}_$new(user = user, use_dde = use_dde,
                 unused_user_action = unused_user_action)
 }
