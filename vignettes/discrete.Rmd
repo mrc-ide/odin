@@ -197,7 +197,7 @@ sir_generator
 C code)! Which means for computer-intensive work, the number of
 times this is done should be minimized.
 
-The returned object `sir_generator` is a function that will
+The returned object `sir_generator`is an R6 generator that can be used to create an instance of the model:
 generate an instance of the model:
 ``` {r }
 x <- sir_generator$new()
