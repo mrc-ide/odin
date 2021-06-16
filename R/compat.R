@@ -27,8 +27,9 @@ print.odin_generator <- function(x, ...) {
 
 deprecated_constructor_call <- function(name) {
   calls <- sys.calls()
-  if (length(calls) >= 2 && is.symbol(calls[[length(calls) - 1L]][[1]])) {
-    nm <- as.character(calls[[length(calls) - 1L]][[1]])
+  n <- length(calls) - 1L # second to last call would be us
+  if (n >= 1 && is.symbol(calls[[n]][[1]])) {
+    nm <- as.character(calls[[n]][[1]])
   } else {
     nm <- name
   }
