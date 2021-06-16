@@ -627,9 +627,13 @@ ir_parse_expr <- function(expr, line, source) {
     copy_expr <- as.name(lhs$name_data)
     if (type == "expression_array") {
       copy_expr_index <- lapply(INDEX[seq_along(lhs$index)[[1]]], as.name)
-      copy_expr <- as.call(c(as.name("["), copy_expr, copy_expr_index))
+      copy_expr_array <- as.call(c(as.name("["), copy_expr, copy_expr_index))
+    } else {
+      copy_expr_array <- copy_expr
     }
-    is_copy <- isTRUE(rhs$rhs$value) || identical(rhs$rhs$value, copy_expr)
+    is_copy <- isTRUE(rhs$rhs$value) ||
+      identical(rhs$rhs$value, copy_expr) ||
+      identical(rhs$rhs$value, copy_expr_array)
     if (is_copy) {
       type <- "copy"
       depends <- list(functions = character(0), variables = lhs$name_data)
