@@ -221,6 +221,24 @@ test_that_odin("copy output", {
 })
 
 
+test_that_odin("copy output, explicitly", {
+  gen <- odin({
+    deriv(y) <- 1
+    initial(y) <- 1
+    z[] <- t
+    dim(z) <- 5
+    output(z[]) <- z[i]
+  })
+
+  mod <- gen$new()
+  tt <- 0:10
+  y <- mod$run(tt)
+  yy <- mod$transform_variables(y)
+  expect_equal(yy$y, tt + 1)
+  expect_equal(yy$z, matrix(tt, length(tt), 5))
+})
+
+
 ## Basic discrete models
 test_that_odin("discrete", {
   gen <- odin({
