@@ -271,7 +271,7 @@ There are quite a few restrictions on how arrays are used, how
 indexing works, etc.  Some of the current implementation requires
 creation of intermediate variables to make everything work (and
 naming things is one of the [two hard problems in computer
-science](https://www.quora.com/Why-is-naming-things-hard-in-computer-science-and-how-can-it-can-be-made-easier).
+science](https://martinfowler.com/bliki/TwoHardThings.html).
 Hopefully in future versions some of these restrictions can be
 relaxed, so [file issues](https://github.com/mrc-ide/odin/issues)
 if you find yourself writing boilerplate code that could be
