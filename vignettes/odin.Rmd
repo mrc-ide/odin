@@ -142,7 +142,7 @@ generator$new()
 
 Providing `r`:
 ``` {r }
-mod <- generator(r = 1)
+mod <- generator$new(r = 1)
 ```
 
 The model contains the set value of r
