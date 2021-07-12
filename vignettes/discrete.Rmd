@@ -1,12 +1,12 @@
 ---
-title: "Discrete models using odin"
+title: "odin discrete models"
 author: "Thibaut Jombart, Rich FitzJohn"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{discrete-odin}
+  %\VignetteIndexEntry{odin discrete models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

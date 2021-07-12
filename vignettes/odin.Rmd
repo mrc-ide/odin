@@ -1,12 +1,12 @@
 ---
-title: "Odin"
+title: "odin"
 author: "Rich FitzJohn"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Odin}
+  %\VignetteIndexEntry{odin}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
