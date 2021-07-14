@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discrete models using odin • odin</title>
+<title>odin discrete models • odin</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
 <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><meta property="og:title" content="Discrete models using odin">
+<script src="../pkgdown.js"></script><meta property="og:title" content="odin discrete models">
 <meta property="og:description" content="odin">
 <meta property="og:image" content="/logo.png">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
@@ -38,7 +38,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.2.1</span>
       </span>
     </div>
 
@@ -64,10 +64,10 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
-      <a href="../articles/discrete.html">Discrete models using odin</a>
+      <a href="../articles/discrete.html">odin discrete models</a>
     </li>
     <li>
-      <a href="../articles/functions.html">Odin Functions</a>
+      <a href="../articles/functions.html">odin functions</a>
     </li>
   </ul>
 </li>
@@ -95,10 +95,10 @@
       </header><script src="discrete_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1 data-toc-skip>Discrete models using odin</h1>
+      <h1 data-toc-skip>odin discrete models</h1>
                         <h4 class="author">Thibaut Jombart, Rich FitzJohn</h4>
             
-            <h4 class="date">2021-07-07</h4>
+            <h4 class="date">2021-07-14</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/master/vignettes/discrete.Rmd"><code>vignettes/discrete.Rmd</code></a></small>
       <div class="hidden name"><code>discrete.Rmd</code></div>
@@ -235,12 +235,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 ##     ynames: NULL
 ##     interpolate_t: NULL
 ##     cfuns: list
-##     dll: discrete.deterministic.sir473e0d63
+##     dll: discrete.deterministic.sir7570c63a
 ##     user: beta gamma I_ini S_ini
 ##     registration: function () 
 ##     set_initial: function (step, y, use_dde) 
 ##     update_metadata: function () 
-##   Parent env: &lt;environment: namespace:discrete.deterministic.sir473e0d63&gt;
+##   Parent env: &lt;environment: namespace:discrete.deterministic.sir7570c63a&gt;
 ##   Locked objects: TRUE
 ##   Locked class: FALSE
 ##   Portable: TRUE</code></pre>
@@ -262,7 +262,7 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 ##     update: function (step, y) 
 ##   Private:
 ##     cfuns: list
-##     dll: discrete.deterministic.sir473e0d63
+##     dll: discrete.deterministic.sir7570c63a
 ##     interpolate_t: NULL
 ##     n_out: 0
 ##     odin: environment
@@ -361,12 +361,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 ##     ynames: NULL
 ##     interpolate_t: NULL
 ##     cfuns: list
-##     dll: discrete.stochastic.sir8d2747a3
+##     dll: discrete.stochastic.sirc208b8e0
 ##     user: beta gamma I_ini S_ini
 ##     registration: function () 
 ##     set_initial: function (step, y, use_dde) 
 ##     update_metadata: function () 
-##   Parent env: &lt;environment: namespace:discrete.stochastic.sir8d2747a3&gt;
+##   Parent env: &lt;environment: namespace:discrete.stochastic.sirc208b8e0&gt;
 ##   Locked objects: TRUE
 ##   Locked class: FALSE
 ##   Portable: TRUE</code></pre>
@@ -448,12 +448,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 ##     ynames: NULL
 ##     interpolate_t: NULL
 ##     cfuns: list
-##     dll: discrete.stochastic.sir.arrays2bbc9357
+##     dll: discrete.stochastic.sir.arrays30f32291
 ##     user: beta gamma I_ini nsim S_ini
 ##     registration: function () 
 ##     set_initial: function (step, y, use_dde) 
 ##     update_metadata: function () 
-##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arrays2bbc9357&gt;
+##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arrays30f32291&gt;
 ##   Locked objects: TRUE
 ##   Locked class: FALSE
 ##   Portable: TRUE</code></pre>
@@ -612,12 +612,12 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 ##     ynames: NULL
 ##     interpolate_t: NULL
 ##     cfuns: list
-##     dll: discrete.stochastic.seirds011dbfd9
+##     dll: discrete.stochastic.seirds5ceb51af
 ##     user: beta delta E_ini epsilon gamma_D gamma_R mu omega S_ini
 ##     registration: function () 
 ##     set_initial: function (step, y, use_dde) 
 ##     update_metadata: function () 
-##   Parent env: &lt;environment: namespace:discrete.stochastic.seirds011dbfd9&gt;
+##   Parent env: &lt;environment: namespace:discrete.stochastic.seirds5ceb51af&gt;
 ##   Locked objects: TRUE
 ##   Locked class: FALSE
 ##   Portable: TRUE</code></pre>
@@ -663,7 +663,7 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">check_model</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span> <span class="op">=</span> <span class="fl">50</span>, <span class="va">t</span> <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">365</span>, <span class="va">alpha</span> <span class="op">=</span> <span class="fl">0.2</span>, <span class="va">...</span>,
                         <span class="va">legend_pos</span> <span class="op">=</span> <span class="st">"topright"</span><span class="op">)</span> <span class="op">{</span>
-  <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">seirds_generator</span><span class="op">(</span><span class="va">...</span><span class="op">)</span>
+  <span class="va">model</span> <span class="op">&lt;-</span> <span class="va">seirds_generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">...</span><span class="op">)</span>
   <span class="va">col</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="va">seirds_col</span>, <span class="st">"33"</span><span class="op">)</span>
 
   <span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">replicate</a></span><span class="op">(</span><span class="va">n</span>, <span class="va">model</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>
@@ -679,27 +679,21 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <p>This is a sanity check with a null infection rate and no imported case:</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">check_model</span><span class="op">(</span>beta <span class="op">=</span> <span class="fl">0</span>, epsilon <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></code></pre></div>
-<pre><code>## Warning: 'seirds_generator(...)' is deprecated; please use
-## 'seirds_generator$new(...)' instead</code></pre>
 <div class="figure">
 <img src="discrete_files/figure-html/unnamed-chunk-10-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: sanity check with no infections&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
 <i>Stochastic SEIRDS model: sanity check with no infections</i><br></p>
 </div>
 <p>Another easy case: no importation, no waning immunity:</p>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">check_model</span><span class="op">(</span>epsilon <span class="op">=</span> <span class="fl">0</span>, omega <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></code></pre></div>
-<pre><code>## Warning: 'seirds_generator(...)' is deprecated; please use
-## 'seirds_generator$new(...)' instead</code></pre>
 <div class="figure">
 <img src="discrete_files/figure-html/unnamed-chunk-11-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: no importation or waning immunity&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
 <i>Stochastic SEIRDS model: no importation or waning immunity</i><br></p>
 </div>
 <p>A more nuanced case: persistence of the disease with limited import, waning immunity, low severity, larger population:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">check_model</span><span class="op">(</span>t <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="op">(</span><span class="fl">365</span> <span class="op">*</span> <span class="fl">3</span><span class="op">)</span>, epsilon <span class="op">=</span> <span class="fl">0.1</span>, beta <span class="op">=</span> <span class="fl">.2</span>, omega <span class="op">=</span> <span class="fl">.01</span>,
             mu <span class="op">=</span> <span class="fl">0.005</span>, S_ini <span class="op">=</span> <span class="fl">1e5</span><span class="op">)</span></code></pre></div>
-<pre><code>## Warning: 'seirds_generator(...)' is deprecated; please use
-## 'seirds_generator$new(...)' instead</code></pre>
 <div class="figure">
 <img src="discrete_files/figure-html/unnamed-chunk-12-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: endemic state in a larger population&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
 <i>Stochastic SEIRDS model: endemic state in a larger population</i><br></p>
