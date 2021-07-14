@@ -1,12 +1,12 @@
 ---
-title: "Discrete models using odin"
+title: "odin discrete models"
 author: "Thibaut Jombart, Rich FitzJohn"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{discrete-odin}
+  %\VignetteIndexEntry{odin discrete models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -392,7 +392,7 @@ simple function:
 ``` {r custom_function}
 check_model <- function(n = 50, t = 0:365, alpha = 0.2, ...,
                         legend_pos = "topright") {
-  model <- seirds_generator(...)
+  model <- seirds_generator$new(...)
   col <- paste0(seirds_col, "33")
 
   res <- as.data.frame(replicate(n, model$run(t)[, -1]))

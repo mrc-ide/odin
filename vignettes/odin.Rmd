@@ -1,12 +1,12 @@
 ---
-title: "Odin"
+title: "odin"
 author: "Rich FitzJohn"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_vignette:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{Odin}
+  %\VignetteIndexEntry{odin}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -142,7 +142,7 @@ generator$new()
 
 Providing `r`:
 ``` {r }
-mod <- generator(r = 1)
+mod <- generator$new(r = 1)
 ```
 
 The model contains the set value of r
