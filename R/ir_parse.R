@@ -455,6 +455,23 @@ ir_parse_features <- function(eqs, config, source) {
 }
 
 
+sircovid_basic_order <- c(
+  "n_II_ICU", "n_II_hosp",
+  "n_death_hosp", "n_hosp_to_ICU", "aux_II_ICU", "delta_I_ICU",
+  "new_I_ICU", "update_I_ICU_tot", "update_I_ICU",
+  "n_ICU_to_R_hosp", "delta_D", "new_D", "update_D", "tot_new_D",
+  "update_D_inc", "update_D_tot",
+  "n_R_hosp", "aux_R_hosp", "delta_R_hosp", "update_R_hosp",
+  "n_II_C", "n_sympt_to_hosp", "aux_II_hosp", "delta_I_hosp", "update_I_hosp",
+  "n_II_A", "n_EE", "n_EI_A", "aux_II_A", "delta_I_A", "update_I_A",
+  "n_EI_C", "aux_II_C", "delta_I_C", "update_I_C",
+  "beta", "update_beta_out",
+  "I_with_diff_trans", "s_ij", "lambda", "p_SE", "n_SE",
+  "aux_EE", "delta_E", "update_E", "update_S",
+  "delta_R", "update_R",
+  "update_N_tot", "update_time")
+
+
 ir_parse_components <- function(eqs, dependencies, variables, stage,
                                 discrete, source, options) {
   eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
@@ -468,6 +485,11 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
   v <- unique(unlist(dependencies[rhs], use.names = FALSE))
   eqs_rhs <- intersect(eqs_time, c(rhs, v))
   variables_rhs <- intersect(variables, v)
+
+  if (setequal(eqs_rhs, sircovid_basic_order)) {
+    message("USING SIRCOVID BASIC ORDER")
+    eqs_rhs <- sircovid_basic_order
+  }
 
   output <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, "output")))
