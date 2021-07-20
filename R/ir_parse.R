@@ -459,7 +459,7 @@ sircovid_basic_order <- c(
   "n_II_ICU", "n_II_hosp",
   "n_death_hosp", "n_hosp_to_ICU", "aux_II_ICU", "delta_I_ICU",
   "new_I_ICU", "update_I_ICU_tot", "update_I_ICU",
-  "n_ICU_to_R_hosp", "delta_D", "new_D", "update_D", "tot_new_D",
+  "n_ICU_to_R_hosp", "delta_D", "new_D", "tot_new_D", "update_D",
   "update_D_inc", "update_D_tot",
   "n_R_hosp", "aux_R_hosp", "delta_R_hosp", "update_R_hosp",
   "n_II_C", "n_sympt_to_hosp", "aux_II_hosp", "delta_I_hosp", "update_I_hosp",
