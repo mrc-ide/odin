@@ -151,3 +151,24 @@ test_that("collapse complex constants into expressions", {
     dat$equations$deriv_x$rhs$value,
     list("+", "a", 8))
 })
+
+
+test_that("collapse if/else expressions", {
+  code <- c(
+    "a <- user()",
+    "b <- if (a == 1) 2 else 3",
+    "initial(x) <- 1",
+    "deriv(x) <- x * b")
+
+  ir1 <- odin_parse_(code,
+                     options = odin_options(rewrite_constants = TRUE,
+                                            substitutions = list(a = 1)))
+  ir2 <- odin_parse_(code,
+                     options = odin_options(rewrite_constants = TRUE,
+                                            substitutions = list(a = 2)))
+
+  expect_equal(ir_deserialise(ir1)$equations$deriv_x$rhs$value,
+               list("*", "x", 2))
+  expect_equal(ir_deserialise(ir2)$equations$deriv_x$rhs$value,
+               list("*", "x", 3))
+})
