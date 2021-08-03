@@ -12,9 +12,10 @@ static_eval <- function(expr) {
     return(expr)
   }
 
-  fn <- expr[[1]]
   if (is_call(expr, "+") || is_call(expr, "*")) {
     expr <- static_eval_assoc(expr)
+  } else if (is_call(expr, "if")) {
+    expr <- static_eval_if(expr)
   } else {
     expr[-1] <- lapply(expr[-1], static_eval)
   }
@@ -73,6 +74,24 @@ static_eval_assoc <- function(expr) {
   }
 
   r_fold_call(fn, order_args(args))
+}
+
+
+static_eval_if <- function(expr) {
+  args <- lapply(expr[-1], static_eval)
+
+  cond <- args[[1L]]
+  if (is.recursive(cond) && all(vlapply(cond[-1L], is.numeric))) {
+    cond <- eval(cond, baseenv())
+  }
+
+  if (!is.recursive(cond)) {
+    expr <- if (as.logical(cond)) args[[2L]] else args[[3L]]
+  } else {
+    expr[-1L] <- args
+  }
+
+  expr
 }
 
 
