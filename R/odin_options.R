@@ -30,6 +30,11 @@
 ##'   dimensions known at compile time and all loops using literal
 ##'   integers.
 ##'
+##' @param rewrite_sums Logical, indicating if we should try and
+##'   rewrite expressions involving "partial sums" (e.g, `x[] <-
+##'   sum(y[i, ])`) in a more optimised way. This may not always be
+##'   possible.
+##'
 ##' @return A list of parameters, of class `odin_options`
 ##'
 ##' @export
@@ -40,7 +45,8 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
                          rewrite_dims = NULL, rewrite_constants = NULL,
-                         substitutions = NULL, options = NULL) {
+                         substitutions = NULL, rewrite_sums = NULL,
+                         options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
   defaults <- list(
@@ -53,6 +59,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     rewrite_dims = FALSE,
     rewrite_constants = FALSE,
     substitutions = NULL,
+    rewrite_sums = FALSE,
     no_check_unused_equations = FALSE,
     compiler_warnings = FALSE)
   if (is.null(options)) {
@@ -66,6 +73,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
       rewrite_dims = assert_scalar_logical_or_null(rewrite_dims),
       rewrite_constants = assert_scalar_logical_or_null(rewrite_constants),
       substitutions = check_substitutions(substitutions),
+      rewrite_sums = assert_scalar_logical_or_null(rewrite_sums),
       no_check_unused_equations =
         assert_scalar_logical_or_null(no_check_unused_equations),
       compiler_warnings = assert_scalar_logical_or_null(compiler_warnings))

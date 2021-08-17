@@ -68,6 +68,11 @@ ir_parse <- function(x, options, type = NULL) {
 
   data <- ir_parse_data(eqs, packing, stage, source)
 
+  ## Possible round of optimisation to write different sum format:
+  if (options$rewrite_sums) {
+    eqs <- ir_parse_rewrite_sums(eqs, data, source)
+  }
+
   if (features$has_user) {
     is_user <- vcapply(eqs, "[[", "type") == "user"
     user <- unname(lapply(eqs[is_user], function(x)
@@ -741,6 +746,8 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
 
   index <- as.list(lhs[-(1:2)]) # nolint
 
+  ## NOTE: this could ve moved within ir_parse_expr_lhs_check_index
+  ## later, as that probably simplify this.
   is_empty <- vlapply(index, identical, quote(expr = )) # nolint
   ## TODO: it might be useful to treat these specially rather than
   ## filling them in like this.
@@ -769,16 +776,17 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
   ## rather than (1:x) - 1 as that will imply a negative length
   ## array.  Or we can look for the minimum value being negative.
   tmp <- lapply(index, ir_parse_expr_lhs_check_index)
-  ok <- vlapply(tmp, as.logical)
-  if (all(ok)) {
-    extent_max <- lapply(tmp, attr, "value_max", exact = TRUE)
-    extent_min <- lapply(tmp, attr, "value_min", exact = TRUE)
-    is_range <- !vlapply(extent_min, is.null)
-  } else {
+  err <- !vlapply(tmp, as.logical)
+  if (any(err)) {
     msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse = "\n")
     ir_parse_error(sprintf("Invalid array use on lhs:\n%s", msg),
                    line, source)
   }
+
+  extent_max <- lapply(tmp, attr, "value_max", exact = TRUE)
+  extent_min <- lapply(tmp, attr, "value_min", exact = TRUE)
+  is_range <- !vlapply(extent_min, is.null)
+  is_complete <- vlapply(tmp, attr, "complete", exact = TRUE)
 
   name <- deparse(lhs[[2L]])
   deps <- find_symbols(index)
@@ -797,6 +805,7 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
 
   list(
     index = Map(list, value = index, is_range = is_range,
+                is_complete = is_complete,
                 index = INDEX[seq_along(index)]),
     depends = deps)
 }

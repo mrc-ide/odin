@@ -847,10 +847,175 @@ ir_parse_expr_lhs_check_index <- function(x) {
     value_min <- NULL
   }
 
-  x <- unique(err$get())
-  if (length(x) == 0L) {
-    structure(TRUE, value_max = g(value_max), value_min = f(value_min))
-  } else {
-    structure(FALSE, message = x)
+  errs <- unique(err$get())
+  if (length(errs) > 0L) {
+    return(structure(FALSE, message = errs))
   }
+
+  value_min <- f(value_min)
+  value_max <- g(value_max)
+  ## TODO: this is a bit generous, but doing this properly requires
+  ## rewriting this function to take name, rank and _current_
+  ## dimension as arguments, putting this all in a Map rather than
+  ## lapply
+  complete <- value_min == 1L &&
+    (is_call(value_max, "dim") || is_call(value_max, "length"))
+
+  structure(TRUE, value_max = value_max, value_min = value_min,
+            complete = complete)
+}
+
+
+## TODO: this will be made optional
+ir_parse_rewrite_sums <- function(eqs, data, source) {
+  lapply(eqs, ir_parse_rewrite_sums1, data, source)
+}
+
+
+ir_parse_rewrite_sums1 <- function(x, data, source) {
+  ## TODO: we might warn/notify where this is not possible, but not
+  ## clear where we'd do that. Probably only interesting for things
+  ## that are considered "possible" here. Something for later, and the
+  ## reason why 'source' is passed through for now.
+  pos <- x$type == "expression_array" &&
+    length(x$rhs) == 1L &&
+    "odin_sum" %in% x$depends$functions &&
+    all(vlapply(x$rhs[[1]]$index, "[[", "is_complete"))
+  if (!pos) {
+    return(x)
+  }
+
+  res <- factor_sum(x$rhs[[1]]$value, data)
+  if (is.null(res)) {
+    ## Could not work out a nice sum here.
+    return(x)
+  }
+
+  x$type <- "expression_array_sum"
+  x$rhs <- res
+
+  x
+}
+
+
+check_sum <- function(expr, data) {
+  if (!is_call(expr, "odin_sum")) {
+    return(NULL)
+  }
+  n <- (length(expr) - 2L) / 2L
+  name <- expr[[2L]]
+
+  collect <- integer(n)
+  for (i in seq_len(n)) {
+    from <- expr[[i * 2 + 1]]
+    to <- expr[[i * 2 + 2]]
+    if (is.symbol(from) && is.symbol(to) && identical(from, to)) {
+      j <- match(deparse_str(from), INDEX)
+      collect[[i]] <- j
+      stopifnot(!is.na(j))
+    } else {
+      end_i <- call("dim", name, as.numeric(i))
+      ## incomplete
+      if (from != 1 || !identical(to, end_i)) {
+        return(NULL)
+      }
+    }
+  }
+
+  ## All collect indices must be increasing
+  collect_use <- collect[collect > 0]
+  if (!all(collect_use == seq_along(collect_use))) {
+    return(NULL)
+  }
+
+  ## Not 100% sure this will work?
+  data[[deparse_str(name)]]$array
+
+  key <- paste(collect, collapse = "")
+  info <- data$elements[[deparse_str(name)]]
+  index <- array_sum_lhs_index(key, info)
+
+  list(name = name, index = index)
+}
+
+
+factor_sum <- function(expr, data) {
+  stopifnot(is.recursive(expr))
+
+  if (is_call(expr, "odin_sum")) {
+    expr_sum <- check_sum(expr, data)
+    if (is.null(expr_sum)) {
+      NULL
+    } else {
+      list(base = NULL, sum = list(expr_sum))
+    }
+  } else if (is_call(expr, "+")) {
+    ## The trick here is getting subtraction done, in both operands.
+    browser()
+    base <- list()
+    sum <- list()
+    ## The 'b' case will be the compound expression.
+    ## if ({
+  } else {
+    NULL
+  }
+}
+
+
+array_sum_lhs_index <- function(key, info) {
+  if (info$rank == 2) {
+    subs <- list(d1 = as.name(info$dimnames$dim[[1]]))
+    expr <- switch(
+      key,
+      ## 2d:
+      ## sum(x[i, ]) => c(1, 0) => 'i %% d1'
+      "10" = quote(i %% d1),
+      ## sum(x[, i]) => c(0, 1) => 'i %/% d1'
+      "01" = quote(i %/% d1))
+  } else if (info$rank == 3L) {
+    expr <- switch(
+      key,
+      ## 3d
+      ## sum(x[i, , ]) => c(1, 0, 0) => 'i %% d1'
+      "100" = quote(i %% d1),
+      ## sum(x[, i, ]) => c(0, 1, 0) => '(i %/% d1) %% d3'
+      "010" = quote((i %/% d1) %% d3),
+      ## sum(x[, , i]) => c(0, 0, 1) => 'i %/% d12'
+      "001" = quote(i %/% d12),
+      ## sum(a[i, j, ]) => c(1, 2, 0) => 'i %% d12'
+      "120" = quote(i %% d12),
+      ## sum(a[i, , j]) => c(1, 0, 2) => '(i %/% d12) * d1 + i %% d1'
+      "102" = quote((i %/% d12) * d1 + i %% d1),
+      ## sum(a[, i, j]) => c(0, 1, 2) => 'i %/% d1'
+      "012" = quote(i %/% d1),
+      stop("Unsupported"))
+    subs <- list(d1 = as.name(info$dimnames$dim[[1]]),
+                 d2 = as.name(info$dimnames$dim[[2]]),
+                 d3 = as.name(info$dimnames$dim[[3]]),
+                 d12 = as.name(info$dimnames$mult[[2]]))
+  } else {
+    browser()
+    ## sum(x[i, , , ]) => c(1, 0, 0, 0)
+    ## sum(x[, i, , ]) => c(0, 1, 0, 0)
+    ## sum(x[, , i, ]) => c(0, 0, 1, 0)
+    ## sum(x[, , , i]) => c(0, 0, 0, 1)
+    ## sum(x[i, j, , ]) => c(1, 2, 0, 0)
+    ## sum(x[i, , j, ]) => c(1, 0, 2, 0)
+    ## sum(x[i, , , j]) => c(1, 0, 0, 2)
+    ## sum(x[, i, j, ]) => c(0, 1, 2, 0)
+    ## sum(x[, i, , j]) => c(0, 1, 0, 2)
+    ## sum(x[, , i, j]) => c(0, 0, 1, 2)
+    ## sum(x[i, j, k, ]) => c(1, 2, 3, 0)
+    ## sum(x[i, j, , k]) => c(1, 2, 0, 3)
+    ## sum(x[i, , j, k]) => c(1, 0, 2, 3)
+    ## sum(x[, i, j, k]) => c(0, 1, 2, 3)
+    subs <- list(d1 = as.name(info$dimnames$dim[[1]]),
+                 d2 = as.name(info$dimnames$dim[[2]]),
+                 d3 = as.name(info$dimnames$dim[[3]]),
+                 d4 = as.name(info$dimnames$dim[[4]]),
+                 d12 = as.name(info$dimnames$mult[[2]]),
+                 d13 = as.name(info$dimnames$mult[[2]]))
+  }
+
+  substitute_(expr, subs)
 }
