@@ -60,6 +60,7 @@
                     "interpolate",
                     "user",
                     "expression_array",
+                    "expression_array_sum",
                     "expression_inplace",
                     "expression_scalar"
                 ],
@@ -339,6 +340,7 @@
                         {"$ref": "#/definitions/equation_alloc_ring"},
                         {"$ref": "#/definitions/equation_user"},
                         {"$ref": "#/definitions/equation_expression_array"},
+                        {"$ref": "#/definitions/equation_expression_array_sum"},
                         {"$ref": "#/definitions/equation_expression_inplace"},
                         {"$ref": "#/definitions/equation_expression_scalar"},
                         {"$ref": "#/definitions/equation_interpolate"},
@@ -383,6 +385,37 @@
                 "additionalProperties": false
             },
             "minItems": 1
+        },
+
+        "equation_rhs_array_sum": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "oneOf": [
+                        {"type": "null"},
+                        {"type": "object"}
+                    ]
+                },
+                "sum": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "index": {
+                                "$ref": "#/definitions/sexpression"
+                            }
+                        },
+                        "required": ["name", "index"],
+                        "additionalProperties": false
+                    },
+                    "minItems": 1
+                }
+            },
+            "required": ["base", "sum"],
+            "additionalProperties": false
         },
 
         "equation_rhs_delay_continuous": {
@@ -566,6 +599,20 @@
                 "depends": {},
                 "lhs": {},
                 "rhs": {"$ref": "#/definitions/equation_rhs_array"}
+            },
+            "required": ["type", "rhs"],
+            "additionalProperties": false
+        },
+
+        "equation_expression_array_sum": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "expression_array_sum"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "rhs": {"$ref": "#/definitions/equation_rhs_array_sum"}
             },
             "required": ["type", "rhs"],
             "additionalProperties": false
