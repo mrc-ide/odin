@@ -203,3 +203,38 @@ test_that("4d partial sum indexing correct", {
   res <- set_names(lapply(idx, f, m), names(expected))
   expect_equal(res, expected)
 })
+
+
+test_that("Can optimise simple sums", {
+  ## TODO: consider moving this test into run?
+  skip_on_cran()
+  code <- quote({
+    deriv(y) <- 0
+    initial(y) <- 1
+    m[, ] <- user()
+    dim(m) <- user()
+    v1[] <- sum(m[i, ])
+    dim(v1) <- dim(m, 1)
+    v2[] <- sum(m[, i])
+    dim(v2) <- dim(m, 2)
+    output(v1) <- TRUE
+    output(v2) <- TRUE
+  })
+
+  options1 <- odin_options(rewrite_sums = TRUE,
+                           rewrite_constants = TRUE,
+                           target = "c", verbose = TRUE)
+  options2 <- odin_options(target = "c", verbose = TRUE)
+
+  gen1 <- odin_(code, options = options1)
+  gen2 <- odin_(code, options = options2)
+
+  m <- matrix(runif(35), 5)
+  mod1 <- gen1$new(m = m)
+  mod2 <- gen2$new(m = m)
+
+  y1 <- mod1$contents()
+  y2 <- mod2$contents()
+  expect_equal(y1$v1, y2$v1)
+  expect_equal(y1$v2, y2$v2)
+})
