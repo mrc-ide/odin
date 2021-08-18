@@ -938,8 +938,6 @@ check_sum <- function(expr, data) {
 
 
 factor_sum <- function(expr, data) {
-  stopifnot(is.recursive(expr))
-
   fn <- if (is.recursive(expr)) deparse_str(expr[[1L]]) else ""
 
   join_expr <- function(a, b, fn) {

@@ -205,6 +205,57 @@ test_that("4d partial sum indexing correct", {
 })
 
 
+test_that("factorise sums where possible", {
+  array_data <- function(name, rank) {
+    ## There's no nice way of doing this really:
+    dim <- lapply(seq_len(rank), array_dim_name, name = name)
+    mult <- lapply(seq_len(rank), function(i)
+      if (i == 1) ""
+      else array_dim_name(name, paste(seq_len(i - 1), collapse = "")))
+    list(name = name,
+         rank = rank,
+         dimnames = list(dim = dim, mult = mult))
+  }
+
+  data <- list(elements = list(a = array_data("a", 3),
+                               b = array_data("a", 3),
+                               m = array_data("m", 2)))
+  sum_a <- list(name = quote(a),
+                index = quote((i %/% dim_a_1) * dim_a_1 + i %% dim_a_1))
+  expect_equal(
+    factor_sum(quote(odin_sum(a, i, i, 1, dim(a, 2), j, j) + x[i, j]), data),
+    list(base = quote(x[i, j]),
+         sum = list(sum_a)))
+  expect_equal(
+    factor_sum(quote(x[i, j] + odin_sum(a, i, i, 1, dim(a, 2), j, j)), data),
+    list(base = quote(x[i, j]),
+         sum = list(sum_a)))
+
+  ## works for multiple sums added
+  expect_equal(
+    factor_sum(quote(odin_sum(a, i, i, 1, dim(a, 2), j, j) +
+                     odin_sum(a, i, i, 1, dim(a, 2), j, j)), data),
+    list(base = NULL,
+         sum = list(sum_a, sum_a)))
+  expect_equal(
+    factor_sum(quote(odin_sum(a, i, i, 1, dim(a, 2), j, j) +
+                     odin_sum(a, i, i, 1, dim(a, 2), j, j) +
+                     odin_sum(a, i, i, 1, dim(a, 2), j, j)), data),
+    list(base = NULL,
+         sum = list(sum_a, sum_a, sum_a)))
+
+  expect_equal(
+    factor_sum(quote(x[i, j] +
+                     odin_sum(a, i, i, 1, dim(a, 2), j, j) +
+                     b +
+                     odin_sum(a, i, i, 1, dim(a, 2), j, j) +
+                     c[i] +
+                     odin_sum(a, i, i, 1, dim(a, 2), j, j)), data),
+    list(base = quote(x[i, j] + b + c[i]),
+         sum = list(sum_a, sum_a, sum_a)))
+})
+
+
 test_that("Can optimise simple sums", {
   ## TODO: consider moving this test into run?
   skip_on_cran()
