@@ -929,8 +929,6 @@ check_sum <- function(expr, data) {
   }
 
   ## Not 100% sure this will work?
-  data[[deparse_str(name)]]$array
-
   key <- paste(collect, collapse = "")
   info <- data$elements[[deparse_str(name)]]
   index <- array_sum_lhs_index(key, info)
@@ -942,22 +940,43 @@ check_sum <- function(expr, data) {
 factor_sum <- function(expr, data) {
   stopifnot(is.recursive(expr))
 
-  if (is_call(expr, "odin_sum")) {
+  fn <- if (is.recursive(expr)) deparse_str(expr[[1L]]) else ""
+
+  join_expr <- function(a, b, fn) {
+    if (!is.null(a) && !is.null(b)) {
+      call(fn, a, b)
+    } else if (!is.null(b) && fn == "-") {
+      call(fn, b)
+    } else {
+      a %||% b
+    }
+  }
+
+  join_sum <- function(a, b, fn) {
+    ## We might need to deal with recursion better here as I don't
+    ## really know what state the different parts of this will come in
+    ## as
+    if (!is.null(b) && fn == "-") {
+      stopifnot(length(b) == 1L)
+      b[[1]]$subtract <- TRUE
+    }
+    c(a, b)
+  }
+
+  if (fn == "odin_sum") {
     expr_sum <- check_sum(expr, data)
     if (is.null(expr_sum)) {
-      NULL
+      list(base = expr, sum = NULL)
     } else {
       list(base = NULL, sum = list(expr_sum))
     }
-  } else if (is_call(expr, "+")) {
-    ## The trick here is getting subtraction done, in both operands.
-    browser()
-    base <- list()
-    sum <- list()
-    ## The 'b' case will be the compound expression.
-    ## if ({
+  } else if (fn %in% c("-", "+")) {
+    a <- factor_sum(expr[[2]], data)
+    b <- factor_sum(expr[[3]], data)
+    list(base = join_expr(a$base, b$base, fn),
+         sum = join_sum(a$sum, b$sum, fn))
   } else {
-    NULL
+    list(base = expr, sum = NULL)
   }
 }
 
@@ -971,7 +990,6 @@ array_sum_lhs_index <- function(key, info) {
     subs <- list(d1 = as_name(info$dimnames$dim[[1]]))
     expr <- switch(
       key,
-      ## 2d:
       ## sum(x[i, ]) => c(1, 0) => 'i %% d1'
       "10" = quote(i %% d1),
       ## sum(x[, i]) => c(0, 1) => 'i %/% d1'
@@ -994,7 +1012,6 @@ array_sum_lhs_index <- function(key, info) {
       stop("Unsupported"))
     subs <- list(d1 = as_name(info$dimnames$dim[[1]]),
                  d2 = as_name(info$dimnames$dim[[2]]),
-                 d3 = as_name(info$dimnames$dim[[3]]),
                  d12 = as_name(info$dimnames$mult[[2]]))
   } else {
     expr <- switch(
@@ -1031,7 +1048,6 @@ array_sum_lhs_index <- function(key, info) {
     subs <- list(d1 = as_name(info$dimnames$dim[[1]]),
                  d2 = as_name(info$dimnames$dim[[2]]),
                  d3 = as_name(info$dimnames$dim[[3]]),
-                 d4 = as_name(info$dimnames$dim[[4]]),
                  d12 = as_name(info$dimnames$mult[[2]]),
                  d123 = as_name(info$dimnames$mult[[3]]))
   }
