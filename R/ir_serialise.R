@@ -185,17 +185,12 @@ ir_serialise_equation_expression_array <- function(eq) {
 
 
 ir_serialise_equation_expression_array_sum <- function(eq) {
-  base <- eq$rhs$base
-  if (!is.null(base)) {
-    browser()
-  }
-
   rhs_sum <- function(x) {
     list(name = scalar(deparse_str(x$name)),
          index = ir_serialise_expression(x$index))
   }
-
-  list(rhs = list(base = base, sum = lapply(eq$rhs$sum, rhs_sum)))
+  list(rhs = list(base = ir_serialise_expression(eq$rhs$base),
+                  sum = lapply(eq$rhs$sum, rhs_sum)))
 }
 
 

@@ -393,7 +393,7 @@
                 "base": {
                     "oneOf": [
                         {"type": "null"},
-                        {"type": "object"}
+                        {"$ref": "#/definitions/sexpression"}
                     ]
                 },
                 "sum": {
