@@ -9,6 +9,7 @@ generate_c_equation <- function(eq, dat, rewrite) {
     expression_scalar = generate_c_equation_scalar,
     expression_inplace = generate_c_equation_inplace,
     expression_array = generate_c_equation_array,
+    expression_array_sum = generate_c_equation_array_sum,
     alloc = generate_c_equation_alloc,
     alloc_interpolate = generate_c_equation_alloc_interpolate,
     alloc_ring = generate_c_equation_alloc_ring,
@@ -82,6 +83,33 @@ generate_c_equation_array <- function(eq, data_info, dat, rewrite) {
   lhs <- generate_c_equation_array_lhs(eq, data_info, dat, rewrite)
   lapply(eq$rhs, function(x)
     generate_c_equation_array_rhs(x$value, x$index, lhs, rewrite))
+}
+
+
+generate_c_equation_array_sum <- function(eq, data_info, dat, rewrite) {
+  lhs <- rewrite(eq$lhs)
+  if (is.null(eq$rhs$base)) {
+    ## Not totally clear what the most portable way of doing this is;
+    ## one of memset, memzero or bzero
+    base <- sprintf("memset(%s, 0, %s * sizeof(%s));",
+                    lhs,
+                    rewrite(data_info$dimnames$length),
+                    data_info$storage_type)
+  } else {
+    stop("WRITEME")
+  }
+
+  generate_sum1 <- function(x) {
+    len_x <- rewrite(dat$data$elements[[x$name]]$dimnames$length)
+    c(sprintf("for (size_t i = 0; i < %s; ++i) {", len_x),
+      sprintf("  %s[%s] += %s[i];",
+              lhs, generate_c_sexp_index(x$index, rewrite), rewrite(x$name)),
+      "}")
+  }
+
+  sum <- unlist(lapply(eq$rhs$sum, generate_sum1))
+
+  c(base, sum)
 }
 
 
