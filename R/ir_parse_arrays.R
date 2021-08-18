@@ -963,8 +963,12 @@ factor_sum <- function(expr, data) {
 
 
 array_sum_lhs_index <- function(key, info) {
+  as_name <- function(x) {
+    if (is.character(x)) as.name(x) else x
+  }
+
   if (info$rank == 2) {
-    subs <- list(d1 = as.name(info$dimnames$dim[[1]]))
+    subs <- list(d1 = as_name(info$dimnames$dim[[1]]))
     expr <- switch(
       key,
       ## 2d:
@@ -975,11 +979,10 @@ array_sum_lhs_index <- function(key, info) {
   } else if (info$rank == 3L) {
     expr <- switch(
       key,
-      ## 3d
       ## sum(x[i, , ]) => c(1, 0, 0) => 'i %% d1'
       "100" = quote(i %% d1),
-      ## sum(x[, i, ]) => c(0, 1, 0) => '(i %/% d1) %% d3'
-      "010" = quote((i %/% d1) %% d3),
+      ## sum(x[, i, ]) => c(0, 1, 0) => '(i %/% d1) %% d2'
+      "010" = quote((i %/% d1) %% d2),
       ## sum(x[, , i]) => c(0, 0, 1) => 'i %/% d12'
       "001" = quote(i %/% d12),
       ## sum(a[i, j, ]) => c(1, 2, 0) => 'i %% d12'
@@ -989,32 +992,48 @@ array_sum_lhs_index <- function(key, info) {
       ## sum(a[, i, j]) => c(0, 1, 2) => 'i %/% d1'
       "012" = quote(i %/% d1),
       stop("Unsupported"))
-    subs <- list(d1 = as.name(info$dimnames$dim[[1]]),
-                 d2 = as.name(info$dimnames$dim[[2]]),
-                 d3 = as.name(info$dimnames$dim[[3]]),
-                 d12 = as.name(info$dimnames$mult[[2]]))
+    subs <- list(d1 = as_name(info$dimnames$dim[[1]]),
+                 d2 = as_name(info$dimnames$dim[[2]]),
+                 d3 = as_name(info$dimnames$dim[[3]]),
+                 d12 = as_name(info$dimnames$mult[[2]]))
   } else {
-    browser()
-    ## sum(x[i, , , ]) => c(1, 0, 0, 0)
-    ## sum(x[, i, , ]) => c(0, 1, 0, 0)
-    ## sum(x[, , i, ]) => c(0, 0, 1, 0)
-    ## sum(x[, , , i]) => c(0, 0, 0, 1)
-    ## sum(x[i, j, , ]) => c(1, 2, 0, 0)
-    ## sum(x[i, , j, ]) => c(1, 0, 2, 0)
-    ## sum(x[i, , , j]) => c(1, 0, 0, 2)
-    ## sum(x[, i, j, ]) => c(0, 1, 2, 0)
-    ## sum(x[, i, , j]) => c(0, 1, 0, 2)
-    ## sum(x[, , i, j]) => c(0, 0, 1, 2)
-    ## sum(x[i, j, k, ]) => c(1, 2, 3, 0)
-    ## sum(x[i, j, , k]) => c(1, 2, 0, 3)
-    ## sum(x[i, , j, k]) => c(1, 0, 2, 3)
-    ## sum(x[, i, j, k]) => c(0, 1, 2, 3)
-    subs <- list(d1 = as.name(info$dimnames$dim[[1]]),
-                 d2 = as.name(info$dimnames$dim[[2]]),
-                 d3 = as.name(info$dimnames$dim[[3]]),
-                 d4 = as.name(info$dimnames$dim[[4]]),
-                 d12 = as.name(info$dimnames$mult[[2]]),
-                 d13 = as.name(info$dimnames$mult[[2]]))
+    expr <- switch(
+      key,
+      ## sum(x[i, , , ]) => c(1, 0, 0, 0)
+      "1000" = quote(i %% d1),
+      ## sum(x[, i, , ]) => c(0, 1, 0, 0)
+      "0100" = quote((i %/% d1) %% d2),
+      ## sum(x[, , i, ]) => c(0, 0, 1, 0)
+      "0010" = quote((i %/% d12) %% d3),
+      ## sum(x[, , , i]) => c(0, 0, 0, 1)
+      "0001" = quote(i %/% d123),
+      ## sum(x[i, j, , ]) => c(1, 2, 0, 0)
+      "1200" = quote(i %% d12),
+      ## sum(x[i, , j, ]) => c(1, 0, 2, 0)
+      "1020" = quote((i %/% d12) %% d3 * d1 + i %% d1),
+      ## sum(x[i, , , j]) => c(1, 0, 0, 2)
+      "1002" = quote((i %/% d123) * d1 + i %% d1),
+      ## sum(x[, i, j, ]) => c(0, 1, 2, 0)
+      "0120" = quote((i %/% d1) %% (d2 * d3)),
+      ## sum(x[, i, , j]) => c(0, 1, 0, 2)
+      "0102" = quote((i %/% d123) * d2 + (i %/% d1) %% d2),
+      ## sum(x[, , i, j]) => c(0, 0, 1, 2)
+      "0012" = quote(i %/% d12),
+      ## sum(x[i, j, k, ]) => c(1, 2, 3, 0)
+      "1230" = quote(i %% d123),
+      ## sum(x[i, j, , k]) => c(1, 2, 0, 3)
+      "1203" = quote((i %/% d123) * d12 + i %% d12),
+      ## sum(x[i, , j, k]) => c(1, 0, 2, 3)
+      "1023" = quote(i %/% d12 * d1 + i %% d1),
+      ## sum(x[, i, j, k]) => c(0, 1, 2, 3)
+      "0123" = quote(i %/% d1),
+      stop("Unsupported"))
+    subs <- list(d1 = as_name(info$dimnames$dim[[1]]),
+                 d2 = as_name(info$dimnames$dim[[2]]),
+                 d3 = as_name(info$dimnames$dim[[3]]),
+                 d4 = as_name(info$dimnames$dim[[4]]),
+                 d12 = as_name(info$dimnames$mult[[2]]),
+                 d123 = as_name(info$dimnames$mult[[3]]))
   }
 
   substitute_(expr, subs)

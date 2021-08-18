@@ -98,3 +98,108 @@ test_that("cope with adding zeros", {
     static_eval(quote(0 * x + 1 * 0)),
     0)
 })
+
+
+test_that("2d partial sum indexing correct", {
+  d <- c(7, 13)
+  m <- array(runif(prod(d)), d)
+
+  expected <- list(
+    "10" = rowSums(m),  # sum(m[i, ])
+    "01" = colSums(m))  # sum(m[, i])
+
+  info <- list(rank = 2, dimnames = list(dim = d))
+  i <- seq_along(m) - 1L
+
+  idx <- lapply(names(expected), function(key)
+    eval(array_sum_lhs_index(key, info)) + 1L)
+
+  ## What we need to do here is loop over the rhs and collect our answer:
+  f <- function(idx, m) {
+    res <- numeric(max(idx))
+    for (i in seq_along(m)) {
+      j <- idx[[i]]
+      res[[j]] <- res[[j]] + m[[i]]
+    }
+    res
+  }
+
+  res <- set_names(lapply(idx, f, m), names(expected))
+  expect_equal(res, expected)
+})
+
+
+test_that("3d partial sum indexing correct", {
+  d <- c(5, 7, 13)
+  m <- array(runif(prod(d)), d)
+
+  expected <- list(
+    "100" = apply(m, 1, sum),          # sum(x[i, , ])
+    "010" = apply(m, 2, sum),          # sum(x[, i, ])
+    "001" = apply(m, 3, sum),          # sum(x[, , i])
+    "120" = c(apply(m, 1:2, sum)),     # sum(a[i, j, ])
+    "102" = c(apply(m, c(1, 3), sum)), # sum(a[i, , j])
+    "012" = c(apply(m, 2:3, sum)))     # sum(a[, i, j])
+
+  info <- list(rank = 3, dimnames = list(dim = d, mult = cumprod(d)))
+  i <- seq_along(m) - 1L
+
+  idx <- lapply(names(expected), function(key)
+    eval(array_sum_lhs_index(key, info)) + 1L)
+
+  ## What we need to do here is loop over the rhs and collect our answer:
+  f <- function(idx, m) {
+    res <- numeric(max(idx))
+    for (i in seq_along(m)) {
+      j <- idx[[i]]
+      res[[j]] <- res[[j]] + m[[i]]
+    }
+    res
+  }
+
+  res <- set_names(lapply(idx, f, m), names(expected))
+  expect_equal(res, expected)
+})
+
+
+test_that("4d partial sum indexing correct", {
+  d <- c(3, 5, 7, 13)
+  m <- array(runif(prod(d)), d)
+
+  expected <- list(
+    "1000" = apply(m, 1, sum),             # sum(x[i, , , ])
+    "0100" = apply(m, 2, sum),             # sum(x[, i, , ])
+    "0010" = apply(m, 3, sum),             # sum(x[, , i, ])
+    "0001" = apply(m, 4, sum),             # sum(x[, , , i])
+    "1200" = c(apply(m, 1:2, sum)),        # sum(a[i, j, , ])
+    "1020" = c(apply(m, c(1, 3), sum)),    # sum(a[i, , j, ])
+    "1002" = c(apply(m, c(1, 4), sum)),    # sum(a[i, , , j])
+    "1002" = c(apply(m, c(1, 4), sum)),    # sum(a[i, , , j])
+    "0120" = c(apply(m, c(2, 3), sum)),    # sum(a[, i, j, ])
+    "0102" = c(apply(m, c(2, 4), sum)),    # sum(a[, i, , j])
+    "0012" = c(apply(m, c(3, 4), sum)),    # sum(a[, , i, j])
+    "1230" = c(apply(m, c(1, 2, 3), sum)), # sum(a[i, j, k, ])
+    "1203" = c(apply(m, c(1, 2, 4), sum)), # sum(a[i, j, , k])
+    "1023" = c(apply(m, c(1, 3, 4), sum)), # sum(a[i, , j, k])
+    "0123" = c(apply(m, c(2, 3, 4), sum))) # sum(a[, i, j, k])
+  ## 15 combinations...
+
+  info <- list(rank = 4, dimnames = list(dim = d, mult = cumprod(d)))
+  i <- seq_along(m) - 1L
+
+  idx <- lapply(names(expected), function(key)
+    eval(array_sum_lhs_index(key, info)) + 1L)
+
+  ## What we need to do here is loop over the rhs and collect our answer:
+  f <- function(idx, m) {
+    res <- numeric(max(idx))
+    for (i in seq_along(m)) {
+      j <- idx[[i]]
+      res[[j]] <- res[[j]] + m[[i]]
+    }
+    res
+  }
+
+  res <- set_names(lapply(idx, f, m), names(expected))
+  expect_equal(res, expected)
+})
