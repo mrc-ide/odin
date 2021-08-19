@@ -107,17 +107,17 @@ generate_c_sexp_sum <- function(args, data, meta, supported) {
 
 generate_c_sexp_index <- function(x, rewrite) {
   if (is.recursive(x)) {
-    stopifnot(length(x) == 3)
     fn <- x[[1L]]
     args <- vcapply(x[-1L], generate_c_sexp_index, rewrite)
     if (fn == "(") {
       sprintf("(%s)", args[[1L]])
     } else {
+      stopifnot(length(x) == 3)
       fn_c <- switch(fn,
                      "%%" = "%",
                      "%/%" = "/",
                      "+" = "+",
-                     "(" = "(",
+                     "*" = "*",
                      stop("unhandled"))
       sprintf("%s %s %s", args[[1L]], fn_c, args[[2L]])
     }

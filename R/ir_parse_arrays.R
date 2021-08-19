@@ -1010,7 +1010,7 @@ array_sum_lhs_index <- function(key, info) {
       stop("Unsupported"))
     subs <- list(d1 = as_name(info$dimnames$dim[[1]]),
                  d2 = as_name(info$dimnames$dim[[2]]),
-                 d12 = as_name(info$dimnames$mult[[2]]))
+                 d12 = as_name(info$dimnames$mult[[3]]))
   } else {
     expr <- switch(
       key,
@@ -1046,8 +1046,8 @@ array_sum_lhs_index <- function(key, info) {
     subs <- list(d1 = as_name(info$dimnames$dim[[1]]),
                  d2 = as_name(info$dimnames$dim[[2]]),
                  d3 = as_name(info$dimnames$dim[[3]]),
-                 d12 = as_name(info$dimnames$mult[[2]]),
-                 d123 = as_name(info$dimnames$mult[[3]]))
+                 d12 = as_name(info$dimnames$mult[[3]]),
+                 d123 = as_name(info$dimnames$mult[[4]]))
   }
 
   substitute_(expr, subs)

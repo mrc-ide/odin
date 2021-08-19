@@ -96,7 +96,8 @@ generate_c_equation_array_sum <- function(eq, data_info, dat, rewrite) {
                     rewrite(data_info$dimnames$length),
                     data_info$storage_type)
   } else {
-    stop("WRITEME")
+    base <- generate_c_equation_array_sum_base(
+      eq$rhs$base, data_info, dat, rewrite)
   }
 
   generate_sum1 <- function(x) {
@@ -531,5 +532,27 @@ generate_c_equation_array_rhs <- function(value, index, lhs, rewrite) {
   if (!seen_range || !index[[1]]$is_range) {
     ret <- c("{", paste("  ", ret), "}")
   }
+  ret
+}
+
+
+generate_c_equation_array_sum_base <- function(value, data_info, dat, rewrite) {
+  ## TODO: this might be best to do by actually setting things in the
+  ## base element on serialisation
+  len <- data_info$dimnames$dim
+  index <- INDEX[seq_along(len)]
+
+  ret <- sprintf("%s = %s;",
+                 rewrite(c(list("[", data_info$name), index)),
+                 rewrite(value))
+
+  ## TODO: this is a good candidate for optimisation following #236 as
+  ## we'll always do a complete loop.
+  for (i in seq_along(len)) {
+    loop <- sprintf_safe("for (int %s = %s; %s <= %s; ++%s) {",
+                         index[i], 1, index[i], rewrite(len[[i]]), index[i])
+    ret <- c(loop, paste("  ", ret), "}")
+  }
+
   ret
 }

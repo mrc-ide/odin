@@ -141,7 +141,7 @@ test_that("3d partial sum indexing correct", {
     "102" = c(apply(m, c(1, 3), sum)), # sum(a[i, , j])
     "012" = c(apply(m, 2:3, sum)))     # sum(a[, i, j])
 
-  info <- list(rank = 3, dimnames = list(dim = d, mult = cumprod(d)))
+  info <- list(rank = 3, dimnames = list(dim = d, mult = cumprod(c(1, d))))
   i <- seq_along(m) - 1L
 
   idx <- lapply(names(expected), function(key)
@@ -184,7 +184,7 @@ test_that("4d partial sum indexing correct", {
     "0123" = c(apply(m, c(2, 3, 4), sum))) # sum(a[, i, j, k])
   ## 15 combinations...
 
-  info <- list(rank = 4, dimnames = list(dim = d, mult = cumprod(d)))
+  info <- list(rank = 4, dimnames = list(dim = d, mult = cumprod(c(1, d))))
   i <- seq_along(m) - 1L
 
   idx <- lapply(names(expected), function(key)
@@ -274,8 +274,8 @@ test_that("Can optimise simple sums", {
 
   options1 <- odin_options(rewrite_sums = TRUE,
                            rewrite_constants = TRUE,
-                           target = "c", verbose = TRUE)
-  options2 <- odin_options(target = "c", verbose = TRUE)
+                           target = "c")
+  options2 <- odin_options(target = "c")
 
   gen1 <- odin_(code, options = options1)
   gen2 <- odin_(code, options = options2)
@@ -288,4 +288,41 @@ test_that("Can optimise simple sums", {
   y2 <- mod2$contents()
   expect_equal(y1$v1, y2$v1)
   expect_equal(y1$v2, y2$v2)
+})
+
+
+test_that("Can optimise sums with base components", {
+  ## TODO: consider moving this test into run?
+  skip_on_cran()
+  code <- quote({
+    deriv(y) <- 0
+    initial(y) <- 1
+    a[, , ] <- user()
+    dim(a) <- user()
+    x[, ] <- user()
+    dim(x) <- c(dim(a, 1), dim(a, 3))
+    m[, ] <- sum(a[i, , j]) + x[i, j]
+    dim(m) <- c(dim(x, 1), dim(x, 2))
+    output(m) <- TRUE
+  })
+
+  options1 <- odin_options(rewrite_sums = TRUE,
+                           # rewrite_constants = TRUE,
+                           target = "c")
+  options2 <- odin_options(target = "c")
+
+  gen1 <- odin_(code, options = options1)
+  gen2 <- odin_(code, options = options2)
+
+  set.seed(1)
+  a <- array(runif(3 * 5 * 7), c(3, 5, 7))
+  x <- matrix(runif(3 * 7), 3, 7)
+  mod1 <- gen1$new(a = a, x = x)
+  mod2 <- gen2$new(a = a, x = x)
+
+  ## This is badly wrong, with the '1' version being clearly incorrect
+  y1 <- mod1$contents()
+  y2 <- mod2$contents()
+  expect_equal(y1$m, y2$m)
+  expect_equal(sum(y1$m), sum(a) + sum(x))
 })
