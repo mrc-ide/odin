@@ -370,21 +370,24 @@
 
         "equation_rhs_array": {
             "type": "array",
-            "TODO": "Factor out element definition for reuse",
             "items": {
-                "type": "object",
-                "properties": {
-                    "value": {
-                        "$ref": "#/definitions/sexpression"
-                    },
-                    "index": {
-                        "$ref": "#/definitions/equation_rhs_array_index"
-                    }
-                },
-                "required": ["value", "index"],
-                "additionalProperties": false
+                "$ref": "#/definitions/equation_rhs_array_element"
             },
             "minItems": 1
+        },
+
+        "equation_rhs_array_element": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "index": {
+                    "$ref": "#/definitions/equation_rhs_array_index"
+                }
+            },
+            "required": ["value", "index"],
+            "additionalProperties": false
         },
 
         "equation_rhs_array_sum": {
@@ -393,7 +396,7 @@
                 "base": {
                     "oneOf": [
                         {"type": "null"},
-                        {"$ref": "#/definitions/sexpression"}
+                        {"$ref": "#/definitions/equation_rhs_array_element"}
                     ]
                 },
                 "sum": {

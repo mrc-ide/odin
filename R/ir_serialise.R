@@ -189,7 +189,17 @@ ir_serialise_equation_expression_array_sum <- function(eq) {
     list(name = scalar(deparse_str(x$name)),
          index = ir_serialise_expression(x$index))
   }
-  list(rhs = list(base = ir_serialise_expression(eq$rhs$base),
+  if (is.null(eq$rhs$base)) {
+    base <- NULL
+  } else {
+    base <- list(
+      index = lapply(eq$rhs$base$index, function(i)
+        list(value = ir_serialise_expression(i$value),
+             is_range = scalar(i$is_range),
+             index = scalar(i$index))),
+      value = ir_serialise_expression(eq$rhs$base$value))
+  }
+  list(rhs = list(base = base,
                   sum = lapply(eq$rhs$sum, rhs_sum)))
 }
 

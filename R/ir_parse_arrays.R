@@ -885,10 +885,15 @@ ir_parse_rewrite_sums1 <- function(x, data, source) {
     return(x)
   }
 
-  res <- factor_sum(x$rhs[[1]]$value, data)
-  if (is.null(res)) {
+  res <- factor_sum(x$rhs[[1L]]$value, data)
+
+  if (is.null(res$sum)) {
     ## Could not work out a nice sum here.
     return(x)
+  }
+
+  if (!is.null(res$base)) {
+    res$base <- list(index = x$rhs[[1L]]$index, value = res$base)
   }
 
   x$type <- "expression_array_sum"

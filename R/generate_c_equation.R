@@ -80,36 +80,24 @@ generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
 
 
 generate_c_equation_array <- function(eq, data_info, dat, rewrite) {
-  lhs <- generate_c_equation_array_lhs(eq, data_info, dat, rewrite)
+  ## TODO: Which of these is correct? first only?
+  if (eq$type == "expression_array") {
+    index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
+  } else {
+    index <- lapply(eq$rhs$index, "[[", "index")
+  }
+
+  lhs <- generate_c_equation_array_lhs(index, data_info, dat, rewrite)
   lapply(eq$rhs, function(x)
     generate_c_equation_array_rhs(x$value, x$index, lhs, rewrite))
 }
 
 
 generate_c_equation_array_sum <- function(eq, data_info, dat, rewrite) {
-  lhs <- rewrite(eq$lhs)
-  if (is.null(eq$rhs$base)) {
-    ## Not totally clear what the most portable way of doing this is;
-    ## one of memset, memzero or bzero
-    base <- sprintf("memset(%s, 0, %s * sizeof(%s));",
-                    lhs,
-                    rewrite(data_info$dimnames$length),
-                    data_info$storage_type)
-  } else {
-    base <- generate_c_equation_array_sum_base(
-      eq$rhs$base, data_info, dat, rewrite)
-  }
-
-  generate_sum1 <- function(x) {
-    len_x <- rewrite(dat$data$elements[[x$name]]$dimnames$length)
-    c(sprintf("for (size_t i = 0; i < %s; ++i) {", len_x),
-      sprintf("  %s[%s] += %s[i];",
-              lhs, generate_c_sexp_index(x$index, rewrite), rewrite(x$name)),
-      "}")
-  }
-
-  sum <- unlist(lapply(eq$rhs$sum, generate_sum1))
-
+  base <- generate_c_equation_array_sum_base(eq$rhs$base, data_info,
+                                             dat, rewrite)
+  sum <- unlist(lapply(eq$rhs$sum, generate_c_equation_array_sum_sum,
+                       data_info, dat, rewrite))
   c(base, sum)
 }
 
@@ -374,7 +362,13 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     lhs <- rewrite(eq$lhs)
     expr <- sprintf_safe("%s = %s;", lhs, rewrite(rhs_expr))
   } else {
-    lhs <- generate_c_equation_array_lhs(eq, data_info, dat, rewrite)
+    ## TODO: which of these is correct?
+    if (eq$type == "expression_array") {
+      index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
+    } else {
+      index <- lapply(eq$rhs$index, "[[", "index")
+    }
+    lhs <- generate_c_equation_array_lhs(index, data_info, dat, rewrite)
     expr <- generate_c_equation_array_rhs(rhs_expr, eq$rhs$index, lhs, rewrite)
   }
 
@@ -447,7 +441,13 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
   } else {
     data_info_ring <- data_info
     data_info_ring$name <- head
-    lhs_ring <- generate_c_equation_array_lhs(eq, data_info_ring, dat, rewrite)
+    ## TODO: which one of these is correct?
+    if (eq$type == "expression_array") {
+      index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
+    } else {
+      index <- lapply(eq$rhs$index, "[[", "index")
+    }
+    lhs_ring <- generate_c_equation_array_lhs(index, data_info_ring, dat, rewrite)
     push <- generate_c_equation_array_rhs(eq$rhs$value, eq$rhs$index,
                                           lhs_ring, rewrite)
   }
@@ -480,12 +480,7 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
 }
 
 
-generate_c_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
-  if (eq$type == "expression_array") {
-    index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
-  } else {
-    index <- lapply(eq$rhs$index, "[[", "index")
-  }
+generate_c_equation_array_lhs <- function(index, data_info, dat, rewrite) {
   location <- data_info$location
 
   f <- function(i) {
@@ -508,7 +503,6 @@ generate_c_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
 
   lhs
 }
-
 
 ## TODO: we should really use size_t for the index variables here, but
 ## because the sizes are not yet stored as size_t that causes a lot of
@@ -536,23 +530,40 @@ generate_c_equation_array_rhs <- function(value, index, lhs, rewrite) {
 }
 
 
-generate_c_equation_array_sum_base <- function(value, data_info, dat, rewrite) {
-  ## TODO: this might be best to do by actually setting things in the
-  ## base element on serialisation
-  len <- data_info$dimnames$dim
-  index <- INDEX[seq_along(len)]
+generate_c_equation_array_sum_base <- function(base, data_info, dat, rewrite) {
+  if (is.null(base)) {
+    base <- sprintf("memset(%s, 0, %s * sizeof(%s));",
+                    rewrite(data_info$name),
+                    rewrite(data_info$dimnames$length),
+                    data_info$storage_type)
+  } else {
+    ## TODO: this is a good candidate for optimisation following #236 as
+    ## we'll always do a complete loop. But we'll need to write that up
+    ## more nicely.
+    lhs <- generate_c_equation_array_lhs(lapply(base$index, "[[", "index"),
+                                         data_info, dat, rewrite)
+    generate_c_equation_array_rhs(base$value, base$index, lhs, rewrite)
+  }
+}
 
-  ret <- sprintf("%s = %s;",
-                 rewrite(c(list("[", data_info$name), index)),
-                 rewrite(value))
 
-  ## TODO: this is a good candidate for optimisation following #236 as
-  ## we'll always do a complete loop.
-  for (i in seq_along(len)) {
-    loop <- sprintf_safe("for (int %s = %s; %s <= %s; ++%s) {",
-                         index[i], 1, index[i], rewrite(len[[i]]), index[i])
-    ret <- c(loop, paste("  ", ret), "}")
+generate_c_equation_array_sum_sum <- function(x, data_info, dat, rewrite) {
+  pos <- generate_c_sexp_index(x$index, rewrite)
+  location <- data_info$location
+  if (location == "internal") {
+    lhs <- sprintf("%s[%s]", rewrite(data_info$name), pos)
+  } else {
+    ## TODO: it might be worth setting up a copy of the lhs here by doing:
+    ## double * x = result + offset;
+    ## then doing x[%s] as above. Should be done *before* this though
+    ## as it will be shared across all sums
+    offset <- rewrite(dat$data[[location]]$contents[[data_info$name]]$offset)
+    storage <- if (location == "variable") dat$meta$result else dat$meta$output
+    lhs <- sprintf("%s[%s + %s]", storage, offset, pos)
   }
 
-  ret
+  len_x <- rewrite(dat$data$elements[[x$name]]$dimnames$length)
+  c(sprintf("for (size_t i = 0; i < %s; ++i) {", len_x),
+    sprintf("  %s += %s[i];", lhs, rewrite(x$name)),
+    "}")
 }
