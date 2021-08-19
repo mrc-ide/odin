@@ -539,7 +539,7 @@ generate_c_equation_array_sum_sum <- function(x, data_info, dat, rewrite) {
     lhs <- sprintf("%s[%s]", rewrite(data_info$name), pos)
   } else {
     ## TODO: it might be worth setting up a copy of the lhs here by doing:
-    ## double * x = result + offset;
+    ## > double * x = result + offset;
     ## then doing x[%s] as above. Should be done *before* this though
     ## as it will be shared across all sums
     offset <- rewrite(dat$data[[location]]$contents[[data_info$name]]$offset)

@@ -105,8 +105,8 @@ test_that("2d partial sum indexing correct", {
   m <- array(runif(prod(d)), d)
 
   expected <- list(
-    "10" = rowSums(m),  # sum(m[i, ])
-    "01" = colSums(m))  # sum(m[, i])
+    "10" = rowSums(m),  # > sum(m[i, ])
+    "01" = colSums(m))  # > sum(m[, i])
 
   info <- list(rank = 2, dimnames = list(dim = d))
   i <- seq_along(m) - 1L
@@ -134,12 +134,12 @@ test_that("3d partial sum indexing correct", {
   m <- array(runif(prod(d)), d)
 
   expected <- list(
-    "100" = apply(m, 1, sum),          # sum(x[i, , ])
-    "010" = apply(m, 2, sum),          # sum(x[, i, ])
-    "001" = apply(m, 3, sum),          # sum(x[, , i])
-    "120" = c(apply(m, 1:2, sum)),     # sum(a[i, j, ])
-    "102" = c(apply(m, c(1, 3), sum)), # sum(a[i, , j])
-    "012" = c(apply(m, 2:3, sum)))     # sum(a[, i, j])
+    "100" = apply(m, 1, sum),          # > sum(x[i, , ])
+    "010" = apply(m, 2, sum),          # > sum(x[, i, ])
+    "001" = apply(m, 3, sum),          # > sum(x[, , i])
+    "120" = c(apply(m, 1:2, sum)),     # > sum(a[i, j, ])
+    "102" = c(apply(m, c(1, 3), sum)), # > sum(a[i, , j])
+    "012" = c(apply(m, 2:3, sum)))     # > sum(a[, i, j])
 
   info <- list(rank = 3, dimnames = list(dim = d, mult = cumprod(c(1, d))))
   i <- seq_along(m) - 1L
@@ -167,21 +167,21 @@ test_that("4d partial sum indexing correct", {
   m <- array(runif(prod(d)), d)
 
   expected <- list(
-    "1000" = apply(m, 1, sum),             # sum(x[i, , , ])
-    "0100" = apply(m, 2, sum),             # sum(x[, i, , ])
-    "0010" = apply(m, 3, sum),             # sum(x[, , i, ])
-    "0001" = apply(m, 4, sum),             # sum(x[, , , i])
-    "1200" = c(apply(m, 1:2, sum)),        # sum(a[i, j, , ])
-    "1020" = c(apply(m, c(1, 3), sum)),    # sum(a[i, , j, ])
-    "1002" = c(apply(m, c(1, 4), sum)),    # sum(a[i, , , j])
-    "1002" = c(apply(m, c(1, 4), sum)),    # sum(a[i, , , j])
-    "0120" = c(apply(m, c(2, 3), sum)),    # sum(a[, i, j, ])
-    "0102" = c(apply(m, c(2, 4), sum)),    # sum(a[, i, , j])
-    "0012" = c(apply(m, c(3, 4), sum)),    # sum(a[, , i, j])
-    "1230" = c(apply(m, c(1, 2, 3), sum)), # sum(a[i, j, k, ])
-    "1203" = c(apply(m, c(1, 2, 4), sum)), # sum(a[i, j, , k])
-    "1023" = c(apply(m, c(1, 3, 4), sum)), # sum(a[i, , j, k])
-    "0123" = c(apply(m, c(2, 3, 4), sum))) # sum(a[, i, j, k])
+    "1000" = apply(m, 1, sum),             # > sum(x[i, , , ])
+    "0100" = apply(m, 2, sum),             # > sum(x[, i, , ])
+    "0010" = apply(m, 3, sum),             # > sum(x[, , i, ])
+    "0001" = apply(m, 4, sum),             # > sum(x[, , , i])
+    "1200" = c(apply(m, 1:2, sum)),        # > sum(a[i, j, , ])
+    "1020" = c(apply(m, c(1, 3), sum)),    # > sum(a[i, , j, ])
+    "1002" = c(apply(m, c(1, 4), sum)),    # > sum(a[i, , , j])
+    "1002" = c(apply(m, c(1, 4), sum)),    # > sum(a[i, , , j])
+    "0120" = c(apply(m, c(2, 3), sum)),    # > sum(a[, i, j, ])
+    "0102" = c(apply(m, c(2, 4), sum)),    # > sum(a[, i, , j])
+    "0012" = c(apply(m, c(3, 4), sum)),    # > sum(a[, , i, j])
+    "1230" = c(apply(m, c(1, 2, 3), sum)), # > sum(a[i, j, k, ])
+    "1203" = c(apply(m, c(1, 2, 4), sum)), # > sum(a[i, j, , k])
+    "1023" = c(apply(m, c(1, 3, 4), sum)), # > sum(a[i, , j, k])
+    "0123" = c(apply(m, c(2, 3, 4), sum))) # > sum(a[, i, j, k])
   ## 15 combinations...
 
   info <- list(rank = 4, dimnames = list(dim = d, mult = cumprod(c(1, d))))
