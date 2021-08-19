@@ -80,13 +80,7 @@ generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
 
 
 generate_c_equation_array <- function(eq, data_info, dat, rewrite) {
-  ## TODO: Which of these is correct? first only?
-  if (eq$type == "expression_array") {
-    index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
-  } else {
-    index <- lapply(eq$rhs$index, "[[", "index")
-  }
-
+  index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
   lhs <- generate_c_equation_array_lhs(index, data_info, dat, rewrite)
   lapply(eq$rhs, function(x)
     generate_c_equation_array_rhs(x$value, x$index, lhs, rewrite))
@@ -362,12 +356,7 @@ generate_c_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     lhs <- rewrite(eq$lhs)
     expr <- sprintf_safe("%s = %s;", lhs, rewrite(rhs_expr))
   } else {
-    ## TODO: which of these is correct?
-    if (eq$type == "expression_array") {
-      index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
-    } else {
-      index <- lapply(eq$rhs$index, "[[", "index")
-    }
+    index <- lapply(eq$rhs$index, "[[", "index")
     lhs <- generate_c_equation_array_lhs(index, data_info, dat, rewrite)
     expr <- generate_c_equation_array_rhs(rhs_expr, eq$rhs$index, lhs, rewrite)
   }
@@ -441,13 +430,9 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
   } else {
     data_info_ring <- data_info
     data_info_ring$name <- head
-    ## TODO: which one of these is correct?
-    if (eq$type == "expression_array") {
-      index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
-    } else {
-      index <- lapply(eq$rhs$index, "[[", "index")
-    }
-    lhs_ring <- generate_c_equation_array_lhs(index, data_info_ring, dat, rewrite)
+    index <- lapply(eq$rhs$index, "[[", "index")
+    lhs_ring <- generate_c_equation_array_lhs(index, data_info_ring, dat,
+                                              rewrite)
     push <- generate_c_equation_array_rhs(eq$rhs$value, eq$rhs$index,
                                           lhs_ring, rewrite)
   }
