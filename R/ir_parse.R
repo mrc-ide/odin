@@ -778,7 +778,7 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
   tmp <- lapply(index, ir_parse_expr_lhs_check_index)
   err <- !vlapply(tmp, as.logical)
   if (any(err)) {
-    msg <- paste0("\t\t", vcapply(tmp[!ok], attr, "message"), collapse = "\n")
+    msg <- paste0("\t\t", vcapply(tmp[err], attr, "message"), collapse = "\n")
     ir_parse_error(sprintf("Invalid array use on lhs:\n%s", msg),
                    line, source)
   }

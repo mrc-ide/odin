@@ -221,7 +221,7 @@ test_that("factorise sums where possible", {
                                b = array_data("a", 3),
                                m = array_data("m", 2)))
   sum_a <- list(name = quote(a),
-                index = quote((i %/% dim_a_1) * dim_a_1 + i %% dim_a_1))
+                index = quote((i %/% dim_a_12) * dim_a_1 + i %% dim_a_1))
   expect_equal(
     factor_sum(quote(odin_sum(a, i, i, 1, dim(a, 2), j, j) + x[i, j]), data),
     list(base = quote(x[i, j]),
