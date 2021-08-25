@@ -119,7 +119,7 @@ test_that_odin("user variables", {
     N0 <- user(1)
     K <- 100
     r <- user()
-  }, target = "r")
+  })
 
   expect_error(gen$new())
   expect_error(gen$new(r = NULL),

@@ -151,7 +151,7 @@ support_coerce_mode <- function(value, integer, min, max, name) {
   } else if (is.integer(value)) {
     storage.mode(value) <- "numeric"
   } else if (!is.numeric(value)) {
-    stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
+    stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
   }
   if (any(is.na(value))) {
     stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)

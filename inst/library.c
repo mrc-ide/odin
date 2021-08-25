@@ -11,7 +11,7 @@ double user_get_scalar_double(SEXP user, const char *name,
     } else if (TYPEOF(el) == INTSXP) {
       ret = INTEGER(el)[0];
     } else {
-      Rf_error("Expected a numeric value for %s", name);
+      Rf_error("Expected a numeric value for '%s'", name);
     }
   }
   if (ISNA(ret)) {
