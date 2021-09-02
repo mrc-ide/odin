@@ -824,7 +824,7 @@ test_that_odin("sum over one dimension", {
 
     tot1 <- sum(m)
     tot2 <- sum(m[, ])
-  }, verbose = FALSE)
+  })
 
   nr <- 5
   nc <- 7
@@ -885,7 +885,7 @@ test_that_odin("sum over two dimensions", {
 
     tot1 <- sum(a)
     tot2 <- sum(a[, , ])
-  }, verbose = FALSE)
+  })
 
   nr <- 5
   nc <- 7
@@ -935,7 +935,7 @@ test_that_odin("sum for a 4d array", {
 
     tot1 <- sum(a)
     tot2 <- sum(a[, , , ])
-  }, verbose = FALSE)
+  })
 
   dim <- c(3, 5, 7, 9)
   a <- array(runif(prod(dim)), dim)
