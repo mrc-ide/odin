@@ -27,7 +27,7 @@ int user_get_scalar_int(SEXP user, const char *name,
   SEXP el = user_list_element(user, name);
   if (el != R_NilValue) {
     if (length(el) != 1) {
-      Rf_error("Expected scalar integer for %d", name);
+      Rf_error("Expected scalar integer for '%d'", name);
     }
     if (TYPEOF(el) == REALSXP) {
       double tmp = REAL(el)[0];
@@ -97,7 +97,7 @@ void* user_get_array(SEXP user, bool is_integer, void * previous,
     if (dim[i] != dim_expected) {
       va_end(ap); // avoid a leak
       if (rank == 1) {
-        Rf_error("Expected length %d value for %s", dim_expected, name);
+        Rf_error("Expected length %d value for '%s'", dim_expected, name);
       } else {
         Rf_error("Incorrect size of dimension %d of %s (expected %d)",
                  i + 1, name, dim_expected);
@@ -136,7 +136,7 @@ SEXP user_get_array_check(SEXP el, bool is_integer, const char *name,
       user_check_values_int(INTEGER(el), len, min, max, name);
       UNPROTECT(1);
     } else {
-      Rf_error("Expected a integer value for %s", name);
+      Rf_error("Expected a integer value for '%s'", name);
     }
   } else {
     if (TYPEOF(el) == INTSXP) {
@@ -146,7 +146,7 @@ SEXP user_get_array_check(SEXP el, bool is_integer, const char *name,
     } else if (TYPEOF(el) == REALSXP) {
       user_check_values_double(REAL(el), len, min, max, name);
     } else {
-      Rf_error("Expected a numeric value for %s", name);
+      Rf_error("Expected a numeric value for '%s'", name);
     }
   }
   return el;
@@ -344,11 +344,11 @@ void interpolate_check_y(size_t nx, size_t ny, size_t i, const char *name_arg, c
   if (nx != ny) {
     if (i == 0) {
       // vector case
-      Rf_error("Expected %s to have length %d (for %s)",
+      Rf_error("Expected %s to have length %d (for '%s')",
                name_arg, nx, name_target);
     } else {
       // array case
-      Rf_error("Expected dimension %d of %s to have size %d (for %s)",
+      Rf_error("Expected dimension %d of %s to have size %d (for '%s')",
                i, name_arg, nx, name_target);
     }
   }
@@ -391,7 +391,7 @@ void rmhyper_d(size_t n_sample, double *k, size_t m, int *ret) {
 
 double scalar_real(SEXP x, const char * name) {
   if (Rf_length(x) != 1) {
-    Rf_error("Expected a scalar for %s", name);
+    Rf_error("Expected a scalar for '%s'", name);
   }
   double ret = 0.0;
   if (TYPEOF(x) == INTSXP) {
@@ -399,7 +399,7 @@ double scalar_real(SEXP x, const char * name) {
   } else if (TYPEOF(x) == REALSXP) {
     ret = REAL(x)[0];
   } else {
-    Rf_error("Expected a numeric value for %s", name);
+    Rf_error("Expected a numeric value for '%s'", name);
   }
   return ret;
 }
@@ -407,7 +407,7 @@ double scalar_real(SEXP x, const char * name) {
 
 int scalar_int(SEXP x, const char * name) {
   if (Rf_length(x) != 1) {
-    Rf_error("Expected a scalar for %s", name);
+    Rf_error("Expected a scalar for '%s'", name);
   }
   int ret = 0;
   if (TYPEOF(x) == INTSXP) {
@@ -416,10 +416,10 @@ int scalar_int(SEXP x, const char * name) {
     double rx = REAL(x)[0];
     ret = rx;
     if (fabs(rx - ret) > sqrt(DOUBLE_EPS)) {
-      Rf_error("Expected a integer-like for %s", name);
+      Rf_error("Expected a integer-like for '%s'", name);
     }
   } else {
-    Rf_error("Expected an integer value for %s", name);
+    Rf_error("Expected an integer value for '%s'", name);
   }
   return ret;
 }
