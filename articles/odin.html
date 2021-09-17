@@ -38,7 +38,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.2.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.2.3</span>
       </span>
     </div>
 
@@ -98,7 +98,7 @@
       <h1 data-toc-skip>odin</h1>
                         <h4 class="author">Rich FitzJohn</h4>
             
-            <h4 class="date">2021-08-03</h4>
+            <h4 class="date">2021-09-17</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/master/vignettes/odin.Rmd"><code>vignettes/odin.Rmd</code></a></small>
       <div class="hidden name"><code>odin.Rmd</code></div>
@@ -143,7 +143,7 @@
 ##     transform_variables: function (y) 
 ##   Private:
 ##     cfuns: list
-##     dll: logistica098ca44
+##     dll: logistice1596af6
 ##     interpolate_t: NULL
 ##     n_out: 0
 ##     odin: environment
@@ -267,7 +267,7 @@
 <code class="sourceCode R"><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">20000</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.008   0.000   0.009</code></pre>
+##   0.008   0.001   0.010</code></pre>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, lwd <span class="op">=</span> <span class="fl">.2</span>, col <span class="op">=</span> <span class="st">"#00000055"</span><span class="op">)</span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-20-1.png" width="672"></p>
