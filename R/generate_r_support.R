@@ -50,7 +50,7 @@ support_get_user_double <- function(user, name, internal, size, default,
       }
     } else if (length(size) == 1L) {
       if (length(value) != size || !is.null(d)) {
-        stop(sprintf("Expected length %d value for %s", size, name),
+        stop(sprintf("Expected length %d value for '%s'", size, name),
              call. = FALSE)
       }
     } else {
@@ -104,7 +104,7 @@ support_check_interpolate_y <- function(dim_arg, dim_target, name_arg,
   stopifnot(length(dim_target) == length(dim_arg))
   if (rank == 0L) {
     if (dim_arg != dim_target) {
-      stop(sprintf("Expected %s to have length %d (for %s)",
+      stop(sprintf("Expected %s to have length %d (for '%s')",
                    name_arg, dim_target, name_target), call. = FALSE)
     }
   } else {
@@ -113,7 +113,7 @@ support_check_interpolate_y <- function(dim_arg, dim_target, name_arg,
     i <- dim_arg != dim_target
     if (any(i)) {
       j <- which(i)[[1L]]
-      stop(sprintf("Expected dimension %d of %s to have size %d (for %s)",
+      stop(sprintf("Expected dimension %d of %s to have size %d (for '%s')",
                    j, name_arg, dim_target[[j]], name_target),
            call. = FALSE)
     }
@@ -151,7 +151,7 @@ support_coerce_mode <- function(value, integer, min, max, name) {
   } else if (is.integer(value)) {
     storage.mode(value) <- "numeric"
   } else if (!is.numeric(value)) {
-    stop(sprintf("Expected a numeric value for %s", name), call. = FALSE)
+    stop(sprintf("Expected a numeric value for '%s'", name), call. = FALSE)
   }
   if (any(is.na(value))) {
     stop(sprintf("'%s' must not contain any NA values", name), call. = FALSE)

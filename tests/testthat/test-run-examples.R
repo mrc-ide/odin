@@ -100,13 +100,13 @@ test_that_odin("user arrays", {
   age_width <- mod1$contents()$age_width
 
   expect_error(gen2$new(age_width = age_width[-1L]),
-               "Expected length 5 value for age_width")
+               "Expected length 5 value for 'age_width'")
   expect_error(gen2$new(age_width = NULL),
                "Expected a value for 'age_width'")
   expect_error(gen2$new(age_width = numeric(0)),
-               "Expected length 5 value for age_width")
+               "Expected length 5 value for 'age_width'")
   expect_error(gen2$new(age_width = rep(age_width, 2)),
-               "Expected length 5 value for age_width")
+               "Expected length 5 value for 'age_width'")
 
   mod2 <- gen2$new(age_width = age_width)
   expect_equal(mod2$contents(), mod1$contents())
@@ -128,9 +128,9 @@ test_that_odin("user arrays", {
   ## Now, let's set some different parameters here and check enforcement:
   age_width2 <- c(age_width, 365 * 25)
   expect_error(gen3$new(age_width = age_width2),
-               "Expected length 5 value for age_width")
+               "Expected length 5 value for 'age_width'")
   expect_error(gen3$new(age_width = age_width, N_age = 6L),
-               "Expected length 6 value for age_width")
+               "Expected length 6 value for 'age_width'")
   mod3 <- gen3$new(age_width = age_width2, N_age = 6L)
   expect_equal(mod3$contents()$age_width, age_width2)
   expect_equal(length(mod3$contents()$initial_R), length(age_width2))

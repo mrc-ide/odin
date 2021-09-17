@@ -180,7 +180,7 @@ test_that_odin("time dependent", {
   expect_equal(mod_t$initial(10), sqrt(10) + 1)
 
   t0 <- seq(0,  10, length.out = 101)
-  t1 <- seq(10, 10, length.out = 101)
+  t1 <- seq(10, 20, length.out = 101)
 
   expect_equal(mod_t$run(t0), gen_cmp$new(N0 = sqrt(t0[[1]]) + 1)$run(t0))
   expect_equal(mod_t$run(t1), gen_cmp$new(N0 = sqrt(t1[[1]]) + 1)$run(t1))
@@ -727,35 +727,35 @@ test_that_odin("non-numeric input", {
         matrix = matrix,
         array = array,
         array4 = array4),
-    "Expected a numeric value for scalar")
+    "Expected a numeric value for 'scalar'")
   expect_error(
     gen$new(scalar = scalar,
         vector = convert(vector, "character"),
         matrix = matrix,
         array = array,
         array4 = array4),
-    "Expected a numeric value for vector")
+    "Expected a numeric value for 'vector'")
   expect_error(
     gen$new(scalar = scalar,
         vector = vector,
         matrix = convert(matrix, "character"),
         array = array,
         array4 = array4),
-    "Expected a numeric value for matrix")
+    "Expected a numeric value for 'matrix'")
   expect_error(
     gen$new(scalar = scalar,
         vector = vector,
         matrix = matrix,
         array = convert(array, "character"),
         array4 = array4),
-    "Expected a numeric value for array")
+    "Expected a numeric value for 'array'")
   expect_error(
     gen$new(scalar = scalar,
         vector = vector,
         matrix = matrix,
         array = array,
         array4 = convert(array4, "character")),
-    "Expected a numeric value for array4")
+    "Expected a numeric value for 'array4'")
 })
 
 test_that_odin("only used in output", {
@@ -824,7 +824,7 @@ test_that_odin("sum over one dimension", {
 
     tot1 <- sum(m)
     tot2 <- sum(m[, ])
-  }, verbose = FALSE)
+  })
 
   nr <- 5
   nc <- 7
@@ -885,7 +885,7 @@ test_that_odin("sum over two dimensions", {
 
     tot1 <- sum(a)
     tot2 <- sum(a[, , ])
-  }, verbose = FALSE)
+  })
 
   nr <- 5
   nc <- 7
@@ -935,7 +935,7 @@ test_that_odin("sum for a 4d array", {
 
     tot1 <- sum(a)
     tot2 <- sum(a[, , , ])
-  }, verbose = FALSE)
+  })
 
   dim <- c(3, 5, 7, 9)
   a <- array(runif(prod(dim)), dim)

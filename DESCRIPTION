@@ -1,6 +1,6 @@
 Package: odin
 Title: ODE Generation and Integration
-Version: 1.2.2
+Version: 1.2.3
 Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     email = "rich.fitzjohn@gmail.com"),
              person("Thibaut", "Jombart", role = "ctb"),

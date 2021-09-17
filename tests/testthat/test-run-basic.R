@@ -119,7 +119,7 @@ test_that_odin("user variables", {
     N0 <- user(1)
     K <- 100
     r <- user()
-  }, target = "r")
+  })
 
   expect_error(gen$new())
   expect_error(gen$new(r = NULL),
@@ -362,7 +362,7 @@ test_that_odin("user array", {
 
   mod <- gen$new(r = 1:3)
   expect_identical(mod$contents()$r, as.numeric(1:3))
-  expect_error(gen$new(r = 1), "Expected length 3 value for r")
+  expect_error(gen$new(r = 1), "Expected length 3 value for 'r'")
 })
 
 
@@ -417,7 +417,7 @@ test_that_odin("user array - indirect", {
                  r = 1:3)))
 
   expect_error(gen$new(n = 4, r = 1:3),
-               "Expected length 4 value for r")
+               "Expected length 4 value for 'r'")
 })
 
 
