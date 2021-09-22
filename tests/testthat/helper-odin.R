@@ -117,7 +117,7 @@ test_odin_targets <- function() {
   if (on_cran()) {
     "r"
   } else {
-    c("r", "c")
+    c("r", "c", "js")
   }
 }
 

@@ -36,6 +36,7 @@ Imports:
     ring,
     withr
 Suggests:
+    V8,
     dde (>= 1.0.0),
     jsonvalidate (>= 1.1.0),
     knitr,

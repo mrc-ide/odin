@@ -83,6 +83,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
       options$target,
       c = read_include_c,
       r = read_include_r,
+      js = read_include_js,
       read_include_unsupported(options$target))
   }
 
@@ -104,4 +105,9 @@ check_substitutions <- function(substitutions) {
          paste(squote(names_if(!ok)), collapse = ", "))
   }
   substitutions
+}
+
+
+read_include_js <- function(...) {
+  stop("Do not use me")
 }

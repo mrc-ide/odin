@@ -39,7 +39,7 @@
 ##'   be verbose.  Defaults to the value of the option
 ##'   `odin.verbose` or `FALSE` otherwise.
 ##'
-##' @param target Compilation target.  Options are "c" and "r",
+##' @param target Compilation target.  Options are "c", "r" or "js",
 ##'   defaulting to the option `odin.target` or "c" otherwise.
 ##'
 ##' @param workdir Directory to use for any generated files.  This is
@@ -143,5 +143,6 @@ odin_generate <- function(ir, options) {
   switch(options$target,
          "r" = odin_r_wrapper(ir, options),
          "c" = odin_c_wrapper(ir, options),
+         "js" = odin_js_wrapper(ir, options),
          stop(sprintf("Unknown target '%s'", options$target)))
 }
