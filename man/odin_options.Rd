@@ -15,7 +15,7 @@ odin_options(verbose = NULL, target = NULL, workdir = NULL,
 be verbose.  Defaults to the value of the option
 \code{odin.verbose} or \code{FALSE} otherwise.}
 
-\item{target}{Compilation target.  Options are "c" and "r",
+\item{target}{Compilation target.  Options are "c", "r" or "js",
 defaulting to the option \code{odin.target} or "c" otherwise.}
 
 \item{workdir}{Directory to use for any generated files.  This is

@@ -180,6 +180,9 @@ test_that_odin("output", {
   expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
   expect_equal(yy1[, "z"], tt)
 
+  ## TODO: this is pretty poor, we might think about silently ignoring
+  ## this argument?
+  skip_for_target("js")
   yy2 <- gen$new(use_dde = TRUE)$run(tt)
   expect_equal(colnames(yy2), c("t", "y", "z"))
   expect_equal(yy2[, "t"], tt)
@@ -361,7 +364,7 @@ test_that_odin("user array", {
   })
 
   mod <- gen$new(r = 1:3)
-  expect_identical(mod$contents()$r, as.numeric(1:3))
+  expect_equal(mod$contents()$r, as.numeric(1:3))
   expect_error(gen$new(r = 1), "Expected length 3 value for 'r'")
 })
 
@@ -377,7 +380,7 @@ test_that_odin("user matrix", {
 
   r <- matrix(runif(6), 2, 3)
   mod <- gen$new(r = r)
-  expect_identical(mod$contents()$r, r)
+  expect_equal(mod$contents()$r, r)
 
   ## TODO: this would be nice to tidy up but it's really tricky to
   ## throw these errors the same way in C
@@ -385,7 +388,7 @@ test_that_odin("user matrix", {
     msg1 <- msg2 <- "Expected a numeric array with dimensions 2 * 3 for 'r'"
   } else {
     msg1 <- "Expected a numeric matrix for 'r'"
-    msg2 <- "Incorrect size of dimension 1 of r (expected 2)"
+    msg2 <- "Incorrect size of dimension 1 of 'r' (expected 2)"
   }
 
   expect_error(gen$new(r = c(r)), msg1, fixed = TRUE)
@@ -498,7 +501,10 @@ test_that_odin("interpolation", {
 
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(yy[, "y"], zz, tolerance = 1e-5)
+
+  tol <- variable_tolerance(1e-5, js = 1e-4)
+
+  expect_equal(yy[, "y"], zz, tolerance = tol)
   expect_equal(yy[, "p"], pulse)
 })
 
@@ -615,7 +621,11 @@ test_that_odin("3d array time dependent and variable", {
   expect_equal(colnames(yy)[[12]], "y[1,3,2]")
   expect_equal(yy[, 1], tt)
 
-  cmp <- deSolve::ode(1, tt, function(t, y, p) list(y * t * 0.1))[, 2]
+  if (odin_target_name() == "js") {
+    cmp <- dde::dopri(1, tt, function(t, y, p) y * t * 0.1, NULL)[, 2]
+  } else {
+    cmp <- deSolve::ode(1, tt, function(t, y, p) list(y * t * 0.1))[, 2]
+  }
   expect_equal(
     unname(yy[, -1]),
     matrix(rep(cmp, 24), 11))
@@ -660,6 +670,7 @@ test_that_odin("rich user sized arrays", {
 
 
 test_that_odin("discrete delays: matrix", {
+  skip_for_target("js")
   gen <- odin({
     initial(y[, ]) <- 1
     update(y[, ]) <- y[i, j] + 1
@@ -683,6 +694,7 @@ test_that_odin("discrete delays: matrix", {
 
 
 test_that_odin("multinomial", {
+  skip_for_target("js")
   gen <- odin({
     q[] <- user()
     p[] <- q[i] / sum(q)

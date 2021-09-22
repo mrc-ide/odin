@@ -203,7 +203,8 @@ to_json_user <- function(user) {
       class(x) <- "json"
     } else if (is.array(x)) {
       x <- list(data = c(x), dim = I(dim(x)))
-    } else if (length(x) > 1L || inherits(x, "AsIs")) {
+    } else if (is.null(x)) { # leave as is
+    } else if (length(x) != 1L || inherits(x, "AsIs")) {
       x <- list(data = x, dim = I(length(x)))
     }
     x
@@ -212,7 +213,7 @@ to_json_user <- function(user) {
     stopifnot(!is.null(names(user)))
   }
   user <- lapply(user, f)
-  to_json_js(user, auto_unbox = TRUE, json_verbatim = TRUE)
+  to_json_js(user, auto_unbox = TRUE, json_verbatim = TRUE, null = "null")
 }
 
 

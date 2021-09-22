@@ -58,7 +58,7 @@ function getUser(user, name, internal, size, defaultValue,
         }
     } else {
         if (typeof value !== "number") {
-            throw Error("Expected a numeric value for '" + name + "'");
+            throw Error("Expected a scalar numeric for '" + name + "'");
         }
         if (min !== null && value < min) {
             throw Error("Expected '" + name + "' to be at least " + min);
