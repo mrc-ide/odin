@@ -157,6 +157,11 @@ function getUserArrayDim(user, name, internal, size, defaultValue,
 function getUserArrayCheckType(value, name) {
     if (Array.isArray(value)) {
         value = flattenArray(value, name)
+    } else if (typeof value === "number") {
+        // promote scalar number to vector, in the hope that's close
+        // enough to what the user wants; this does give some
+        // reasonable error messages relative to the C version.
+        value = {data: [value], dim: [1]}
     } else if (!(typeof value === "object" &&
                  "data" in value &&
                  "dim" in value)) {
