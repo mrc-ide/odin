@@ -502,7 +502,7 @@ test_that_odin("interpolation", {
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
 
-  tol <- variable_tolerance(1e-5, js = 1e-4)
+  tol <- variable_tolerance(mod, 1e-5, js = 1e-4)
 
   expect_equal(yy[, "y"], zz, tolerance = tol)
   expect_equal(yy[, "p"], pulse)
@@ -517,10 +517,15 @@ test_that_odin("stochastic", {
   mod <- gen$new()
   expect_equal(mod$initial(0), 0)
 
-  set.seed(1)
-  x <- rnorm(3)
-
-  set.seed(1)
+  if (mod$engine() == "js") {
+    model_set_seed(mod, 1)
+    x <- model_random_numbers(mod, "normal", 3)
+    model_set_seed(mod, 1)
+  } else {
+    set.seed(1)
+    x <- rnorm(3)
+    set.seed(1)
+  }
   y <- replicate(3, mod$update(0, 0))
 
   expect_identical(x, y)

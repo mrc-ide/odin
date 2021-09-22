@@ -187,6 +187,9 @@ function getUserArrayCheckRank(expected, given, name) {
 
 function getUserArrayCheckContents(data, min, max, isInteger, name) {
     for (var i = 0; i < data.length; ++i) {
+        if (data[i] === null) {
+            throw Error("'" + name + "' must not contain any NA values");
+        }
         if (typeof data[i] !== "number") {
             throw Error("Expected a numeric value for '" + name + "'");
         }

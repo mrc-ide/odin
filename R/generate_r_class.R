@@ -147,6 +147,10 @@ generate_r_class <- function(core, dat, env) {
         sort_list(as.list(private$data))
       },
 
+      engine = function() {
+        "r"
+      },
+
       transform_variables = function(y) {
         support_transform_variables(y, private)
       }

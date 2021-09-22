@@ -160,6 +160,10 @@ odin_js_wrapper_object <- function(res) {
         res$y
       },
 
+      engine = function() {
+        "js"
+      },
+
       transform_variables = function(y) {
         support_transform_variables(y, private)
       }
@@ -213,7 +217,8 @@ to_json_user <- function(user) {
     stopifnot(!is.null(names(user)))
   }
   user <- lapply(user, f)
-  to_json_js(user, auto_unbox = TRUE, json_verbatim = TRUE, null = "null")
+  to_json_js(user, auto_unbox = TRUE, json_verbatim = TRUE,
+             null = "null", na = "null")
 }
 
 

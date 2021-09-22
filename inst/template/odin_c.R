@@ -95,6 +95,10 @@
       private$odin$support_transform_variables(y, private)
     },
 
+    engine = function() {
+      "c"
+    },
+
     run = function({{time}}, y = NULL, ..., use_names = TRUE) {
       private$odin${{run}}(
         self, private, {{time}}, y, ..., use_names = use_names)

@@ -136,8 +136,8 @@ test_that_odin <- function(desc, code) {
 }
 
 
-variable_tolerance <- function(default = sqrt(.Machine$double.eps), ...) {
-  switch(odin_target_name(), ..., default)
+variable_tolerance <- function(mod, default = sqrt(.Machine$double.eps), ...) {
+  switch(mod$engine(), ..., default)
 }
 
 
