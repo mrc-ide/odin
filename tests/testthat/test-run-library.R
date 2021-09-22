@@ -109,6 +109,8 @@ test_that_odin("%/%", {
 
 
 test_that_odin("2-arg round", {
+  ## TODO: js does not give us a round-to-evens
+  skip_for_target("js")
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- 1
@@ -139,6 +141,7 @@ test_that_odin("2-arg round", {
 
 
 test_that_odin("multivariate hypergeometric", {
+  skip_for_target("js")
   gen <- odin({
     x0[] <- user()
     dim(x0) <- user()
@@ -173,6 +176,7 @@ test_that_odin("multivariate hypergeometric", {
 })
 
 test_that_odin("multivariate hypergeometric - integer input", {
+  skip_for_target("js")
   gen <- odin({
     x0[] <- user()
     dim(x0) <- user(integer = TRUE)
@@ -214,6 +218,7 @@ test_that_odin("multivariate hypergeometric - integer input", {
 })
 
 test_that_odin("Throw an error if requesting more elements than possible", {
+  skip_for_target("js")
   gen <- odin({
     b[] <- user()
     n <- user()
@@ -237,6 +242,7 @@ test_that_odin("Throw an error if requesting more elements than possible", {
 
 
 test_that_odin("Can use as.numeric", {
+  skip_for_target("js") # TODO; this could be supported
   gen <- odin({
     a <- user(integer = TRUE)
     b <- as.numeric(a)

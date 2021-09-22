@@ -42,7 +42,8 @@ test_that_odin("constant", {
 
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(yy[, 2], zz, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 2e-5)
+  expect_equal(yy[, 2], zz, tolerance = tol)
 })
 
 
@@ -83,8 +84,9 @@ test_that_odin("constant array", {
   yy <- mod$run(tt)
   zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
-  expect_equal(yy[, 2], zz1, tolerance = 1e-5)
-  expect_equal(yy[, 3], zz2, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 6e-5)
+  expect_equal(yy[, 2], zz1, tolerance = tol)
+  expect_equal(yy[, 3], zz2, tolerance = tol)
 })
 
 
@@ -139,7 +141,8 @@ test_that_odin("constant 3d array", {
   yy <- mod$run(tt)
   cmp <- sapply(1:4, function(i)
     ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
-  expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 5e-4)
+  expect_equal(unname(yy[, -1]), cmp, tolerance = tol)
 })
 
 
@@ -166,7 +169,8 @@ test_that_odin("linear", {
   f <- approxfun(tp, zp, "linear")
   target <- function(t, x, .) list(f(t))
   cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = 2)
-  expect_equal(yy[, 2], cmp[, 2])
+  tol <- variable_tolerance(mod, js = 1e-5)
+  expect_equal(yy[, 2], cmp[, 2], tolerance = tol)
 
   expect_error(mod$run(c(tt, max(tp) + 1)),
                "Integration times do not span interpolation range")
@@ -199,7 +203,8 @@ test_that_odin("spline", {
   f <- splinefun(tp, zp, "natural")
   target <- function(t, x, .) list(f(t))
   cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = tt[length(tt)])
-  expect_equal(yy[, 2], cmp[, 2])
+  tol <- variable_tolerance(mod, js = 5e-6)
+  expect_equal(yy[, 2], cmp[, 2], tolerance = tol)
 })
 
 
@@ -260,6 +265,7 @@ test_that_odin("interpolation with two variables", {
 
 
 test_that_odin("interpolation in a delay", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -289,6 +295,7 @@ test_that_odin("interpolation in a delay", {
 
 
 test_that_odin("interpolation in a delay, with default", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -411,6 +418,7 @@ test_that_odin("user sized interpolation, 2d", {
 
 
 test_that_odin("double delayed interpolation function", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0

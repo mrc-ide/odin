@@ -69,6 +69,7 @@ test_that_odin("user variables on models with none", {
 })
 
 test_that_odin("non-numeric time", {
+  skip_for_target("js")
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
   gen <- odin({
@@ -83,6 +84,7 @@ test_that_odin("non-numeric time", {
 })
 
 test_that_odin("delays and initial conditions", {
+  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
@@ -124,8 +126,8 @@ test_that_odin("non-numeric user", {
     r <- user()
   })
   mod <- gen$new(r = 1L)
-  expect_is(mod$contents()$r, "numeric")
-  expect_identical(mod$contents()$r, 1.0)
+  expect_true(is.numeric(mod$contents()$r))
+  expect_equal(mod$contents()$r, 1.0)
 })
 
 test_that_odin("conditionals", {
@@ -139,7 +141,8 @@ test_that_odin("conditionals", {
   t <- seq(0, 5, length.out = 101)
   y <- mod$run(t)
 
-  expect_equal(y[, 2], ifelse(t < 4, t * 0.5, 2.0), tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 1e-4)
+  expect_equal(y[, 2], ifelse(t < 4, t * 0.5, 2.0), tolerance = tol)
 })
 
 test_that_odin("conditionals, precendence", {
@@ -153,7 +156,8 @@ test_that_odin("conditionals, precendence", {
   y <- mod$run(t)
 
   cmp <- ifelse(t < 2, 1.1 * t, 2.4 - 0.1 * t)
-  expect_equal(y[, 2], cmp, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 1e-4)
+  expect_equal(y[, 2], cmp, tolerance = tol)
 })
 
 test_that_odin("time dependent", {
@@ -197,12 +201,13 @@ test_that_odin("time dependent initial conditions", {
   mod <- gen$new()
   t <- seq(0, 2 * pi, length.out = 101)
   y <- mod$run(t, atol = 1e-8, rtol = 1e-8)
-  expect_identical(y[, 3L], sin(t))
+  expect_equal(y[, 3L], sin(t))
   expect_equal(y[, 2L], cos(t + pi), tolerance = 1e-6)
 })
 
 test_that_odin("user c", {
   skip_for_target("r")
+  skip_for_target("js")
   gen <- odin({
     config(include) <- "user_fns.c"
     z <- squarepulse(t, 1, 2)
@@ -225,6 +230,7 @@ test_that_odin("user c", {
 test_that_odin("user r", {
   ## mrc-2027 would minimise duplication here
   skip_for_target("c")
+  skip_for_target("js")
   gen <- odin({
     config(include) <- "user_fns.R"
     z <- squarepulse(t, 1, 2)
@@ -246,6 +252,7 @@ test_that_odin("user r", {
 
 test_that_odin("user c in subdir", {
   skip_for_target("r")
+  skip_for_target("js")
   dest <- tempfile()
   dir.create(dest)
 
@@ -295,7 +302,8 @@ test_that_odin("time dependent initial conditions", {
   y <- mod$run(t, atol = 1e-8, rtol = 1e-8)
   expect_equal(as.vector(y[1, 2]), 1.0)
   ## TODO: Compute analytic expectation and compare here.
-  expect_equal(as.vector(y[length(t), 2]), 1.0, tolerance = 1e-7)
+  tol <- variable_tolerance(mod, 1e-7, js = 1e-6)
+  expect_equal(as.vector(y[length(t), 2]), 1.0, tolerance = tol)
 })
 
 test_that_odin("time dependent initial conditions depending on vars", {
@@ -799,7 +807,8 @@ test_that_odin("overlapping graph", {
     list(y * p, p + p2)
   }
   cmp <- deSolve::ode(1, tt, f, NULL)
-  expect_equivalent(mod$run(tt), cmp)
+  tol <- variable_tolerance(mod, js = 1e-6)
+  expect_equal(mod$run(tt)[], cmp[], check.attributes = FALSE, tolerance = tol)
 })
 
 test_that_odin("sum over one dimension", {
@@ -1190,8 +1199,8 @@ test_that_odin("user sized dependent variables are allowed", {
   })
   r <- runif(3)
   mod <- gen$new(r = r)
-  expect_identical(mod$contents()$r, r)
-  expect_identical(mod$contents()$initial_y, rep(1.0, length(r)))
+  expect_equal(mod$contents()$r, r)
+  expect_equal(mod$contents()$initial_y, rep(1.0, length(r)))
 })
 
 
@@ -1218,7 +1227,7 @@ test_that_odin("user parameter validation", {
   ## Sensible error message for invalid option
   expect_error(
     gen$new(user = list(r = 1, a = 1), unused_user_action = "other"),
-    "Unknown user parameters: a (and invalid value for unused_user_action)",
+    "Unknown user parameters: a (and invalid value for",
     fixed = TRUE)
 
   ## Inherit action from option
@@ -1286,7 +1295,8 @@ test_that_odin("force integer on use", {
   mod <- gen$new()
   t <- seq(0, 10, length.out = 101)
   y <- mod$run(t, atol = 1e-9, rtol = 1e-9)
-  expect_equal(y[, 2], ifelse(t <= 5, t, 2 * t - 5))
+  tol <- variable_tolerance(mod, js = 1e-7)
+  expect_equal(y[, 2], ifelse(t <= 5, t, 2 * t - 5), tolerance = tol)
 })
 
 
@@ -1307,6 +1317,7 @@ test_that_odin("force integer on a numeric vector truncates", {
 
 test_that_odin("user c functions can be passed arrays and indexes", {
   skip_for_target("r")
+  skip_for_target("js")
   gen <- odin({
     config(include) <- "user_fns4.c"
     n <- 5
@@ -1340,6 +1351,7 @@ test_that_odin("self output for scalar: rewrite corner case", {
 
 
 test_that_odin("deprecation warning finds used constructor name", {
+  skip_for_target("js") # TODO: consider fixing
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -1353,6 +1365,7 @@ test_that_odin("deprecation warning finds used constructor name", {
 
 
 test_that_odin("deprecation warning falls back on base name", {
+  skip_for_target("js") # TODO: consider fixing
   code <- c("deriv(y) <- r",
             "initial(y) <- 1",
             "r <- 2",

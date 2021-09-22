@@ -1,6 +1,7 @@
 context("run: discrete delays")
 
 test_that_odin("delays", {
+  skip_for_target("js")
   gen <- odin({
     initial(y) <- 1
     update(y) <- y + yprev
@@ -17,6 +18,7 @@ test_that_odin("delays", {
 ## This also catches a corner case in the inclusion of sum() in the
 ## headers.
 test_that_odin("delays: scalar variable", {
+  skip_for_target("js")
   gen <- odin({
     r <- 3.6
     update(y) <- r * y * (1 - y)
@@ -41,6 +43,7 @@ test_that_odin("delays: scalar variable", {
 })
 
 test_that_odin("delays: scalar expression", {
+  skip_for_target("js")
   gen <- odin({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -66,6 +69,7 @@ test_that_odin("delays: scalar expression", {
 })
 
 test_that_odin("delays: vector variable", {
+  skip_for_target("js")
   gen <- odin({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -93,6 +97,7 @@ test_that_odin("delays: vector variable", {
 })
 
 test_that_odin("delays: vector expression", {
+  skip_for_target("js")
   gen <- odin({
     r <- 3.6
     update(y[]) <- r * y[i] * (1 - y[i])
@@ -119,6 +124,7 @@ test_that_odin("delays: vector expression", {
 })
 
 test_that_odin("delay vars that depend on time", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + v
@@ -138,6 +144,7 @@ test_that_odin("delay vars that depend on time", {
 
 
 test_that_odin("disable update function", {
+  skip_for_target("js")
   gen <- odin({
     initial(y) <- 1
     update(y) <- y + yprev
@@ -153,6 +160,7 @@ test_that_odin("disable update function", {
 
 
 test_that_odin("default (scalar)", {
+  skip_for_target("js")
   skip_for_target("c")
   gen <- odin({
     r <- 3.6
@@ -179,6 +187,7 @@ test_that_odin("default (scalar)", {
 
 
 test_that_odin("default (vector)", {
+  skip_for_target("js")
   skip_for_target("c")
   gen <- odin({
     r <- 3.6
