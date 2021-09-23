@@ -223,3 +223,17 @@ test_that("can specify max step sizes", {
   expect_gt(s2$n_step, s1$n_step)
   expect_lt(s2$n_reject, s1$n_reject)
 })
+
+
+test_that("Can't include code into js models (yet)", {
+  skip_if_not_installed("V8")
+  expect_error(odin({
+    config(include) <- "user_fns.js"
+    z <- squarepulse(t, 1, 2)
+    output(z) <- z
+    deriv(y) <- z
+    initial(y) <- 0
+  }, target = "js"),
+  "config(include) is not yet supported with JavaScript",
+  fixed = TRUE)
+})

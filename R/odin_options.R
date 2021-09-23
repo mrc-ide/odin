@@ -109,5 +109,6 @@ check_substitutions <- function(substitutions) {
 
 
 read_include_js <- function(...) {
-  stop("Do not use me")
+  ## Fix this around mrc-2027, probably
+  stop("config(include) is not yet supported with JavaScript")
 }
