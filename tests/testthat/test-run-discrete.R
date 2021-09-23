@@ -127,14 +127,18 @@ test_that_odin("complex initialisation: scalar", {
     update(x2) <- x2 + r
   })
 
-  set.seed(1)
   mod <- gen$new()
+  model_set_seed(mod, 1)
 
   v <- mod$initial(0)
   vv <- mod$transform_variables(v)
 
-  set.seed(1)
-  x1 <- rnorm(1)
+  model_set_seed(mod, 1)
+  if (mod$engine() == "js") {
+    x1 <- model_random_numbers(mod, "normal", 1)
+  } else {
+    x1 <- rnorm(1)
+  }
   expect_equal(vv$x1, x1)
   expect_equal(vv$x2, x1 * 2 + 1)
 
@@ -142,7 +146,7 @@ test_that_odin("complex initialisation: scalar", {
   v2 <- mod2$initial(0)
   expect_equal(v2, v)
 
-  set.seed(1)
+  model_set_seed(mod, 1)
   z <- mod$run(0:5)
   z2 <- mod2$run(0:5)
   expect_equal(z, z2)
@@ -165,14 +169,18 @@ test_that_odin("complex initialisation: vector", {
     dim(x2) <- length(x1)
   })
 
-  set.seed(1)
   mod <- gen$new()
+  model_set_seed(mod, 1)
 
   v <- mod$initial(0)
   vv <- mod$transform_variables(v)
 
-  set.seed(1)
-  cmp <- rnorm(10)
+  model_set_seed(mod, 1)
+  if (mod$engine() == "js") {
+    cmp <- model_random_numbers(mod, "normal", 10)
+  } else {
+    cmp <- rnorm(10)
+  }
   expect_equal(vv$x1, cmp)
   expect_equal(vv$x2, cmp * 2 + 1)
   expect_equal(mod$contents()$r, cmp * 2)
