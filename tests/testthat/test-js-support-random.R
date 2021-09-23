@@ -88,7 +88,7 @@ test_that("uniform", {
   try_again(10, {
     res <- test_uniform(10000, c(2, 4))
     expect_equal(mean(res), 3, tolerance = 0.01)
-    expect_equal(var(res), 1/3, tolerance = 0.01)
+    expect_equal(var(res), 1 / 3, tolerance = 0.01)
   })
 })
 

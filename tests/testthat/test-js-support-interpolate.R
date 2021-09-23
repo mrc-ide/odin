@@ -62,7 +62,7 @@ test_that("interpolation", {
 
   helper <- c(
     "function testInterpolate(x, y, xout, type) {",
-    '  var obj = interpolateAlloc(type, x, y, false);',
+    "  var obj = interpolateAlloc(type, x, y, false);",
     "  var ret = [];",
     "  for (var i = 0; i < xout.length; ++i) {",
     "    ret.push(interpolateEval(xout[i], obj));",
@@ -129,7 +129,7 @@ test_that("interpolation", {
     res_c4 <- test(x, y3, xout_over, type)
     i <- length(xout_over)
     if (type == "constant") {
-      expect_equal(res_c4[i, ], y3[nrow(y3),])
+      expect_equal(res_c4[i, ], y3[nrow(y3), ])
     } else {
       expect_equal(res_c4[i, ], rep(NA_real_, ncol(y3)))
     }
@@ -139,7 +139,7 @@ test_that("interpolation", {
 
     res_c6 <- test(x, y3, xout_over[i], type)
     if (type == "constant") {
-      expect_equal(drop(res_c6), y3[nrow(y3),])
+      expect_equal(drop(res_c6), y3[nrow(y3), ])
     } else {
       expect_equal(drop(res_c6), rep(NA_real_, ncol(y3)))
     }

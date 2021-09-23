@@ -141,5 +141,5 @@ FUNCTIONS_JS_STOCHASTIC <- c(
   ## rweibull = "", # shape, scale
   ## rwilcox = "", # m, n
   ## rmultinom = "", # n, p
-  ## rsignrank = "" # n
+  ## rsignrank = "", # n
 )

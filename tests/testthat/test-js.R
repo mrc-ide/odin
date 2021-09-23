@@ -114,7 +114,7 @@ test_that("accept matrices directly if asked nicely", {
   gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1
-    matrix[,] <- user()
+    matrix[, ] <- user()
     dim(matrix) <- user()
   }, target = "js")
 
