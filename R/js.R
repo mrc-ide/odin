@@ -176,7 +176,6 @@ odin_js_wrapper_object <- function(res) {
 }
 
 
-##' @importFrom V8 v8
 js_context <- function(include) {
   ct <- V8::v8()
 
