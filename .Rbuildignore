@@ -31,3 +31,4 @@
 ^\.github$
 ^\.lintr$
 ^\.eslintignore$
+^js$

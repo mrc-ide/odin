@@ -59,5 +59,10 @@ vignettes: vignettes/odin.Rmd vignettes/discrete.Rmd vignettes/functions.Rmd
 ir_reference:
 	${RSCRIPT} scripts/ir-build.R
 
+javascript:
+	./js/build
+	cp js/node_modules/dopri/LICENCE inst/LICENSE.dopri
+	cp js/LICENSE.random inst/LICENSE.random
+
 # No real targets!
-.PHONY: all test document install vignettes build
+.PHONY: all test document install vignettes build javascript

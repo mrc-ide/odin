@@ -1,0 +1,24 @@
+{
+    "name": "odin.js",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "description": "Javascript support for odin.js",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/mrc-ide/odin.js.git"
+    },
+    "bugs": {
+        "url": "https://github.com/mrc-ide/odin.js/issues"
+    },
+    "dependencies": {
+        "dopri": "^0.0.8",
+        "random": "^2.2.0"
+    },
+    "homepage": "https://github.com/mrc-ide/odin.js#readme"
+}
