@@ -54,7 +54,10 @@ odin_js_bundle <- function(filenames, dest = tempfile(),
   if (!is.null(include)) {
     include <- js_flatten_eqs(lapply(include, readLines))
   }
-  code <- c(js_flatten_eqs(lapply(support, package_js)),
+  support_js <- lapply(odin_file(file.path("js", support)),
+                       readLines, warn = FALSE)
+
+  code <- c(js_flatten_eqs(support_js),
             sprintf("var %s = {};", JS_GENERATORS),
             js_flatten_eqs(lapply(dat, "[[", "code")),
             include)

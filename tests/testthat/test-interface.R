@@ -15,11 +15,12 @@ test_that("verbose", {
 })
 
 test_that("n_history is configurable", {
+  skip_on_cran()
   gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-  })
+  }, target = "c")
 
   mod <- gen$new(use_dde = TRUE)
   expect_error(mod$run(seq(0, 200), n_history = 0),
@@ -96,6 +97,7 @@ test_that("odin_ir requires sensible object", {
 
 ## https://github.com/mrc-ide/odin/issues/154
 test_that("delay discrete models with defaults are prevented in C", {
+  skip_on_cran()
   expect_error(odin({
     r <- 3.6
     update(y) <- r * y * (1 - y)
@@ -116,7 +118,7 @@ test_that("delay discrete models with defaults are prevented in C", {
     dim(y) <- 2
     dim(x) <- 2
     dim(z) <- 2
-  }),
+  }, target = "c"),
   "Discrete delays with default not yet supported")
 })
 

@@ -4,7 +4,7 @@ generate_js_support_sum <- function(rank) {
   index <- c("i", "j", "k", "l", "i5", "i6", "i7", "i8")[i]
   mult <- vcapply(seq_len(rank), function(x)
     sprintf("dim%s", paste(seq_len(x - 1), collapse = "")))
-  counter <- vcapply(index, strrep, times = 2, USE.NAMES = FALSE)
+  counter <- vcapply(index, strrep, n = 2, USE.NAMES = FALSE)
 
   limits <- rbind(sprintf("%sFrom", index),
                   sprintf("%sTo", index))

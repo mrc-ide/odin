@@ -96,7 +96,7 @@ test_that("uniform", {
 test_that("set seed", {
   skip_if_no_random_js()
   v8 <- V8::v8()
-  v8$eval(package_js("random.js"))
+  v8$eval(readLines(odin_file("js/random.js")))
 
   v8$call("setSeed", "hello")
   a <- v8$call("random.unifRand")

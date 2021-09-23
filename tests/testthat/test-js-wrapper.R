@@ -2,7 +2,9 @@ context("wrapper")
 
 
 test_that("force a vector of strings", {
-  gen <- odin_js(c("deriv(y) <- 0.5", "initial(y) <- 1"))
+  gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"),
+              target = "js")
+  expect_equal(gen$public_methods$engine(), "js")
   mod <- gen$new()
   y <- mod$run(0:10)[, "y"]
   expect_equal(y, seq(1, by = 0.5, length.out = 11))
@@ -14,7 +16,7 @@ test_that("force a symbol of code", {
     deriv(y) <- 0.5
     initial(y) <- 1
   })
-  gen <- odin_js(code)
+  gen <- odin(code, target = "js")
   mod <- gen$new()
   y <- mod$run(0:10)[, "y"]
   expect_equal(y, seq(1, by = 0.5, length.out = 11))
@@ -26,7 +28,7 @@ test_that("allow initial conditions", {
     deriv(y) <- 0.5
     initial(y) <- 1
   })
-  gen <- odin_js(code)
+  gen <- odin(code, target = "js")
   mod <- gen$new()
   y <- mod$run(0:10, 2)[, "y"]
   expect_equal(y, seq(2, by = 0.5, length.out = 11))
@@ -38,7 +40,7 @@ test_that("return statistics", {
     deriv(y) <- sin(y)
     initial(y) <- 1
   })
-  gen <- odin_js(code)
+  gen <- odin(code, target = "js")
   mod <- gen$new()
 
   expect_null(attr(mod$run(0:10), "statistics"))

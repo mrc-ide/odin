@@ -2,8 +2,9 @@ context("odin_build")
 
 
 test_that("build from validate", {
+  skip_on_cran()
   model_cache_clear()
-  options <- odin_options(verbose = TRUE, workdir = tempfile())
+  options <- odin_options(verbose = TRUE, workdir = tempfile(), target = "c")
   code <- c("initial(x) <- 1", "deriv(x) <- 1")
   x <- odin_validate(code, "text")
   res <- odin_build(x, options)
@@ -17,10 +18,11 @@ test_that("build from validate", {
 
 
 test_that("build from ir", {
+  skip_on_cran()
   model_cache_clear()
-  options <- odin_options(verbose = TRUE, workdir = tempfile())
+  options <- odin_options(verbose = TRUE, workdir = tempfile(), target = "c")
   code <- c("initial(x) <- 1", "deriv(x) <- 1")
-  x <- odin_parse_(code, type = "text")
+  x <- odin_parse_(code, type = "text", options = options)
   res <- odin_build(x, options)
   expect_is(res$model, "odin_generator")
   expect_is(res$output, "character")
@@ -32,8 +34,9 @@ test_that("build from ir", {
 
 
 test_that("build failure", {
+  skip_on_cran()
   code <- c("initial(x) <- 1", "deriv(x) <- 1")
-  x <- odin_parse_(code, type = "text")
+  x <- odin_parse_(code, type = "text", options = odin_options(target = "c"))
   res <- odin_build(substr(x, 2, nchar(x)))
   expect_null(res$model)
   expect_is(res$error, "character")

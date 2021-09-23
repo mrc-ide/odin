@@ -146,7 +146,7 @@ test_that_odin("delay array storage", {
 
 test_that_odin("3 arg delay", {
   skip_for_target("js")
-  gen <- odin({0
+  gen <- odin({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
     deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y

@@ -1,8 +1,8 @@
 call_odin_bundle <- function(context, name, user, t, y = NULL, control = NULL) {
-  context$eval(package_js("test.js"))
+  context$source(odin_file("js/test.js"))
   user <- to_json_user(user)
   if (is.null(y)) {
-    y <- js_null()
+    y <- V8::JS("null")
   }
   if (is.null(control)) {
     control_js <- to_json(setNames(list(), character(0)))
@@ -17,8 +17,8 @@ call_odin_bundle <- function(context, name, user, t, y = NULL, control = NULL) {
 
 odin_js_support <- function() {
   v8 <- V8::v8()
-  v8$eval(package_js("support.js"))
-  v8$eval(package_js("interpolate.js"))
+  v8$source(odin_file("js/support.js"))
+  v8$source(odin_file("js/interpolate.js"))
   v8
 }
 
@@ -27,7 +27,7 @@ odin_js_test_random <- function(name) {
   skip_if_no_random_js()
   force(name)
   v8 <- V8::v8()
-  v8$eval(package_js("random.js"))
+  v8$source(odin_file("js/random.js"))
 
   v8$eval(c(
     "var repeat = function(f, n) {",
@@ -58,7 +58,7 @@ random_js_supported <- local({
   function() {
     if (is.null(supported)) {
       supported <<- !is.null(tryCatch(
-                       V8::v8()$eval(package_js("random.js")),
+                       V8::v8()$source(odin_file("js/random.js")),
                        error = function(e) NULL))
     }
     supported

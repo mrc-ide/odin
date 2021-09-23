@@ -50,7 +50,7 @@ test_that("getUserArray", {
   ## Throw if not a matrix-type object
   expect_error(
     ctx$call("test", user, "a", dim_b, null, null, null, FALSE),
-    "Expected an odin.js array object",
+    "Expected a numeric matrix for 'a'",
     class = "std::runtime_error")
 
   ## Check ranks
@@ -118,7 +118,7 @@ test_that("getUserArrayDim", {
   ## Throw if not a matrix-type object
   expect_error(
     ctx$call("test", user, "a", 2, null, null, null, FALSE),
-    "Expected an odin.js array object",
+    "Expected a numeric matrix for 'a'",
     class = "std::runtime_error")
 
   ## Check ranks

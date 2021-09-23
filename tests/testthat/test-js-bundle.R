@@ -171,7 +171,7 @@ test_that("simple stochastic model in a bundle", {
   tt <- 0:20
   yy <- call_odin_bundle(ct, "odin", NULL, tt)
 
-  mod <- odin_js_(code)$new()
+  mod <- odin_(code, target = "js")$new()
   model_set_seed(mod, 1)
   cmp <- mod$run(tt)
   expect_equal(yy, cmp)
