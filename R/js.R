@@ -52,12 +52,6 @@ odin_js_wrapper_object <- function(res) {
     public = list(
       initialize = function(..., user = list(...), unused_user_action = NULL) {
         private$name <- sprintf("%s.%s", JS_INSTANCES, basename(tempfile("i")))
-        ## For compatibility with odin, without having to write the full
-        ## interface
-        if (length(user) > 0L && !private$features$has_user) {
-          tryCatch(do.call(function() NULL, user),
-                   error = function(e) stop(e$message, call. = FALSE))
-        }
 
         user_js <- to_json_user(user)
         unused_user_action <- unused_user_action %||%
