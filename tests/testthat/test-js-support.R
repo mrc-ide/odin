@@ -157,7 +157,7 @@ test_that("getUserArrayDim", {
 test_that("generate sum", {
   code <- unlist(lapply(2:8, generate_js_support_sum))
   expect_equal(code,
-               readLines(system.file("support_sum.js", package = "odin.js")))
+               readLines(odin_file("js/support_sum.js")))
 })
 
 

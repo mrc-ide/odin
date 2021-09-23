@@ -79,7 +79,7 @@ odin_js_bundle <- function(filenames, dest = tempfile(),
 ##' @export
 odin_js_example <- function(filename, dest = tempfile()) {
   ## This is intended to eventually be configurable
-  path <- system.file("js/example/simple", package = "odin")
+  path <- odin_file("js/example/simple")
   include <- dir(path, pattern = "\\.js$", full.names = TRUE)
   html <- dir(path, pattern = "\\.html$", full.names = TRUE)
 

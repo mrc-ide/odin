@@ -96,7 +96,7 @@ test_that("prevent oversampling in rmhyper", {
 test_that("multivariate hypergeometric distribution (C)", {
   skip_on_cran()
 
-  lib <- read_user_c(system.file("library.c", package = "odin"))
+  lib <- read_user_c(odin_file("library.c"))
   impl <- unname(lib$definitions[c("rmhyper", "rmhyper_i", "rmhyper_d")])
   code <- c(
     "#include <R.h>",

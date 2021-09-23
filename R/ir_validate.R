@@ -12,7 +12,7 @@ ir_validate_against_schema <- function(x, error) {
 
 
 ir_validate_create_validator <- function() {
-  path <- system.file("schema.json", package = "odin", mustWork = TRUE)
+  path <- odin_file("schema.json")
   schema <- read_string(path)
 
   ## We get somewhat better errors from jsonlite's parsers than hoping
