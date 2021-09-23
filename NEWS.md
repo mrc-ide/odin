@@ -1,3 +1,15 @@
+# odin 1.3.0
+
+* Added JavaScript support, importing code previously in [`odin.js`](https://github.com/mrc-ide/odin.js/). Models with delays are not supported (mrc-1624)
+
+# odin 1.2.2
+
+* Optimise some `if/else` statements where the condition can be worked out at compile time; this means only one clause may be present in the generated code (mrc-2529)
+
+# odin 1.1.14
+
+* Deprecate the function-style constructors (e.g., `generator(...)`) in favour of R6-style constructors (`generator$new(...)`) (#206)
+
 # odin 1.1.13
 
 * Allow spaces in filenames passed to `odin::odin()` (#225)
