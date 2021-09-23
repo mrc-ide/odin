@@ -235,8 +235,12 @@ test_that_odin("interpolation with two variables", {
     mod <- gen$new(tp1 = tp1, zp1 = zp1, tp2 = tp2, zp2 = zp2)
 
     t1 <- if (type == "constant") max(tp1) else max(tp2)
-    expect_equal(r6_private(mod)$interpolate_t$min, 0)
-    expect_equal(r6_private(mod)$interpolate_t$max, t1)
+    if (mod$engine() != "js") {
+      ## NOTE: we don't support this in the js version, though
+      ## possibly we should?
+      expect_equal(r6_private(mod)$interpolate_t$min, 0)
+      expect_equal(r6_private(mod)$interpolate_t$max, t1)
+    }
 
     tt <- seq(0, t1, length.out = 101)
     res <- mod$run(tt)
@@ -254,7 +258,8 @@ test_that_odin("interpolation with two variables", {
       list(p[[1]](t) + p[[2]](t))
     }
     cmp <- deSolve::lsoda(0, tt, deriv, p, tcrit = t1)
-    expect_equal(res[, 2], cmp[, 2])
+    tol <- variable_tolerance(mod, js = 1e-4)
+    expect_equal(res[, 2], cmp[, 2], tolerance = tol)
 
     expect_error(mod$run(tt + 1),
                  "Integration times do not span interpolation range")
@@ -327,6 +332,7 @@ test_that_odin("interpolation in a delay, with default", {
 test_that_odin("critical times", {
   ## this is only done for the R generation so far:
   skip_for_target("c")
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse1 + pulse2
     initial(y) <- 0
@@ -381,8 +387,9 @@ test_that_odin("user sized interpolation, 1d", {
   yy <- mod$run(tt)
   zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
-  expect_equal(yy[, 2], zz1, tolerance = 1e-5)
-  expect_equal(yy[, 3], zz2, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 1e-4)
+  expect_equal(yy[, 2], zz1, tolerance = tol)
+  expect_equal(yy[, 3], zz2, tolerance = tol)
 })
 
 
@@ -413,7 +420,8 @@ test_that_odin("user sized interpolation, 2d", {
   yy <- mod$run(tt)
   cmp <- sapply(1:4, function(i)
     ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
-  expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 1e-3)
+  expect_equal(unname(yy[, -1]), cmp, tolerance = tol)
 })
 
 

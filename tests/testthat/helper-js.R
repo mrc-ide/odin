@@ -78,8 +78,12 @@ model_context <- function(x) {
 }
 
 
-model_set_seed <- function(x, seed) {
-  model_context(x)$call("setSeed", seed)
+model_set_seed <- function(mod, seed) {
+  if (mod$engine() == "js") {
+    model_context(mod)$call("setSeed", seed)
+  } else {
+    set.seed(seed)
+  }
 }
 
 
