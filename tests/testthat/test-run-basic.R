@@ -626,18 +626,15 @@ test_that_odin("3d array time dependent and variable", {
   expect_equal(colnames(yy)[[12]], "y[1,3,2]")
   expect_equal(yy[, 1], tt)
 
-  if ((odin_target_name() != "js") ||
-     ("dde" %in% rownames(installed.packages()))) {
-
-    if (odin_target_name() == "js") {
-      cmp <- dde::dopri(1, tt, function(t, y, p) y * t * 0.1, NULL)[, 2]
-    } else {
-      cmp <- deSolve::ode(1, tt, function(t, y, p) list(y * t * 0.1))[, 2]
-    }
-    expect_equal(
-      unname(yy[, -1]),
-      matrix(rep(cmp, 24), 11))
+  if (odin_target_name() == "js") {
+    skip_if_not_installed("dde")
+    cmp <- dde::dopri(1, tt, function(t, y, p) y * t * 0.1, NULL)[, 2]
+  } else {
+    cmp <- deSolve::ode(1, tt, function(t, y, p) list(y * t * 0.1))[, 2]
   }
+  expect_equal(
+    unname(yy[, -1]),
+    matrix(rep(cmp, 24), 11))
 })
 
 
