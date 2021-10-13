@@ -625,8 +625,8 @@ test_that_odin("3d array time dependent and variable", {
   yy <- mod$run(tt)
   expect_equal(colnames(yy)[[12]], "y[1,3,2]")
   expect_equal(yy[, 1], tt)
-  
-  if ((odin_target_name() != "js") || 
+
+  if ((odin_target_name() != "js") ||
      ("dde" %in% rownames(installed.packages()))) {
 
     if (odin_target_name() == "js") {
