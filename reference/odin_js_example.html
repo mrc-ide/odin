@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Articles • odin</title>
+<title>Generate a built in example — odin_js_example • odin</title>
 
 <!-- favicons -->
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
@@ -46,7 +46,8 @@
 
 
 
-<meta property="og:title" content="Articles" />
+<meta property="og:title" content="Generate a built in example — odin_js_example" />
+<meta property="og:description" content="Generate a web page and javascript for a built-in example" />
 <meta property="og:image" content="/logo.png" />
 
 
@@ -66,7 +67,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-article-index">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -136,22 +137,37 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Articles</h1>
+    <h1>Generate a built in example</h1>
+    <small class="dont-index">Source: <a href='https://github.com/mrc-ide/odin/blob/master/R/js_bundle.R'><code>R/js_bundle.R</code></a></small>
+    <div class="hidden name"><code>odin_js_example.Rd</code></div>
     </div>
 
-    <div class="section ">
-      <h3>All vignettes</h3>
-      <p class="section-desc"></p>
-
-      <dl>
-        <dt><a href="discrete.html">odin discrete models</a></dt>
-        <dd></dt>
-        <dt><a href="functions.html">odin functions</a></dt>
-        <dd></dt>
-        <dt><a href="odin.html">odin</a></dt>
-        <dd></dt>
-      </dl>
+    <div class="ref-description">
+    <p>Generate a web page and javascript for a built-in example</p>
     </div>
+
+    <pre class="usage"><span class='fu'>odin_js_example</span><span class='op'>(</span><span class='va'>filename</span>, dest <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempfile</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span></pre>
+
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>filename</th>
+      <td><p>Filename of model to include</p></td>
+    </tr>
+    <tr>
+      <th>dest</th>
+      <td><p>Destination directory - multiple files will be created
+here, overwriting existing files without prompting.</p></td>
+    </tr>
+    </table>
+
+
+  </div>
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+    <nav id="toc" data-toggle="toc" class="sticky-top">
+      <h2 data-toc-skip>Contents</h2>
+    </nav>
   </div>
 </div>
 
