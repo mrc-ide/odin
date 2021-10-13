@@ -42,7 +42,8 @@ test_that_odin("constant", {
 
   yy <- mod$run(tt)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(yy[, 2], zz, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 2e-5)
+  expect_equal(yy[, 2], zz, tolerance = tol)
 })
 
 
@@ -83,8 +84,9 @@ test_that_odin("constant array", {
   yy <- mod$run(tt)
   zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
-  expect_equal(yy[, 2], zz1, tolerance = 1e-5)
-  expect_equal(yy[, 3], zz2, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 6e-5)
+  expect_equal(yy[, 2], zz1, tolerance = tol)
+  expect_equal(yy[, 3], zz2, tolerance = tol)
 })
 
 
@@ -139,7 +141,8 @@ test_that_odin("constant 3d array", {
   yy <- mod$run(tt)
   cmp <- sapply(1:4, function(i)
     ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
-  expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 5e-4)
+  expect_equal(unname(yy[, -1]), cmp, tolerance = tol)
 })
 
 
@@ -166,7 +169,8 @@ test_that_odin("linear", {
   f <- approxfun(tp, zp, "linear")
   target <- function(t, x, .) list(f(t))
   cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = 2)
-  expect_equal(yy[, 2], cmp[, 2])
+  tol <- variable_tolerance(mod, js = 1e-5)
+  expect_equal(yy[, 2], cmp[, 2], tolerance = tol)
 
   expect_error(mod$run(c(tt, max(tp) + 1)),
                "Integration times do not span interpolation range")
@@ -199,7 +203,8 @@ test_that_odin("spline", {
   f <- splinefun(tp, zp, "natural")
   target <- function(t, x, .) list(f(t))
   cmp <- deSolve::lsoda(mod$initial(0), tt, target, tcrit = tt[length(tt)])
-  expect_equal(yy[, 2], cmp[, 2])
+  tol <- variable_tolerance(mod, js = 5e-6)
+  expect_equal(yy[, 2], cmp[, 2], tolerance = tol)
 })
 
 
@@ -230,8 +235,12 @@ test_that_odin("interpolation with two variables", {
     mod <- gen$new(tp1 = tp1, zp1 = zp1, tp2 = tp2, zp2 = zp2)
 
     t1 <- if (type == "constant") max(tp1) else max(tp2)
-    expect_equal(r6_private(mod)$interpolate_t$min, 0)
-    expect_equal(r6_private(mod)$interpolate_t$max, t1)
+    if (mod$engine() != "js") {
+      ## NOTE: we don't support this in the js version, though
+      ## possibly we should?
+      expect_equal(r6_private(mod)$interpolate_t$min, 0)
+      expect_equal(r6_private(mod)$interpolate_t$max, t1)
+    }
 
     tt <- seq(0, t1, length.out = 101)
     res <- mod$run(tt)
@@ -249,7 +258,8 @@ test_that_odin("interpolation with two variables", {
       list(p[[1]](t) + p[[2]](t))
     }
     cmp <- deSolve::lsoda(0, tt, deriv, p, tcrit = t1)
-    expect_equal(res[, 2], cmp[, 2])
+    tol <- variable_tolerance(mod, js = 1e-4)
+    expect_equal(res[, 2], cmp[, 2], tolerance = tol)
 
     expect_error(mod$run(tt + 1),
                  "Integration times do not span interpolation range")
@@ -260,6 +270,7 @@ test_that_odin("interpolation with two variables", {
 
 
 test_that_odin("interpolation in a delay", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -289,6 +300,7 @@ test_that_odin("interpolation in a delay", {
 
 
 test_that_odin("interpolation in a delay, with default", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -320,6 +332,7 @@ test_that_odin("interpolation in a delay, with default", {
 test_that_odin("critical times", {
   ## this is only done for the R generation so far:
   skip_for_target("c")
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse1 + pulse2
     initial(y) <- 0
@@ -374,8 +387,9 @@ test_that_odin("user sized interpolation, 1d", {
   yy <- mod$run(tt)
   zz1 <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
   zz2 <- ifelse(tt < 1, 0, ifelse(tt > 2, 2, 2 * (tt - 1)))
-  expect_equal(yy[, 2], zz1, tolerance = 1e-5)
-  expect_equal(yy[, 3], zz2, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 1e-4)
+  expect_equal(yy[, 2], zz1, tolerance = tol)
+  expect_equal(yy[, 3], zz2, tolerance = tol)
 })
 
 
@@ -406,11 +420,13 @@ test_that_odin("user sized interpolation, 2d", {
   yy <- mod$run(tt)
   cmp <- sapply(1:4, function(i)
     ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
-  expect_equal(unname(yy[, -1]), cmp, tolerance = 1e-5)
+  tol <- variable_tolerance(mod, 1e-5, js = 1e-3)
+  expect_equal(unname(yy[, -1]), cmp, tolerance = tol)
 })
 
 
 test_that_odin("double delayed interpolation function", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0

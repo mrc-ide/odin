@@ -199,3 +199,8 @@ array_dim_name <- function(name, sub = NULL, use = TRUE) {
 initial_name <- function(name) {
   sprintf("initial_%s", name)
 }
+
+
+## TODO: remove these later, certainly at least generators
+JS_GENERATORS <- "odin"
+JS_INSTANCES <- "instances"

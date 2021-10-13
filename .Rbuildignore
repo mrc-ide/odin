@@ -29,4 +29,6 @@
 ^docker$
 ^\.dockerignore$
 ^\.github$
-^.lintr$
+^\.lintr$
+^\.eslintignore$
+^js$

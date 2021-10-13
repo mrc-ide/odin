@@ -683,7 +683,7 @@ generate_c_compiled_create_user <- function(name, dat, rewrite) {
 
 
 generate_c_compiled_library <- function(dat, is_package) {
-  lib <- read_user_c(system.file("library.c", package = "odin"))
+  lib <- read_user_c(odin_file("library.c"))
   v <- character(0)
   if (dat$features$has_user) {
     v <- c(v, "user_get_scalar_double", "user_get_scalar_int",

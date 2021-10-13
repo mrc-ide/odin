@@ -51,7 +51,7 @@ test_that("config(include)", {
 
   expect_error(odin_parse(
     'config(include) <- "user_fns.c"; config(include) <- "user_fns.c"',
-    options),
+    options = options),
     "Duplicated function 'squarepulse' while reading includes",
     class = "odin_error")
 })
@@ -63,7 +63,7 @@ test_that("Can include multiple files", {
     config(include) <- "identity.c"
     initial(x) <- 1
     deriv(x) <- 1
-  })
+  }, options = odin_options(target = "c"))
   dat <- ir_deserialise(ir)
   expect_length(dat$config$include, 2)
   expect_equal(

@@ -147,7 +147,7 @@ test_that("example package", {
   path <- tempfile()
   dir.create(path)
 
-  src <- system.file("examples/package", package = "odin", mustWork = TRUE)
+  src <- odin_file("examples/package")
   file.copy(src, path, recursive = TRUE)
   pkg <- file.path(path, "package")
 
@@ -170,7 +170,7 @@ test_that("two sums example", {
   path <- tempfile()
   dir.create(path)
 
-  src <- system.file("examples/package", package = "odin", mustWork = TRUE)
+  src <- odin_file("examples/package")
   file.copy(src, path, recursive = TRUE)
   pkg <- file.path(path, "package")
 

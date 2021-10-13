@@ -6,6 +6,7 @@ test_that_odin("basic interface", {
   ## See comments below on dde, this one does not currently error on
   ## M1. These tests need refactoring anyway.
   skip_on_cran()
+  skip_for_target("js") # some tolerance issues that are not worth chasing
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
@@ -38,7 +39,7 @@ test_that_odin("basic interface", {
     expect_equivalent(mod_c$initial(t0), unname(mod_r$initial(t0)))
 
     priv <- r6_private(mod_c)
-    has_output <- priv$n_out > 0
+    has_output <- length(priv$output_order) > 0
 
     deriv_c <- mod_c$deriv(t0, mod_c$initial(t0))
     deriv_r <- mod_r$derivs(t0, mod_c$initial(t0))
@@ -61,7 +62,7 @@ test_that_odin("basic interface", {
     res_r <- run_model(mod_r, t)
     res_c <- mod_c$run(t)
     if (!on_appveyor() && !on_cran()) {
-      expect_equivalent(res_c, res_r, tolerance = tol)
+      expect_equal(res_c[], res_r[], tolerance = tol, check.attributes = FALSE)
     }
 
     y <- mod_c$transform_variables(res_c)
@@ -109,7 +110,7 @@ test_that_odin("user arrays", {
                "Expected length 5 value for 'age_width'")
 
   mod2 <- gen2$new(age_width = age_width)
-  expect_equal(mod2$contents(), mod1$contents())
+  expect_mapequal(mod2$contents(), mod1$contents())
 
   t <- seq(0, 100, length.out = 101)
   res1 <- mod1$run(t)
@@ -192,7 +193,8 @@ test_that_odin("lv", {
   res_r <- run_model(mod_r, t, pars)
   res_c <- mod_c$run(t)
 
-  expect_equivalent(res_c, res_r)
+  tol <- variable_tolerance(mod_c, js = 1e-6)
+  expect_equal(res_c[], res_r[], check.attributes = FALSE, tolerance = tol)
   y <- mod_c$transform_variables(res_c)
   expect_is(y, "list")
   expect_equal(names(y), c(TIME, "y"))
@@ -202,6 +204,7 @@ test_that_odin("lv", {
 
 test_that_odin("dde", {
   skip_if_not_installed("dde")
+  skip_for_target("js")
   ## This test is failing on M1 Mac checks, with tolerance needing
   ## tweaking for one of the examples, probably the Lorenz attractor
   ## as being chaotic, deviations are expected to grow. Without access

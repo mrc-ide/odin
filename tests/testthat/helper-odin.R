@@ -117,7 +117,7 @@ test_odin_targets <- function() {
   if (on_cran()) {
     "r"
   } else {
-    c("r", "c")
+    c("r", "c", "js")
   }
 }
 
@@ -134,3 +134,19 @@ test_that_odin <- function(desc, code) {
                         withr::with_options(opts, rlang::eval_tidy(code_enq)))
   }
 }
+
+
+variable_tolerance <- function(mod, default = sqrt(.Machine$double.eps), ...) {
+  switch(mod$engine(), ..., default)
+}
+
+
+local({
+  for (f in dir(pattern = "^test-run-")) {
+    i <- grep("^test_that\\(", readLines(f))
+    if (length(i) > 0) {
+      stop("Found plain test_that at ",
+           paste(sprintf("%s:%d", f, i), collapse = ", "))
+    }
+  }
+})

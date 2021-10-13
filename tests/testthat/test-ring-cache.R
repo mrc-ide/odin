@@ -35,16 +35,17 @@ test_that("model_cache", {
 
 
 test_that("reused cached model", {
+  skip_on_cran()
   model_cache_clear()
   code <- c("deriv(y) <- 0.5",
             "initial(y) <- 1")
 
-  gen <- odin(code)
+  gen <- odin(code, target = "c")
   expect_equal(.odin$model_cache_c$list(),
                hash_string(gen$new()$ir()))
-  expect_message(odin(code, verbose = TRUE),
+  expect_message(odin(code, target = "c", verbose = TRUE),
                  "Using cached model")
-  expect_silent(odin(code, verbose = FALSE))
+  expect_silent(odin(code, target = "c", verbose = FALSE))
 })
 
 

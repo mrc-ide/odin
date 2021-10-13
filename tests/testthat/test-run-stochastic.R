@@ -9,15 +9,19 @@ test_that_odin("stochastic", {
 
   mod <- gen$new()
   tt <- 0:20
-  set.seed(1)
+  model_set_seed(mod, 1)
   yy1 <- mod$run(tt)
 
-  set.seed(1)
-  cmp <- rnorm(length(tt) - 1L)
+  model_set_seed(mod, 1)
+  if (mod$engine() == "js") {
+    cmp <- model_random_numbers(mod, "normal", length(tt) - 1L)
+  } else {
+    cmp <- rnorm(length(tt) - 1L)
+  }
   expect_equal(cumsum(c(0, cmp)), yy1[, "x"])
 
   ## Repeatable
-  set.seed(1)
+  model_set_seed(mod, 1)
   yy2 <- mod$run(tt)
   expect_equal(yy1, yy2)
 })
@@ -35,11 +39,15 @@ test_that_odin("stochastic variables are time dependent", {
 
   mod <- gen$new()
   tt <- 0:20
-  set.seed(1)
+  model_set_seed(mod, 1)
   yy1 <- mod$run(tt)
 
-  set.seed(1)
-  cmp <- rnorm(length(tt) - 1L)
+  model_set_seed(mod, 1)
+  if (mod$engine() == "js") {
+    cmp <- model_random_numbers(mod, "normal", length(tt) - 1L)
+  } else {
+    cmp <- rnorm(length(tt) - 1L)
+  }
   expect_equal(cumsum(c(0, cmp)), yy1[, "x"])
 })
 
@@ -55,12 +63,17 @@ test_that_odin("array stochastic variables are time dependent", {
 
   mod <- gen$new()
   tt <- 0:20
-  set.seed(1)
+  model_set_seed(mod, 1)
   yy <- mod$run(tt)
   zz <- mod$transform_variables(yy)
-  set.seed(1)
-  cmp <- rbind(0, matrix(rnorm(3 * 20), 20, 3, TRUE))
-  expect_equal(zz$x, cmp)
+
+  model_set_seed(mod, 1)
+  if (mod$engine() == "js") {
+    cmp <- model_random_numbers(mod, "normal", 3 * 20)
+  } else {
+    cmp <- rnorm(3 * 20)
+  }
+  expect_equal(zz$x, rbind(0, matrix(cmp, 20, 3, TRUE)))
 })
 
 
@@ -75,26 +88,39 @@ test_that_odin("stochastic initial conditions don't get called every step", {
 
   cmp <- .Random.seed
   mod <- gen$new()
-  expect_equal(.Random.seed, cmp)
 
-  ## Initial conditions (why is $init even a member here?)
-  expect_null(mod$init)
+  if (mod$engine() != "js") {
+    expect_equal(.Random.seed, cmp)
+
+    ## Initial conditions (why is $init even a member here?)
+    expect_null(mod$init)
+  }
 
   ## Re-running the initial conditions gives different answers:
   x0 <- mod$initial(0L)
-  expect_false(identical(.Random.seed, cmp))
+  if (mod$engine() != "js") {
+    expect_false(identical(.Random.seed, cmp))
+  }
   expect_true(mod$initial(0L) != x0)
 
   ## Run the model from scratch
   tt <- 0:20
-  set.seed(1)
+  model_set_seed(mod, 1)
   yy1 <- mod$run(tt)
-  z <- rnorm(1)
+  if (mod$engine() == "js") {
+    z <- model_random_numbers(mod, "normal", 1)
+  } else {
+    z <- rnorm(1)
+  }
 
   ## First number drawn from distribution, leaving RNG moved forward
   ## by a single normal draw:
-  set.seed(1)
-  cmp <- rnorm(2)
+  model_set_seed(mod, 1)
+  if (mod$engine() == "js") {
+    cmp <- model_random_numbers(mod, "normal", 2)
+  } else {
+    cmp <- rnorm(2)
+  }
   expect_equal(yy1[, "x"], cmp[[1]] + tt)
   expect_equal(z, cmp[[2]])
 
@@ -102,7 +128,9 @@ test_that_odin("stochastic initial conditions don't get called every step", {
   cmp <- .Random.seed
   expect_equal(mod$run(tt, 0)[, "x"], as.numeric(0:20))
   expect_equal(mod$run(tt, 1)[, "x"], as.numeric(1:21))
-  expect_equal(.Random.seed, cmp)
+  if (mod$engine() != "js") {
+    expect_equal(.Random.seed, cmp)
+  }
 })
 
 
@@ -114,12 +142,18 @@ test_that_odin("exotic stochastic functions", {
     update(x) <- rnorm(mu, sd)
   })
 
-  set.seed(1)
   mod <- gen$new()
+  model_set_seed(mod, 1)
   y <- mod$run(0:10)
 
-  set.seed(1)
-  expect_equal(y[-1, "x"], rnorm(10, 1, 2))
+  model_set_seed(mod, 1)
+  if (mod$engine() == "js") {
+    cmp <- model_random_numbers(mod, "normal", 10, 1, 2)
+  } else {
+    cmp <- rnorm(10, 1, 2)
+  }
+
+  expect_equal(y[-1, "x"], cmp)
 })
 
 
@@ -138,7 +172,8 @@ test_that_odin("round & rbinom", {
 })
 
 
-test_that_odin("mutlinomial", {
+test_that_odin("multinomial", {
+  skip_for_target("js")
   ## This is just a check that these compile and run
   sir1 <- odin("stochastic/sir_discrete.R")
   sir2 <- odin("stochastic/sir_discrete_stochastic.R")
@@ -163,6 +198,7 @@ test_that_odin("mutlinomial", {
 
 
 test_that_odin("replicate: scalar", {
+  skip_for_target("js")
   ## TODO: this will be a nice version to try and benchmark the dde
   ## overheads I think...
   gen <- odin({
@@ -182,6 +218,7 @@ test_that_odin("replicate: scalar", {
 
 
 test_that_odin("replicate: array", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 0
     initial(y[]) <- 0
@@ -212,11 +249,16 @@ test_that_odin("low-level stochastics: norm_rand", {
   m <- gen$new()
 
   tt <- 0:10
-  set.seed(1)
+  model_set_seed(m, 1)
   y <- m$run(tt)[-1, "y"]
 
-  set.seed(1)
-  expect_equal(y, rnorm(10))
+  model_set_seed(m, 1)
+  if (m$engine() == "js") {
+    cmp <- model_random_numbers(m, "normal", 10)
+  } else {
+    cmp <- rnorm(10)
+  }
+  expect_equal(y, cmp)
 })
 
 
@@ -228,11 +270,17 @@ test_that_odin("low-level stochastics: unif_rand", {
   m <- gen$new()
 
   tt <- 0:10
-  set.seed(1)
+  model_set_seed(m, 1)
   y <- m$run(tt)[-1, "y"]
 
-  set.seed(1)
-  expect_equal(y, runif(10))
+  model_set_seed(m, 1)
+  if (m$engine() == "js") {
+    cmp <- model_random_numbers(m, "uniform", 10)
+  } else {
+    cmp <- runif(10)
+  }
+
+  expect_equal(y, cmp)
 })
 
 
@@ -244,11 +292,16 @@ test_that_odin("low-level stochastics: exp_rand", {
   m <- gen$new()
 
   tt <- 0:10
-  set.seed(1)
+  model_set_seed(m, 1)
   y <- m$run(tt)[-1, "y"]
 
-  set.seed(1)
-  expect_equal(y, rexp(10))
+  model_set_seed(m, 1)
+  if (m$engine() == "js") {
+    cmp <- model_random_numbers(m, "exponential", 10)
+  } else {
+    cmp <- rexp(10)
+  }
+  expect_equal(y, cmp)
 })
 
 
@@ -260,9 +313,14 @@ test_that_odin("rexp parametrisation", {
   m <- gen$new()
 
   tt <- 0:10
-  set.seed(1)
+  model_set_seed(m, 1)
   y <- m$run(tt)[-1, "y"]
 
-  set.seed(1)
-  expect_equal(y, rexp(10, 10))
+  model_set_seed(m, 1)
+  if (m$engine() == "js") {
+    cmp <- model_random_numbers(m, "exponential", 10, 10)
+  } else {
+    cmp <- rexp(10, 10)
+  }
+  expect_equal(y, cmp)
 })

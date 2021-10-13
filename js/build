@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -e
+
+HERE=$(dirname $0)
+cd $HERE
+DEST=../inst/js
+
+echo "Working in $(pwd)"
+
+rm -rf node_modules
+npm install
+
+browserify dopri.in.js > $DEST/dopri.js
+browserify random.in.js > $DEST/random.js

@@ -99,7 +99,7 @@ void* user_get_array(SEXP user, bool is_integer, void * previous,
       if (rank == 1) {
         Rf_error("Expected length %d value for '%s'", dim_expected, name);
       } else {
-        Rf_error("Incorrect size of dimension %d of %s (expected %d)",
+        Rf_error("Incorrect size of dimension %d of '%s' (expected %d)",
                  i + 1, name, dim_expected);
       }
     }
