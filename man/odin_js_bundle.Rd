@@ -2,15 +2,13 @@
 % Please edit documentation in R/js_bundle.R
 \name{odin_js_bundle}
 \alias{odin_js_bundle}
-\title{Create a bundle of odin models}
+\title{Create a bundle of an odin model}
 \usage{
-odin_js_bundle(filenames, dest = tempfile(), include = NULL,
-  include_dopri = TRUE)
+odin_js_bundle(code, include = NULL, include_dopri = TRUE)
 }
 \arguments{
-\item{filenames}{Filenames with odin source code}
-
-\item{dest}{Destination file for the generated javascript}
+\item{code}{An expression, string or path to a file containing
+odin code (as for \link{odin_parse_}}
 
 \item{include}{Optional vector of paths of filenames to include
 into the javascript bundle}
@@ -19,5 +17,18 @@ into the javascript bundle}
 should be included as well.}
 }
 \description{
-Create a JavaScript bundle of odin models
+Create a JavaScript bundle of an odin model
+}
+\section{Warning}{
+
+
+The inteface and generated code here are subject to change.
+}
+
+\examples{
+js <- odin::odin_js_bundle({
+  deriv(x) <- 1
+  initial(x) <- 1
+}, include_dopri = FALSE)
+head(js)
 }

@@ -1,10 +1,13 @@
-##' Create a JavaScript bundle of odin models
+##' Create a JavaScript bundle of an odin model
 ##'
-##' @title Create a bundle of odin models
+##' @section Warning:
 ##'
-##' @param filenames Filenames with odin source code
+##' The inteface and generated code here are subject to change.
 ##'
-##' @param dest Destination file for the generated javascript
+##' @title Create a bundle of an odin model
+##'
+##' @param code An expression, string or path to a file containing
+##'   odin code (as for [odin::odin_parse_]
 ##'
 ##' @param include Optional vector of paths of filenames to include
 ##'   into the javascript bundle
@@ -13,57 +16,37 @@
 ##'   should be included as well.
 ##'
 ##' @export
-odin_js_bundle <- function(filenames, dest = tempfile(),
+##' @examples
+##' js <- odin::odin_js_bundle({
+##'   deriv(x) <- 1
+##'   initial(x) <- 1
+##' }, include_dopri = FALSE)
+##' head(js)
+odin_js_bundle <- function(code,
                            include = NULL,
                            include_dopri = TRUE) {
-  ## The two options here seem to be: use a vector of paths to source
-  ## files or use a path to a directory.  The rest of the interface is
-  ## also totally subject to change because we might want to move
-  ## those options into the general options interface.  The option to
-  ## directly minify from R via V8 would be nice too but probably is
-  ## not possible because of the way that the minification process
-  ## involves the disk.
-  err <- !file.exists(filenames)
-  if (any(err)) {
-    stop(sprintf("%s not exist: %s",
-                 ngettext(sum(err), "File does", "Files do"),
-                 paste(squote(filenames[err]), collapse = ", ")))
-  }
-
   options <- odin_options(target = "js")
+  ir <- odin_parse_(code, options)
+  dat <- generate_js(ir, options)
 
-  f <- function(file) {
-    ir <- odin_parse_(file, options)
-    generate_js(ir, options)
-  }
-  dat <- lapply(filenames, f)
-
-  nms <- vcapply(dat, "[[", "name")
-  err <- duplicated(nms)
-  if (any(err)) {
-    stop(sprintf("Duplicate model names: %s",
-                 paste(squote(unique(nms[err])), collapse = ", ")))
-  }
-
-  needed <- apply(do.call(cbind, lapply(dat, "[[", "include")), 1, any)
   support <- c(
     if (include_dopri) "dopri.js",
     "support.js",
-    names(which(needed)))
+    names(which(dat$include)))
+  support_js <- lapply(odin_file(file.path("js", support)),
+                       readLines, warn = FALSE)
 
   if (!is.null(include)) {
     include <- js_flatten_eqs(lapply(include, readLines))
   }
-  support_js <- lapply(odin_file(file.path("js", support)),
-                       readLines, warn = FALSE)
 
-  code <- c(js_flatten_eqs(support_js),
-            sprintf("var %s = {};", JS_GENERATORS),
-            js_flatten_eqs(lapply(dat, "[[", "code")),
-            include)
-
-  writeLines(code, dest)
-  dest
+  ## TODO: Revisit this now that there's only one generator and work
+  ## out what a sensible return type would be. This depends to a
+  ## degree on how things want to be pushed around in wodin.
+  c(js_flatten_eqs(support_js),
+    sprintf("var %s = {};", JS_GENERATORS),
+    dat$code,
+    include)
 }
 
 
