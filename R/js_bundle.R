@@ -17,10 +17,10 @@
 ##'
 ##' @export
 ##' @examples
-##' js <- odin::odin_js_bundle({
+##' js <- odin::odin_js_bundle(quote({
 ##'   deriv(x) <- 1
 ##'   initial(x) <- 1
-##' }, include_dopri = FALSE)
+##' }), include_dopri = FALSE)
 ##' head(js)
 odin_js_bundle <- function(code,
                            include = NULL,
