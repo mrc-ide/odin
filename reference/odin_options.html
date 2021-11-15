@@ -82,7 +82,7 @@ than individually named options." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.3.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.3.1</span>
       </span>
     </div>
 
@@ -252,62 +252,63 @@ options are ignored.</p></td>
     <p>A list of parameters, of class <code>odin_options</code></p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='fu'>odin_options</span><span class='op'>(</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; $validate
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $verbose
-#&gt; [1] TRUE
-#&gt; 
-#&gt; $target
-#&gt; [1] "c"
-#&gt; 
-#&gt; $pretty
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $workdir
-#&gt; [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpYJQEnP/file16bd53244144"
-#&gt; 
-#&gt; $skip_cache
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $rewrite_dims
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $rewrite_constants
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $substitutions
-#&gt; NULL
-#&gt; 
-#&gt; $no_check_unused_equations
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $compiler_warnings
-#&gt; [1] FALSE
-#&gt; 
-#&gt; $read_include
-#&gt; function (filename) 
-#&gt; {
-#&gt;     d &lt;- readLines(filename)
-#&gt;     re1 &lt;- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)"
-#&gt;     i1 &lt;- grep(re1, d)
-#&gt;     i2 &lt;- grep("^}$", d)
-#&gt;     if (length(i1) != length(i2)) {
-#&gt;         stop("Parse error for ", filename)
-#&gt;     }
-#&gt;     name &lt;- sub(re1, "\\1", d[i1])
-#&gt;     defn &lt;- setNames(vcapply(seq_along(i1), function(k) paste(d[i1[[k]]:i2[[k]]], 
-#&gt;         collapse = "\n")), name)
-#&gt;     decl &lt;- sub("^([^{]*?)\\s*\\{.*", "\\1;", defn)
-#&gt;     list(names = name, data = list(names = name, declarations = decl, 
-#&gt;         definitions = defn, filename = filename))
-#&gt; }
-#&gt; &lt;bytecode: 0x7fc60a700a30&gt;
-#&gt; &lt;environment: namespace:odin&gt;
-#&gt; 
-#&gt; attr(,"class")
-#&gt; [1] "odin_options"</div></pre>
+    <pre class="examples"><span class='r-in'><span class='fu'>odin_options</span><span class='op'>(</span><span class='op'>)</span></span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $validate</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] FALSE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $verbose</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] TRUE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $target</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] "c"</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $pretty</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] FALSE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $workdir</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpZWBWso/file14a642a5b596"</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $skip_cache</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] FALSE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $rewrite_dims</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] FALSE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $rewrite_constants</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] FALSE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $substitutions</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> NULL</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $no_check_unused_equations</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] FALSE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $compiler_warnings</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] FALSE</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> $read_include</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> function (filename) </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> {</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     d &lt;- readLines(filename)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     re1 &lt;- "^[[:alnum:]_*]+ ([[:alnum:]_]+)(.+)"</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     i1 &lt;- grep(re1, d)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     i2 &lt;- grep("^}$", d)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     if (length(i1) != length(i2)) {</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>         stop("Parse error for ", filename)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     }</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     name &lt;- sub(re1, "\\1", d[i1])</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     defn &lt;- setNames(vcapply(seq_along(i1), function(k) paste(d[i1[[k]]:i2[[k]]], </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>         collapse = "\n")), name)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     decl &lt;- sub("^([^{]*?)\\s*\\{.*", "\\1;", defn)</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>     list(names = name, data = list(names = name, declarations = decl, </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span>         definitions = defn, filename = filename))</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> }</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> &lt;bytecode: 0x7fb1268260a8&gt;</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> &lt;environment: namespace:odin&gt;</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> </span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> attr(,"class")</span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] "odin_options"</span>
+</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

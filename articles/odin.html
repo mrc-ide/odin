@@ -38,7 +38,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.3.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.3.1</span>
       </span>
     </div>
 
@@ -98,7 +98,7 @@
       <h1 data-toc-skip>odin</h1>
                         <h4 class="author">Rich FitzJohn</h4>
             
-            <h4 class="date">2021-10-13</h4>
+            <h4 class="date">2021-11-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/master/vignettes/odin.Rmd"><code>vignettes/odin.Rmd</code></a></small>
       <div class="hidden name"><code>odin.Rmd</code></div>
@@ -144,7 +144,7 @@
 ##     transform_variables: function (y) 
 ##   Private:
 ##     cfuns: list
-##     dll: logistic73739e48
+##     dll: logistica0701f8e
 ##     interpolate_t: NULL
 ##     n_out: 0
 ##     odin: environment
@@ -268,7 +268,7 @@
 <code class="sourceCode R"><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">20000</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/system.time.html">system.time</a></span><span class="op">(</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.008   0.001   0.009</code></pre>
+##   0.009   0.000   0.009</code></pre>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, lwd <span class="op">=</span> <span class="fl">.2</span>, col <span class="op">=</span> <span class="st">"#00000055"</span><span class="op">)</span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-20-1.png" width="672"></p>
@@ -361,7 +361,7 @@
 <ul>
 <li>step functions: constant piecewise functions, perhaps suitable for modelling shifts in regime, binary on/off switches, etc.</li>
 <li>linear interpolation: between a set of points use a linear interpolating function.</li>
-<li>cubic spline functions: what most people probably think of when thinking interpolating function; creates a smooth function that is twice differentiable (and smooth enough for most purposes). In contrast with the splines R uses with <code><a href="https://rdrr.io/r/stats/splinefun.html">spline()</a></code>, these use the <em>natural spline</em> end conditions, and are equal to <code><a href="https://rdrr.io/r/stats/splinefun.html">spline(t, y, method = "natural")</a></code>.</li>
+<li>cubic spline functions: what most people probably think of when thinking interpolating function; creates a smooth function that is twice differentiable (and smooth enough for most purposes). In contrast with the splines R uses with <code><a href="https://rdrr.io/r/stats/splinefun.html">spline()</a></code>, these use the <em>natural spline</em> end conditions, and are equal to <code>spline(t, y, method = "natural")</code>.</li>
 </ul>
 <p>The <code>interpolate</code> takes as its first argument a vector of times. If you’re using constant or linear interpolating functions it is important that you include these times within times that the integrator passes through because otherwise the integrator may struggle needlessly with the discontinuities in the function or its derivatives (NOTE: future versions may handle this automatically, and this will not work at all with <code>dde</code> which does not yet support stopping at critical times).</p>
 <p>The second argument of each interpolating function is a vector, matrix or array of values for the target function. The dimensionality (rank) of the structure must be one greater than the rhs. So if you want a classic 1d function, you’d write:</p>
@@ -381,7 +381,7 @@
 <span class="va">y</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p>In this case, <code>z</code> is a vector (here length 4), so <code>y</code> must be a matrix with <code><a href="https://rdrr.io/r/base/length.html">length(t)</a></code> rows and 4 columns. This does not do anything clever - the interpolation happens for each of the four variables independently.</p>
+<p>In this case, <code>z</code> is a vector (here length 4), so <code>y</code> must be a matrix with <code>length(t)</code> rows and 4 columns. This does not do anything clever - the interpolation happens for each of the four variables independently.</p>
 <p>If you want to drive the size of this off of <code>y</code> then specify:</p>
 <div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/dim.html">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span>

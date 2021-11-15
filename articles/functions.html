@@ -38,7 +38,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.3.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.3.1</span>
       </span>
     </div>
 
@@ -98,7 +98,7 @@
       <h1 data-toc-skip>odin functions</h1>
                         <h4 class="author">Rich FitzJohn</h4>
             
-            <h4 class="date">2021-10-13</h4>
+            <h4 class="date">2021-11-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/master/vignettes/functions.Rmd"><code>vignettes/functions.Rmd</code></a></small>
       <div class="hidden name"><code>functions.Rmd</code></div>
@@ -112,11 +112,11 @@
 <h2 class="hasAnchor">
 <a href="#basic-operators" class="anchor"></a>Basic operators</h2>
 <ul>
-<li><p><code><a href="https://rdrr.io/r/base/Arithmetic.html">+</a></code> – <strong>Plus</strong>: Both infix (<code>a + b</code>) and prefix (<code>+a</code>) versions supported (e.g., <code>1 + 2</code> → <code>3</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Arithmetic.html">-</a></code> – <strong>Minus</strong>: Both infix (<code>a - b</code>) and prefix (<code>-a</code>) versions supported (e.g., <code>10 - 1</code> → <code>9</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Arithmetic.html">*</a></code> – <strong>Multiply</strong>: Multiply two numbers together (e.g., <code>2 * 6</code> → <code>12</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Arithmetic.html">/</a></code> – <strong>Divide</strong>: Divide two numbers (e.g., <code>12 / 6</code> → <code>2</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Arithmetic.html">^</a></code> – <strong>Power</strong>: Raise the first number to the power of the second. Either number may be a floating point number (e.g., <code>2.3 ^ 1.2</code> → <code>2.716898</code>)</p></li>
+<li><p><code>+</code> – <strong>Plus</strong>: Both infix (<code>a + b</code>) and prefix (<code>+a</code>) versions supported (e.g., <code>1 + 2</code> → <code>3</code>)</p></li>
+<li><p><code>-</code> – <strong>Minus</strong>: Both infix (<code>a - b</code>) and prefix (<code>-a</code>) versions supported (e.g., <code>10 - 1</code> → <code>9</code>)</p></li>
+<li><p><code>*</code> – <strong>Multiply</strong>: Multiply two numbers together (e.g., <code>2 * 6</code> → <code>12</code>)</p></li>
+<li><p><code>/</code> – <strong>Divide</strong>: Divide two numbers (e.g., <code>12 / 6</code> → <code>2</code>)</p></li>
+<li><p><code>^</code> – <strong>Power</strong>: Raise the first number to the power of the second. Either number may be a floating point number (e.g., <code>2.3 ^ 1.2</code> → <code>2.716898</code>)</p></li>
 <li><p><code>(</code> – <strong>Parenthesis</strong>: Group expressions together (e.g., <code>(1 + 5) * 2</code> → <code>12</code>)</p></li>
 <li><p><code>if</code> – <strong>Conditional</strong>: Inline conditional statement. This takes a form slightly different to typically seen in R with the result of the statement directly assigned (e.g., <code>if (9 &gt; 10) 1 else 2</code> → <code>2</code>)</p></li>
 </ul>
@@ -139,8 +139,8 @@
 <ul>
 <li><p><code>sum</code> – <strong>Sum</strong>: Compute sum over an array, or over some dimension of an array</p></li>
 <li><p><code>length</code> – <strong>Length</strong>: Total length of an array</p></li>
-<li><p><code>dim</code> – <strong>Length of one of an array’s dimensions</strong>: If an array <code>x</code> has 10 rows and 20 columns, then <code><a href="https://rdrr.io/r/base/dim.html">dim(x, 1)</a></code> is <code>10</code> and <code><a href="https://rdrr.io/r/base/dim.html">dim(x, 2)</a></code> is <code>20</code>. Note that this differs from <code>dim</code> in R and <code><a href="https://rdrr.io/r/base/dim.html">dim(x, i)</a></code> is closer to <code>dim(x)[[i]]</code></p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Extract.html">[</a></code> – <strong>Subset an array</strong>: See below</p></li>
+<li><p><code>dim</code> – <strong>Length of one of an array’s dimensions</strong>: If an array <code>x</code> has 10 rows and 20 columns, then <code>dim(x, 1)</code> is <code>10</code> and <code>dim(x, 2)</code> is <code>20</code>. Note that this differs from <code>dim</code> in R and <code>dim(x, i)</code> is closer to <code>dim(x)[[i]]</code></p></li>
+<li><p><code>[</code> – <strong>Subset an array</strong>: See below</p></li>
 <li><p><code>interpolate</code> – <strong>Interpolate an array over time</strong>: See below</p></li>
 </ul>
 <p>When working with arrays, use generally implies a “for loop” in the generated C code. For example, in the example in <a href="odin.html">the main package vignette</a> the derivatives are computed as</p>
@@ -170,24 +170,24 @@
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">idx</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="va">t</span> <span class="op">&gt;</span> <span class="fl">5</span><span class="op">)</span> <span class="fl">2</span> <span class="kw">else</span> <span class="fl">1</span>
 <span class="va">x</span> <span class="op">&lt;-</span> <span class="va">vec</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html">as.integer</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">]</span></code></pre></div>
-<p>This will <em>truncate</em> the value (same behaviour as <code>truncate</code>) so be warned if passing in things that may be approximately integer - you may want to use <code><a href="https://rdrr.io/r/base/integer.html">as.integer(round(x))</a></code> in that case.</p>
+<p>This will <em>truncate</em> the value (same behaviour as <code>truncate</code>) so be warned if passing in things that may be approximately integer - you may want to use <code>as.integer(round(x))</code> in that case.</p>
 <p>The interpolation functions are described in more detail in the <a href="odin.html">main package vignette</a></p>
 </div>
 <div id="operators" class="section level2">
 <h2 class="hasAnchor">
 <a href="#operators" class="anchor"></a>Operators</h2>
-<p>A number of logical-returning operators exist, primarily to support the <code>if</code> statement; all the usual comparison operators exist (though not vectorised <code><a href="https://rdrr.io/r/base/Logic.html">|</a></code> or <code><a href="https://rdrr.io/r/base/Logic.html">&amp;</a></code>).</p>
+<p>A number of logical-returning operators exist, primarily to support the <code>if</code> statement; all the usual comparison operators exist (though not vectorised <code>|</code> or <code>&amp;</code>).</p>
 <ul>
-<li><p><code><a href="https://rdrr.io/r/base/Comparison.html">&gt;</a></code> – <strong>Greater than</strong> (e.g., <code>1 &gt; 2</code> → <code>FALSE</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Comparison.html">&lt;</a></code> – <strong>Less than</strong> (e.g., <code>1 &lt; 2</code> → <code>TRUE</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Comparison.html">&gt;=</a></code> – <strong>Greater than or equal to</strong> (e.g., <code>1 &gt;= 2</code> → <code>FALSE</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Comparison.html">&lt;=</a></code> – <strong>Less than or equal to</strong> (e.g., <code>1 &lt;= 2</code> → <code>TRUE</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Comparison.html">==</a></code> – <strong>Is exactly equal to</strong> (e.g., <code>1 == 1</code> → <code>TRUE</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Comparison.html">!=</a></code> – <strong>Is not exactly equal to</strong> (e.g., <code>1 != 2</code> → <code>TRUE</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Logic.html">&amp;&amp;</a></code> – <strong>Boolean AND</strong> (e.g., <code>(1 == 1) &amp;&amp; (2 &gt; 1)</code> → <code>TRUE</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Logic.html">||</a></code> – <strong>Boolean OR</strong> (e.g., <code>(1 == 1) &amp;&amp; (2 &gt; 1)</code> → <code>TRUE</code>)</p></li>
+<li><p><code>&gt;</code> – <strong>Greater than</strong> (e.g., <code>1 &gt; 2</code> → <code>FALSE</code>)</p></li>
+<li><p><code>&lt;</code> – <strong>Less than</strong> (e.g., <code>1 &lt; 2</code> → <code>TRUE</code>)</p></li>
+<li><p><code>&gt;=</code> – <strong>Greater than or equal to</strong> (e.g., <code>1 &gt;= 2</code> → <code>FALSE</code>)</p></li>
+<li><p><code>&lt;=</code> – <strong>Less than or equal to</strong> (e.g., <code>1 &lt;= 2</code> → <code>TRUE</code>)</p></li>
+<li><p><code>==</code> – <strong>Is exactly equal to</strong> (e.g., <code>1 == 1</code> → <code>TRUE</code>)</p></li>
+<li><p><code>!=</code> – <strong>Is not exactly equal to</strong> (e.g., <code>1 != 2</code> → <code>TRUE</code>)</p></li>
+<li><p><code>&amp;&amp;</code> – <strong>Boolean AND</strong> (e.g., <code>(1 == 1) &amp;&amp; (2 &gt; 1)</code> → <code>TRUE</code>)</p></li>
+<li><p><code>||</code> – <strong>Boolean OR</strong> (e.g., <code>(1 == 1) &amp;&amp; (2 &gt; 1)</code> → <code>TRUE</code>)</p></li>
 </ul>
-<p>Be wary of strict equality with <code><a href="https://rdrr.io/r/base/Comparison.html">==</a></code> or <code><a href="https://rdrr.io/r/base/Comparison.html">!=</a></code> as numbers may be floating point numbers, which have some surprising properties for the uninitiated, for example</p>
+<p>Be wary of strict equality with <code>==</code> or <code>!=</code> as numbers may be floating point numbers, which have some surprising properties for the uninitiated, for example</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">==</span> <span class="fl">3</span></code></pre></div>
 <pre><code>## [1] FALSE</code></pre>
@@ -196,31 +196,31 @@
 <h2 class="hasAnchor">
 <a href="#mathematical-operators" class="anchor"></a>Mathematical operators</h2>
 <ul>
-<li><p><code><a href="https://rdrr.io/r/base/Arithmetic.html">%%</a></code> – <strong>Modulo</strong>: Finds the remainder after division of one number by another (e.g., <code>123 %% 100</code> → <code>23</code>)</p></li>
-<li><p><code><a href="https://rdrr.io/r/base/Arithmetic.html">%/%</a></code> – <strong>Integer divide</strong>: Different to floating point division, effectively the full number of times one number divides into another (e.g., <code>20 %/% 7</code> → <code>2</code>)</p></li>
-<li><p><code>abs</code> – <strong>Absolute value</strong> (e.g., <code><a href="https://rdrr.io/r/base/MathFun.html">abs(-1)</a></code> → <code>1</code>)</p></li>
-<li><p><code>sign</code> – <strong>Sign function</strong>: Returns the sign of its argument as either -1, 0 or 1, which may be useful for multiplying by another argument (e.g., <code><a href="https://rdrr.io/r/base/sign.html">sign(-100)</a></code> → <code>-1</code>)</p></li>
-<li><p><code>round</code> – <strong>Round a number</strong> (e.g., <code><a href="https://rdrr.io/r/base/Round.html">round(1.23)</a></code> → <code>1</code>; <code><a href="https://rdrr.io/r/base/Round.html">round(1.23, 1)</a></code> → <code>1.2</code>)</p></li>
-<li><p><code>floor</code> – <strong>Floor of a number</strong>: Largest integer not greater than the provided number (e.g., <code><a href="https://rdrr.io/r/base/Round.html">floor(6.5)</a></code> → <code>6</code>)</p></li>
-<li><p><code>ceiling</code> – <strong>Ceiling of a number</strong>: Smallest integer not less than the provided number (e.g., <code><a href="https://rdrr.io/r/base/Round.html">ceiling(6.5)</a></code> → <code>7</code>)</p></li>
+<li><p><code>%%</code> – <strong>Modulo</strong>: Finds the remainder after division of one number by another (e.g., <code>123 %% 100</code> → <code>23</code>)</p></li>
+<li><p><code>%/%</code> – <strong>Integer divide</strong>: Different to floating point division, effectively the full number of times one number divides into another (e.g., <code>20 %/% 7</code> → <code>2</code>)</p></li>
+<li><p><code>abs</code> – <strong>Absolute value</strong> (e.g., <code>abs(-1)</code> → <code>1</code>)</p></li>
+<li><p><code>sign</code> – <strong>Sign function</strong>: Returns the sign of its argument as either -1, 0 or 1, which may be useful for multiplying by another argument (e.g., <code>sign(-100)</code> → <code>-1</code>)</p></li>
+<li><p><code>round</code> – <strong>Round a number</strong> (e.g., <code>round(1.23)</code> → <code>1</code>; <code>round(1.23, 1)</code> → <code>1.2</code>)</p></li>
+<li><p><code>floor</code> – <strong>Floor of a number</strong>: Largest integer not greater than the provided number (e.g., <code>floor(6.5)</code> → <code>6</code>)</p></li>
+<li><p><code>ceiling</code> – <strong>Ceiling of a number</strong>: Smallest integer not less than the provided number (e.g., <code>ceiling(6.5)</code> → <code>7</code>)</p></li>
 <li><p><code>trunc</code> – <strong>Truncate a number</strong>: Round a number towards zero</p></li>
-<li><p><code>max</code> – <strong>Maximum</strong>: Returns maximum of all arguments given (e.g., <code><a href="https://rdrr.io/r/base/Extremes.html">max(2, 6, 1)</a></code> → <code>6</code>)</p></li>
-<li><p><code>min</code> – <strong>Minimum</strong> (e.g., <code><a href="https://rdrr.io/r/base/Extremes.html">min(2, 6, 1)</a></code> → <code>1</code>)</p></li>
-<li><p><code>exp</code> – <strong>Exponential function</strong> (e.g., <code><a href="https://rdrr.io/r/base/Log.html">exp(1)</a></code> → <code>2.718282</code>)</p></li>
-<li><p><code>expm1</code> – <strong>Computes exp(x) - 1 accurately for small |x|</strong> (e.g., <code><a href="https://rdrr.io/r/base/Log.html">exp(1)</a></code> → <code>1.718282</code>)</p></li>
-<li><p><code>log</code> – <strong>Logarithmic function</strong> (e.g., <code><a href="https://rdrr.io/r/base/Log.html">log(1)</a></code> → <code>0</code>)</p></li>
-<li><p><code>log2</code> – <strong>Logarithmic function in base 2</strong> (e.g., <code><a href="https://rdrr.io/r/base/Log.html">log2(1024)</a></code> → <code>10</code>)</p></li>
-<li><p><code>log10</code> – <strong>Logarithmic function in base 10</strong> (e.g., <code><a href="https://rdrr.io/r/base/Log.html">log10(1000)</a></code> → <code>3</code>)</p></li>
-<li><p><code>log1p</code> – <strong>Computes log(x + 1) accurately for small |x|</strong> (e.g., <code><a href="https://rdrr.io/r/base/Log.html">log1p(1)</a></code> → <code>0.6931472</code>)</p></li>
-<li><p><code>sqrt</code> – <strong>Square root function</strong> (e.g., <code><a href="https://rdrr.io/r/base/MathFun.html">sqrt(4)</a></code> → <code>2</code>)</p></li>
-<li><p><code>beta</code> – <strong>Beta function</strong> (e.g., <code><a href="https://rdrr.io/r/base/Special.html">beta(3, 5)</a></code> → <code>0.00952381</code>)</p></li>
-<li><p><code>lbeta</code> – <strong>Log beta function</strong> (e.g., <code><a href="https://rdrr.io/r/base/Special.html">lbeta(3, 5)</a></code> → <code>-4.65396</code>)</p></li>
-<li><p><code>choose</code> – <strong>Binomial coefficients</strong> (e.g., <code><a href="https://rdrr.io/r/base/Special.html">choose(60, 3)</a></code> → <code>34220</code>)</p></li>
-<li><p><code>lchoose</code> – <strong>Log binomial coefficients</strong> (e.g., <code><a href="https://rdrr.io/r/base/Special.html">choose(60, 3)</a></code> → <code>10.44057</code>)</p></li>
-<li><p><code>gamma</code> – <strong>Gamma function</strong> (e.g., <code><a href="https://rdrr.io/r/base/Special.html">gamma(10)</a></code> → <code>362880</code>)</p></li>
-<li><p><code>lgamma</code> – <strong>Log gamma function</strong> (e.g., <code><a href="https://rdrr.io/r/base/Special.html">lgamma(10)</a></code> → <code>12.80183</code>)</p></li>
+<li><p><code>max</code> – <strong>Maximum</strong>: Returns maximum of all arguments given (e.g., <code>max(2, 6, 1)</code> → <code>6</code>)</p></li>
+<li><p><code>min</code> – <strong>Minimum</strong> (e.g., <code>min(2, 6, 1)</code> → <code>1</code>)</p></li>
+<li><p><code>exp</code> – <strong>Exponential function</strong> (e.g., <code>exp(1)</code> → <code>2.718282</code>)</p></li>
+<li><p><code>expm1</code> – <strong>Computes exp(x) - 1 accurately for small |x|</strong> (e.g., <code>exp(1)</code> → <code>1.718282</code>)</p></li>
+<li><p><code>log</code> – <strong>Logarithmic function</strong> (e.g., <code>log(1)</code> → <code>0</code>)</p></li>
+<li><p><code>log2</code> – <strong>Logarithmic function in base 2</strong> (e.g., <code>log2(1024)</code> → <code>10</code>)</p></li>
+<li><p><code>log10</code> – <strong>Logarithmic function in base 10</strong> (e.g., <code>log10(1000)</code> → <code>3</code>)</p></li>
+<li><p><code>log1p</code> – <strong>Computes log(x + 1) accurately for small |x|</strong> (e.g., <code>log1p(1)</code> → <code>0.6931472</code>)</p></li>
+<li><p><code>sqrt</code> – <strong>Square root function</strong> (e.g., <code>sqrt(4)</code> → <code>2</code>)</p></li>
+<li><p><code>beta</code> – <strong>Beta function</strong> (e.g., <code>beta(3, 5)</code> → <code>0.00952381</code>)</p></li>
+<li><p><code>lbeta</code> – <strong>Log beta function</strong> (e.g., <code>lbeta(3, 5)</code> → <code>-4.65396</code>)</p></li>
+<li><p><code>choose</code> – <strong>Binomial coefficients</strong> (e.g., <code>choose(60, 3)</code> → <code>34220</code>)</p></li>
+<li><p><code>lchoose</code> – <strong>Log binomial coefficients</strong> (e.g., <code>choose(60, 3)</code> → <code>10.44057</code>)</p></li>
+<li><p><code>gamma</code> – <strong>Gamma function</strong> (e.g., <code>gamma(10)</code> → <code>362880</code>)</p></li>
+<li><p><code>lgamma</code> – <strong>Log gamma function</strong> (e.g., <code>lgamma(10)</code> → <code>12.80183</code>)</p></li>
 </ul>
-<p>The exact for <code><a href="https://rdrr.io/r/base/Arithmetic.html">%%</a></code> and <code><a href="https://rdrr.io/r/base/Arithmetic.html">%/%</a></code> for floating point numbers and signed numbers are complicated - please see <code><a href="https://rdrr.io/r/base/Arithmetic.html">?Arithmetic</a></code>. The rules for operators in <code>odin</code> are exactly those in R as the same underlying functions are used.</p>
+<p>The exact for <code>%%</code> and <code>%/%</code> for floating point numbers and signed numbers are complicated - please see <code><a href="https://rdrr.io/r/base/Arithmetic.html">?Arithmetic</a></code>. The rules for operators in <code>odin</code> are exactly those in R as the same underlying functions are used.</p>
 <p>Similarly, for the differences between <code>round</code>, <code>floor</code>, <code>ceiling</code> and <code>truncate</code>, see the help page <code><a href="https://rdrr.io/r/base/Round.html">?round</a></code>. Note that R’s behaviour for rounding away from 0.5 is exactly followed and that this slightly changed behaviour at version 4.0.0</p>
 <p>All the usual trig functions are also available:</p>
 <ul>
@@ -286,7 +286,7 @@
 <p>Both these functions require a vector input (of probabilities for <code>rmultinom</code> and of counts for <code>rmhyper</code>) and return a vector the same length. So the expression</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span><span class="op">(</span><span class="fl">10</span>, <span class="va">p</span><span class="op">)</span></code></pre></div>
-<p>will produce a vector <code>y</code> of samples from the multinomial distribution with parameters <code>size = 10</code> (so after wards <code><a href="https://rdrr.io/r/base/sum.html">sum(y)</a></code> is 10) and probabilities <code>p</code>. It is very important that <code>y</code> and <code>p</code> have the same size.</p>
+<p>will produce a vector <code>y</code> of samples from the multinomial distribution with parameters <code>size = 10</code> (so after wards <code>sum(y)</code> is 10) and probabilities <code>p</code>. It is very important that <code>y</code> and <code>p</code> have the same size.</p>
 <p>At the moment it is not possible to use expressions like</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">y</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span><span class="op">(</span><span class="fl">10</span>, <span class="va">p</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span></code></pre></div>
