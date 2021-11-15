@@ -22,7 +22,7 @@ Create a JavaScript bundle of an odin model
 \section{Warning}{
 
 
-The inteface and generated code here are subject to change.
+The interface and generated code here are subject to change.
 }
 
 \examples{

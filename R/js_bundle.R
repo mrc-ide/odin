@@ -2,7 +2,7 @@
 ##'
 ##' @section Warning:
 ##'
-##' The inteface and generated code here are subject to change.
+##' The interface and generated code here are subject to change.
 ##'
 ##' @title Create a bundle of an odin model
 ##'
