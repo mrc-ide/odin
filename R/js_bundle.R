@@ -67,7 +67,9 @@ odin_js_example <- function(filename, dest = tempfile()) {
   html <- dir(path, pattern = "\\.html$", full.names = TRUE)
 
   dir.create(dest, FALSE, TRUE)
-  odin_js_bundle(filename, file.path(dest, "odin.js"), include = include)
+  writeLines(
+    odin_js_bundle(filename, include = include),
+    file.path(dest, "odin.js"))
   file.copy(html, dest, overwrite = TRUE)
   dest
 }

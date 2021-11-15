@@ -123,7 +123,7 @@ test_that("simple stochastic model in a bundle", {
   res <- odin_js_bundle(code)
 
   ct <- V8::v8()
-  invisible(ct$source(res))
+  invisible(ct$eval(res))
   ct$call("setSeed", 1)
   tt <- 0:20
   yy <- call_odin_bundle(ct, "odin", NULL, tt)
