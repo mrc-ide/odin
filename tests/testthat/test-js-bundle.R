@@ -6,20 +6,14 @@ test_that("bundle works", {
             "N0 <- user(1)",
             "K <- 100",
             "r <- user()")
-  p <- tempfile()
-  dir.create(p)
-  filename <- file.path(p, "odin.R")
-  writeLines(code, filename)
-
-  res <- odin_js_bundle(filename)
+  bundle <- odin_js_bundle(code)
 
   ## Keep unwanted bits out:
-  txt <- readLines(res)
-  expect_false(any(grepl("odinSum2", txt)))
-  expect_false(any(grepl("interpolateCheckY", txt)))
+  expect_false(any(grepl("odinSum2", bundle)))
+  expect_false(any(grepl("interpolateCheckY", bundle)))
 
   ct <- V8::v8()
-  invisible(ct$source(res))
+  invisible(ct$eval(bundle))
 
   t <- 0:10
   res <- call_odin_bundle(ct, "odin", list(r = 0.5), t)
@@ -28,27 +22,6 @@ test_that("bundle works", {
 
   expect_equal(res[, "t"], t)
   expect_equal(res[, "N"], sol, tolerance = 1e-6)
-})
-
-
-test_that("bundle fails with missing files", {
-  path1 <- file.path(tempdir(), "myfile1.R")
-  path2 <- file.path(tempdir(), "myfile2.R")
-  expect_error(odin_js_bundle(path1), "File does not exist:")
-  expect_error(odin_js_bundle(c(path1, path2)), "Files do not exist:")
-})
-
-
-test_that("unique model names", {
-  path1 <- tempfile()
-  path2 <- tempfile()
-
-  code <- c("deriv(y) <- 1", "initial(y) <- 1", 'config(base) <- "test"')
-  writeLines(code, path1)
-  writeLines(code, path2)
-
-  expect_error(odin_js_bundle(c(path1, path2)),
-               "Duplicate model names: 'test'")
 })
 
 
@@ -62,15 +35,10 @@ test_that("include interpolate", {
             "dim(zp) <- user()",
             "output(p) <- pulse")
 
-  p <- tempfile()
-  dir.create(p)
-  filename <- file.path(p, "odin.R")
-  writeLines(code, filename)
-
-  res <- odin_js_bundle(filename)
+  res <- odin_js_bundle(code)
 
   ct <- V8::v8()
-  invisible(ct$source(res))
+  invisible(ct$eval(res))
 
   tt <- seq(0, 3, length.out = 301)
   tp <- c(0, 1, 2)
@@ -93,14 +61,11 @@ test_that("include sum", {
             "output(y2[]) <- y[i] * 2",
             "dim(y2) <- length(y)")
 
-  p <- tempfile()
-  dir.create(p)
-  filename <- file.path(p, "odin.R")
-  writeLines(code, filename)
-  res <- odin_js_bundle(filename)
+
+  res <- odin_js_bundle(code)
 
   ct <- V8::v8()
-  invisible(ct$source(res))
+  invisible(ct$eval(res))
   tt <- seq(0, 10, length.out = 101)
   yy <- call_odin_bundle(ct, "odin", NULL, tt)
   res <- list(y = unname(yy[, 2:4]),
@@ -130,11 +95,7 @@ test_that("include fancy sum", {
     "dim(a) <- c(n_spp, n_spp)",
     "dim(ay) <- c(n_spp, n_spp)")
 
-  p <- tempfile()
-  dir.create(p)
-  filename <- file.path(p, "odin.R")
-  writeLines(code, filename)
-  res <- odin_js_bundle(filename)
+  res <- odin_js_bundle(code)
 
   user <- list(r = c(1.00, 0.72, 1.53, 1.27),
                a = rbind(c(1.00, 1.09, 1.52, 0.00),
@@ -144,7 +105,7 @@ test_that("include fancy sum", {
                y0 = c(0.3013, 0.4586, 0.1307, 0.3557))
 
   ct <- V8::v8()
-  invisible(ct$source(res))
+  invisible(ct$eval(res))
 
   tt <- seq(0, 50, length.out = 101)
   yy <- call_odin_bundle(ct, "odin", user, tt)
@@ -159,14 +120,10 @@ test_that("simple stochastic model in a bundle", {
     "initial(x) <- 0",
     "update(x) <- x + norm_rand()")
 
-  p <- tempfile()
-  dir.create(p)
-  filename <- file.path(p, "odin.R")
-  writeLines(code, filename)
-  res <- odin_js_bundle(filename)
+  res <- odin_js_bundle(code)
 
   ct <- V8::v8()
-  invisible(ct$source(res))
+  invisible(ct$eval(res))
   ct$call("setSeed", 1)
   tt <- 0:20
   yy <- call_odin_bundle(ct, "odin", NULL, tt)
