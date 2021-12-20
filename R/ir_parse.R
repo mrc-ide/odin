@@ -1505,6 +1505,11 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
           }
         }
       }
+
+      if (!is.null(names(x))) {
+        throw("Named argument calls not supported in odin")
+      }
+
       lapply(as.list(x[-1L]), check_usage)
     }
   }
