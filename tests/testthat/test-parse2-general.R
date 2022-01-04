@@ -840,3 +840,14 @@ test_that("can't use C identifier", {
     }),
     "Reserved name 'int' for lhs")
 })
+
+
+test_that("Can't use named args", {
+  expect_error(
+    odin_parse({
+      update(x) <- rbinom(1, prob = 0.5)
+      initial(x) <- 1
+    }),
+    "Named argument calls not supported in odin",
+    fixed = TRUE)
+})
