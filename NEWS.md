@@ -1,3 +1,7 @@
+# odin 1.3.3
+
+* More gracefully cope with filenames containing parentheses
+
 # odin 1.3.0
 
 * Added JavaScript support, importing code previously in [`odin.js`](https://github.com/mrc-ide/odin.js/). Models with delays are not supported (mrc-1624)

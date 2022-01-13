@@ -69,11 +69,19 @@ test_that("sanitise filenames", {
 
   path_hyphens <- file.path(path, "path-with-hyphens.R")
   path_spaces <- file.path(path, "path with spaces.R")
+  path_parens1 <- file.path(path, "path_with_parens (1).R")
+  path_parens2 <- file.path(path, "path_with_parens (a).R")
   writeLines(code, path_hyphens)
   writeLines(code, path_spaces)
+  writeLines(code, path_parens1)
+  writeLines(code, path_parens2)
 
   expect_equal(odin_preprocess(path_hyphens)$base,
                "path_with_hyphens")
   expect_equal(odin_preprocess(path_spaces)$base,
                "path_with_spaces")
+  expect_equal(odin_preprocess(path_parens1)$base,
+               "path_with_parens")
+  expect_equal(odin_preprocess(path_parens2)$base,
+               "path_with_parens_a")
 })
