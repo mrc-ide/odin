@@ -21,6 +21,8 @@ test_that("text", {
 
   expect_error(odin_preprocess(tempfile()),
                "looks like a filename, but file does not exist")
+  expect_error(odin_preprocess("somefile.R"),
+               "'somefile.R' looks like a filename, but file does not exist")
 
   expect_error(odin_preprocess(1L), "Invalid type")
   expect_error(odin_preprocess(pi), "Invalid type")
