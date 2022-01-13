@@ -35,7 +35,9 @@ test_that("type detection avoids unlikely filenames", {
   expect_error(odin_preprocess_detect("x"), "looks like a filename")
   expect_equal(odin_preprocess_detect("x <- y"), "text")
   expect_equal(odin_preprocess_detect("x = y"), "text")
-  expect_equal(odin_preprocess_detect("deriv(x)"), "text")
+  ## Note that we do allow 'deriv(x)' as a sort of filename here,
+  ## perhaps not ideal, but it feels unlikely.
+  expect_equal(odin_preprocess_detect("deriv(x) = 1"), "text")
 })
 
 
