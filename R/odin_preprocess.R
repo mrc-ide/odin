@@ -75,7 +75,7 @@ odin_preprocess_detect <- function(x, type = NULL) {
     } else if (file.exists(x)) {
       as <- "file"
     } else {
-      stop("'x' looks like a filename, but file does not exist")
+      stop(sprintf("'%s' looks like a filename, but file does not exist", x))
     }
   } else {
     stop("Invalid type for 'x'")
