@@ -23,7 +23,7 @@ odin_preprocess <- function(x, type = NULL) {
     base <- gsub("\\s*\\(\\d+\\)", "", base)
     ## But if we do get them after that we should remove them, along
     ## with any other punctuation
-    base <- chartr("- ()", "____", base)
+    base <- gsub("[-.() ]", "_", base)
     base <- gsub("_$", "", gsub("_{2,}", "_", base))
   } else {
     file <- NULL
