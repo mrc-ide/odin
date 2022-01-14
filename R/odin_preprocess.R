@@ -18,7 +18,13 @@ odin_preprocess <- function(x, type = NULL) {
     file <- x
     root <- normalizePath(dirname(x))
     path <- c(root, normalizePath(getwd()))
-    base <- chartr("- ", "__", tools::file_path_sans_ext(basename(file)))
+    base <- tools::file_path_sans_ext(basename(file))
+    ## Most of the time we get parentheses it will be download errors
+    base <- gsub("\\s*\\(\\d+\\)", "", base)
+    ## But if we do get them after that we should remove them, along
+    ## with any other punctuation
+    base <- gsub("[-.() ]", "_", base)
+    base <- gsub("_$", "", gsub("_{2,}", "_", base))
   } else {
     file <- NULL
     path <- getwd()
@@ -64,12 +70,12 @@ odin_preprocess_detect <- function(x, type = NULL) {
         }
       }
       as <- type
-    } else if (length(x) != 1L || grepl("([\n;=()]|<-)", x)) {
+    } else if (length(x) != 1L || grepl("([\n;=]|<-)", x)) {
       as <- "text"
     } else if (file.exists(x)) {
       as <- "file"
     } else {
-      stop("'x' looks like a filename, but file does not exist")
+      stop(sprintf("'%s' looks like a filename, but file does not exist", x))
     }
   } else {
     stop("Invalid type for 'x'")
