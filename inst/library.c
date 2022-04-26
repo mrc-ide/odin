@@ -415,7 +415,7 @@ int scalar_int(SEXP x, const char * name) {
   } else if (TYPEOF(x) == REALSXP) {
     double rx = REAL(x)[0];
     ret = rx;
-    if (fabs(rx - ret) > sqrt(DOUBLE_EPS)) {
+    if (fabs(rx - ret) > sqrt(DBL_EPSILON)) {
       Rf_error("Expected a integer-like for '%s'", name);
     }
   } else {
