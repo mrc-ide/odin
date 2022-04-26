@@ -33,7 +33,10 @@ generate_c_compiled <- function(eqs, dat, rewrite) {
 
 
 generate_c_compiled_headers <- function() {
-  c("#include <R.h>",
+  ## It would be nice to define STRICT_R_HEADERS here but we get
+  ## tripped up by ring.
+  c("#include <float.h>",
+    "#include <R.h>",
     "#include <Rmath.h>",
     "#include <Rinternals.h>",
     "#include <stdbool.h>",
@@ -89,12 +92,12 @@ generate_c_compiled_finalise <- function(dat, rewrite) {
     for (el in dat$data$elements) {
       if (el$rank > 0 && el$location == "internal" &&
           el$storage_type %in% c("int", "double")) {
-        body$add("  Free(%s->%s);", internal, el$name)
+        body$add("  R_Free(%s->%s);", internal, el$name)
       }
     }
   }
 
-  body$add("  Free(%s);", internal)
+  body$add("  R_Free(%s);", internal)
   body$add("  R_ClearExternalPtr(%s);", ptr)
   body$add("}")
 
@@ -134,11 +137,11 @@ generate_c_compiled_create <- function(eqs, dat, rewrite) {
   internal_t <- dat$meta$c$internal_t
 
   body <- collector()
-  body$add("%s *%s = (%s*) Calloc(1, %s);",
+  body$add("%s *%s = (%s*) R_Calloc(1, %s);",
            internal_t, internal, internal_t, internal_t)
 
   ## Assign all arrays as NULL, which allows all allocations to be
-  ## written as Free/Calloc because Free will not try to free a
+  ## written as R_Free/R_Calloc because R_Free will not try to free a
   ## pointer that has been set to NULL.
   null_initial <- names_if(vlapply(dat$data$elements, function(x) {
     (x$rank > 0 && x$location == "internal") ||
