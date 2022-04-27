@@ -33,10 +33,9 @@ generate_c_compiled <- function(eqs, dat, rewrite) {
 
 
 generate_c_compiled_headers <- function() {
-  c("#ifndef STRICT_R_HEADERS",
-    "#define STRICT_R_HEADERS",
-    "#endif",
-    "#include <float.h>",
+  ## It would be nice to define STRICT_R_HEADERS here but we get
+  ## tripped up by ring.
+  c("#include <float.h>",
     "#include <R.h>",
     "#include <Rmath.h>",
     "#include <Rinternals.h>",
