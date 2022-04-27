@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.4</span>
       </span>
     </div>
 
@@ -53,7 +53,7 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -94,7 +94,7 @@
       <h1 data-toc-skip>odin discrete models</h1>
                         <h4 data-toc-skip class="author">Thibaut Jombart, Rich FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2022-01-14</h4>
+            <h4 data-toc-skip class="date">2022-04-27</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/discrete.Rmd" class="external-link"><code>vignettes/discrete.Rmd</code></a></small>
       <div class="hidden name"><code>discrete.Rmd</code></div>
@@ -103,12 +103,12 @@
 
     
     
-<div class="section level1">
-<h1 id="discrete-compartmental-models-in-a-nutshell">Discrete compartmental models in a nutshell<a class="anchor" aria-label="anchor" href="#discrete-compartmental-models-in-a-nutshell"></a>
-</h1>
 <div class="section level2">
-<h2 id="from-continuous-to-discrete-time">From continuous to discrete time<a class="anchor" aria-label="anchor" href="#from-continuous-to-discrete-time"></a>
+<h2 id="discrete-compartmental-models-in-a-nutshell">Discrete compartmental models in a nutshell<a class="anchor" aria-label="anchor" href="#discrete-compartmental-models-in-a-nutshell"></a>
 </h2>
+<div class="section level3">
+<h3 id="from-continuous-to-discrete-time">From continuous to discrete time<a class="anchor" aria-label="anchor" href="#from-continuous-to-discrete-time"></a>
+</h3>
 <p>In its simplest form, a SIR model is typically written in continuous time as:</p>
 <p><span class="math display">\[
 \frac{dS}{dt} = - \beta \frac{S_t I_t}{N_t}
@@ -131,13 +131,13 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} - \gamma I_t
 R_{t+1} = R_t + \gamma I_t
 \]</span></p>
 </div>
-<div class="section level2">
-<h2 id="stochastic-processes">Stochastic processes<a class="anchor" aria-label="anchor" href="#stochastic-processes"></a>
-</h2>
-<p>The discrete model above remains deterministic: for given values of the rates <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span>, dynamics will be fixed. It is fairly straightforward to convert this discrete model into a stochastic one: one merely needs to uses appropriate probability distributions to model the transfer of individuals across compartments. There are at least 3 types of such distributions which will be useful to consider.</p>
 <div class="section level3">
-<h3 id="binomial-distribution">Binomial distribution<a class="anchor" aria-label="anchor" href="#binomial-distribution"></a>
+<h3 id="stochastic-processes">Stochastic processes<a class="anchor" aria-label="anchor" href="#stochastic-processes"></a>
 </h3>
+<p>The discrete model above remains deterministic: for given values of the rates <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span>, dynamics will be fixed. It is fairly straightforward to convert this discrete model into a stochastic one: one merely needs to uses appropriate probability distributions to model the transfer of individuals across compartments. There are at least 3 types of such distributions which will be useful to consider.</p>
+<div class="section level4">
+<h4 id="binomial-distribution">Binomial distribution<a class="anchor" aria-label="anchor" href="#binomial-distribution"></a>
+</h4>
 <p>This distribution will be used to determine numbers of individuals <strong>leaving</strong> a given compartment. While we may be tempted to use a Poisson distribution with the rates specified in the equations above, this could lead to over-shooting, i.e. more individuals leaving a compartment than there actually are. To avoid infecting more people than there are susceptibles, we use a binomial distribution, with one draw for each individual in the compartment of interest. The workflow will be:</p>
 <ol style="list-style-type: decimal">
 <li><p>determine a <em>per-capita probability</em> of leaving the compartment, based on the original rates specified in the equations; if the rate at which each individual leaves a compartment is <span class="math inline">\(\lambda\)</span>, then the corresponding probability of this individual leaving the compartment in one time unit is <span class="math inline">\(p = 1 - e^{- \lambda}\)</span>.</p></li>
@@ -145,9 +145,9 @@ R_{t+1} = R_t + \gamma I_t
 </ol>
 <p>As an example, let us consider transition <span class="math inline">\(S \rightarrow I\)</span> in the SIR model. The overall rate at which this change happens is <span class="math inline">\(\beta \frac{S_t I_t}{N_t}\)</span>. The corresponding <em>per susceptible</em> rate is <span class="math inline">\(\beta \frac{I_t}{N_t}\)</span>. Therefore, the probability for an individual to move from <em>S</em> to <em>I</em> at time <span class="math inline">\(t\)</span> is <span class="math inline">\(p_{(S \rightarrow I), t} = 1 - e^{- \beta \frac{I_t}{N_t}}\)</span>.</p>
 </div>
-<div class="section level3">
-<h3 id="poisson-distribution">Poisson distribution<a class="anchor" aria-label="anchor" href="#poisson-distribution"></a>
-</h3>
+<div class="section level4">
+<h4 id="poisson-distribution">Poisson distribution<a class="anchor" aria-label="anchor" href="#poisson-distribution"></a>
+</h4>
 <p>Poisson distributions will be useful when individuals enter a compartment at a given rate, from ‘the outside’. This could be birth or migration (for <span class="math inline">\(S\)</span>), or introduction of infections from an external reservoir (for <span class="math inline">\(I\)</span>), etc. The essential distinction with the previous process is that individuals are <em>not leaving</em> an existing compartment.</p>
 <p>This case is simple to handle: one just needs to draw new individuals entering the compartment from a Poisson distribution with the rate directly coming from the equations.</p>
 <p>For instance, let us now consider a variant of the SIR model where new infectious cases are imported at a constant rate <span class="math inline">\(\epsilon\)</span>. The only change to the equation is for the infected compartment:</p>
@@ -161,9 +161,9 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <li><p>individual move from <span class="math inline">\(I\)</span> to <span class="math inline">\(R\)</span> according to a Binomial distribution <span class="math inline">\(\mathcal{B}(I_t, 1 - e^{- \gamma})\)</span></p></li>
 </ul>
 </div>
-<div class="section level3">
-<h3 id="multinomial-distribution">Multinomial distribution<a class="anchor" aria-label="anchor" href="#multinomial-distribution"></a>
-</h3>
+<div class="section level4">
+<h4 id="multinomial-distribution">Multinomial distribution<a class="anchor" aria-label="anchor" href="#multinomial-distribution"></a>
+</h4>
 <p>This distribution will be useful when individuals leaving a compartment are distributed over several compartments. The Multinomial distribution will be used to determine how many individuals end up in each compartment. Let us assume that individuals move from a compartment <span class="math inline">\(X\)</span> to compartments <span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span>, and <span class="math inline">\(C\)</span>, at rates <span class="math inline">\(\lambda_A\)</span>, <span class="math inline">\(\lambda_B\)</span> and <span class="math inline">\(\lambda_C\)</span>. The workflow to handle these transitions will be:</p>
 <ol style="list-style-type: decimal">
 <li><p>determine the total number of individuals leaving <span class="math inline">\(X\)</span>; this is done by summing the rates (<span class="math inline">\(\lambda = \lambda_A + \lambda_B + \lambda_C\)</span>) to compute the <em>per capita</em> probability of leaving <span class="math inline">\(X\)</span> <span class="math inline">\((p_(X \rightarrow ...) = 1 - e^{- \lambda})\)</span>, and drawing the number of individuals leaving <span class="math inline">\(X\)</span> (<span class="math inline">\(n_{_(X \rightarrow ...)}\)</span>) from a binomial distribution <span class="math inline">\(n_{(X \rightarrow ...)} \sim B(X, p_(X \rightarrow ...))\)</span></p></li>
@@ -173,12 +173,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 </div>
 </div>
 </div>
-<div class="section level1">
-<h1 id="implementation-using-odin">Implementation using <code>odin</code><a class="anchor" aria-label="anchor" href="#implementation-using-odin"></a>
-</h1>
 <div class="section level2">
-<h2 id="deterministic-sir-model">Deterministic SIR model<a class="anchor" aria-label="anchor" href="#deterministic-sir-model"></a>
+<h2 id="implementation-using-odin">Implementation using <code>odin</code><a class="anchor" aria-label="anchor" href="#implementation-using-odin"></a>
 </h2>
+<div class="section level3">
+<h3 id="deterministic-sir-model">Deterministic SIR model<a class="anchor" aria-label="anchor" href="#deterministic-sir-model"></a>
+</h3>
 <p>We start by loading the <code>odin</code> code for a discrete, stochastic SIR model:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">path_sir_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_deterministic_sir.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></code></pre></div>
@@ -231,12 +231,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span class="co">##     ynames: NULL</span>
 <span class="co">##     interpolate_t: NULL</span>
 <span class="co">##     cfuns: list</span>
-<span class="co">##     dll: discrete.deterministic.sir2f525ba9</span>
+<span class="co">##     dll: discrete.deterministic.sir4dd7c443</span>
 <span class="co">##     user: beta gamma I_ini S_ini</span>
 <span class="co">##     registration: function () </span>
 <span class="co">##     set_initial: function (step, y, use_dde) </span>
 <span class="co">##     update_metadata: function () </span>
-<span class="co">##   Parent env: &lt;environment: namespace:discrete.deterministic.sir2f525ba9&gt;</span>
+<span class="co">##   Parent env: &lt;environment: namespace:discrete.deterministic.sir4dd7c443&gt;</span>
 <span class="co">##   Locked objects: TRUE</span>
 <span class="co">##   Locked class: FALSE</span>
 <span class="co">##   Portable: TRUE</span></code></pre>
@@ -259,7 +259,7 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span class="co">##     update: function (step, y) </span>
 <span class="co">##   Private:</span>
 <span class="co">##     cfuns: list</span>
-<span class="co">##     dll: discrete.deterministic.sir2f525ba9</span>
+<span class="co">##     dll: discrete.deterministic.sir4dd7c443</span>
 <span class="co">##     interpolate_t: NULL</span>
 <span class="co">##     n_out: 0</span>
 <span class="co">##     odin: environment</span>
@@ -299,9 +299,9 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <i>An example of deterministic, discrete-time SIR model</i><br></p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="stochastic-sir-model">Stochastic SIR model<a class="anchor" aria-label="anchor" href="#stochastic-sir-model"></a>
-</h2>
+<div class="section level3">
+<h3 id="stochastic-sir-model">Stochastic SIR model<a class="anchor" aria-label="anchor" href="#stochastic-sir-model"></a>
+</h3>
 <p>The stochastic equivalent of the previous model can be formulated in <code>odin</code> as follows:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">path_sir_model_s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_sir.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></code></pre></div>
@@ -359,12 +359,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span class="co">##     ynames: NULL</span>
 <span class="co">##     interpolate_t: NULL</span>
 <span class="co">##     cfuns: list</span>
-<span class="co">##     dll: discrete.stochastic.sir2ab1c500</span>
+<span class="co">##     dll: discrete.stochastic.sir4c51a74b</span>
 <span class="co">##     user: beta gamma I_ini S_ini</span>
 <span class="co">##     registration: function () </span>
 <span class="co">##     set_initial: function (step, y, use_dde) </span>
 <span class="co">##     update_metadata: function () </span>
-<span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir2ab1c500&gt;</span>
+<span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir4c51a74b&gt;</span>
 <span class="co">##   Locked objects: TRUE</span>
 <span class="co">##   Locked class: FALSE</span>
 <span class="co">##   Portable: TRUE</span></code></pre>
@@ -447,12 +447,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span class="co">##     ynames: NULL</span>
 <span class="co">##     interpolate_t: NULL</span>
 <span class="co">##     cfuns: list</span>
-<span class="co">##     dll: discrete.stochastic.sir.arrays2aac2bc0</span>
+<span class="co">##     dll: discrete.stochastic.sir.arrays6f10c265</span>
 <span class="co">##     user: beta gamma I_ini nsim S_ini</span>
 <span class="co">##     registration: function () </span>
 <span class="co">##     set_initial: function (step, y, use_dde) </span>
 <span class="co">##     update_metadata: function () </span>
-<span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arrays2aac2bc0&gt;</span>
+<span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arrays6f10c265&gt;</span>
 <span class="co">##   Locked objects: TRUE</span>
 <span class="co">##   Locked class: FALSE</span>
 <span class="co">##   Portable: TRUE</span></code></pre>
@@ -471,9 +471,9 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <i>100 replicates of a stochastic, discrete-time SIR model</i><br></p>
 </div>
 </div>
-<div class="section level2">
-<h2 id="a-stochastic-seirds-model">A stochastic SEIRDS model<a class="anchor" aria-label="anchor" href="#a-stochastic-seirds-model"></a>
-</h2>
+<div class="section level3">
+<h3 id="a-stochastic-seirds-model">A stochastic SEIRDS model<a class="anchor" aria-label="anchor" href="#a-stochastic-seirds-model"></a>
+</h3>
 <p>This model is a more complex version of the previous one, which we will use to illustrate the use of all distributions mentioned in the first part: Binomial, Poisson and Multinomial.</p>
 <p>The model is contains the following compartments:</p>
 <ul>
@@ -612,12 +612,12 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <span class="co">##     ynames: NULL</span>
 <span class="co">##     interpolate_t: NULL</span>
 <span class="co">##     cfuns: list</span>
-<span class="co">##     dll: discrete.stochastic.seirds5fe49d1e</span>
+<span class="co">##     dll: discrete.stochastic.seirds8315ba55</span>
 <span class="co">##     user: beta delta E_ini epsilon gamma_D gamma_R mu omega S_ini</span>
 <span class="co">##     registration: function () </span>
 <span class="co">##     set_initial: function (step, y, use_dde) </span>
 <span class="co">##     update_metadata: function () </span>
-<span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.seirds5fe49d1e&gt;</span>
+<span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.seirds8315ba55&gt;</span>
 <span class="co">##   Locked objects: TRUE</span>
 <span class="co">##   Locked class: FALSE</span>
 <span class="co">##   Portable: TRUE</span></code></pre>
@@ -719,7 +719,7 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
 </div>
 
       </footer>

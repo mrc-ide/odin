@@ -20,7 +20,7 @@ use within other applications."><meta property="og:image" content="/logo.png"><!
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.4</span>
       </span>
     </div>
 
@@ -32,7 +32,7 @@ use within other applications."><meta property="og:image" content="/logo.png"><!
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -135,7 +135,7 @@ variables.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $result</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> {"version":"1.3.3","config":{"base":"odin","include":null,"custom":null},"meta":{"internal":"internal","user":"user","state":"state","result":"dstatedt","output":"output","time":"t","initial_time":"initial_t"},"features":{"discrete":false,"has_array":false,"has_output":false,"has_user":false,"has_delay":false,"has_interpolate":false,"has_stochastic":false,"has_include":false,"initial_time_dependent":false},"data":{"elements":[{"name":"initial_x","location":"internal","storage_type":"double","rank":0,"dimnames":null,"stage":"constant"},{"name":"x","location":"variable","storage_type":"double","rank":0,"dimnames":null,"stage":"time"}],"variable":{"length":1,"contents":[{"name":"x","offset":0,"initial":"initial_x"}]},"output":{"length":0,"contents":[]}},"equations":[{"name":"deriv_x","type":"expression_scalar","source":[1],"depends":null,"lhs":"x","rhs":{"value":1}},{"name":"initial_x","type":"expression_scalar","source":[2],"depends":null,"lhs":"initial_x","rhs":{"value":1}}],"components":{"create":{"variables":[],"equations":["initial_x"]},"user":{"variables":[],"equations":[]},"initial":{"variables":[],"equations":[]},"rhs":{"variables":[],"equations":["deriv_x"]},"output":{"variables":[],"equations":[]}},"user":[],"interpolate":{"min":[],"max":[],"critical":[]},"source":["deriv(x) &lt;- 1","initial(x) &lt;- 1"]} </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> {"version":"1.3.4","config":{"base":"odin","include":null,"custom":null},"meta":{"internal":"internal","user":"user","state":"state","result":"dstatedt","output":"output","time":"t","initial_time":"initial_t"},"features":{"discrete":false,"has_array":false,"has_output":false,"has_user":false,"has_delay":false,"has_interpolate":false,"has_stochastic":false,"has_include":false,"initial_time_dependent":false},"data":{"elements":[{"name":"initial_x","location":"internal","storage_type":"double","rank":0,"dimnames":null,"stage":"constant"},{"name":"x","location":"variable","storage_type":"double","rank":0,"dimnames":null,"stage":"time"}],"variable":{"length":1,"contents":[{"name":"x","offset":0,"initial":"initial_x"}]},"output":{"length":0,"contents":[]}},"equations":[{"name":"deriv_x","type":"expression_scalar","source":[1],"depends":null,"lhs":"x","rhs":{"value":1}},{"name":"initial_x","type":"expression_scalar","source":[2],"depends":null,"lhs":"initial_x","rhs":{"value":1}}],"components":{"create":{"variables":[],"equations":["initial_x"]},"user":{"variables":[],"equations":[]},"initial":{"variables":[],"equations":[]},"rhs":{"variables":[],"equations":["deriv_x"]},"output":{"variables":[],"equations":[]}},"user":[],"interpolate":{"min":[],"max":[],"critical":[]},"source":["deriv(x) &lt;- 1","initial(x) &lt;- 1"]} </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $error</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
@@ -234,7 +234,7 @@ variables.</p></dd>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
 </div>
 
       </footer></div>
