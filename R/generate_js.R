@@ -72,10 +72,8 @@ generate_js_core_set_user <- function(eqs, dat, rewrite) {
   body <- collector()
   body$add(check_user)
   if (dat$features$has_user) {
-    browser()
-    ## body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal),
-    ##   js_flatten_eqs(eqs[dat$components$user$equations]),
-    ##   update_metadata)
+    body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
+    body$add(js_flatten_eqs(eqs[dat$components$user$equations]))
   }
   body$add(update_metadata)
   args <- c(dat$meta$user, "unusedUserAction")

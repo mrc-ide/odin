@@ -104,8 +104,8 @@ class OdinBase {
                         min, max, isInteger) {
         var value = user[name];
 
-        if (isMissing(value)) {
-            if (isMissing(internal[name])) {
+        if (OdinBase.isMissing(value)) {
+            if (OdinBase.isMissing(internal[name])) {
                 if (defaultValue === null) {
                     throw Error("Expected a value for '" + name + "'");
                 } else {
@@ -119,8 +119,8 @@ class OdinBase {
         }
 
         var rank = size.length - 1;
-        value = getUserArrayCheckType(value, name);
-        getUserArrayCheckRank(rank, value.dim.length, name);
+        value = OdinBase.getUserArrayCheckType(value, name);
+        OdinBase.getUserArrayCheckRank(rank, value.dim.length, name);
 
         for (var i = 0; i < rank; ++i) {
             if (value.dim[i] !== size[i + 1]) {
@@ -135,14 +135,46 @@ class OdinBase {
             }
         }
 
-        getUserArrayCheckContents(value.data, min, max, isInteger, name);
+        OdinBase.getUserArrayCheckContents(value.data, min, max, isInteger, name);
 
         internal[name] = value.data.slice();
     }
 
+    static getUserArrayDim(user, name, internal, size, defaultValue,
+                           min, max, isInteger) {
+        var value = user[name];
+
+        if (OdinBase.isMissing(value)) {
+            if (OdinBase.isMissing(internal[name])) {
+                if (defaultValue === null) {
+                    throw Error("Expected a value for '" + name + "'");
+                } else {
+                    // not totally clear how to do this as we need to get
+                    // the previous dimensions too!
+                    throw Error("This needs implementing....");
+                    internal[name] = defaultValue;
+                }
+            }
+            return;
+        }
+
+        var rank = size.length - 1;
+        value = OdinBase.getUserArrayCheckType(value, name);
+        OdinBase.getUserArrayCheckRank(rank, value.dim.length, name);
+        OdinBase.getUserArrayCheckContents(value.data, min, max, isInteger, name);
+
+        var len = value.data.length;
+        size[0] = len;
+        for (var i = 0; i < rank; ++i) {
+            size[i + 1] = value.dim[i];
+        }
+
+        internal[name] = value.data.slice();;
+    }
+
     static getUserArrayCheckType(value, name) {
         if (Array.isArray(value)) {
-            value = flattenArray(value, name)
+            value = OdinBase.flattenArray(value, name)
         } else if (typeof value === "number") {
             // promote scalar number to vector, in the hope that's close
             // enough to what the user wants; this does give some
@@ -200,6 +232,40 @@ class OdinBase {
             x.push(from + i * dx);
         }
         return x;
+    }
+
+    static flattenArray(value, name) {
+        var len = 1;
+        var dim = [];
+        var x = value;
+        while (Array.isArray(x)) {
+            dim.push(x.length);
+            len *= x.length;
+            x = x[0];
+        }
+        dim.reverse();
+
+        var data = OdinBase.flatten(value, []);
+
+        // Not a suffient check, but at least a necessary one:
+        if (len !== data.length) {
+            throw Error("Inconsistent array for '" + name + '"');
+        }
+
+        return {data: data, dim: dim};
+    }
+
+    static flatten(array, result) {
+        if (array.length === 0) {
+            return result
+        }
+        var head = array[0]
+        var rest = array.slice(1)
+        if (Array.isArray(head)) {
+            return OdinBase.flatten(head.concat(rest), result)
+        }
+        result.push(head)
+        return OdinBase.flatten(rest, result)
     }
 
     static run(tStart, tEnd, y0, control, model, Dopri) {

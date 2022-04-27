@@ -8,7 +8,7 @@ class OdinWrapper {
         return this.model.initial(t);
     }
 
-    setUser(user, unusedUserAction) {
+    setUser(pars, unusedUserAction) {
         this.model.setUser(pars, unusedUserAction);
     }
 
