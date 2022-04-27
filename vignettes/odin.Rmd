@@ -282,7 +282,7 @@ replaced by more intelligent generation.
 This example comes from the [wikipedia
 page](https://en.wikipedia.org/wiki/Competitive_Lotka%E2%80%93Volterra_equations#4-dimensional_example),
 in turn from [Vano et al
-2006](http://sprott.physics.wisc.edu/pubs/paper288.pdf).  This
+2006](https://sprott.physics.wisc.edu/pubs/paper288.pdf).  This
 model has four non-linear differential equations that have chaotic
 behaviour in fairly low dimension.
 ``` {r }
