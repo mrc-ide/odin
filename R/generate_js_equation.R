@@ -82,7 +82,7 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
     ret <- c(
       sprintf("var %s = new Array(%d);", len, rank + 1),
       sprintf(
-        'getUserArrayDim(%s, "%s", %s, %s, %s, %s, %s, %s);',
+        'this.base.getUserArrayDim(%s, "%s", %s, %s, %s, %s, %s, %s);',
         user, eq$lhs, internal, len, default,
         min, max, is_integer),
       sprintf("%s = %s[%d];", rewrite(len), len, 0),
@@ -93,7 +93,7 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
     if (rank == 0L) {
       size <- "null"
       ret <- sprintf(
-        'getUser(%s, "%s", %s, %s, %s, %s, %s, %s);',
+        'this.base.getUser(%s, "%s", %s, %s, %s, %s, %s, %s);',
         user, eq$lhs, internal, size, default, min, max, is_integer)
     } else {
       if (rank == 1L) {
@@ -105,7 +105,7 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
         size <- sprintf("[%s]", paste(dim, collapse = ", "))
       }
       ret <- sprintf(
-        'getUserArray(%s, "%s", %s, %s, %s, %s, %s, %s);',
+        'this.base.getUserArray(%s, "%s", %s, %s, %s, %s, %s, %s);',
         user, eq$lhs, internal, size, default,
         min, max, is_integer)
     }

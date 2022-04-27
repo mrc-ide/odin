@@ -14,6 +14,8 @@ test_that("trivial model", {
   expect_equal(mod$deriv(0, 0), 2)
   expect_equal(mod$deriv(10, 10), 2)
   tt <- 0:10
+
+  ## Ready to pick up here.
   yy <- mod$run(tt)
 
   expect_equal(colnames(yy), c("t", "y"))
@@ -39,8 +41,6 @@ test_that("Time dependent rhs", {
     r <- 2 * t
   }, target = "js")
 
-  ## This looks like a reasonable rhs but it's going through the
-  ## internal storage instead of being transient.
   mod <- gen$new()
 
   tt <- 0:10
