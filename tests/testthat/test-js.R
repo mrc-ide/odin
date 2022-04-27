@@ -110,6 +110,28 @@ test_that("user variables", {
 })
 
 
+test_that("models with output", {
+  gen <- odin({
+    deriv(y) <- 2
+    initial(y) <- 1
+    output(z) <- t
+  }, target = "js")
+
+  tt <- 0:10
+
+  mod <- gen$new()
+
+  expect_equal(mod$deriv(0, 1), structure(2, output = 0))
+  expect_equal(mod$deriv(10, 1), structure(2, output = 10))
+
+  yy1 <- mod$run(tt)
+  expect_equal(colnames(yy1), c("t", "y", "z"))
+  expect_equal(yy1[, "t"], tt)
+  expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
+  expect_equal(yy1[, "z"], tt)
+})
+
+
 test_that("accept matrices directly if asked nicely", {
   gen <- odin({
     deriv(y) <- 1

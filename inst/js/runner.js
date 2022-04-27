@@ -275,24 +275,8 @@ class OdinBase {
         const rhs = function(t, y, dydt) {
             model.rhs(t, y, dydt);
         }
-        // const output = function(t, y) {
-        //     return obj.output(t, y);
-        // }
-        // const solver = typeof obj.output === "function" ? undefined
-
-        // var solver;
-        // if (typeof obj.output === "function") {
-        //     var output = function(t, y) {
-        //         return obj.output(t, y);
-        //     }
-        //     solver = new dopri.Dopri(rhs, y0.length, control, output);
-        // } else {
-        //     solver = new dopri.Dopri(rhs, y0.length, control);
-        // }
-
-        // const output = model.outputOrder === null ? null :
-        //       (t, y) => model.output(t, y);
-        const output = null;
+        const output = typeof model.output === "function" ?
+              ((t, y) => model.output(t, y)) : null;
         const solver = new Dopri(rhs, y0.length, control, output);
         solver.initialise(tStart, y0);
         const solution = solver.run(tEnd);
