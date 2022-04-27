@@ -93,8 +93,8 @@ generate_c_equation_alloc <- function(eq, data_info, dat, rewrite) {
   ## TODO: this is fine for now, but if we know that some variables
   ## have constant size, then we do not have to ever free them.  It's
   ## fairly harmless though.
-  c(sprintf_safe("Free(%s);", lhs),
-    sprintf_safe("%s = (%s*) Calloc(%s, %s);", lhs, ctype, len, ctype))
+  c(sprintf_safe("R_Free(%s);", lhs),
+    sprintf_safe("%s = (%s*) R_Calloc(%s, %s);", lhs, ctype, len, ctype))
 }
 
 
@@ -224,7 +224,7 @@ generate_c_equation_user <- function(eq, data_info, dat, rewrite) {
   previous <- lhs
 
   if (eq$user$dim) {
-    free <- sprintf_safe("Free(%s);", lhs)
+    free <- sprintf_safe("R_Free(%s);", lhs)
     len <- data_info$dimnames$length
     if (rank == 1L) {
       ret <-
@@ -270,11 +270,11 @@ generate_c_equation_delay_index <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
   state <- rewrite(delay$state)
 
-  alloc <- c(sprintf_safe("Free(%s);", lhs),
-             sprintf_safe("%s = Calloc(%s, int);",
+  alloc <- c(sprintf_safe("R_Free(%s);", lhs),
+             sprintf_safe("%s = R_Calloc(%s, int);",
                           lhs, rewrite(delay$variables$length)),
-             sprintf_safe("Free(%s);", state),
-             sprintf_safe("%s = Calloc(%s, double);",
+             sprintf_safe("R_Free(%s);", state),
+             sprintf_safe("%s = R_Calloc(%s, double);",
                           state, rewrite(delay$variables$length)))
 
   index1 <- function(v) {

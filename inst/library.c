@@ -111,13 +111,13 @@ void* user_get_array(SEXP user, bool is_integer, void * previous,
 
   void *dest = NULL;
   if (is_integer) {
-    dest = Calloc(len, int);
+    dest = R_Calloc(len, int);
     memcpy(dest, INTEGER(el), len * sizeof(int));
   } else {
-    dest = Calloc(len, double);
+    dest = R_Calloc(len, double);
     memcpy(dest, REAL(el), len * sizeof(double));
   }
-  Free(previous);
+  R_Free(previous);
 
   UNPROTECT(1);
 
@@ -203,13 +203,13 @@ void* user_get_array_dim(SEXP user, bool is_integer, void * previous,
   int len = LENGTH(el);
   void *dest = NULL;
   if (is_integer) {
-    dest = Calloc(len, int);
+    dest = R_Calloc(len, int);
     memcpy(dest, INTEGER(el), len * sizeof(int));
   } else {
-    dest = Calloc(len, double);
+    dest = R_Calloc(len, double);
     memcpy(dest, REAL(el), len * sizeof(double));
   }
-  Free(previous);
+  R_Free(previous);
 
   UNPROTECT(1);
 
@@ -415,7 +415,7 @@ int scalar_int(SEXP x, const char * name) {
   } else if (TYPEOF(x) == REALSXP) {
     double rx = REAL(x)[0];
     ret = rx;
-    if (fabs(rx - ret) > sqrt(DOUBLE_EPS)) {
+    if (fabs(rx - ret) > sqrt(DBL_EPSILON)) {
       Rf_error("Expected a integer-like for '%s'", name);
     }
   } else {
