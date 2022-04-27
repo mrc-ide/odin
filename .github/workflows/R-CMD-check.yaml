@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - master
+      - cran-backport
   pull_request:
     branches:
       - main
       - master
+      - cran-backport
 
 name: R-CMD-check
 
