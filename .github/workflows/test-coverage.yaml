@@ -2,9 +2,13 @@ on:
   push:
     branches:
       - master
+      - main
+      - mrc-3182
   pull_request:
     branches:
       - master
+      - main
+      - mrc-3182
 
 name: test-coverage
 
