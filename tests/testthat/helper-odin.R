@@ -140,4 +140,7 @@ skip_for_compilation <- function() {
   if (on_cran()) {
     testthat::skip("compiled example, without opt-in")
   }
+  if (!can_compile()) {
+    testthat::skip("compiled example, opt-in, but can't compile")
+  }
 }

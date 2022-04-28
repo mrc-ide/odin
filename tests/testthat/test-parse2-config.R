@@ -40,6 +40,7 @@ test_that("config(base)", {
 })
 
 test_that("config(include)", {
+  skip_for_compilation()
   options <- odin_options(target = "c")
   expect_error(odin_parse_(quote(config(include) <- 1), options),
                "Expected a character for config(include)",
@@ -58,6 +59,7 @@ test_that("config(include)", {
 
 
 test_that("Can include multiple files", {
+  skip_for_compilation()
   ir <- odin_parse({
     config(include) <- "user_fns.c"
     config(include) <- "identity.c"
