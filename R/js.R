@@ -17,6 +17,7 @@ odin_js_wrapper_object <- function(res) {
   context$eval(paste(res$code, collapse = "\n"))
 
   is_discrete <- res$features$discrete
+  private <- NULL
 
   ret <- R6::R6Class(
     "odin_model",
