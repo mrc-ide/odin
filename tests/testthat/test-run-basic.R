@@ -244,6 +244,7 @@ test_that_odin("copy output, explicitly", {
 
 ## Basic discrete models
 test_that_odin("discrete", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -260,6 +261,7 @@ test_that_odin("discrete", {
 
 
 test_that_odin("discrete with output", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -469,6 +471,7 @@ test_that_odin("user array - direct 3d", {
 
 ## NOTE: this is the test from test-interpolation.R
 test_that_odin("interpolation", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -510,6 +513,7 @@ test_that_odin("interpolation", {
 
 
 test_that_odin("stochastic", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + norm_rand()

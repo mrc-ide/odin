@@ -1,19 +1,20 @@
-call_odin_bundle <- function(name, user, t0, t1, tn, control = NULL) {
+call_odin_bundle <- function(bundle, user, t0, t1, tn, control = NULL) {
   ct <- V8::v8()
   ct$eval(bundle$support)
   ct$eval(bundle$dopri)
   ct$eval(bundle$model$code)
-  context$source(odin_file("js/test.js"))
-  user <- to_json_user(user)
-  if (is.null(control)) {
+  ct$source(odin_file("js/test.js"))
+  odin_js <- V8::JS(bundle$model$name)
+  user_js <- to_json_user(user)
+  if (length(control) == 0) {
     control_js <- to_json(setNames(list(), character(0)))
   } else {
     control_js <- to_json(control, auto_unbox = TRUE)
   }
-  res <- context$call("run", bundle$model$name, t0, t1, tn, y, control_js)
-  browser()
-  colnames(res$y) <- res$names
-  res$y
+  res <- ct$call("call_odin_bundle", odin_js, user_js, t0, t1, tn, control_js)
+
+  ## We've had a bit of pain from serialisation here, transpose it:
+  lapply(seq_len(nrow(res)), function(i) lapply(res, "[[", i))
 }
 
 

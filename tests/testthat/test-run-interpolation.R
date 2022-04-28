@@ -1,6 +1,7 @@
 context("run: interpolation")
 
 test_that_odin("constant", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -48,6 +49,7 @@ test_that_odin("constant", {
 
 
 test_that_odin("constant array", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
@@ -91,6 +93,7 @@ test_that_odin("constant array", {
 
 
 test_that_odin("constant 3d array", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y[, ]) <- pulse[i, j]
     initial(y[, ]) <- 0
@@ -147,6 +150,7 @@ test_that_odin("constant 3d array", {
 
 
 test_that_odin("linear", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -181,6 +185,7 @@ test_that_odin("linear", {
 
 
 test_that_odin("spline", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -209,6 +214,7 @@ test_that_odin("spline", {
 
 
 test_that_odin("interpolation with two variables", {
+  skip_for_target("js")
   for (type in INTERPOLATION_TYPES) {
     gen <- odin_(
       bquote({
@@ -361,6 +367,7 @@ test_that_odin("critical times", {
 
 
 test_that_odin("user sized interpolation, 1d", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
@@ -394,6 +401,7 @@ test_that_odin("user sized interpolation, 1d", {
 
 
 test_that_odin("user sized interpolation, 2d", {
+  skip_for_target("js")
   gen <- odin({
     deriv(y[, ]) <- pulse[i, j]
     initial(y[, ]) <- 0

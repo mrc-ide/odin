@@ -2,6 +2,7 @@ context("example")
 
 ## Full tests here would require selinium I believe
 test_that("create example bundle", {
+  skip("Needs work")
   model <- odin_file("examples/logistic.R")
   path <- odin_js_example(model)
   expect_setequal(dir(path), c("index.html", "odin.js"))

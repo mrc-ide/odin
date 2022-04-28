@@ -1,6 +1,7 @@
 context("run: discrete")
 
 test_that_odin("basic", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -19,6 +20,7 @@ test_that_odin("basic", {
 })
 
 test_that_odin("output", {
+  skip_for_target("js")
   gen <- odin({
     initial(x[]) <- x0[i]
     update(x[]) <- x[i] + r[i]
@@ -44,6 +46,7 @@ test_that_odin("output", {
 })
 
 test_that_odin("interpolate", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + pulse
@@ -73,6 +76,7 @@ test_that_odin("interpolate", {
 })
 
 test_that_odin("use step in model", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- step
     update(x) <- step + 1
@@ -85,6 +89,7 @@ test_that_odin("use step in model", {
 
 ## This is to avoid a regression with array_dim_name
 test_that_odin("2d array equations", {
+  skip_for_target("js")
   gen <- odin({
     initial(x[, ]) <- x0[i, j]
     update(x[, ]) <- x[i, j] + r[i, j]
@@ -110,6 +115,7 @@ test_that_odin("2d array equations", {
 
 ## This turns up in one of Neil's cases:
 test_that_odin("complex initialisation: scalar", {
+  skip_for_target("js")
   gen <- odin({
     initial(x1) <- norm_rand()
     r <- x1 * 2
@@ -156,6 +162,7 @@ test_that_odin("complex initialisation: scalar", {
 })
 
 test_that_odin("complex initialisation: vector", {
+  skip_for_target("js")
   gen <- odin({
     initial(x1[]) <- norm_rand()
     r[] <- x1[i] * 2
@@ -188,6 +195,7 @@ test_that_odin("complex initialisation: vector", {
 
 
 test_that_odin("can set initial conditions", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -200,6 +208,7 @@ test_that_odin("can set initial conditions", {
 
 
 test_that_odin("can set/omit ynames", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
