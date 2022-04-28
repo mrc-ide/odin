@@ -1,6 +1,6 @@
 "use strict";
 
-function wodinRunner(Dopri, OdinBase, Model, pars, tStart, tEnd, control) {
+function wodinRunner(Dopri, Model, pars, tStart, tEnd, control) {
     const grid = function(from, to, len) {
         const dx = (to - from) / (len - 1);
         const x = [];
