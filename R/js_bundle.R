@@ -51,28 +51,3 @@ odin_js_bundle <- function(code,
 
   ret
 }
-
-
-##' Generate a web page and javascript for a built-in example
-##'
-##' @title Generate a built in example
-##'
-##' @param filename Filename of model to include
-##'
-##' @param dest Destination directory - multiple files will be created
-##'   here, overwriting existing files without prompting.
-##'
-##' @export
-odin_js_example <- function(filename, dest = tempfile()) {
-  ## This is intended to eventually be configurable
-  path <- odin_file("js/example/simple")
-  include <- dir(path, pattern = "\\.js$", full.names = TRUE)
-  html <- dir(path, pattern = "\\.html$", full.names = TRUE)
-
-  dir.create(dest, FALSE, TRUE)
-  writeLines(
-    odin_js_bundle(filename, include = include),
-    file.path(dest, "odin.js"))
-  file.copy(html, dest, overwrite = TRUE)
-  dest
-}
