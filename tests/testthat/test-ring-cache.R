@@ -35,6 +35,7 @@ test_that("model_cache", {
 
 
 test_that("reused cached model", {
+  skip_for_compilation()
   model_cache_clear()
   code <- c("deriv(y) <- 0.5",
             "initial(y) <- 1")

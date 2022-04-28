@@ -26,7 +26,8 @@ can_compile <- function(verbose = FALSE, refresh = FALSE) {
   if (refresh || is.null(.odin$can_compile)) {
     .odin$can_compile <-
       requireNamespace("pkgbuild", quietly = verbose) &&
-      pkgbuild::check_build_tools(verbose, !verbose)
+      tryCatch(pkgbuild::check_build_tools(verbose, !verbose),
+               error = function(e) FALSE)
   }
   .odin$can_compile %||% FALSE
 }

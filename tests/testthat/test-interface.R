@@ -5,6 +5,7 @@ test_that("NSE and SE defaults are the same", {
 })
 
 test_that("verbose", {
+  skip_on_cran()
   expect_output(
     odin({
       initial(x) <- 0
@@ -96,6 +97,7 @@ test_that("odin_ir requires sensible object", {
 
 ## https://github.com/mrc-ide/odin/issues/154
 test_that("delay discrete models with defaults are prevented in C", {
+  skip_for_compilation()
   expect_error(odin({
     r <- 3.6
     update(y) <- r * y * (1 - y)
