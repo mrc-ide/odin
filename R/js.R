@@ -16,9 +16,6 @@ odin_js_wrapper_object <- function(res) {
   ## Then our new code:
   context$eval(paste(res$code, collapse = "\n"))
 
-  ## Keep this here for a bit, to help with debugging:
-  writeLines(paste(res$code, collapse = "\n"),
-             file.path(odin_file("js"), "model.js"))
   is_discrete <- res$features$discrete
 
   ret <- R6::R6Class(
