@@ -1,15 +1,17 @@
-call_odin_bundle <- function(context, name, user, t, y = NULL, control = NULL) {
+call_odin_bundle <- function(name, user, t0, t1, tn, control = NULL) {
+  ct <- V8::v8()
+  ct$eval(bundle$support)
+  ct$eval(bundle$dopri)
+  ct$eval(bundle$model$code)
   context$source(odin_file("js/test.js"))
   user <- to_json_user(user)
-  if (is.null(y)) {
-    y <- V8::JS("null")
-  }
   if (is.null(control)) {
     control_js <- to_json(setNames(list(), character(0)))
   } else {
     control_js <- to_json(control, auto_unbox = TRUE)
   }
-  res <- context$call("run", "odin", user, t, y, control_js)
+  res <- context$call("run", bundle$model$name, t0, t1, tn, y, control_js)
+  browser()
   colnames(res$y) <- res$names
   res$y
 }

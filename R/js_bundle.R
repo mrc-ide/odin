@@ -7,13 +7,16 @@
 ##' @title Create a bundle of an odin model
 ##'
 ##' @param code An expression, string or path to a file containing
-##'   odin code (as for [odin::odin_parse_]
+##'   odin code (as for [odin::odin_parse_]). If `NULL`, compile no
+##'   model and return only the support code.
 ##'
-##' @param include Optional vector of paths of filenames to include
-##'   into the javascript bundle
+##' @param include_support Logical, indicating if the support code
+##'   should be included.
 ##'
 ##' @param include_dopri Logical, indicating if the dopri solver
 ##'   should be included as well.
+##'
+##' @return A list of character vectors.
 ##'
 ##' @export
 ##' @examples
@@ -23,30 +26,30 @@
 ##' }), include_dopri = FALSE)
 ##' head(js)
 odin_js_bundle <- function(code,
-                           include = NULL,
+                           include_support = TRUE,
                            include_dopri = TRUE) {
-  options <- odin_options(target = "js")
-  ir <- odin_parse_(code, options)
-  dat <- generate_js(ir, options)
+  ret <- list()
 
-  support <- c(
-    if (include_dopri) "dopri.js",
-    "support.js",
-    names(which(dat$include)))
-  support_js <- lapply(odin_file(file.path("js", support)),
-                       readLines, warn = FALSE)
-
-  if (!is.null(include)) {
-    include <- js_flatten_eqs(lapply(include, readLines))
+  if (!is.null(code)) {
+    options <- odin_options(target = "js")
+    ## It's not clear why this step is so slow, occasionally -
+    ## possibly the bytecode compiler?
+    ir <- odin_parse_(code, options)
+    dat <- generate_js(ir, options)
+    if (dat$features$discrete) {
+      stop("Can't cope with discrete models yet")
+    }
+    ret$model <- list(code = dat$code, name = dat$name)
   }
 
-  ## TODO: Revisit this now that there's only one generator and work
-  ## out what a sensible return type would be. This depends to a
-  ## degree on how things want to be pushed around in wodin.
-  c(js_flatten_eqs(support_js),
-    sprintf("var %s = {};", JS_GENERATORS),
-    dat$code,
-    include)
+  if (include_support) {
+    ret$support <- readLines(odin_file(file.path("js", "support.js")))
+  }
+  if (include_dopri) {
+    ret$dopri <- readLines(odin_file(file.path("js", "dopri.js")))
+  }
+
+  ret
 }
 
 

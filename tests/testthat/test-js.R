@@ -13,9 +13,8 @@ test_that("trivial model", {
   expect_equal(mod$initial(10), 1)
   expect_equal(mod$deriv(0, 0), 2)
   expect_equal(mod$deriv(10, 10), 2)
-  tt <- 0:10
 
-  ## Ready to pick up here.
+  tt <- 0:10
   yy <- mod$run(tt)
 
   expect_equal(colnames(yy), c("t", "y"))

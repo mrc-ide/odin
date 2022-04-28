@@ -9,7 +9,7 @@ odin_js_wrapper_object <- function(res) {
   ## New js_context:
   context <- V8::v8()
   context$source(odin_file("js/dopri.js"))
-  context$source(odin_file("js/runner.js"))
+  context$source(odin_file("js/support.js"))
   context$source(odin_file("js/wrapper.js"))
   context$eval(sprintf("var %s = {};", JS_INSTANCES))
 
