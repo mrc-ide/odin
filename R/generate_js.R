@@ -8,7 +8,7 @@ generate_js <- function(ir, options) {
   features <- vlapply(dat$features, identity)
   ## Disabling for now: has_interpolate, discrete, has_stochastic
   supported <- c("initial_time_dependent", "has_array", "has_user",
-                 "has_output")
+                 "has_output", "has_delay")
   unsupported <- setdiff(names(features)[features], supported)
   if (length(unsupported) > 0L) {
     stop("Using unsupported features: ",

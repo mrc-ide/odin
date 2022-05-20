@@ -36,7 +36,7 @@ js_extract_variable <- function(x, data_elements, state, rewrite) {
 js_unpack_variable <- function(name, dat, state, rewrite) {
   x <- dat$data$variable$contents[[name]]
   rhs <- js_extract_variable(x, dat$data$elements, state, rewrite)
-  sprintf("var %s = %s;", x$name, rhs)
+  sprintf("const %s = %s;", x$name, rhs)
 }
 
 
@@ -72,5 +72,19 @@ js_fold_call <- function(fn, args) {
     args[[1L]]
   } else {
     sprintf("%s(%s, %s)", fn, args[[1L]], js_fold_call(fn, args[-1]))
+  }
+}
+
+js_expr_if <- function(condition, a, b = NULL) {
+  if (is.null(b)) {
+    c(sprintf_safe("if (%s) {", condition),
+      paste0("  ", js_flatten_eqs(a)),
+      "}")
+  } else {
+    c(sprintf_safe("if (%s) {", condition),
+      paste0("  ", js_flatten_eqs(a)),
+      "} else {",
+      paste0("  ", js_flatten_eqs(b)),
+      "}")
   }
 }

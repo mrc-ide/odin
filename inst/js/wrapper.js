@@ -33,7 +33,8 @@ class OdinWrapper {
     run(t, y0, control) {
         const tStart = t[0];
         const tEnd = t[t.length - 1];
-        const result = this.model.run(tStart, tEnd, y0, control, dopri.Dopri);
+        // TODO: this is a small breaking change for wodin
+        const result = this.model.run(tStart, tEnd, y0, control, dopri);
         return {y: result.solution(t),
                 names: result.names,
                 statistics: result.statistics};
