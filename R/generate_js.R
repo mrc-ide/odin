@@ -129,7 +129,6 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
 
   args <- c(dat$meta$time, dat$meta$state,
             if (dat$features$has_delay) "solution")
-  browser()
   js_function(args, body)
 }
 

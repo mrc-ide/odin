@@ -232,9 +232,12 @@ generate_js_equation_array_rhs <- function(value, index, lhs, rewrite) {
 generate_js_equation_delay_index <- function(eq, data_info, dat, rewrite) {
   delay <- dat$equations[[eq$delay]]$delay
   lhs <- rewrite(eq$lhs)
+  state <- rewrite(delay$state)
 
-  alloc <- sprintf("%s = this.base.zeros(%s)",
-                   lhs, rewrite(delay$variables$length))
+  alloc <- c(sprintf_safe("%s = this.base.zeros(%s)",
+                          lhs, rewrite(delay$variables$length)),
+             sprintf_safe("%s = this.base.zeros(%s)",
+                          state, rewrite(delay$variables$length)))
 
   index1 <- function(v) {
     d <- dat$data$elements[[v$name]]
@@ -284,7 +287,7 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   ## _everything_ but will not work generally.
   unpack_vars <- js_flatten_eqs(lapply(
     names(delay$variables$contents), js_unpack_variable, dat, state, rewrite))
-  unpack_vars <- sub("^var\\s+", "", unpack_vars)
+  unpack_vars <- sub("^(var|const)\\s+", "", unpack_vars)
 
   eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
   eqs <- js_flatten_eqs(lapply(eqs_src, generate_js_equation, dat, rewrite))
