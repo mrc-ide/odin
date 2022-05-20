@@ -271,9 +271,8 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   } else {
     dt <- rewrite(delay$time)
   }
-  time_set <- c(
-    sprintf_safe("const %s = %s;", time_true, time),
-    sprintf_safe("const %s = %s - %s;", time, time_true, dt))
+  time_save <- sprintf_safe("let %s = %s;", time_true, time)
+  time_set <- sprintf_safe("const %s = %s - %s;", time, time_true, dt)
 
   lookup_vars <- sprintf_safe(
     "this.base.delay(%s, %s, %s, %s);",
@@ -316,32 +315,17 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
       unpack_initial <-
         lapply(dat$data$variable$contents[names(delay$variables$contents)],
                unpack_initial1)
-      unpack <- c(decl,
-                  js_expr_if(
-                    sprintf_safe("%s <= %s", time, initial_time),
-                    js_flatten_eqs(unpack_initial),
-                    c(lookup_vars, unpack_vars)))
-    } else {
-      unpack <- NULL
-    }
-    body <- c(time_set, unpack, eqs, expr)
-  } else {
-    if (data_info$rank == 0L) {
-      default <- sprintf_safe("%s = %s;", lhs, rewrite(delay$default))
-    } else {
-      default <- generate_c_equation_array_rhs(delay$default, eq$rhs$index,
-                                               lhs, rewrite)
-    }
-    if (needs_variables) {
       unpack <- c(lookup_vars, unpack_vars)
     } else {
       unpack <- NULL
     }
-    body <- c(time_set,
-              c_expr_if(
-                sprintf_safe("%s <= %s", time, initial_time),
-                default,
-                c(decl, unpack, eqs, expr)))
+    body <- c(decl, time_set, unpack, eqs, expr)
+  } else {
+    ## TODO: We can't easily do this because we need to add some
+    ## support to DDE to catch this condition and instead use our
+    ## initial conditions. To do that, we probably need an alternative
+    ## callback to the interpolation?
+    stop("delay with default not supported")
   }
 
   if (data_info$location == "transient") {
@@ -352,5 +336,5 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
   header <- sprintf_safe("// delay block for %s", eq$name)
 
-  c(header, setup, "{", paste0("  ", body), "}")
+  c(header, time_save, setup, "{", paste0("  ", body), "}")
 }

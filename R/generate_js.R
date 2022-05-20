@@ -91,7 +91,8 @@ generate_js_core_deriv <- function(eqs, dat, rewrite) {
 
   body <- js_flatten_eqs(c(internal, unpack, eqs[equations]))
 
-  args <- c(dat$meta$time, dat$meta$state, dat$meta$result)
+  args <- c(dat$meta$time, dat$meta$state, dat$meta$result,
+            if (dat$features$has_delay) "solution")
   js_function(args, body)
 }
 
@@ -126,7 +127,9 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
   ret <- sprintf("return %s;", dat$meta$output)
   body <- js_flatten_eqs(c(internal, alloc, unpack, eqs[equations], ret))
 
-  args <- c(dat$meta$time, dat$meta$state)
+  args <- c(dat$meta$time, dat$meta$state,
+            if (dat$features$has_delay) "solution")
+  browser()
   js_function(args, body)
 }
 
