@@ -40,6 +40,12 @@ js_unpack_variable <- function(name, dat, state, rewrite) {
 }
 
 
+js_unpack_variable_delay <- function(x, data_elements, state, rewrite) {
+  rhs <- js_extract_variable(x, data_elements, state, rewrite)
+  sprintf("%s = %s;", x$name, rhs)
+}
+
+
 js_array_access <- function(target, index, data, meta) {
   mult <- data$elements[[target]]$dimnames$mult
 

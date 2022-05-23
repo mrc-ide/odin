@@ -281,13 +281,9 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     "this.base.delay(%s, %s, %s, %s);",
     solution, time, index, state)
 
-  ## TODO: Looks like this needs work after all, because we need to
-  ## override the offset and because we won't want the 'var' at the
-  ## front. The below will work for now, because we access
-  ## _everything_ but will not work generally.
   unpack_vars <- js_flatten_eqs(lapply(
-    names(delay$variables$contents), js_unpack_variable, dat, state, rewrite))
-  unpack_vars <- sub("^(var|const)\\s+", "", unpack_vars)
+    delay$variables$contents, js_unpack_variable_delay,
+    dat$data$elements, state, rewrite))
 
   eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
   eqs <- js_flatten_eqs(lapply(eqs_src, generate_js_equation, dat, rewrite))
