@@ -60,6 +60,9 @@ generate_js_core_create <- function(eqs, dat, rewrite) {
   body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
   body$add(js_flatten_eqs(eqs[dat$components$create$equations]))
   body$add("this.setUser(%s, unusedUserAction);", dat$meta$user)
+  if (dat$features$has_delay && !dat$features$discrete) {
+    body$add("this.%s = NaN;", rewrite(dat$meta$initial_time))
+  }
   args <- c("base", dat$meta$user, "unusedUserAction")
   js_function(args, body$get(), "constructor")
 }
@@ -134,9 +137,13 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
 
 
 generate_js_core_run <- function(eqs, dat, rewrite) {
-  body <- "return this.base.run(tStart, tEnd, y0, control, this, Dopri);"
-  args <- c("tStart", "tEnd", "y0", "control", "Dopri")
-  js_function(args, body)
+  body <- collector()
+  if (dat$features$has_delay && !dat$features$discrete) {
+    body$add("this.%s = tStart;", rewrite(dat$meta$initial_time))
+  }
+  body$add("return this.base.run(tStart, tEnd, y0, control, this, dopri);")
+  args <- c("tStart", "tEnd", "y0", "control", "dopri")
+  js_function(args, body$get())
 }
 
 
