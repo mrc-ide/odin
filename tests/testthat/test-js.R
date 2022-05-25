@@ -150,17 +150,6 @@ test_that("accept matrices directly if asked nicely", {
 })
 
 
-test_that("delay models are not supported", {
-  expect_error(
-    odin({
-      ylag <- delay(y, 10)
-      initial(y) <- 0.5
-      deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-    }, target = "js"),
-    "Using unsupported features: 'has_delay'")
-})
-
-
 test_that("some R functions are not available", {
   expect_error(
     odin({
