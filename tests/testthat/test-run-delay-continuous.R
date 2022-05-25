@@ -358,6 +358,9 @@ test_that_odin("delayed delays", {
 
 
 test_that_odin("compute derivative", {
+  ## This is not supported for the js model, and really it's not a
+  ## very sensible thing to try and do with these models anyway.
+  skip_for_target("js")
   gen <- odin({
     deriv(a) <- sin(t)
     initial(a) <- -1

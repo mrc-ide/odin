@@ -49,7 +49,7 @@ validate_ir <- function() {
 
 options(odin.verbose = FALSE,
         odin.validate = validate_ir(),
-        odin.target = "js")
+        odin.target = "c")
 
 
 unload_dlls <- function() {

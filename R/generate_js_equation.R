@@ -254,13 +254,6 @@ generate_js_equation_delay_index <- function(eq, data_info, dat, rewrite) {
 
 
 generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
-  if (data_info$location != "transient") {
-    ## These are probably a bit different because we have allocated
-    ## space already and we need to fill them. However, we can still
-    ## retain much of the existing simplicity if careful.
-    stop("check non-transient delay")
-  }
-
   delay <- eq$delay
   time <- dat$meta$time
   solution <- "solution"
@@ -311,22 +304,30 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     } else {
       unpack <- NULL
     }
-    body <- c(unpack, eqs, expr, sprintf("return %s;", eq$lhs))
+
+    if (data_info$location == "transient") {
+      return_value <- sprintf("return %s;", rewrite(eq$lhs))
+    } else {
+      return_value <- NULL
+    }
+
+    body <- c(unpack, eqs, expr, return_value)
   } else {
     ## TODO: We can't easily do this because we need to add some
     ## support to DDE to catch this condition and instead use our
     ## initial conditions. To do that, we probably need an alternative
-    ## callback to the interpolation?
+    ## callback to the interpolation? We do now have access to our
+    ## initial time, so that's good!
     stop("delay with default not supported")
   }
 
   if (data_info$location == "transient") {
-    setup <- sprintf_safe("var %s;", eq$lhs)
+    call <- sprintf("const %s = ((t) => {", eq$name)
   } else {
-    setup <- NULL
+    call <- "((t) => {"
   }
 
-  c(sprintf_safe("const %s = ((t) => {", eq$name),
+  c(call,
     sprintf_safe("  %s", body),
-    sprintf_safe("})(%s - %s)", time, dt))
+    sprintf_safe("})(%s - %s);", time, dt))
 }

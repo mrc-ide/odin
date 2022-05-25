@@ -111,9 +111,10 @@ test_that_odin("delays and initial conditions", {
   res4 <- mod$run(t + 3, 0.6)
 
   expect_equal(mod$contents()$initial_t, 3.0)
-  ## TODO: error here, nothing too alarming because we get the correct
-  ## answer at least for run
-  expect_equal(mod$contents()$initial_y, 0.6)
+  ## NOTE: we don't save this for js models, because we never look it up later
+  if (mod$engine() != "js") {
+    expect_equal(mod$contents()$initial_y, 0.6)
+  }
   expect_false(isTRUE(all.equal(res4[, 2], res1[, 2])))
 })
 
