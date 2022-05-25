@@ -69,7 +69,6 @@ test_that_odin("user variables on models with none", {
 })
 
 test_that_odin("non-numeric time", {
-  skip_for_target("js")
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
   gen <- odin({
@@ -84,7 +83,6 @@ test_that_odin("non-numeric time", {
 })
 
 test_that_odin("delays and initial conditions", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
@@ -113,6 +111,8 @@ test_that_odin("delays and initial conditions", {
   res4 <- mod$run(t + 3, 0.6)
 
   expect_equal(mod$contents()$initial_t, 3.0)
+  ## TODO: error here, nothing too alarming because we get the correct
+  ## answer at least for run
   expect_equal(mod$contents()$initial_y, 0.6)
   expect_false(isTRUE(all.equal(res4[, 2], res1[, 2])))
 })

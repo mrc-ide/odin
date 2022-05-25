@@ -254,9 +254,15 @@ generate_js_equation_delay_index <- function(eq, data_info, dat, rewrite) {
 
 
 generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
+  if (data_info$location != "transient") {
+    ## These are probably a bit different because we have allocated
+    ## space already and we need to fill them. However, we can still
+    ## retain much of the existing simplicity if careful.
+    stop("check non-transient delay")
+  }
+
   delay <- eq$delay
   time <- dat$meta$time
-  time_true <- sprintf("%s_true", time)
   solution <- "solution"
 
   initial_time <- rewrite(dat$meta$initial_time)
@@ -269,8 +275,6 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   } else {
     dt <- rewrite(delay$time)
   }
-  time_save <- sprintf_safe("let %s = %s;", time_true, time)
-  time_set <- sprintf_safe("const %s = %s - %s;", time, time_true, dt)
 
   lookup_vars <- sprintf_safe(
     "this.base.delay(%s, %s, %s, %s);",
@@ -285,19 +289,13 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
 
   unpack_initial1 <- function(x) {
     d <- dat$data$elements[[x$name]]
-    sprintf_safe("%s = %s;", x$name, rewrite(x$initial))
+    sprintf_safe("let %s = %s;", x$name, rewrite(x$initial))
   }
-
-  decl1 <- function(x) {
-    sprintf_safe("let %s;", x$name)
-  }
-
-  decl <- js_flatten_eqs(lapply(delay$variables$contents, decl1))
 
   rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
   if (data_info$rank == 0L) {
     lhs <- rewrite(eq$lhs)
-    expr <- sprintf_safe("%s = %s;", lhs, rewrite(rhs_expr))
+    expr <- sprintf_safe("const %s = %s;", lhs, rewrite(rhs_expr))
   } else {
     lhs <- generate_js_equation_array_lhs(eq, data_info, dat, rewrite)
     expr <- generate_js_equation_array_rhs(rhs_expr, eq$rhs$index, lhs, rewrite)
@@ -313,7 +311,7 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     } else {
       unpack <- NULL
     }
-    body <- c(decl, time_set, unpack, eqs, expr)
+    body <- c(unpack, eqs, expr, sprintf("return %s;", eq$lhs))
   } else {
     ## TODO: We can't easily do this because we need to add some
     ## support to DDE to catch this condition and instead use our
@@ -328,7 +326,7 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
     setup <- NULL
   }
 
-  header <- sprintf_safe("// delay block for %s", eq$name)
-
-  c(header, time_save, setup, "{", paste0("  ", body), "}")
+  c(sprintf_safe("const %s = ((t) => {", eq$name),
+    sprintf_safe("  %s", body),
+    sprintf_safe("})(%s - %s)", time, dt))
 }

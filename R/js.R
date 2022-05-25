@@ -164,6 +164,10 @@ odin_js_wrapper_object <- function(res) {
         y
       },
 
+      code = function() {
+        res$code
+      },
+
       engine = function() {
         "js"
       },
