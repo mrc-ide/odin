@@ -13,7 +13,7 @@ class OdinWrapper {
     }
 
     rhs(t, y) {
-        var state = OdinBase.zeros(y.length);
+        var state = new Array(y.length);
         var output = null;
         this.model.rhs(t, y, state);
         if (typeof this.model.output === "function") {
