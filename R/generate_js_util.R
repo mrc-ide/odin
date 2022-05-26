@@ -81,16 +81,10 @@ js_fold_call <- function(fn, args) {
   }
 }
 
-js_expr_if <- function(condition, a, b = NULL) {
-  if (is.null(b)) {
-    c(sprintf_safe("if (%s) {", condition),
-      paste0("  ", js_flatten_eqs(a)),
-      "}")
-  } else {
-    c(sprintf_safe("if (%s) {", condition),
-      paste0("  ", js_flatten_eqs(a)),
-      "} else {",
-      paste0("  ", js_flatten_eqs(b)),
-      "}")
-  }
+js_expr_if <- function(condition, a, b) {
+  c(sprintf_safe("if (%s) {", condition),
+    paste0("  ", js_flatten_eqs(a)),
+    "} else {",
+    paste0("  ", js_flatten_eqs(b)),
+    "}")
 }
