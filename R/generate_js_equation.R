@@ -295,30 +295,34 @@ generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
   }
 
   needs_variables <- length(delay$variables$contents) > 0L
-  if (is.null(delay$default)) {
-    if (needs_variables) {
-      unpack_initial <-
-        lapply(dat$data$variable$contents[names(delay$variables$contents)],
-               unpack_initial1)
-      unpack <- c(lookup_vars, unpack_vars)
-    } else {
-      unpack <- NULL
-    }
 
-    if (data_info$location == "transient") {
-      return_value <- sprintf("return %s;", rewrite(eq$lhs))
-    } else {
-      return_value <- NULL
-    }
-
-    body <- c(unpack, eqs, expr, return_value)
+  if (needs_variables) {
+    unpack_initial <-
+      lapply(dat$data$variable$contents[names(delay$variables$contents)],
+             unpack_initial1)
+    unpack <- c(lookup_vars, unpack_vars)
   } else {
-    ## TODO: We can't easily do this because we need to add some
-    ## support to DDE to catch this condition and instead use our
-    ## initial conditions. To do that, we probably need an alternative
-    ## callback to the interpolation? We do now have access to our
-    ## initial time, so that's good!
-    stop("delay with default not supported")
+    unpack <- NULL
+  }
+
+  if (data_info$location == "transient") {
+    return_value <- sprintf("return %s;", rewrite(eq$lhs))
+  } else {
+    return_value <- NULL
+  }
+
+  body <- c(unpack, eqs, expr, return_value)
+  if (!is.null(delay$default)) {
+    if (data_info$rank == 0L) {
+      default <- sprintf_safe("const %s = %s;", lhs, rewrite(delay$default))
+    } else {
+      default <- generate_js_equation_array_rhs(delay$default, eq$rhs$index,
+                                                lhs, rewrite)
+    }
+    body <- js_expr_if(
+      sprintf_safe("%s <= %s", time, rewrite(dat$meta$initial_time)),
+      c(default, return_value),
+      body)
   }
 
   if (data_info$location == "transient") {

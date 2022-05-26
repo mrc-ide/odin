@@ -142,7 +142,6 @@ test_that_odin("delay array storage", {
 })
 
 test_that_odin("3 arg delay", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
@@ -166,7 +165,6 @@ test_that_odin("3 arg delay", {
 
 
 test_that_odin("3 arg delay with array", {
-  skip_for_target("js")
   gen <- odin({
     deriv(a[]) <- i
     initial(a[]) <- (i - 1) / 10
@@ -435,7 +433,6 @@ test_that_odin("compute derivative", {
 ## This triggered a crash in set_initial, due to invalid loading of
 ## array initial variable information
 test_that_odin("delay with array and provide input", {
-  skip_for_target("js")
   gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -480,7 +477,6 @@ test_that_odin("delay with array and provide input", {
 
 
 test_that_odin("set initial conditions in delay differential equation", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
@@ -497,7 +493,6 @@ test_that_odin("set initial conditions in delay differential equation", {
 
 
 test_that_odin("can set/omit ynames", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
