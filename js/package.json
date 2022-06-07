@@ -17,7 +17,7 @@
         "url": "https://github.com/mrc-ide/odin.js/issues"
     },
     "dependencies": {
-        "dopri": "^0.0.8",
+        "dopri": "^0.0.9",
         "random": "^2.2.0"
     },
     "homepage": "https://github.com/mrc-ide/odin.js#readme"
