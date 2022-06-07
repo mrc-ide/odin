@@ -6,8 +6,9 @@ generate_js <- function(ir, options) {
   }
 
   features <- vlapply(dat$features, identity)
+  ## Disabling for now: has_interpolate, discrete, has_stochastic
   supported <- c("initial_time_dependent", "has_array", "has_user",
-                 "has_output", "has_interpolate", "discrete", "has_stochastic")
+                 "has_output")
   unsupported <- setdiff(names(features)[features], supported)
   if (length(unsupported) > 0L) {
     stop("Using unsupported features: ",
@@ -37,9 +38,8 @@ generate_js_core <- function(eqs, dat, rewrite) {
   core <- list(
     create = generate_js_core_create(eqs, dat, rewrite),
     set_user = generate_js_core_set_user(eqs, dat, rewrite),
-    rhs_eval = generate_js_core_rhs_eval(eqs, dat, rewrite),
-    run = generate_js_core_run(eqs, dat, rewrite),
     output = generate_js_core_output(eqs, dat, rewrite),
+    run = generate_js_core_run(eqs, dat, rewrite),
     metadata = generate_js_core_metadata(eqs, dat, rewrite),
     coef = generate_js_coef(eqs, dat, rewrite),
     initial_conditions = generate_js_core_initial_conditions(
@@ -55,31 +55,30 @@ generate_js_core <- function(eqs, dat, rewrite) {
 
 generate_js_core_create <- function(eqs, dat, rewrite) {
   body <- collector()
+  body$add("this.base = base;")
   body$add("this.%s = {};", dat$meta$internal)
   body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
   body$add(js_flatten_eqs(eqs[dat$components$create$equations]))
   body$add("this.setUser(%s, unusedUserAction);", dat$meta$user)
-  args <- c(dat$meta$user, "unusedUserAction")
-  js_function(args, body$get(), dat$config$base)
+  args <- c("base", dat$meta$user, "unusedUserAction")
+  js_function(args, body$get(), "constructor")
 }
 
 
 generate_js_core_set_user <- function(eqs, dat, rewrite) {
   update_metadata <- "this.updateMetadata();"
   allowed <- paste(dquote(names(dat$user)), collapse = ", ")
-  check_user <- sprintf("checkUser(%s, [%s], unusedUserAction);",
+  check_user <- sprintf("this.base.checkUser(%s, [%s], unusedUserAction);",
                         dat$meta$user, allowed)
+  body <- collector()
+  body$add(check_user)
   if (dat$features$has_user) {
-    body <- c(
-      check_user,
-      sprintf("var %s = this.%s;", dat$meta$internal, dat$meta$internal),
-      js_flatten_eqs(eqs[dat$components$user$equations]),
-      update_metadata)
-  } else {
-    body <- c(check_user, update_metadata)
+    body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
+    body$add(js_flatten_eqs(eqs[dat$components$user$equations]))
   }
+  body$add(update_metadata)
   args <- c(dat$meta$user, "unusedUserAction")
-  js_function(args, body)
+  js_function(args, body$get())
 }
 
 
@@ -133,15 +132,8 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
 
 
 generate_js_core_run <- function(eqs, dat, rewrite) {
-  if (dat$features$discrete) {
-    args <- c("times", "y0")
-    body <- sprintf("return iterateOdin(this, times, y0, %s);",
-                    rewrite(dat$data$output$length))
-  } else {
-    args <- c("times", "y0", "control")
-    body <-
-      "return integrateOdin(this, times, y0, control);"
-  }
+  body <- "return this.base.run(tStart, tEnd, y0, control, this, Dopri);"
+  args <- c("tStart", "tEnd", "y0", "control", "Dopri")
   js_function(args, body)
 }
 
@@ -149,9 +141,6 @@ generate_js_core_run <- function(eqs, dat, rewrite) {
 generate_js_coef <- function(eqs, dat, rewrite) {
   if (!dat$features$has_user) {
     return("{}")
-  }
-  js_dict <- function(x) {
-    sprintf("{%s}", paste(sprintf("%s: %s", names(x), x), collapse = ", "))
   }
   f <- function(x) {
     data_info <- dat$data$elements[[x$name]]
@@ -228,16 +217,6 @@ generate_js_core_metadata <- function(eqs, dat, rewrite) {
           sprintf("%s[%s - 1]", rewrite(x),
                   rewrite(dat$data$elements[[x]]$dimnames$length))))
     }
-    body <- c(
-      body,
-      "this.metadata.interpolateTimes = {",
-      sprintf("  min: %s,", args_min),
-      sprintf("  max: %s", args_max),
-      "};")
-  } else {
-    body <- c(
-      body,
-      "this.metadata.interpolateTimes = null;")
   }
 
   len_block <- function(location) {
@@ -253,9 +232,8 @@ generate_js_core_metadata <- function(eqs, dat, rewrite) {
     if (length(contents) == 0) {
       sprintf("this.metadata.%sOrder = null;", location)
     } else {
-      len <- vcapply(contents, generate_js_dim, rewrite)
-      sprintf("this.metadata.%sOrder = {\n  %s\n};",
-              location, paste(len, collapse = ",\n  "))
+      len <- js_dict(vcapply(contents, generate_js_dim, rewrite))
+      sprintf("this.metadata.%sOrder = %s;", location, len)
     }
   }
 
@@ -265,39 +243,6 @@ generate_js_core_metadata <- function(eqs, dat, rewrite) {
             len_block("output"))
 
   js_function(NULL, body)
-}
-
-
-## This one is just a helper - not sure if it's optimally structured.
-generate_js_core_rhs_eval <- function(eqs, dat, rewrite) {
-  args <- c(dat$meta$time, dat$meta$state)
-
-  if (dat$features$discrete && dat$features$has_output) {
-    body <- c(
-      sprintf("var %s = zeros(%s.length);",
-              dat$meta$result, dat$meta$state),
-      sprintf("var %s = zeros(%s);",
-              dat$meta$output, rewrite(dat$data$output$length)),
-      sprintf("this.rhs(%s, %s, %s, %s);",
-              dat$meta$time, dat$meta$state, dat$meta$result, dat$meta$output),
-      sprintf("return %s.concat(%s);", dat$meta$result, dat$meta$output))
-  } else {
-    if (dat$features$has_output) {
-      output <- sprintf("%s = %s.concat(this.output(%s, %s));",
-                        dat$meta$result, dat$meta$result, dat$meta$time,
-                        dat$meta$state)
-    } else {
-      output <- NULL
-    }
-    body <- c(
-      sprintf("var %s = zeros(%s.length);", dat$meta$result, dat$meta$state),
-      sprintf("this.rhs(%s, %s, %s);",
-              dat$meta$time, dat$meta$state, dat$meta$result),
-      output,
-      sprintf("return %s;", dat$meta$result))
-  }
-
-  js_function(args, body)
 }
 
 
@@ -333,7 +278,7 @@ generate_js_core_initial_conditions <- function(eqs, dat, rewrite) {
   body <- collector()
   body$add(internal)
   body$add(js_flatten_eqs(eqs_initial))
-  body$add("var %s = zeros(%s);",
+  body$add("var %s = this.base.zeros(%s);",
            dat$meta$state, rewrite(dat$data$variable$length))
   body$add(initial)
   body$add("return %s;", dat$meta$state)
@@ -344,36 +289,32 @@ generate_js_core_initial_conditions <- function(eqs, dat, rewrite) {
 
 
 generate_js_generator <- function(core, dat) {
-  base <- dat$config$base
-  method <- function(name, x) {
-    n <- length(x)
-    x[[1]] <- sprintf("%s.prototype.%s = %s", base, name, x[[1]])
-    x[[n]] <- paste0(x[[n]], ";")
+  field <- function(name, x) {
+    x[[1]] <- sprintf("%s = %s", name, x[[1]])
     x
   }
-  field <- function(name, x) {
-    stopifnot(length(x) == 1)
-    sprintf("%s.prototype.%s = %s;", base, name, x)
+  method <- function(name, x) {
+    x[[1]] <- sub("^function", name, x[[1]])
+    x
   }
 
   body <- collector()
   body$add(core$create)
-  body$add(method("setUser", core$set_user))
+  body$add(field("coef", core$coef))
   body$add(method("rhs", core$rhs))
   if (!is.null(core$output)) {
     body$add(method("output", core$output))
   }
-  body$add(field("interpolateTime", "null"))
-  body$add(method("rhsEval", core$rhs_eval))
-  body$add(method("initial", core$initial_conditions))
   body$add(method("run", core$run))
-  body$add(field("coef", core$coef))
+  body$add(method("initial", core$initial_conditions))
   body$add(method("updateMetadata", core$metadata))
-  body$add("return %s;", base)
+  body$add(method("setUser", core$set_user))
 
-  c(sprintf("%s.%s = (function() {", JS_GENERATORS, base),
-    paste0("  ", body$get()),
-    "}());")
+  code <- c(sprintf("class %s {", dat$config$base),
+            paste0("  ", body$get()),
+            "}")
+
+  code
 }
 
 
@@ -386,5 +327,5 @@ generate_js_dim <- function(data_info, rewrite) {
     len <- sprintf(
       "[%s]", paste(vcapply(data_info$dimnames$dim, rewrite), collapse = ", "))
   }
-  sprintf('"%s": %s', data_info$name, len)
+  len
 }

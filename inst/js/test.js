@@ -1,5 +1,4 @@
-// code for use with a test model:
-function run(name, user, t, y, control) {
-    var mod = new odin[name](user);
-    return mod.run(t, y, control);
+function call_odin_bundle(Odin, pars, tStart, tEnd, nPoints, control) {
+    var solution = wodinRunner(dopri.Dopri, Odin, pars, tStart, tEnd, control);
+    return solution(tStart, tEnd, nPoints);
 }

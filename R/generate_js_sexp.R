@@ -78,7 +78,7 @@ generate_js_sexp_sum <- function(args, data, meta) {
 
   if (length(args) == 1L) {
     len <- generate_js_sexp(data_info$dimnames$length, data, meta)
-    sprintf("odinSum1(%s, 0, %s)", target, len)
+    sprintf("this.base.odinSum1(%s, 0, %s)", target, len)
   } else {
     i <- seq(2, length(args), by = 2)
 
@@ -88,7 +88,7 @@ generate_js_sexp_sum <- function(args, data, meta) {
     values[-i] <- vcapply(all_args[-i], generate_js_sexp, data, meta)
     arg_str <- paste(values, collapse = ", ")
 
-    sprintf("odinSum%d(%s)", length(i), arg_str)
+    sprintf("this.base.odinSum%d(%s)", length(i), arg_str)
   }
 }
 
@@ -96,9 +96,9 @@ generate_js_sexp_sum <- function(args, data, meta) {
 FUNCTIONS_JS_RENAME <- c(
   "^" = "Math.pow",
   ceiling = "Math.ceil",
-  round = "round2",
-  "%%" = "modr",
-  "%/%" = "intdivr",
+  round = "this.base.round2",
+  "%%" = "this.base.modr",
+  "%/%" = "this.base.intdivr",
   "as.integer" = "Math.floor"
 )
 

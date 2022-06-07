@@ -193,7 +193,7 @@ test_that_odin("lv", {
   res_r <- run_model(mod_r, t, pars)
   res_c <- mod_c$run(t)
 
-  tol <- variable_tolerance(mod_c, js = 1e-6)
+  tol <- variable_tolerance(mod_c, js = 2e-6)
   expect_equal(res_c[], res_r[], check.attributes = FALSE, tolerance = tol)
   y <- mod_c$transform_variables(res_c)
   expect_is(y, "list")

@@ -6,8 +6,18 @@ odin_js_wrapper <- function(ir, options) {
 
 ##' @importFrom R6 R6Class
 odin_js_wrapper_object <- function(res) {
-  context <- js_context(names(which(res$include)))
+  ## New js_context:
+  context <- V8::v8()
+  context$source(odin_file("js/dopri.js"))
+  context$source(odin_file("js/support.js"))
+  context$source(odin_file("js/wrapper.js"))
+  context$eval(sprintf("var %s = {};", JS_INSTANCES))
+
+  ## Then our new code:
   context$eval(paste(res$code, collapse = "\n"))
+
+  is_discrete <- res$features$discrete
+  private <- NULL
 
   ret <- R6::R6Class(
     "odin_model",
@@ -29,15 +39,11 @@ odin_js_wrapper_object <- function(res) {
       },
 
       update_metadata = function() {
-        private$internal_order <-
-          private$context$get(
-            sprintf("%s.metadata.internalOrder", private$name))
-        private$variable_order <-
-          private$context$get(
-            sprintf("%s.metadata.variableOrder", private$name))
-        private$output_order <-
-          private$context$get(
-            sprintf("%s.metadata.outputOrder", private$name))
+        metadata <- private$context$call(
+          sprintf("%s.getMetadata", private$name))
+        private$internal_order <- metadata$internalOrder
+        private$variable_order <- metadata$variableOrder
+        private$output_order <- metadata$outputOrder
       },
 
       js_call = function(...) {
@@ -56,16 +62,17 @@ odin_js_wrapper_object <- function(res) {
         user_js <- to_json_user(user)
         unused_user_action <- unused_user_action %||%
           getOption("odin.unused_user_action", "warning")
-        init <- sprintf("%s = new %s.%s(%s, %s);",
-                        private$name, JS_GENERATORS, private$generator,
+        init <- sprintf("%s = new OdinWrapper(OdinBase, %s, %s, %s);",
+                        private$name, private$generator,
                         user_js, dquote(unused_user_action))
+        private$js_eval(init)
+        private$update_metadata()
+
         if (private$features$discrete) {
           self$update <- self$rhs
         } else {
           self$deriv <- self$rhs
         }
-        private$js_eval(init)
-        private$update_metadata()
 
         lockEnvironment(self)
       },
@@ -89,21 +96,18 @@ odin_js_wrapper_object <- function(res) {
       },
 
       rhs = function(t, y) {
-        ## TODO: check length of 'y' here?
         t_js <- to_json_js(scalar(t))
         y_js <- to_json_js(y, auto_unbox = FALSE)
-        ret <- private$js_call(sprintf("%s.rhsEval", private$name),
-                               t_js, y_js)
-        ## This is super ugly but should do the trick for now:
-        if (length(ret) > length(y)) {
-          i <- seq_along(y)
-          ret <- structure(ret[i], output = ret[-i])
+        res <- private$js_call(sprintf("%s.rhs", private$name), t_js, y_js)
+        if (length(res$output) == 0) {
+          res$state
+        } else {
+          structure(res$state, output = res$output)
         }
-        ret
       },
 
       contents = function() {
-        ret <- private$context$get(sprintf("%s.internal", private$name))
+        ret <- private$context$call(sprintf("%s.getInternal", private$name))
         order <- private$internal_order
         for (i in names(ret)) {
           d <- order[[i]]
@@ -134,12 +138,13 @@ odin_js_wrapper_object <- function(res) {
         control <- control[!vlapply(control, is.null)]
         control_js <- to_json_js(control, auto_unbox = TRUE)
 
-        ## NOTE: tcrit here is ignored when calling the discrete time
-        ## model
-        res <- private$js_call(sprintf("%s.run", private$name),
-                               t_js, y_js, control_js)
+        res <- private$js_call(sprintf("%s.run", private$name), t_js, y_js,
+                               control_js)
+
+        ## Need to add time on
+        y <- cbind(t, res$y, deparse.level = 0)
         if (use_names) {
-          colnames(res$y) <- res$names
+          colnames(y) <- c(if (is_discrete) STEP else TIME, res$names)
         }
 
         if (return_statistics) {
@@ -149,9 +154,9 @@ odin_js_wrapper_object <- function(res) {
                           n_step = res$statistics$nSteps,
                           n_accept = res$statistics$nStepsAccepted,
                           n_reject = res$statistics$nStepsRejected)
-          attr(res$y, "statistics") <- statistics
+          attr(y, "statistics") <- statistics
         }
-        res$y
+        y
       },
 
       engine = function() {
@@ -179,8 +184,6 @@ js_context <- function(include) {
     ct$source(odin_file(file.path("js", f)))
   }
 
-  ## TODO: once working drop this GENERATORS bit
-  ct$eval(sprintf("var %s = {};", JS_GENERATORS))
   ct$eval(sprintf("var %s = {};", JS_INSTANCES))
   ct
 }

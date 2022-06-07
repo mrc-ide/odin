@@ -1,6 +1,7 @@
 context("run: stochastic")
 
 test_that_odin("stochastic", {
+  skip_for_target("js")
   ## Here's a stochastic random walk:
   gen <- odin({
     initial(x) <- 0
@@ -31,6 +32,7 @@ test_that_odin("stochastic", {
 ## variable that is used only in the initial condition I do not want
 ## that repeatedly called during the run.
 test_that_odin("stochastic variables are time dependent", {
+  skip_for_target("js")
   gen <- odin({
     v <- norm_rand() # this variable is implicitly time dependent.
     initial(x) <- 0
@@ -53,6 +55,7 @@ test_that_odin("stochastic variables are time dependent", {
 
 
 test_that_odin("array stochastic variables are time dependent", {
+  skip_for_target("js")
   ## This checks that even in the absence of array indexing on the RHS
   ## array variables are set correctly when stochastic.
   gen <- odin({
@@ -78,6 +81,7 @@ test_that_odin("array stochastic variables are time dependent", {
 
 
 test_that_odin("stochastic initial conditions don't get called every step", {
+  skip_for_target("js")
   ## There is quite a few nasty little conditions that are tested
   ## here.
   gen <- odin({
@@ -135,6 +139,7 @@ test_that_odin("stochastic initial conditions don't get called every step", {
 
 
 test_that_odin("exotic stochastic functions", {
+  skip_for_target("js")
   gen <- odin({
     initial(x) <- 0
     mu <- 1
@@ -158,6 +163,7 @@ test_that_odin("exotic stochastic functions", {
 
 
 test_that_odin("round & rbinom", {
+  skip_for_target("js")
   gen <- odin({
     size <- user()
     p <- user()
@@ -242,6 +248,7 @@ test_that_odin("replicate: array", {
 
 
 test_that_odin("low-level stochastics: norm_rand", {
+  skip_for_target("js")
   gen <- odin({
     initial(y) <- 0
     update(y) <- norm_rand()
@@ -263,6 +270,7 @@ test_that_odin("low-level stochastics: norm_rand", {
 
 
 test_that_odin("low-level stochastics: unif_rand", {
+  skip_for_target("js")
   gen <- odin({
     initial(y) <- 0
     update(y) <- unif_rand()
@@ -285,6 +293,7 @@ test_that_odin("low-level stochastics: unif_rand", {
 
 
 test_that_odin("low-level stochastics: exp_rand", {
+  skip_for_target("js")
   gen <- odin({
     initial(y) <- 0
     update(y) <- exp_rand()
@@ -306,6 +315,7 @@ test_that_odin("low-level stochastics: exp_rand", {
 
 
 test_that_odin("rexp parametrisation", {
+  skip_for_target("js")
   gen <- odin({
     initial(y) <- 0
     update(y) <- rexp(10)

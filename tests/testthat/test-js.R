@@ -13,6 +13,7 @@ test_that("trivial model", {
   expect_equal(mod$initial(10), 1)
   expect_equal(mod$deriv(0, 0), 2)
   expect_equal(mod$deriv(10, 10), 2)
+
   tt <- 0:10
   yy <- mod$run(tt)
 
@@ -39,8 +40,6 @@ test_that("Time dependent rhs", {
     r <- 2 * t
   }, target = "js")
 
-  ## This looks like a reasonable rhs but it's going through the
-  ## internal storage instead of being transient.
   mod <- gen$new()
 
   tt <- 0:10
@@ -107,6 +106,28 @@ test_that("user variables", {
   mod$set_user()
   expect_equal(mod$contents()$r, pi)
   expect_equal(mod$contents()$N0, exp(1))
+})
+
+
+test_that("models with output", {
+  gen <- odin({
+    deriv(y) <- 2
+    initial(y) <- 1
+    output(z) <- t
+  }, target = "js")
+
+  tt <- 0:10
+
+  mod <- gen$new()
+
+  expect_equal(mod$deriv(0, 1), structure(2, output = 0))
+  expect_equal(mod$deriv(10, 1), structure(2, output = 10))
+
+  yy1 <- mod$run(tt)
+  expect_equal(colnames(yy1), c("t", "y", "z"))
+  expect_equal(yy1[, "t"], tt)
+  expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
+  expect_equal(yy1[, "z"], tt)
 })
 
 

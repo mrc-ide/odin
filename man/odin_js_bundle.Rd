@@ -4,17 +4,21 @@
 \alias{odin_js_bundle}
 \title{Create a bundle of an odin model}
 \usage{
-odin_js_bundle(code, include = NULL, include_dopri = TRUE)
+odin_js_bundle(code, include_support = TRUE, include_dopri = TRUE)
 }
 \arguments{
 \item{code}{An expression, string or path to a file containing
-odin code (as for \link{odin_parse_}}
+odin code (as for \link{odin_parse_}). If \code{NULL}, compile no
+model and return only the support code.}
 
-\item{include}{Optional vector of paths of filenames to include
-into the javascript bundle}
+\item{include_support}{Logical, indicating if the support code
+should be included.}
 
 \item{include_dopri}{Logical, indicating if the dopri solver
 should be included as well.}
+}
+\value{
+A list of character vectors.
 }
 \description{
 Create a JavaScript bundle of an odin model

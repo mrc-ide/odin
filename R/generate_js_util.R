@@ -6,6 +6,8 @@ js_flatten_eqs <- function(eqs) {
 js_function <- function(args, body, name = NULL) {
   if (is.null(name)) {
     start <- sprintf("function(%s) {", paste(args, collapse = ", "))
+  } else if (name == "constructor") {
+    start <- sprintf("constructor(%s) {", paste(args, collapse = ", "))
   } else {
     start <- sprintf("function %s(%s) {", name, paste(args, collapse = ", "))
   }
@@ -15,6 +17,9 @@ js_function <- function(args, body, name = NULL) {
   c(start, body, "}")
 }
 
+js_dict <- function(x) {
+  sprintf("{%s}", paste(sprintf("%s: %s", names(x), x), collapse = ", "))
+}
 
 js_extract_variable <- function(x, data_elements, state, rewrite) {
   d <- data_elements[[x$name]]

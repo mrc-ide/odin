@@ -32,3 +32,4 @@
 ^\.lintr$
 ^\.eslintignore$
 ^js$
+^\.V8history$
