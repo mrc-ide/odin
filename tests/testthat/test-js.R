@@ -247,3 +247,15 @@ test_that("Can't include code into js models (yet)", {
   "config(include) is not yet supported with JavaScript",
   fixed = TRUE)
 })
+
+
+test_that("Can show generated code", {
+  skip_if_not_installed("V8")
+  gen <- odin({
+    deriv(y) <- 1
+    initial(y) <- 1
+  }, target = "js")
+  code <- gen$public_methods$code()
+  expect_type(code, "character")
+  expect_equal(code[[1]], "class odin {")
+})
