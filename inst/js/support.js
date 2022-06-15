@@ -94,7 +94,7 @@ class OdinBase {
             if (min !== null && value < min) {
                 throw Error("Expected '" + name + "' to be at least " + min);
             }
-            if (max !== null && value > m)x) {
+            if (max !== null && value > max) {
                 throw Error("Expected '" + name + "' to be at most " + max);
             }
             if (isInteger && !OdinBase.numberIsInteger(value)) {
