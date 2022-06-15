@@ -8,7 +8,7 @@ generate_js <- function(ir, options) {
   features <- vlapply(dat$features, identity)
   ## Disabling for now: has_interpolate, discrete, has_stochastic
   supported <- c("initial_time_dependent", "has_array", "has_user",
-                 "has_output")
+                 "has_output", "has_delay")
   unsupported <- setdiff(names(features)[features], supported)
   if (length(unsupported) > 0L) {
     stop("Using unsupported features: ",
@@ -60,6 +60,9 @@ generate_js_core_create <- function(eqs, dat, rewrite) {
   body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
   body$add(js_flatten_eqs(eqs[dat$components$create$equations]))
   body$add("this.setUser(%s, unusedUserAction);", dat$meta$user)
+  if (dat$features$has_delay && !dat$features$discrete) {
+    body$add("this.%s = NaN;", rewrite(dat$meta$initial_time))
+  }
   args <- c("base", dat$meta$user, "unusedUserAction")
   js_function(args, body$get(), "constructor")
 }
@@ -91,7 +94,8 @@ generate_js_core_deriv <- function(eqs, dat, rewrite) {
 
   body <- js_flatten_eqs(c(internal, unpack, eqs[equations]))
 
-  args <- c(dat$meta$time, dat$meta$state, dat$meta$result)
+  args <- c(dat$meta$time, dat$meta$state, dat$meta$result,
+            if (dat$features$has_delay) "solution")
   js_function(args, body)
 }
 
@@ -126,15 +130,20 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
   ret <- sprintf("return %s;", dat$meta$output)
   body <- js_flatten_eqs(c(internal, alloc, unpack, eqs[equations], ret))
 
-  args <- c(dat$meta$time, dat$meta$state)
+  args <- c(dat$meta$time, dat$meta$state,
+            if (dat$features$has_delay) "solution")
   js_function(args, body)
 }
 
 
 generate_js_core_run <- function(eqs, dat, rewrite) {
-  body <- "return this.base.run(tStart, tEnd, y0, control, this, Dopri);"
-  args <- c("tStart", "tEnd", "y0", "control", "Dopri")
-  js_function(args, body)
+  body <- collector()
+  if (dat$features$has_delay && !dat$features$discrete) {
+    body$add("this.%s = tStart;", rewrite(dat$meta$initial_time))
+  }
+  body$add("return this.base.run(tStart, tEnd, y0, control, this, dopri);")
+  args <- c("tStart", "tEnd", "y0", "control", "dopri")
+  js_function(args, body$get())
 }
 
 

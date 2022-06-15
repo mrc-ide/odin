@@ -1,6 +1,6 @@
 "use strict";
 
-function wodinRunner(Dopri, Model, pars, tStart, tEnd, control) {
+function wodinRunner(dopri, Model, pars, tStart, tEnd, control) {
     const grid = function(from, to, len) {
         const dx = (to - from) / (len - 1);
         const x = [];
@@ -12,7 +12,7 @@ function wodinRunner(Dopri, Model, pars, tStart, tEnd, control) {
 
     const model = new Model(OdinBase, pars, "error");
     const y0 = null; // Always use model-provide initial conditions
-    const result = model.run(tStart, tEnd, y0, control, Dopri);
+    const result = model.run(tStart, tEnd, y0, control, dopri);
     const solution = result.solution;
     const names = result.names;
     return function(t0, t1, nPoints) {
@@ -24,6 +24,16 @@ function wodinRunner(Dopri, Model, pars, tStart, tEnd, control) {
 }
 
 class OdinBase {
+    static delay(solution, t, index, state) {
+        // Later, we'll update dopri.js to allow passing index here,
+        // which will make this more efficient. However, no change to
+        // the external interface will be neeed.
+        var y = solution(t);
+        for (var i = 0; i < index.length; ++i) {
+            state[i] = y[index[i]];
+        }
+    }
+
     static isMissing(x) {
         return x === undefined || x === null ||
             (typeof x === "number" && isNaN(x));
@@ -84,7 +94,7 @@ class OdinBase {
             if (min !== null && value < min) {
                 throw Error("Expected '" + name + "' to be at least " + min);
             }
-            if (max !== null && value > min) {
+            if (max !== null && value > max) {
                 throw Error("Expected '" + name + "' to be at most " + max);
             }
             if (isInteger && !OdinBase.numberIsInteger(value)) {
@@ -267,16 +277,37 @@ class OdinBase {
         return OdinBase.flatten(rest, result)
     }
 
-    static run(tStart, tEnd, y0, control, model, Dopri) {
+    // NOTE: dopri here, not Dopri - breaking wodin change
+    static run(tStart, tEnd, y0, control, model, dopri) {
         if (y0 === null) {
             y0 = model.initial(tStart);
         }
-        const rhs = function(t, y, dydt) {
-            model.rhs(t, y, dydt);
+        // TODO: All this logic could be easily put into a function or
+        // methods within the dopri package. Something like
+        // `createSolver` seems sensible?
+        const hasDelay = model.rhs.length === 4;
+        const hasOutput = typeof model.output === "function";
+        let rhs;
+        let output = null;
+        let Solver;
+        if (hasDelay) {
+            Solver = dopri.DDE;
+            rhs = function(t, y, dydt, solution) {
+                model.rhs(t, y, dydt, solution);
+            }
+            if (hasOutput) {
+                output = ((t, y, solution) => model.output(t, y, solution));
+            }
+        } else {
+            Solver = dopri.Dopri;
+            rhs = function(t, y, dydt) {
+                model.rhs(t, y, dydt);
+            }
+            if (hasOutput) {
+                output = ((t, y) => model.output(t, y));
+            }
         }
-        const output = typeof model.output === "function" ?
-              ((t, y) => model.output(t, y)) : null;
-        const solver = new Dopri(rhs, y0.length, control, output);
+        const solver = new Solver(rhs, y0.length, control, output);
         solver.initialise(tStart, y0);
         const solution = solver.run(tEnd);
         const names = model.metadata.ynames.slice(1);
@@ -479,5 +510,4 @@ class OdinBase {
         }
         return tot;
     }
-
 }

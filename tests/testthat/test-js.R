@@ -150,17 +150,6 @@ test_that("accept matrices directly if asked nicely", {
 })
 
 
-test_that("delay models are not supported", {
-  expect_error(
-    odin({
-      ylag <- delay(y, 10)
-      initial(y) <- 0.5
-      deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-    }, target = "js"),
-    "Using unsupported features: 'has_delay'")
-})
-
-
 test_that("some R functions are not available", {
   expect_error(
     odin({
@@ -257,4 +246,16 @@ test_that("Can't include code into js models (yet)", {
   }, target = "js"),
   "config(include) is not yet supported with JavaScript",
   fixed = TRUE)
+})
+
+
+test_that("Can show generated code", {
+  skip_if_not_installed("V8")
+  gen <- odin({
+    deriv(y) <- 1
+    initial(y) <- 1
+  }, target = "js")
+  code <- gen$public_methods$code()
+  expect_type(code, "character")
+  expect_equal(code[[1]], "class odin {")
 })

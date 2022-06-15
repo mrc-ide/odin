@@ -89,8 +89,8 @@ var DDE = /** @class */ (function (_super) {
         return _this;
     }
     DDE.prototype.initialise = function (t, y) {
-        _super.prototype.initialise.call(this, t, y);
         this._y0 = y;
+        _super.prototype.initialise.call(this, t, y);
         return this;
     };
     DDE.prototype._interpolate = function (t) {

@@ -17,6 +17,7 @@ odin_js_wrapper_object <- function(res) {
   context$eval(paste(res$code, collapse = "\n"))
 
   is_discrete <- res$features$discrete
+  is_continuous_delay <- res$features$has_delay && !is_discrete
   private <- NULL
 
   ret <- R6::R6Class(
@@ -115,6 +116,10 @@ odin_js_wrapper_object <- function(res) {
             dim(ret[[i]]) <- d
           }
         }
+        if (is_continuous_delay && is.null(ret$initial_t)) {
+          ## NaN serialises to NULL, which is not quite what we want
+          ret$initial_t <- NA_real_
+        }
         ret
       },
 
@@ -157,6 +162,10 @@ odin_js_wrapper_object <- function(res) {
           attr(y, "statistics") <- statistics
         }
         y
+      },
+
+      code = function() {
+        res$code
       },
 
       engine = function() {

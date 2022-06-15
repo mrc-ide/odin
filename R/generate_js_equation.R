@@ -13,6 +13,8 @@ generate_js_equation <- function(eq, dat, rewrite) {
     copy = generate_js_equation_copy,
     user = generate_js_equation_user,
     interpolate = generate_js_equation_interpolate,
+    delay_index = generate_js_equation_delay_index,
+    delay_continuous = generate_js_equation_delay_continuous,
     stop(sprintf("Unknown type '%s' [odin.js bug]", eq$type)))
 
   data_info <- dat$data$elements[[eq$lhs]]
@@ -173,12 +175,7 @@ generate_js_equation_array_lhs <- function(eq, data_info, dat, rewrite) {
   if (eq$type == "expression_array") {
     index <- vcapply(eq$rhs[[1]]$index, "[[", "index")
   } else {
-    ## This is here to support delays, which are not yet supported.
-    ## This *shoul* work but leaving in an assertion so that I
-    ## remember to double check it and remove the "no coverage"
-    ## marker.
-    stop("check for delays") # nocov
-    index <- lapply(eq$rhs$index, "[[", "index") # nocov
+    index <- lapply(eq$rhs$index, "[[", "index")
   }
   location <- data_info$location
 
@@ -224,4 +221,108 @@ generate_js_equation_array_rhs <- function(value, index, lhs, rewrite) {
     ret <- c("{", paste("  ", ret), "}")
   }
   ret
+}
+
+
+generate_js_equation_delay_index <- function(eq, data_info, dat, rewrite) {
+  delay <- dat$equations[[eq$delay]]$delay
+  lhs <- rewrite(eq$lhs)
+  state <- rewrite(delay$state)
+
+  alloc <- c(sprintf_safe("%s = this.base.zeros(%s)",
+                          lhs, rewrite(delay$variables$length)),
+             sprintf_safe("%s = this.base.zeros(%s)",
+                          state, rewrite(delay$variables$length)))
+
+  generate_index <- function(v) {
+    d <- dat$data$elements[[v$name]]
+    offset <- dat$data$variable$contents[[v$name]]$offset
+    if (d$rank == 0L) {
+      sprintf_safe("%s[%s] = %s;", lhs, v$offset, offset)
+    } else {
+      loop <- sprintf_safe(
+        "for (var i = 0, j = %s; i < %s; ++i, ++j) {",
+        rewrite(offset), rewrite(d$dimnames$length))
+      c(loop,
+        sprintf_safe("  %s[%s + i] = j;", lhs, rewrite(v$offset)),
+        "}")
+    }
+  }
+  index <- unname(lapply(delay$variables$contents, generate_index))
+  c(alloc, index)
+}
+
+
+generate_js_equation_delay_continuous <- function(eq, data_info, dat, rewrite) {
+  delay <- eq$delay
+  time <- dat$meta$time
+  solution <- "solution"
+
+  initial_time <- rewrite(dat$meta$initial_time)
+  state <- rewrite(delay$state)
+  index <- rewrite(delay$index)
+  len <- rewrite(delay$variables$length)
+
+  if (is.recursive(delay$time)) {
+    dt <- rewrite(call("(", delay$time))
+  } else {
+    dt <- rewrite(delay$time)
+  }
+
+  lookup_vars <- sprintf_safe(
+    "this.base.delay(%s, %s, %s, %s);",
+    solution, time, index, state)
+
+  unpack_vars <- js_flatten_eqs(lapply(
+    delay$variables$contents, js_unpack_variable_delay,
+    dat$data$elements, state, rewrite))
+
+  eqs_src <- ir_substitute(dat$equations[delay$equations], delay$substitutions)
+  eqs <- js_flatten_eqs(lapply(eqs_src, generate_js_equation, dat, rewrite))
+
+  rhs_expr <- ir_substitute_sexpr(eq$rhs$value, delay$substitutions)
+  if (data_info$rank == 0L) {
+    lhs <- rewrite(eq$lhs)
+    expr <- sprintf_safe("const %s = %s;", lhs, rewrite(rhs_expr))
+  } else {
+    lhs <- generate_js_equation_array_lhs(eq, data_info, dat, rewrite)
+    expr <- generate_js_equation_array_rhs(rhs_expr, eq$rhs$index, lhs, rewrite)
+  }
+
+  needs_variables <- length(delay$variables$contents) > 0L
+  if (needs_variables) {
+    unpack <- c(lookup_vars, unpack_vars)
+  } else {
+    unpack <- NULL
+  }
+
+  if (data_info$location == "transient") {
+    return_value <- sprintf("return %s;", rewrite(eq$lhs))
+  } else {
+    return_value <- NULL
+  }
+
+  body <- c(unpack, eqs, expr, return_value)
+  if (!is.null(delay$default)) {
+    if (data_info$rank == 0L) {
+      default <- sprintf_safe("const %s = %s;", lhs, rewrite(delay$default))
+    } else {
+      default <- generate_js_equation_array_rhs(delay$default, eq$rhs$index,
+                                                lhs, rewrite)
+    }
+    body <- js_expr_if(
+      sprintf_safe("%s <= %s", time, rewrite(dat$meta$initial_time)),
+      c(default, return_value),
+      body)
+  }
+
+  if (data_info$location == "transient") {
+    call <- sprintf("const %s = ((t) => {", eq$name)
+  } else {
+    call <- "((t) => {"
+  }
+
+  c(call,
+    sprintf_safe("  %s", body),
+    sprintf_safe("})(%s - %s);", time, dt))
 }

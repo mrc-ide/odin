@@ -1,7 +1,6 @@
 context("run: continuous delays")
 
 test_that_odin("mixed delay model", {
-  skip_for_target("js")
   ## I want a model where the components of a delay are an array and a
   ## scalar.  This is going to be a pretty common thing to have, and I
   ## think it will throw up a few corner cases that are worth keeping
@@ -71,7 +70,6 @@ test_that_odin("mixed delay model", {
 
 
 test_that_odin("use subset of variables", {
-  skip_for_target("js")
   gen <- odin({
     deriv(a) <- 1
     deriv(b) <- 2
@@ -92,7 +90,6 @@ test_that_odin("use subset of variables", {
 })
 
 test_that_odin("delay array storage", {
-  skip_for_target("js")
   gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -145,7 +142,6 @@ test_that_odin("delay array storage", {
 })
 
 test_that_odin("3 arg delay", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 3, 2) # lag time 3, default value 2
     initial(y) <- 0.5
@@ -169,7 +165,6 @@ test_that_odin("3 arg delay", {
 
 
 test_that_odin("3 arg delay with array", {
-  skip_for_target("js")
   gen <- odin({
     deriv(a[]) <- i
     initial(a[]) <- (i - 1) / 10
@@ -200,7 +195,6 @@ test_that_odin("3 arg delay with array", {
 ## This should also be done with a couple of scalars thrown in here
 ## too I think; they change things also.
 test_that_odin("delay index packing", {
-  skip_for_target("js")
   gen <- odin({
     deriv(a[]) <- i
     deriv(b[]) <- i
@@ -239,14 +233,14 @@ test_that_odin("delay index packing", {
 
   seq0 <- function(n) seq_len(n)
 
-  if (odin_target_name() == "c") {
+  if (odin_target_name() != "r") {
     expect_length(dat$delay_state_foo, dim_b + dim_c + dim_e)
   }
 
   delay_index_foo <- c(dim_a + seq0(dim_b),
                        offset_variable_c + seq0(dim_c),
                        offset_variable_e + seq0(dim_e))
-  if (odin_target_name() == "c") {
+  if (odin_target_name() != "r") {
     delay_index_foo <- delay_index_foo - 1L
   }
   expect_equal(dat$delay_index_foo, delay_index_foo)
@@ -263,7 +257,6 @@ test_that_odin("delay index packing", {
 
 
 test_that_odin("nontrivial time", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
@@ -279,7 +272,6 @@ test_that_odin("nontrivial time", {
 
 
 test_that_odin("overlapping array storage", {
-  skip_for_target("js")
   gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -340,7 +332,6 @@ test_that_odin("overlapping array storage", {
 
 
 test_that_odin("delayed delays", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- y
     initial(y) <- 1
@@ -365,6 +356,8 @@ test_that_odin("delayed delays", {
 
 
 test_that_odin("compute derivative", {
+  ## This is not supported for the js model, and really it's not a
+  ## very sensible thing to try and do with these models anyway.
   skip_for_target("js")
   gen <- odin({
     deriv(a) <- sin(t)
@@ -440,7 +433,6 @@ test_that_odin("compute derivative", {
 ## This triggered a crash in set_initial, due to invalid loading of
 ## array initial variable information
 test_that_odin("delay with array and provide input", {
-  skip_for_target("js")
   gen <- odin({
     ## Exponential growth/decay of 'y'
     deriv(y[]) <- r[i] * y[i]
@@ -485,7 +477,6 @@ test_that_odin("delay with array and provide input", {
 
 
 test_that_odin("set initial conditions in delay differential equation", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
@@ -502,7 +493,6 @@ test_that_odin("set initial conditions in delay differential equation", {
 
 
 test_that_odin("can set/omit ynames", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 2 + 3)
     initial(y) <- 0.5
