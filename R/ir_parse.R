@@ -214,7 +214,7 @@ ir_parse_find_variables <- function(eqs, common, source) {
   is_special <- vlapply(eqs, function(x) !is.null(x$lhs$special))
   special <- vcapply(eqs[is_special], function(x) x$lhs$special)
   name_data <- vcapply(eqs[is_special], function(x) x$lhs$name_data)
-  
+
   rhs_fun <- common$rhs
   rhs_fun_show <- paste0(rhs_fun, "()", collapse = " or ")
 
@@ -499,7 +499,7 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
 
   if (common$mixed) {
     MIXED <- names_if(vlapply(eqs, function(x)
-      identical(x$lhs$special, "update"))) 
+      identical(x$lhs$special, "update")))
     v <- unique(unlist(dependencies[MIXED], use.names = FALSE))
     eqs_MIXED <- intersect(eqs_time, c(MIXED, v))
     variables_MIXED <- intersect(variables, v)
