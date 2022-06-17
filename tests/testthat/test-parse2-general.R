@@ -94,10 +94,6 @@ test_that("compatible rhs", {
   expect_error(odin_parse("update(y) = 1; initial(x) = 2"),
                "must contain same set of equations",
                class = "odin_error")
-
-  expect_error(odin_parse(
-    "deriv(y) = 1; update(z) = 1; initial(y) = 1; initial(z) = 1;"),
-    "Cannot mix deriv() and update()", fixed = TRUE, class = "odin_error")
 })
 
 
