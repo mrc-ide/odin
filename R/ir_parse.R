@@ -12,9 +12,7 @@ ir_parse <- function(x, options, type = NULL) {
                             options$config_custom)
   features <- ir_parse_features(eqs, config, source)
 
-  ## TODO: lots in common here, can probably combine
   common <- ir_parse_common(features)
-  meta <- ir_parse_meta(features$continuous)
 
   variables <- ir_parse_find_variables(eqs, common, source)
 
@@ -53,6 +51,8 @@ ir_parse <- function(x, options, type = NULL) {
   }
 
   eqs <- eqs[order(names(eqs))]
+
+  meta <- ir_parse_meta(common)
 
   ## If we have arrays, then around this point we will also be
   ## generating a number of additional offset and dimension length
@@ -197,16 +197,15 @@ ir_parse_common <- function(features) {
 }
 
 
-ir_parse_meta <- function(continuous) {
-  time <- if (continuous) TIME else STEP
-  result <- if (continuous) DSTATEDT else STATE_NEXT
+ir_parse_meta <- function(common) {
+  result <- if (common$continuous) DSTATEDT else STATE_NEXT
   list(internal = INTERNAL,
        user = USER,
        state = STATE,
        result = result,
        output = OUTPUT,
-       time = time,
-       initial_time = initial_name(time))
+       time = common$time,
+       initial_time = initial_name(common$time))
 }
 
 
