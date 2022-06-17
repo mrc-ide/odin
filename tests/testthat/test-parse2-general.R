@@ -864,7 +864,7 @@ test_that("Can parse a simple mixed model", {
     dat$components$rhs,
     list(variables = "a", equations = "deriv_x"))
   expect_equal(
-    dat$components$stochastic_update,
+    dat$components$update_stochastic,
     list(variables = "a", equations = "update_a"))
 })
 
