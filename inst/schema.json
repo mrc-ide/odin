@@ -190,7 +190,9 @@
         "features": {
             "type": "object",
             "properties": {
+                "continuous": { "type": "boolean" },
                 "discrete": { "type": "boolean" },
+                "mixed": { "type": "boolean" },
                 "has_array": { "type": "boolean" },
                 "has_output": { "type": "boolean" },
                 "has_user": { "type": "boolean" },
@@ -735,7 +737,8 @@
                 "user": { "$ref": "#/definitions/component" },
                 "initial": { "$ref": "#/definitions/component" },
                 "rhs": { "$ref": "#/definitions/component" },
-                "output": { "$ref": "#/definitions/component" }
+                "output": { "$ref": "#/definitions/component" },
+                "MIXED": {}
             },
             "required": ["create", "user", "initial", "rhs", "output"],
             "additionalProperties": false

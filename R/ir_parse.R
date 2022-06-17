@@ -7,13 +7,16 @@ ir_parse <- function(x, options, type = NULL) {
   dat <- ir_parse_exprs(exprs)
   eqs <- dat$eqs
   source <- dat$source
-
   ## Data elements:
   config <- ir_parse_config(eqs, base, root, source, options$read_include,
                             options$config_custom)
   features <- ir_parse_features(eqs, config, source)
 
-  variables <- ir_parse_find_variables(eqs, features$discrete, source)
+  ## TODO: lots in common here, can probably combine
+  common <- ir_parse_common(features)
+  meta <- ir_parse_meta(features$continuous)
+
+  variables <- ir_parse_find_variables(eqs, common, source)
 
   eqs <- lapply(eqs, ir_parse_rewrite_initial, variables)
   eqs <- ir_parse_arrays(eqs, variables, config$include$names, source)
@@ -33,7 +36,7 @@ ir_parse <- function(x, options, type = NULL) {
   packing$offsets <- NULL
 
   if (features$has_interpolate) {
-    eqs <- ir_parse_interpolate(eqs, features$discrete, source)
+    eqs <- ir_parse_interpolate(eqs, common, source)
     i <- vcapply(eqs, "[[", "type") == "alloc_interpolate"
     f <- function(v) {
       sort(unique(unlist(unname(lapply(eqs[i], function(eq)
@@ -46,20 +49,18 @@ ir_parse <- function(x, options, type = NULL) {
   }
 
   if (features$has_delay) {
-    eqs <- ir_parse_delay(eqs, features$discrete, packing$variables, source)
+    eqs <- ir_parse_delay(eqs, common, packing$variables, source)
   }
 
   eqs <- eqs[order(names(eqs))]
-
-  meta <- ir_parse_meta(features$discrete)
 
   ## If we have arrays, then around this point we will also be
   ## generating a number of additional offset and dimension length
   ## variables.  So watch for the "data" element to have extra return
   ## objects perhaps.
 
-  dependencies <- ir_parse_dependencies(eqs, variables, meta$time, source)
-  stage <- ir_parse_stage(eqs, dependencies, variables, meta$time, source)
+  dependencies <- ir_parse_dependencies(eqs, variables, common$time, source)
+  stage <- ir_parse_stage(eqs, dependencies, variables, common$time, source)
 
   eqs_initial <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, "initial")))
@@ -78,11 +79,11 @@ ir_parse <- function(x, options, type = NULL) {
   }
 
   components <- ir_parse_components(eqs, dependencies, variables, stage,
-                                    features$discrete, source, options)
+                                    common, source, options)
   equations <- ir_parse_equations(eqs)
 
   ## TODO: it's a bit unclear where this best belongs
-  ir_parse_check_functions(eqs, features$discrete, config$include$names, source)
+  ir_parse_check_functions(eqs, common, config$include$names, source)
 
   ret <- list(version = .odin$version,
               config = config,
@@ -184,9 +185,21 @@ ir_parse_data_element <- function(x, stage) {
 }
 
 
-ir_parse_meta <- function(discrete) {
-  time <- if (discrete) STEP else TIME
-  result <- if (discrete) STATE_NEXT else DSTATEDT
+ir_parse_common <- function(features) {
+  time <- if (features$continuous) TIME else STEP
+  rhs <- c(if (features$discrete) "update",
+           if (features$continuous) "deriv")
+  list(continuous = features$continuous,
+       discrete = features$discrete,
+       mixed = features$mixed,
+       time = time,
+       rhs = rhs)
+}
+
+
+ir_parse_meta <- function(continuous) {
+  time <- if (continuous) TIME else STEP
+  result <- if (continuous) DSTATEDT else STATE_NEXT
   list(internal = INTERNAL,
        user = USER,
        state = STATE,
@@ -197,13 +210,16 @@ ir_parse_meta <- function(discrete) {
 }
 
 
-ir_parse_find_variables <- function(eqs, discrete, source) {
+ir_parse_find_variables <- function(eqs, common, source) {
   is_special <- vlapply(eqs, function(x) !is.null(x$lhs$special))
   special <- vcapply(eqs[is_special], function(x) x$lhs$special)
   name_data <- vcapply(eqs[is_special], function(x) x$lhs$name_data)
-  rhs_fun <- if (discrete) "update" else "deriv"
+  
+  rhs_fun <- common$rhs
+  rhs_fun_show <- paste0(rhs_fun, "()", collapse = " or ")
+
   is_initial <- special == "initial"
-  is_var <- special == rhs_fun
+  is_var <- special %in% rhs_fun
 
   ## Extract the *real* name here:
   vars <- name_data[is_var]
@@ -213,28 +229,32 @@ ir_parse_find_variables <- function(eqs, discrete, source) {
     msg <- collector()
     msg_initial <- setdiff(vars, vars_initial)
     if (length(msg_initial) > 0L) {
-      msg$add("\tin %s() but not initial(): %s",
-              rhs_fun, paste(msg_initial, collapse = ", "))
+      msg$add("\tin %s but not initial(): %s",
+              rhs_fun_show, paste(msg_initial, collapse = ", "))
     }
     msg_vars <- setdiff(vars_initial, vars)
     if (length(msg_vars) > 0L) {
-      msg$add("\tin initial() but not %s(): %s",
-              rhs_fun, paste(msg_vars, collapse = ", "))
+      msg$add("\tin initial() but not %s: %s",
+              rhs_fun_show, paste(msg_vars, collapse = ", "))
     }
     tmp <- eqs[is_var | is_initial]
     ir_parse_error(sprintf(
-      "%s() and initial() must contain same set of equations:\n%s\n",
-      rhs_fun, paste(msg$get(), collapse = "\n")),
+      "%s and initial() must contain same set of equations:\n%s\n",
+      rhs_fun_show, paste(msg$get(), collapse = "\n")),
       ir_parse_error_lines(tmp), source)
   }
 
   err <- names(eqs) %in% vars
   if (any(err)) {
     ir_parse_error(
-      sprintf("variables on lhs must be within %s() or initial() (%s)",
-              rhs_fun,
+      sprintf("variables on lhs must be within %s or initial() (%s)",
+              rhs_fun_show,
               paste(intersect(vars, names(eqs)), collapse = ", ")),
       ir_parse_error_lines(eqs[err]), source)
+  }
+
+  if (common$mixed) {
+    ## TODO: test that nothing is updated in both
   }
 
   unique(unname(vars))
@@ -433,17 +453,14 @@ ir_parse_features <- function(eqs, config, source) {
   is_interpolate <- vlapply(eqs, function(x) !is.null(x$interpolate))
   is_stochastic <- vlapply(eqs, function(x) isTRUE(x$stochastic))
 
-  if (any(is_update) && any(is_deriv)) {
-    tmp <- eqs[is_deriv | is_update]
-    ir_parse_error("Cannot mix deriv() and update()",
-                   ir_parse_error_lines(tmp), source)
-  }
   if (!any(is_update | is_deriv)) {
     ir_parse_error("Did not find a deriv() or an update() call",
                    NULL, NULL)
   }
 
-  list(discrete = any(is_update),
+  list(continuous = any(is_deriv),
+       discrete = any(is_update),
+       mixed = any(is_update) && any(is_deriv),
        has_array = any(is_dim),
        has_output = any(is_output),
        has_user = any(is_user),
@@ -456,13 +473,13 @@ ir_parse_features <- function(eqs, config, source) {
 
 
 ir_parse_components <- function(eqs, dependencies, variables, stage,
-                                discrete, source, options) {
+                                common, source, options) {
   eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
   eqs_user <- intersect(names_if(stage == STAGE_USER), names(eqs))
   eqs_time <- intersect(names_if(stage == STAGE_TIME), names(eqs))
 
   ## NOTE: we need the equation name here, not the variable name
-  rhs_special <- if (discrete) "update" else "deriv"
+  rhs_special <- if (common$continuous) "deriv" else "update"
   rhs <- names_if(vlapply(eqs, function(x)
     identical(x$lhs$special, rhs_special)))
   v <- unique(unlist(dependencies[rhs], use.names = FALSE))
@@ -480,8 +497,19 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
   v <- unique(c(initial, unlist(dependencies[initial], use.names = FALSE)))
   eqs_initial <- intersect(eqs_time, v)
 
+  if (common$mixed) {
+    MIXED <- names_if(vlapply(eqs, function(x)
+      identical(x$lhs$special, "update"))) 
+    v <- unique(unlist(dependencies[MIXED], use.names = FALSE))
+    eqs_MIXED <- intersect(eqs_time, c(MIXED, v))
+    variables_MIXED <- intersect(variables, v)
+  } else {
+    eqs_MIXED <- NULL
+  }
+
   type <- vcapply(eqs, "[[", "type")
-  core <- unique(c(initial, rhs, output, eqs_initial, eqs_rhs, eqs_output))
+  core <- unique(c(initial, rhs, output, eqs_initial, eqs_rhs, eqs_output,
+                   eqs_MIXED))
 
   used_in_delay <- unlist(lapply(eqs[type == "delay_continuous"], function(x)
     x$delay$depends$variables), FALSE, FALSE)
@@ -498,6 +526,7 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     user = list(variables = character(0), equations = eqs_user),
     initial = list(variables = character(0), equations = eqs_initial),
     rhs = list(variables = variables_rhs, equations = eqs_rhs),
+    MIXED = list(variables = variables_MIXED, equations = eqs_MIXED),
     output = list(variables = variables_output, equations = eqs_output))
 }
 
@@ -1042,16 +1071,16 @@ ir_parse_depends <- function(functions = character(0),
 }
 
 
-ir_parse_interpolate <- function(eqs, discrete, source) {
+ir_parse_interpolate <- function(eqs, common, source) {
   type <- vcapply(eqs, "[[", "type")
   for (eq in eqs[type == "interpolate"]) {
-    eqs <- ir_parse_interpolate1(eq, eqs, discrete, source)
+    eqs <- ir_parse_interpolate1(eq, eqs, common, source)
   }
   eqs
 }
 
 
-ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
+ir_parse_interpolate1 <- function(eq, eqs, common, source) {
   nm <- eq$lhs$name_lhs
 
   nm_alloc <- sprintf("interpolate_%s", nm)
@@ -1094,7 +1123,7 @@ ir_parse_interpolate1 <- function(eq, eqs, discrete, source) {
   }
 
   eq_alloc$interpolate$equation <- nm
-  time <- if (discrete) STEP else TIME
+  time <- common$time
 
   eq_use <- eq
   eq_use$type <- "interpolate"
@@ -1161,11 +1190,13 @@ ir_parse_rewrite_initial <- function(eq, variables) {
 }
 
 
-ir_parse_check_functions <- function(eqs, discrete, include, source) {
+ir_parse_check_functions <- function(eqs, common, include, source) {
   used_functions <- lapply(eqs, function(x) x$depends$functions)
   all_used_functions <- unique(unlist(used_functions))
 
-  if (!discrete) {
+  if (!common$discrete) {
+    ## TODO: we can't really do this properly for mixed models without
+    ## looking at the full graph.
     err <- intersect(all_used_functions, names(FUNCTIONS_STOCHASTIC))
     if (length(err) > 0L) {
       tmp <- eqs[vlapply(used_functions, function(x) any(x %in% err))]
@@ -1182,7 +1213,7 @@ ir_parse_check_functions <- function(eqs, discrete, include, source) {
                names(FUNCTIONS_RENAME),
                "odin_sum",
                include,
-               if (discrete) names(FUNCTIONS_STOCHASTIC))
+               if (common$discrete) names(FUNCTIONS_STOCHASTIC))
 
   err <- setdiff(all_used_functions, allowed)
   if (length(err) > 0L) {
@@ -1196,10 +1227,10 @@ ir_parse_check_functions <- function(eqs, discrete, include, source) {
 
 
 ## See ir_parse_interpolate for the same pattern
-ir_parse_delay <- function(eqs, discrete, variables, source) {
+ir_parse_delay <- function(eqs, common, variables, source) {
   type <- vcapply(eqs, "[[", "type")
   for (eq in eqs[type == "delay"]) {
-    if (discrete) {
+    if (common$discrete) {
       eqs <- ir_parse_delay_discrete(eq, eqs, source)
       initial_time <- initial_name(STEP)
       initial_time_type <- "int"
