@@ -505,6 +505,7 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     variables_MIXED <- intersect(variables, v)
   } else {
     eqs_MIXED <- NULL
+    variables_MIXED <- NULL
   }
 
   type <- vcapply(eqs, "[[", "type")
