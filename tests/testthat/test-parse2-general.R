@@ -849,7 +849,7 @@ test_that("Can't use named args", {
 })
 
 
-test_that("Can generate a mixed model", {
+test_that("Can parse a simple mixed model", {
   ir <- odin_parse({
     initial(x) <- 0
     deriv(x) <- a
@@ -866,4 +866,16 @@ test_that("Can generate a mixed model", {
   expect_equal(
     dat$components$MIXED,
     list(variables = "a", equations = "update_a"))
+})
+
+
+test_that("Prevent use of a variable in both deriv and update", {
+  expect_error(odin_parse({
+    initial(x) <- 0
+    v <- user()
+    deriv(x) <- a + v
+    update(x) <- a + 1 + v
+  }),
+  "Both update() and deriv() equations present for x",
+  fixed = TRUE)
 })

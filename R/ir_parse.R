@@ -237,7 +237,7 @@ ir_parse_find_variables <- function(eqs, common, source) {
       msg$add("\tin initial() but not %s: %s",
               rhs_fun_show, paste(msg_vars, collapse = ", "))
     }
-    tmp <- eqs[is_var | is_initial]
+    tmp <- eqs[is_special][is_var | is_initial]
     ir_parse_error(sprintf(
       "%s and initial() must contain same set of equations:\n%s\n",
       rhs_fun_show, paste(msg$get(), collapse = "\n")),
@@ -254,7 +254,15 @@ ir_parse_find_variables <- function(eqs, common, source) {
   }
 
   if (common$mixed) {
-    ## TODO: test that nothing is updated in both
+    var_both <- intersect(name_data[special == "update"],
+                          name_data[special == "deriv"])
+    if (length(var_both) > 0) {
+      tmp <- eqs[is_special][name_data %in% var_both & !is_initial]
+      ir_parse_error(sprintf(
+        "Both update() and deriv() equations present for %s:",
+        paste(var_both, collapse = ", ")),
+        ir_parse_error_lines(tmp), source)
+    }
   }
 
   unique(unname(vars))
