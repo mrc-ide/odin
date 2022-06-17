@@ -506,19 +506,19 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
   eqs_initial <- intersect(eqs_time, v)
 
   if (common$mixed) {
-    MIXED <- names_if(vlapply(eqs, function(x)
+    stochastic_update <- names_if(vlapply(eqs, function(x)
       identical(x$lhs$special, "update")))
-    v <- unique(unlist(dependencies[MIXED], use.names = FALSE))
-    eqs_MIXED <- intersect(eqs_time, c(MIXED, v))
-    variables_MIXED <- intersect(variables, v)
+    v <- unique(unlist(dependencies[stochastic_update], use.names = FALSE))
+    eqs_stochastic_update <- intersect(eqs_time, c(stochastic_update, v))
+    variables_stochastic_update <- intersect(variables, v)
   } else {
-    eqs_MIXED <- NULL
-    variables_MIXED <- NULL
+    eqs_stochastic_update <- character(0)
+    variables_stochastic_update <- character(0)
   }
 
   type <- vcapply(eqs, "[[", "type")
   core <- unique(c(initial, rhs, output, eqs_initial, eqs_rhs, eqs_output,
-                   eqs_MIXED))
+                   eqs_stochastic_update))
 
   used_in_delay <- unlist(lapply(eqs[type == "delay_continuous"], function(x)
     x$delay$depends$variables), FALSE, FALSE)
@@ -535,7 +535,8 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     user = list(variables = character(0), equations = eqs_user),
     initial = list(variables = character(0), equations = eqs_initial),
     rhs = list(variables = variables_rhs, equations = eqs_rhs),
-    MIXED = list(variables = variables_MIXED, equations = eqs_MIXED),
+    stochastic_update = list(variables = variables_stochastic_update,
+                             equations = eqs_stochastic_update),
     output = list(variables = variables_output, equations = eqs_output))
 }
 

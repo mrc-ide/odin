@@ -738,7 +738,7 @@
                 "initial": { "$ref": "#/definitions/component" },
                 "rhs": { "$ref": "#/definitions/component" },
                 "output": { "$ref": "#/definitions/component" },
-                "MIXED": {}
+                "stochastic_update": { "$ref": "#/definitions/component" }
             },
             "required": ["create", "user", "initial", "rhs", "output"],
             "additionalProperties": false
