@@ -1,6 +1,10 @@
 generate_js <- function(ir, options) {
   dat <- odin_ir_deserialise(ir)
 
+  if (dat$features$mixed) {
+    stop("Models that mix deriv() and update() are not supported")
+  }
+
   rewrite <- function(x) {
     generate_js_sexp(x, dat$data, dat$meta)
   }
