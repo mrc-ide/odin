@@ -847,3 +847,23 @@ test_that("Can't use named args", {
     "Named argument calls not supported in odin",
     fixed = TRUE)
 })
+
+
+test_that("Can generate a mixed model", {
+  ir <- odin_parse({
+    initial(x) <- 0
+    deriv(x) <- a
+    initial(a) <- 0
+    update(a) <- a + 1
+  })
+  dat <- ir_deserialise(ir)
+  expect_true(dat$features$continuous)
+  expect_true(dat$features$discrete)
+  expect_true(dat$features$mixed)
+  expect_equal(
+    dat$components$rhs,
+    list(variables = "a", equations = "deriv_x"))
+  expect_equal(
+    dat$components$MIXED,
+    list(variables = "a", equations = "update_a"))
+})
