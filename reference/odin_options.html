@@ -19,7 +19,7 @@ than individually named options."><meta property="og:image" content="/logo.png">
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.4</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.5</span>
       </span>
     </div>
 
@@ -86,37 +86,53 @@ than individually named options.</p>
 <dd><p>Logical scalar indicating if the compilation should
 be verbose.  Defaults to the value of the option
 <code>odin.verbose</code> or <code>FALSE</code> otherwise.</p></dd>
+
+
 <dt>target</dt>
 <dd><p>Compilation target.  Options are "c", "r" or "js",
 defaulting to the option <code>odin.target</code> or "c" otherwise.</p></dd>
+
+
 <dt>workdir</dt>
 <dd><p>Directory to use for any generated files.  This is
 only relevant for the "c" target.  Defaults to the value of the
 option <code>odin.workdir</code> or <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> otherwise.</p></dd>
+
+
 <dt>validate</dt>
 <dd><p>Validate the model's intermediate representation
 against the included schema.  Normally this is not needed and is
 intended primarily for development use.  Defaults to the value
 of the option <code>odin.validate</code> or <code>FALSE</code> otherwise.</p></dd>
+
+
 <dt>pretty</dt>
 <dd><p>Pretty-print the model's intermediate
 representation.  Normally this is not needed and is intended
 primarily for development use.  Defaults to the value of the
 option <code>odin.pretty</code> or <code>FALSE</code> otherwise.</p></dd>
+
+
 <dt>skip_cache</dt>
 <dd><p>Skip odin's cache.  This might be useful if the
 model appears not to compile when you would expect it to.
 Hopefully this will not be needed often.  Defaults to the option
 <code>odin.skip_cache</code> or <code>FALSE</code> otherwise.</p></dd>
+
+
 <dt>compiler_warnings</dt>
 <dd><p>Previously this attempted detection of
 compiler warnings (with some degree of success), but is
 currently ignored. This may become supported again in a future
 version depending on underlying support in pkgbuild.</p></dd>
+
+
 <dt>no_check_unused_equations</dt>
 <dd><p>If <code>TRUE</code>, then don't print
 messages about unused variables.  Defaults to the option
 <code>odin.no_check_unused_equations</code> or <code>FALSE</code> otherwise.</p></dd>
+
+
 <dt>rewrite_dims</dt>
 <dd><p>Logical, indicating if odin should try and
 rewrite your model dimensions (if using arrays). If <code>TRUE</code> then
@@ -125,6 +141,8 @@ integers, and those known at initialisation with simplified and
 shared expressions. You may get less-comprehensible error
 messages with this option set to <code>TRUE</code> because parts of the
 model have been effectively evaluated during processing.</p></dd>
+
+
 <dt>rewrite_constants</dt>
 <dd><p>Logical, indicating if odin should try
 and rewrite <em>all</em> constant scalars. This is a superset of
@@ -134,6 +152,8 @@ expressions that have been extensively rewritten, some variables
 will have been removed entirely or merged with other identical
 expressions, and the generated code may not be obviously
 connected to the original code.</p></dd>
+
+
 <dt>substitutions</dt>
 <dd><p>Optionally, a list of values to substitute
 into model specification as constants, even though they are
@@ -141,13 +161,20 @@ declared as <code>user()</code>. This will be most useful in conjunction
 with <code>rewrite_dims</code> to create a copy of your model with
 dimensions known at compile time and all loops using literal
 integers.</p></dd>
+
+
 <dt>options</dt>
 <dd><p>Named list of options.  If provided, then all other
 options are ignored.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>A list of parameters, of class <code>odin_options</code></p>
+    
+
+<p>A list of parameters, of class <code>odin_options</code></p>
+
+
     </div>
 
     <div id="ref-examples">
@@ -166,7 +193,7 @@ options are ignored.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $workdir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//Rtmp8GYhBH/file352f25ef8dda"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpSZgNeo/file8b8744eee0c"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $skip_cache</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
@@ -203,7 +230,7 @@ options are ignored.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     list(names = name, data = list(names = name, declarations = decl, </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         definitions = defn, filename = filename))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x7fd8196f83e8&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x7fbe401af9b0&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:odin&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
@@ -222,7 +249,7 @@ options are ignored.</p></dd>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
 </div>
 
       </footer></div>
