@@ -1,12 +1,17 @@
 generate_js <- function(ir, options) {
   dat <- odin_ir_deserialise(ir)
 
+  if (dat$features$mixed) {
+    stop("Models that mix deriv() and update() are not supported")
+  }
+
   rewrite <- function(x) {
     generate_js_sexp(x, dat$data, dat$meta)
   }
 
   features <- vlapply(dat$features, identity)
-  supported <- c("initial_time_dependent", "has_array", "has_user",
+  supported <- c("continuous",
+                 "initial_time_dependent", "has_array", "has_user",
                  "has_output", "has_interpolate", "discrete", "has_stochastic")
   unsupported <- setdiff(names(features)[features], supported)
   if (length(unsupported) > 0L) {

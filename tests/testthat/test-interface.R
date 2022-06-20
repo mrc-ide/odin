@@ -149,4 +149,15 @@ test_that("compatibility layer passes to R6 class", {
 })
 
 
+test_that_odin("mixed models not supported by any odin target", {
+  expect_error(odin({
+    initial(x) <- 0
+    deriv(x) <- a
+    initial(a) <- 0
+    update(a) <- a + 1
+  }),
+  "Models that mix deriv() and update() are not supported",
+  fixed = TRUE)
+})
+
 unload_dlls()
