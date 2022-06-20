@@ -24,6 +24,10 @@ generate_c_meta <- function(base, internal) {
 generate_c_code <- function(dat, options, package) {
   dat$meta$c <- generate_c_meta(dat$config$base, dat$meta$internal)
 
+  if (dat$features$mixed) {
+    stop("Models that mix deriv() and update() are not supported")
+  }
+
   if (dat$features$has_delay) {
     dat$data$elements[[dat$meta$c$use_dde]] <-
       list(name = dat$meta$c$use_dde,

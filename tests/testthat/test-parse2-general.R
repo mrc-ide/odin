@@ -94,10 +94,6 @@ test_that("compatible rhs", {
   expect_error(odin_parse("update(y) = 1; initial(x) = 2"),
                "must contain same set of equations",
                class = "odin_error")
-
-  expect_error(odin_parse(
-    "deriv(y) = 1; update(z) = 1; initial(y) = 1; initial(z) = 1;"),
-    "Cannot mix deriv() and update()", fixed = TRUE, class = "odin_error")
 })
 
 
@@ -850,4 +846,36 @@ test_that("Can't use named args", {
     }),
     "Named argument calls not supported in odin",
     fixed = TRUE)
+})
+
+
+test_that("Can parse a simple mixed model", {
+  ir <- odin_parse({
+    initial(x) <- 0
+    deriv(x) <- a
+    initial(a) <- 0
+    update(a) <- a + 1
+  })
+  dat <- ir_deserialise(ir)
+  expect_true(dat$features$continuous)
+  expect_true(dat$features$discrete)
+  expect_true(dat$features$mixed)
+  expect_equal(
+    dat$components$rhs,
+    list(variables = "a", equations = "deriv_x"))
+  expect_equal(
+    dat$components$update_stochastic,
+    list(variables = "a", equations = "update_a"))
+})
+
+
+test_that("Prevent use of a variable in both deriv and update", {
+  expect_error(odin_parse({
+    initial(x) <- 0
+    v <- user()
+    deriv(x) <- a + v
+    update(x) <- a + 1 + v
+  }),
+  "Both update() and deriv() equations present for x",
+  fixed = TRUE)
 })
