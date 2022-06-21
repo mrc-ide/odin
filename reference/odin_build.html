@@ -19,7 +19,7 @@ function is for advanced use."><meta property="og:image" content="/logo.png"><!-
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.5</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.6</span>
       </span>
     </div>
 
@@ -151,7 +151,7 @@ representations used by this function.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $elapsed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    user  system elapsed </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.002   0.000   0.003 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.004   0.001   0.005 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $output</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> character(0)</span>
@@ -187,7 +187,7 @@ representations used by this function.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Portable: TRUE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $ir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> {"version":"1.3.5","config":{"base":"odin","include":null,"custom":null},"meta":{"internal":"internal","user":"user","state":"state","result":"dstatedt","output":"output","time":"t","initial_time":"initial_t"},"features":{"continuous":true,"discrete":false,"mixed":false,"has_array":false,"has_output":false,"has_user":false,"has_delay":false,"has_interpolate":false,"has_stochastic":false,"has_include":false,"initial_time_dependent":false},"data":{"elements":[{"name":"initial_y","location":"internal","storage_type":"double","rank":0,"dimnames":null,"stage":"constant"},{"name":"y","location":"variable","storage_type":"double","rank":0,"dimnames":null,"stage":"time"}],"variable":{"length":1,"contents":[{"name":"y","offset":0,"initial":"initial_y"}]},"output":{"length":0,"contents":[]}},"equations":[{"name":"deriv_y","type":"expression_scalar","source":[1],"depends":{"functions":["*","-"],"variables":["y"]},"lhs":"y","rhs":{"value":["*",["-",0.5],"y"]}},{"name":"initial_y","type":"expression_scalar","source":[2],"depends":null,"lhs":"initial_y","rhs":{"value":1}}],"components":{"create":{"variables":[],"equations":["initial_y"]},"user":{"variables":[],"equations":[]},"initial":{"variables":[],"equations":[]},"rhs":{"variables":["y"],"equations":["deriv_y"]},"update_stochastic":{"variables":[],"equations":[]},"output":{"variables":[],"equations":[]}},"user":[],"interpolate":{"min":[],"max":[],"critical":[]},"source":["deriv(y) &lt;- -0.5 * y","initial(y) &lt;- 1"]} </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> {"version":"1.3.6","config":{"base":"odin","include":null,"custom":null},"meta":{"internal":"internal","user":"user","state":"state","result":"dstatedt","output":"output","time":"t","initial_time":"initial_t"},"features":{"continuous":true,"discrete":false,"mixed":false,"has_array":false,"has_output":false,"has_user":false,"has_delay":false,"has_interpolate":false,"has_stochastic":false,"has_include":false,"initial_time_dependent":false},"data":{"elements":[{"name":"initial_y","location":"internal","storage_type":"double","rank":0,"dimnames":null,"stage":"constant"},{"name":"y","location":"variable","storage_type":"double","rank":0,"dimnames":null,"stage":"time"}],"variable":{"length":1,"contents":[{"name":"y","offset":0,"initial":"initial_y"}]},"output":{"length":0,"contents":[]}},"equations":[{"name":"deriv_y","type":"expression_scalar","source":[1],"depends":{"functions":["*","-"],"variables":["y"]},"lhs":"y","rhs":{"value":["*",["-",0.5],"y"]}},{"name":"initial_y","type":"expression_scalar","source":[2],"depends":null,"lhs":"initial_y","rhs":{"value":1}}],"components":{"create":{"variables":[],"equations":["initial_y"]},"user":{"variables":[],"equations":[]},"initial":{"variables":[],"equations":[]},"rhs":{"variables":["y"],"equations":["deriv_y"]},"update_stochastic":{"variables":[],"equations":[]},"output":{"variables":[],"equations":[]}},"user":[],"interpolate":{"min":[],"max":[],"critical":[]},"source":["deriv(y) &lt;- -0.5 * y","initial(y) &lt;- 1"]} </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $error</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
