@@ -1502,7 +1502,9 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
 
 ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
   len <- c(FUNCTIONS,
-           setNames(FUNCTIONS[FUNCTIONS_RENAME], names(FUNCTIONS_RENAME)))
+           setNames(FUNCTIONS[FUNCTIONS_RENAME], names(FUNCTIONS_RENAME)),
+           FUNCTIONS_STOCHASTIC,
+           lapply(FUNCTIONS_INPLACE, "[[", "len"))
 
   throw <- function(...) {
     ir_parse_error(sprintf(...), line, source)
