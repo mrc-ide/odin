@@ -879,3 +879,14 @@ test_that("Prevent use of a variable in both deriv and update", {
   "Both update() and deriv() equations present for x",
   fixed = TRUE)
 })
+
+
+test_that("Validate arguments to stochastic functions", {
+  ## Interestingly, this one does not either!
+  expect_error(
+    odin_parse({
+      initial(a) <- 0
+      update(a) <- a + rnorm(1)
+    }),
+    "Expected 2 arguments in rnorm call, but recieved 1")
+})
