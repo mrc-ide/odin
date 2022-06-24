@@ -8,7 +8,7 @@ odin_js_wrapper <- function(ir, options) {
 odin_js_wrapper_object <- function(res) {
   ## New js_context:
   context <- V8::v8()
-  context$source(odin_file("js/wodin-runner.js"))
+  context$source(odin_file("js/odin.js"))
   context$eval(sprintf("var %s = {};", JS_INSTANCES))
 
   ## Then our new code:
@@ -179,20 +179,6 @@ odin_js_wrapper_object <- function(res) {
   ## workaround as the main odin generators soon.
   class(ret) <- c("odin_js_generator", class(ret))
   ret
-}
-
-
-js_context <- function(include) {
-  ct <- V8::v8()
-
-  ct$source(odin_file("js/dopri.js"))
-  ct$source(odin_file("js/support.js"))
-  for (f in include) {
-    ct$source(odin_file(file.path("js", f)))
-  }
-
-  ct$eval(sprintf("var %s = {};", JS_INSTANCES))
-  ct
 }
 
 

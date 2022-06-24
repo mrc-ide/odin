@@ -40,7 +40,7 @@ odin_js_bundle <- function(code, include_support = TRUE) {
   if (include_support) {
     ## Better than warn = FALSE, add a newline when saving code into
     ## the package.
-    ret$support <- readLines(odin_file(file.path("js", "wodin-runner.js")),
+    ret$support <- readLines(odin_file(file.path("js", "odin.js")),
                              warn = FALSE)
   }
 
