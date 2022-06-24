@@ -61,7 +61,7 @@ odin_js_wrapper_object <- function(res) {
         unused_user_action <- unused_user_action %||%
           getOption("odin.unused_user_action", "warning")
 
-        init <- sprintf("%s = new wodinRunner.PkgWrapper(%s, %s, %s);",
+        init <- sprintf("%s = new odinjs.PkgWrapper(%s, %s, %s);",
                         private$name, private$generator,
                         user_js, dquote(unused_user_action))
         private$js_eval(init)
