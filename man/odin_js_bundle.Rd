@@ -4,7 +4,7 @@
 \alias{odin_js_bundle}
 \title{Create a bundle of an odin model}
 \usage{
-odin_js_bundle(code, include_support = TRUE, include_dopri = TRUE)
+odin_js_bundle(code, include_support = TRUE)
 }
 \arguments{
 \item{code}{An expression, string or path to a file containing
@@ -12,10 +12,7 @@ odin code (as for \link{odin_parse_}). If \code{NULL}, compile no
 model and return only the support code.}
 
 \item{include_support}{Logical, indicating if the support code
-should be included.}
-
-\item{include_dopri}{Logical, indicating if the dopri solver
-should be included as well.}
+should be included (the solver and common driver code)}
 }
 \value{
 A list of character vectors.
@@ -33,6 +30,6 @@ The interface and generated code here are subject to change.
 js <- odin::odin_js_bundle(quote({
   deriv(x) <- 1
   initial(x) <- 1
-}), include_dopri = FALSE)
+}), include_support = FALSE)
 head(js)
 }

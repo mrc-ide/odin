@@ -20,7 +20,7 @@
 ##' js <- odin::odin_js_bundle(quote({
 ##'   deriv(x) <- 1
 ##'   initial(x) <- 1
-##' }), include_dopri = FALSE)
+##' }), include_support = FALSE)
 ##' head(js)
 odin_js_bundle <- function(code, include_support = TRUE) {
   ret <- list()
