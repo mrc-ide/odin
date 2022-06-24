@@ -85,14 +85,15 @@ test_that("user variables", {
     r <- user()
   }, target = "js")
 
-  expect_error(gen$new())
+  expect_error(gen$new(),
+               "Expected a value for 'r'")
   ## TODO: Some of these errors are not the same as the other engines
   expect_error(gen$new(user = NULL),
                "Expected a value for 'r'", fixed = TRUE)
   expect_error(gen$new(r = 1:2),
-               "Expected a scalar numeric for 'r'")
+               "Expected a number for 'r'")
   expect_error(gen$new(r = numeric(0)),
-               "Expected a scalar numeric for 'r'")
+               "Expected a number for 'r'")
 
   expect_equal(sort_list(gen$new(r = pi)$contents()),
                sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
@@ -132,6 +133,10 @@ test_that("models with output", {
 
 
 test_that("accept matrices directly if asked nicely", {
+  ## We disabled handling matrices like [[a, b, c], [d, e, f]] because
+  ## the validation is a bit tedious, and we don't use this for
+  ## anything atm.
+  testthat::skip("not supported atm")
   gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1

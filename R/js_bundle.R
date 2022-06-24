@@ -11,10 +11,7 @@
 ##'   model and return only the support code.
 ##'
 ##' @param include_support Logical, indicating if the support code
-##'   should be included.
-##'
-##' @param include_dopri Logical, indicating if the dopri solver
-##'   should be included as well.
+##'   should be included (the solver and common driver code)
 ##'
 ##' @return A list of character vectors.
 ##'
@@ -25,9 +22,7 @@
 ##'   initial(x) <- 1
 ##' }), include_dopri = FALSE)
 ##' head(js)
-odin_js_bundle <- function(code,
-                           include_support = TRUE,
-                           include_dopri = TRUE) {
+odin_js_bundle <- function(code, include_support = TRUE) {
   ret <- list()
 
   if (!is.null(code)) {
@@ -43,10 +38,10 @@ odin_js_bundle <- function(code,
   }
 
   if (include_support) {
-    ret$support <- readLines(odin_file(file.path("js", "support.js")))
-  }
-  if (include_dopri) {
-    ret$dopri <- readLines(odin_file(file.path("js", "dopri.js")))
+    ## Better than warn = FALSE, add a newline when saving code into
+    ## the package.
+    ret$support <- readLines(odin_file(file.path("js", "wodin-runner.js")),
+                             warn = FALSE)
   }
 
   ret
