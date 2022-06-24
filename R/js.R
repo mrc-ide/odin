@@ -217,6 +217,7 @@ to_js_user <- function(user) {
     }
     list(name, value)
   }
+  user <- user[!vlapply(user, is.null)]
   if (length(user) == 0) {
     return(V8::JS("new Map()"))
   }
