@@ -75,8 +75,8 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
 
   rank <- data_info$rank
   is_integer <- if (data_info$storage_type == "int") "true" else "false"
-  min <- rewrite(eq$user$min %||% "null")
-  max <- rewrite(eq$user$max %||% "null")
+  min <- rewrite(eq$user$min %||% "-Infinity")
+  max <- rewrite(eq$user$max %||% "Infinity")
   default <- rewrite(eq$user$default) %||% "null"
 
   if (eq$user$dim) {
@@ -84,8 +84,8 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
     ret <- c(
       sprintf("var %s = new Array(%d);", len, rank + 1),
       sprintf(
-        'this.base.getUserArrayDim(%s, "%s", %s, %s, %s, %s, %s, %s);',
-        user, eq$lhs, internal, len, default,
+        'this.base.user.setUserArrayVariable(%s, "%s", %s, %s, %s, %s, %s);',
+        user, eq$lhs, internal, len,
         min, max, is_integer),
       sprintf("%s = %s[%d];", rewrite(len), len, 0),
       sprintf("%s = %s[%d];",
@@ -95,8 +95,8 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
     if (rank == 0L) {
       size <- "null"
       ret <- sprintf(
-        'this.base.getUser(%s, "%s", %s, %s, %s, %s, %s, %s);',
-        user, eq$lhs, internal, size, default, min, max, is_integer)
+        'this.base.user.setUserScalar(%s, "%s", %s, %s, %s, %s, %s);',
+        user, eq$lhs, internal, default, min, max, is_integer)
     } else {
       if (rank == 1L) {
         dim <- rewrite(data_info$dimnames$length)
@@ -107,9 +107,8 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
         size <- sprintf("[%s]", paste(dim, collapse = ", "))
       }
       ret <- sprintf(
-        'this.base.getUserArray(%s, "%s", %s, %s, %s, %s, %s, %s);',
-        user, eq$lhs, internal, size, default,
-        min, max, is_integer)
+        'this.base.user.setUserArrayFixed(%s, "%s", %s, %s, %s, %s, %s);',
+        user, eq$lhs, internal, size, min, max, is_integer)
     }
   }
   ret
@@ -229,9 +228,9 @@ generate_js_equation_delay_index <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
   state <- rewrite(delay$state)
 
-  alloc <- c(sprintf_safe("%s = this.base.zeros(%s)",
+  alloc <- c(sprintf_safe("%s = Array(%s).fill(0);",
                           lhs, rewrite(delay$variables$length)),
-             sprintf_safe("%s = this.base.zeros(%s)",
+             sprintf_safe("%s = Array(%s).fill(0);",
                           state, rewrite(delay$variables$length)))
 
   generate_index <- function(v) {

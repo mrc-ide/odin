@@ -43,11 +43,12 @@ generate_js_core <- function(eqs, dat, rewrite) {
     create = generate_js_core_create(eqs, dat, rewrite),
     set_user = generate_js_core_set_user(eqs, dat, rewrite),
     output = generate_js_core_output(eqs, dat, rewrite),
-    run = generate_js_core_run(eqs, dat, rewrite),
     metadata = generate_js_core_metadata(eqs, dat, rewrite),
-    coef = generate_js_coef(eqs, dat, rewrite),
     initial_conditions = generate_js_core_initial_conditions(
-      eqs, dat, rewrite))
+      eqs, dat, rewrite),
+    names = generate_js_core_names(),
+    get_metadata = generate_js_core_get_metadata(),
+    get_internal = generate_js_core_get_internal())
   if (dat$features$discrete) {
     core$rhs <- generate_js_core_update(eqs, dat, rewrite)
   } else {
@@ -75,7 +76,7 @@ generate_js_core_create <- function(eqs, dat, rewrite) {
 generate_js_core_set_user <- function(eqs, dat, rewrite) {
   update_metadata <- "this.updateMetadata();"
   allowed <- paste(dquote(names(dat$user)), collapse = ", ")
-  check_user <- sprintf("this.base.checkUser(%s, [%s], unusedUserAction);",
+  check_user <- sprintf("this.base.user.checkUser(%s, [%s], unusedUserAction);",
                         dat$meta$user, allowed)
   body <- collector()
   body$add(check_user)
@@ -140,37 +141,18 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
 }
 
 
-generate_js_core_run <- function(eqs, dat, rewrite) {
-  body <- collector()
-  if (dat$features$has_delay && !dat$features$discrete) {
-    body$add("this.%s = tStart;", rewrite(dat$meta$initial_time))
-  }
-  body$add("return this.base.run(tStart, tEnd, y0, control, this, dopri);")
-  args <- c("tStart", "tEnd", "y0", "control", "dopri")
-  js_function(args, body$get())
+generate_js_core_names <- function() {
+  js_function(c(), "return this.metadata.ynames.slice(1);")
 }
 
 
-generate_js_coef <- function(eqs, dat, rewrite) {
-  if (!dat$features$has_user) {
-    return("{}")
-  }
-  f <- function(x) {
-    data_info <- dat$data$elements[[x$name]]
-    if (is.null(x$user$default)) {
-      default <- "null"
-    } else {
-      default <- as.character(rewrite(x$user$default))
-    }
-    d <- c(has_default = tolower(is.null(x$user$default)),
-           default = default,
-           rank = as.character(data_info$rank),
-           min = as.character(x$user$min %||% "-Infinity"),
-           max = as.character(x$user$max %||% "Infinity"),
-           integer = tolower(data_info$storage_type == "integer"))
-    js_dict(d)
-  }
-  js_dict(vcapply(dat$equations[names(dat$user)], f))
+generate_js_core_get_metadata <- function() {
+  js_function(c(), "return this.metadata;")
+}
+
+
+generate_js_core_get_internal <- function() {
+  js_function(c(), "return this.internal;")
 }
 
 
@@ -291,7 +273,7 @@ generate_js_core_initial_conditions <- function(eqs, dat, rewrite) {
   body <- collector()
   body$add(internal)
   body$add(js_flatten_eqs(eqs_initial))
-  body$add("var %s = this.base.zeros(%s);",
+  body$add("var %s = Array(%s).fill(0);",
            dat$meta$state, rewrite(dat$data$variable$length))
   body$add(initial)
   body$add("return %s;", dat$meta$state)
@@ -313,15 +295,16 @@ generate_js_generator <- function(core, dat) {
 
   body <- collector()
   body$add(core$create)
-  body$add(field("coef", core$coef))
   body$add(method("rhs", core$rhs))
   if (!is.null(core$output)) {
     body$add(method("output", core$output))
   }
-  body$add(method("run", core$run))
   body$add(method("initial", core$initial_conditions))
   body$add(method("updateMetadata", core$metadata))
   body$add(method("setUser", core$set_user))
+  body$add(method("names", core$names))
+  body$add(method("getInternal", core$get_internal))
+  body$add(method("getMetadata", core$get_metadata))
 
   code <- c(sprintf("class %s {", dat$config$base),
             paste0("  ", body$get()),

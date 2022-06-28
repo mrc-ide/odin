@@ -123,11 +123,11 @@ test_that_odin("user variables", {
 
   expect_error(gen$new())
   expect_error(gen$new(r = NULL),
-               "Expected a value for 'r'", fixed = TRUE)
+               "Expected a (number|value) for 'r'")
   expect_error(gen$new(r = 1:2),
-               "Expected a scalar numeric for 'r'")
+               "Expected a (number|scalar numeric) for 'r'")
   expect_error(gen$new(r = numeric(0)),
-               "Expected a scalar numeric for 'r'")
+               "Expected a (number|scalar numeric) for 'r'")
 
   expect_equal(gen$new(r = pi)$contents()[c("N0", "r")],
                list(N0 = 1, r = pi))

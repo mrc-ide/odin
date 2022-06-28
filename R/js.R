@@ -8,9 +8,7 @@ odin_js_wrapper <- function(ir, options) {
 odin_js_wrapper_object <- function(res) {
   ## New js_context:
   context <- V8::v8()
-  context$source(odin_file("js/dopri.js"))
-  context$source(odin_file("js/support.js"))
-  context$source(odin_file("js/wrapper.js"))
+  context$source(odin_file("js/odin.js"))
   context$eval(sprintf("var %s = {};", JS_INSTANCES))
 
   ## Then our new code:
@@ -40,8 +38,7 @@ odin_js_wrapper_object <- function(res) {
       },
 
       update_metadata = function() {
-        metadata <- private$context$call(
-          sprintf("%s.getMetadata", private$name))
+        metadata <- private$js_call(sprintf("%s.getMetadata", private$name))
         private$internal_order <- metadata$internalOrder
         private$variable_order <- metadata$variableOrder
         private$output_order <- metadata$outputOrder
@@ -60,10 +57,11 @@ odin_js_wrapper_object <- function(res) {
       initialize = function(..., user = list(...), unused_user_action = NULL) {
         private$name <- sprintf("%s.%s", JS_INSTANCES, basename(tempfile("i")))
 
-        user_js <- to_json_user(user)
+        user_js <- to_js_user(user)
         unused_user_action <- unused_user_action %||%
           getOption("odin.unused_user_action", "warning")
-        init <- sprintf("%s = new OdinWrapper(OdinBase, %s, %s, %s);",
+
+        init <- sprintf("%s = new odinjs.PkgWrapper(%s, %s, %s);",
                         private$name, private$generator,
                         user_js, dquote(unused_user_action))
         private$js_eval(init)
@@ -90,7 +88,7 @@ odin_js_wrapper_object <- function(res) {
       set_user = function(..., user = list(...), unused_user_action = NULL) {
         unused_user_action <- unused_user_action %||%
           getOption("odin.unused_user_action", "warning")
-        user_js <- to_json_user(user)
+        user_js <- to_js_user(user)
         private$js_call(sprintf("%s.setUser", private$name),
                         user_js, unused_user_action)
         private$update_metadata()
@@ -108,7 +106,7 @@ odin_js_wrapper_object <- function(res) {
       },
 
       contents = function() {
-        ret <- private$context$call(sprintf("%s.getInternal", private$name))
+        ret <- private$js_call(sprintf("%s.getInternal", private$name))
         order <- private$internal_order
         for (i in names(ret)) {
           d <- order[[i]]
@@ -184,20 +182,6 @@ odin_js_wrapper_object <- function(res) {
 }
 
 
-js_context <- function(include) {
-  ct <- V8::v8()
-
-  ct$source(odin_file("js/dopri.js"))
-  ct$source(odin_file("js/support.js"))
-  for (f in include) {
-    ct$source(odin_file(file.path("js", f)))
-  }
-
-  ct$eval(sprintf("var %s = {};", JS_INSTANCES))
-  ct
-}
-
-
 ##' @export
 coef.odin_js_generator <- function(object, ...) {
   ## This is a workaround until odin drops the constructor interface
@@ -206,24 +190,30 @@ coef.odin_js_generator <- function(object, ...) {
 }
 
 
-to_json_user <- function(user) {
-  f <- function(x) {
-    if (inherits(x, "JS_EVAL")) {
-      class(x) <- "json"
-    } else if (is.array(x)) {
-      x <- list(data = c(x), dim = I(dim(x)))
-    } else if (is.null(x)) { # leave as is
-    } else if (length(x) != 1L || inherits(x, "AsIs")) {
-      x <- list(data = x, dim = I(length(x)))
+to_js_user <- function(user) {
+  to_js <- function(name, value) {
+    if (inherits(value, "JS_EVAL")) {
+      class(value) <- "json"
+    } else if (is.array(value)) {
+      value <- list(data = c(value), dim = I(dim(value)))
+    } else if (length(value) == 0) {
+    } else if (is.null(value)) { # leave as is
+    } else if (length(value) != 1L || inherits(value, "AsIs")) {
+      value <- list(data = value, dim = I(length(value)))
     }
-    x
+    list(name, value)
+  }
+  user <- user[!vlapply(user, is.null)]
+  if (length(user) == 0) {
+    return(V8::JS("new Map()"))
   }
   if (length(user) > 0) {
     stopifnot(!is.null(names(user)))
   }
-  user <- lapply(user, f)
-  to_json_js(user, auto_unbox = TRUE, json_verbatim = TRUE,
-             null = "null", na = "null")
+  user <- Map(to_js, names(user), user, USE.NAMES = FALSE)
+  args <- jsonlite::toJSON(user, auto_unbox = TRUE, digits = NA,
+                           null = "null", na = "null")
+  V8::JS(sprintf("new Map(%s)", args))
 }
 
 
