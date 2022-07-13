@@ -230,6 +230,7 @@ to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
 ##'   and other coponents used in the JavaScript support.
 ##'
 ##' @export
+##' @examples
 ##' odin::odin_js_versions()
 odin_js_versions <- function() {
   context <- V8::v8()

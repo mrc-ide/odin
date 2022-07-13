@@ -13,3 +13,6 @@ and other coponents used in the JavaScript support.
 \description{
 Report versions of JavaScript packages used to run odin models.
 }
+\examples{
+odin::odin_js_versions()
+}
