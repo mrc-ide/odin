@@ -220,3 +220,19 @@ to_js_user <- function(user) {
 to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
   V8::JS(jsonlite::toJSON(x, auto_unbox = auto_unbox, digits = digits, ...))
 }
+
+
+##' Report versions of JavaScript packages used to run odin models.
+##'
+##' @title Report JS versions
+##'
+##' @return A named list of [package_version] versions, for `odinjs`
+##'   and other coponents used in the JavaScript support.
+##'
+##' @export
+##' odin::odin_js_versions()
+odin_js_versions <- function() {
+  context <- V8::v8()
+  context$source(odin_file("js/odin.js"))
+  lapply(context$call("odinjs.versions"), package_version)
+}
