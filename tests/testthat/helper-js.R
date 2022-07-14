@@ -18,14 +18,6 @@ call_odin_bundle <- function(bundle, user, t0, t1, tn, control = NULL) {
 }
 
 
-odin_js_support <- function() {
-  v8 <- V8::v8()
-  v8$source(odin_file("js/support.js"))
-  v8$source(odin_file("js/interpolate.js"))
-  v8
-}
-
-
 odin_js_test_random <- function(name) {
   skip_if_no_random_js()
   force(name)
