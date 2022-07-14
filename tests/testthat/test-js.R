@@ -264,3 +264,12 @@ test_that("Can show generated code", {
   expect_type(code, "character")
   expect_equal(code[[1]], "class odin {")
 })
+
+
+test_that("Can show versions of js packages", {
+  skip_if_not_installed("V8")
+  v <- odin_js_versions()
+  ## This list may grow over time and that should not fail the tests:
+  expect_true(all(c("dfoptim", "dopri", "odinjs") %in% names(v)))
+  expect_true(all(vlapply(v, inherits, "numeric_version")))
+})
