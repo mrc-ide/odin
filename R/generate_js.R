@@ -30,11 +30,7 @@ generate_js <- function(ir, options) {
   list(code = generate_js_generator(core, dat),
        name = dat$config$base,
        ir = ir,
-       features = dat$features,
-       include = c(interpolate.js = dat$features$has_interpolate,
-                   random.js = dat$features$has_stochastic,
-                   discrete.js = dat$features$discrete,
-                   support_sum.js = uses_sum))
+       features = dat$features)
 }
 
 
