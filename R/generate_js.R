@@ -232,9 +232,6 @@ generate_js_core_metadata <- function(eqs, dat, rewrite) {
   body$add(len_block("variable"))
   body$add(len_block("output"))
 
-  ## This must be done *after* we have both internal and metadata set
-  ## up, unfortunately; I think that it should be moved into
-  ## updateMetadata itself?
   if (dat$features$has_interpolate) {
     args_min <- vcapply(dat$interpolate$min, function(x)
       sprintf("%s[0]", rewrite(x)))
