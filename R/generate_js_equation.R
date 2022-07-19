@@ -61,11 +61,11 @@ generate_js_equation_interpolate <- function(eq, data_info, dat, rewrite) {
     lhs <- paste("var", lhs)
   }
   if (data_info$rank == 0L) {
-    fmt <- "%s = interpolateEval(%s, %s)[0];"
+    fmt <- "%s = %s.eval(%s, 0);"
   } else {
-    fmt <- "%s = interpolateEval(%s, %s);"
+    fmt <- "%s = %s.evalAll(%s);"
   }
-  sprintf(fmt, lhs, dat$meta$time, rewrite(eq$interpolate))
+  sprintf(fmt, lhs, rewrite(eq$interpolate), dat$meta$time)
 }
 
 
@@ -141,7 +141,7 @@ generate_js_equation_alloc_interpolate <- function(eq, data_info, dat,
   if (rank == 0L) {
     len_y <- rewrite(data_info_y$dimnames$length)
     check <- sprintf(
-      'interpolateCheckY([%s], [%s], "%s", "%s");',
+      'this.base.interpolate.checkY([%s], [%s], "%s", "%s");',
       len_t, len_y, data_info_y$name, eq$interpolate$equation)
   } else {
     len_y <- vcapply(data_info_y$dimnames$dim, rewrite)
@@ -153,7 +153,7 @@ generate_js_equation_alloc_interpolate <- function(eq, data_info, dat,
         vcapply(data_info_target$dimnames$dim[seq_len(rank)], rewrite))
     }
     check <- sprintf(
-      'interpolateCheckY([%s], [%s], "%s", "%s");',
+      'this.base.interpolate.checkY([%s], [%s], "%s", "%s");',
       paste(len_expected, collapse = ", "),
       paste(len_y, collapse = ", "),
       data_info_y$name,
@@ -163,7 +163,7 @@ generate_js_equation_alloc_interpolate <- function(eq, data_info, dat,
   t <- rewrite(eq$interpolate$t)
   y <- rewrite(eq$interpolate$y)
   alloc <- sprintf(
-    '%s = interpolateAlloc("%s", %s, %s, true)',
+    '%s = this.base.interpolate.alloc("%s", %s, %s)',
     rewrite(eq$lhs), eq$interpolate$type, t, y)
 
   c(check, alloc)

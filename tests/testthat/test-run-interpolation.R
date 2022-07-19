@@ -1,7 +1,6 @@
 context("run: interpolation")
 
 test_that_odin("constant", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -49,7 +48,6 @@ test_that_odin("constant", {
 
 
 test_that_odin("constant array", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
@@ -93,7 +91,6 @@ test_that_odin("constant array", {
 
 
 test_that_odin("constant 3d array", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y[, ]) <- pulse[i, j]
     initial(y[, ]) <- 0
@@ -150,7 +147,6 @@ test_that_odin("constant 3d array", {
 
 
 test_that_odin("linear", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -185,7 +181,6 @@ test_that_odin("linear", {
 
 
 test_that_odin("spline", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
@@ -214,7 +209,6 @@ test_that_odin("spline", {
 
 
 test_that_odin("interpolation with two variables", {
-  skip_for_target("js")
   for (type in INTERPOLATION_TYPES) {
     gen <- odin_(
       bquote({
@@ -276,7 +270,6 @@ test_that_odin("interpolation with two variables", {
 
 
 test_that_odin("interpolation in a delay", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -306,7 +299,6 @@ test_that_odin("interpolation in a delay", {
 
 
 test_that_odin("interpolation in a delay, with default", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -367,7 +359,6 @@ test_that_odin("critical times", {
 
 
 test_that_odin("user sized interpolation, 1d", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y[]) <- pulse[i]
     initial(y[]) <- 0
@@ -401,7 +392,6 @@ test_that_odin("user sized interpolation, 1d", {
 
 
 test_that_odin("user sized interpolation, 2d", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y[, ]) <- pulse[i, j]
     initial(y[, ]) <- 0
@@ -434,7 +424,6 @@ test_that_odin("user sized interpolation, 2d", {
 
 
 test_that_odin("double delayed interpolation function", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -466,9 +455,12 @@ test_that_odin("double delayed interpolation function", {
 
   expect_equal(yy[, "udd"], ifelse(tt < 5, 0, 0.5))
 
+  ## Small inconsistency here, where js version does not report the
+  ## out of range *value* just "Interpolation failed as 'x' is out of
+  ## range"
   expect_error(gen$new(ut = c(0, 2), uy = uy)$run(tt),
-               "Interpolation failed as -2.* is out of range")
+               "Interpolation failed as .* is out of range")
   expect_error(gen$new(ut = c(-2, 2), uy = uy)$run(tt),
-               "Interpolation failed as -3.* is out of range")
+               "Interpolation failed as .* is out of range")
   expect_equal(gen$new(ut = c(-3, 2), uy = uy)$run(tt), yy)
 })
