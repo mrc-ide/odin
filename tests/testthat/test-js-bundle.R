@@ -18,10 +18,9 @@ test_that("bundle works", {
   sol <- with(list(K = 100, r = 0.5, y0 = 1),
               K / (1 + (K / y0 - 1) * exp(-r * t)))
 
-  expect_length(res, 1)
-  expect_equal(res[[1]]$x, t)
-  expect_equal(res[[1]]$y, sol, tolerance = 1e-6)
-  expect_equal(res[[1]]$name, "N")
+  expect_equal(res$names, "N")
+  expect_equal(res$x, t)
+  expect_equal(drop(res$y), sol, tolerance = 1e-6)
 })
 
 
@@ -48,9 +47,9 @@ test_that("include interpolate", {
 
   tt <- seq(t0, t1, length.out = tn)
 
-  expect_length(res, 2)
+  expect_equal(res$names, c("y", "p"))
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(res[[1]]$y, zz, tolerance = 2e-5)
+  expect_equal(res$y[, 1], zz, tolerance = 2e-5)
 })
 
 
@@ -72,15 +71,14 @@ test_that("include sum", {
   tn <- 101
 
   res <- call_odin_bundle(bundle, NULL, t0, t1, tn)
-
-  expect_length(res, 7)
   expect_equal(
-    vcapply(res, "[[", "name"),
+    res$names,
     c("y[1]", "y[2]", "y[3]", "ytot", "y2[1]", "y2[2]", "y2[3]"))
 
-  y <- vapply(res[1:3], "[[", numeric(tn), "y")
-  ytot <- res[[4]]$y
-  y2 <- vapply(res[5:7], "[[", numeric(tn), "y")
+  y <- res$y[, 1:3]
+  ytot <- res$y[, 4]
+  y2 <- res$y[, 5:7]
+
   expect_equal(ytot, rowSums(y))
   expect_equal(y2, y * 2)
 })
@@ -90,7 +88,6 @@ test_that("include sum", {
 ## includes a partial sum but *not* a complete sum, which may trigger
 ## a failure to include the sum support.
 test_that("include fancy sum", {
-  ## This will error on the partial sums during model
   code <- c(
     "deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))",
     "initial(y[]) <- y0[i]",
@@ -123,10 +120,8 @@ test_that("include fancy sum", {
   tt <- seq(t0, t1, length.out = tn)
   cmp <- odin::odin_(code, target = "r")$new(user = user)$run(tt)
 
-  expect_length(res, 4)
-  yy <- vapply(res, "[[", numeric(tn), "y")
-
-  expect_equal(yy, unname(cmp[, -1]), tolerance = 1e-5)
+  expect_equal(res$names, c("y[1]", "y[2]", "y[3]", "y[4]"))
+  expect_equal(res$y, unname(cmp[, -1]), tolerance = 1e-5)
 })
 
 
