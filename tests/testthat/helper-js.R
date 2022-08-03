@@ -6,9 +6,9 @@ call_odin_bundle <- function(bundle, user, t0, t1, tn, control = NULL) {
   odin_js <- V8::JS(bundle$model$name)
   user_js <- to_js_user(user)
   if (length(control) == 0) {
-    control_js <- to_json(setNames(list(), character(0)))
+    control_js <- V8::JS("{}")
   } else {
-    control_js <- to_json(control, auto_unbox = TRUE)
+    control_js <- V8::JS(jsonlite::toJSON(control, auto_unbox = TRUE))
   }
 
   res <- ct$call("call_odin_bundle", odin_js, user_js, t0, t1, tn, control_js)

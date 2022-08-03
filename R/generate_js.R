@@ -12,7 +12,7 @@ generate_js <- function(ir, options) {
   features <- vlapply(dat$features, identity)
   supported <- c("continuous",
                  "initial_time_dependent", "has_array", "has_user",
-                 "has_output", "has_delay")
+                 "has_output", "has_delay", "has_interpolate")
   unsupported <- setdiff(names(features)[features], supported)
   if (length(unsupported) > 0L) {
     stop("Using unsupported features: ",
@@ -153,8 +153,9 @@ generate_js_core_get_internal <- function() {
 
 
 generate_js_core_metadata <- function(eqs, dat, rewrite) {
-  body <- c("this.metadata = {};",
-            "var internal = this.internal;")
+  body <- collector()
+  body$add("this.metadata = {};")
+  body$add("var internal = this.internal;")
   if (dat$features$has_array) {
     variables <- names(dat$data$variable$contents)
     output <- names(dat$data$output$contents)
@@ -185,14 +186,13 @@ generate_js_core_metadata <- function(eqs, dat, rewrite) {
     }
     ynames <- c(sprintf('this.metadata.ynames = ["%s"];', dat$meta$time),
                 js_flatten_eqs(lapply(contents, add_name)))
-    body <- c(body, ynames)
+    body$add(ynames)
   } else {
     ynames <- c(dat$meta$time,
                 names(dat$data$variable$contents),
                 names(dat$data$output$contents))
-    body <- c(body,
-              sprintf("this.metadata.ynames = [%s];",
-                      paste(dquote(ynames), collapse = ", ")))
+    body$add("this.metadata.ynames = [%s];",
+             paste(dquote(ynames), collapse = ", "))
   }
 
   if (dat$features$has_interpolate) {
@@ -228,12 +228,25 @@ generate_js_core_metadata <- function(eqs, dat, rewrite) {
     }
   }
 
-  body <- c(body,
-            len_block("internal"),
-            len_block("variable"),
-            len_block("output"))
+  body$add(len_block("internal"))
+  body$add(len_block("variable"))
+  body$add(len_block("output"))
 
-  js_function(NULL, body)
+  if (dat$features$has_interpolate) {
+    args_min <- vcapply(dat$interpolate$min, function(x)
+      sprintf("%s[0]", rewrite(x)))
+    args_max <- vcapply(dat$interpolate$max, function(x)
+      sprintf("%s[%s - 1]", rewrite(x),
+              rewrite(dat$data$elements[[x]]$dimnames$length)))
+    array <- function(x) {
+      sprintf("[%s]", paste(x, collapse = ", "))
+    }
+    body$add(
+      "this.metadata.interpolateTimes = this.base.interpolate.times(%s, %s);",
+      array(args_min), array(args_max))
+  }
+
+  js_function(NULL, body$get())
 }
 
 

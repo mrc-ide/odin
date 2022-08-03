@@ -26,7 +26,6 @@ test_that("bundle works", {
 
 
 test_that("include interpolate", {
-  testthat::skip("FIXME")
   code <- c("deriv(y) <- pulse",
             "initial(y) <- 0",
             "pulse <- interpolate(tp, zp, 'constant')",
@@ -36,18 +35,22 @@ test_that("include interpolate", {
             "dim(zp) <- user()",
             "output(p) <- pulse")
 
-  res <- odin_js_bundle(code)
+  bundle <- odin_js_bundle(code)
 
-  ct <- V8::v8()
-  invisible(ct$eval(res))
+  t0 <- 0
+  t1 <- 3
+  tn <- 301
 
-  tt <- seq(0, 3, length.out = 301)
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
   user <- list(tp = tp, zp = zp)
-  yy <- call_odin_bundle(ct, "odin", user, tt)
+  res <- call_odin_bundle(bundle, user, t0, t1, tn)
+
+  tt <- seq(t0, t1, length.out = tn)
+
+  expect_length(res, 2)
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(yy[, 2], zz, tolerance = 2e-5)
+  expect_equal(res[[1]]$y, zz, tolerance = 2e-5)
 })
 
 

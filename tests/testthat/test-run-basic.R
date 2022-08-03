@@ -471,7 +471,6 @@ test_that_odin("user array - direct 3d", {
 
 ## NOTE: this is the test from test-interpolation.R
 test_that_odin("interpolation", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- pulse
     initial(y) <- 0
