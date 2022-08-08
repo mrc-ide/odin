@@ -12,9 +12,8 @@ call_odin_bundle <- function(bundle, user, t0, t1, tn, control = NULL) {
   }
 
   res <- ct$call("call_odin_bundle", odin_js, user_js, t0, t1, tn, control_js)
-
-  ## We've had a bit of pain from serialisation here, transpose it:
-  lapply(seq_len(nrow(res)), function(i) lapply(res, "[[", i))
+  res$y <- t(res$y)
+  res
 }
 
 
