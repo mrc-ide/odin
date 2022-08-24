@@ -205,7 +205,7 @@ to_js_user <- function(user) {
   }
   user <- user[!vlapply(user, is.null)]
   if (length(user) == 0) {
-    return(V8::JS("new Map()"))
+    return(V8::JS("{}"))
   }
   if (length(user) > 0) {
     stopifnot(!is.null(names(user)))
@@ -213,7 +213,7 @@ to_js_user <- function(user) {
   user <- Map(to_js, names(user), user, USE.NAMES = FALSE)
   args <- jsonlite::toJSON(user, auto_unbox = TRUE, digits = NA,
                            null = "null", na = "null")
-  V8::JS(sprintf("new Map(%s)", args))
+  V8::JS(args)
 }
 
 
