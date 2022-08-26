@@ -191,7 +191,7 @@ coef.odin_js_generator <- function(object, ...) {
 
 
 to_js_user <- function(user) {
-  to_js <- function(name, value) {
+  to_js <- function(value) {
     if (inherits(value, "JS_EVAL")) {
       class(value) <- "json"
     } else if (is.array(value)) {
@@ -201,19 +201,17 @@ to_js_user <- function(user) {
     } else if (length(value) != 1L || inherits(value, "AsIs")) {
       value <- list(data = value, dim = I(length(value)))
     }
-    list(name, value)
+    value
   }
   user <- user[!vlapply(user, is.null)]
   if (length(user) == 0) {
-    return(V8::JS("new Map()"))
+    return(V8::JS("{}"))
   }
-  if (length(user) > 0) {
-    stopifnot(!is.null(names(user)))
-  }
-  user <- Map(to_js, names(user), user, USE.NAMES = FALSE)
+  stopifnot(!is.null(names(user)))
+  user <- lapply(user, to_js)
   args <- jsonlite::toJSON(user, auto_unbox = TRUE, digits = NA,
                            null = "null", na = "null")
-  V8::JS(sprintf("new Map(%s)", args))
+  V8::JS(args)
 }
 
 
