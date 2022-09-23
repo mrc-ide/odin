@@ -80,6 +80,7 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
   default <- rewrite(eq$user$default) %||% "null"
 
   if (eq$user$dim) {
+    stopifnot(!dat$features$discrete) # needs work
     len <- data_info$dimnames$length
     ret <- c(
       sprintf("var %s = new Array(%d);", len, rank + 1),
@@ -92,8 +93,17 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
               vcapply(data_info$dimnames$dim, rewrite), len,
               seq_len(rank)))
   } else {
-    if (rank == 0L) {
-      size <- "null"
+    if (dat$features$discrete) {
+      ## We'll tidy this up later, also note that ranges are silently
+      ## ignored, as are integer restrictions. The names are also
+      ## weirdly a bit different, so all-in-all a bit annoying...
+      if (rank != 0L) {
+        stop("only scalars currently supported")
+      }
+      ret <- sprintf(
+        'this.base.pars.setParScalar(%s, "%s", %s, %s);',
+        user, eq$lhs, internal, default)
+    } else if (rank == 0L) {
       ret <- sprintf(
         'this.base.user.setUserScalar(%s, "%s", %s, %s, %s, %s, %s);',
         user, eq$lhs, internal, default, min, max, is_integer)
@@ -125,7 +135,7 @@ generate_js_equation_array <- function(eq, data_info, dat, rewrite) {
 generate_js_equation_alloc <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
   len <- rewrite(data_info$dimnames$length)
-  sprintf("%s = new Array(%s);", lhs, len)
+  sprintf("%s = new Array(%s).fill(0);", lhs, len)
 }
 
 

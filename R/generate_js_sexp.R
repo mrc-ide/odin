@@ -39,7 +39,7 @@ generate_js_sexp <- function(x, data, meta) {
     } else if (fn == "sum" || fn == "odin_sum") {
       ret <- generate_js_sexp_sum(args, data, meta)
     } else if (any(names(FUNCTIONS_JS_STOCHASTIC) == fn)) {
-      ret <- sprintf("random.%s(%s)()",
+      ret <- sprintf("random.%s(%s)",
                      FUNCTIONS_JS_STOCHASTIC[[fn]],
                      paste(values, collapse = ", "))
     } else {
@@ -114,9 +114,9 @@ FUNCTIONS_JS_MATH <- c(
 
 
 FUNCTIONS_JS_STOCHASTIC_SPECIAL <- c(
-  unif_rand = "unifRand",
-  norm_rand = "normRand",
-  exp_rand = "expRand")
+  unif_rand = "randomUniform",
+  norm_rand = "randomNormal",
+  exp_rand = "randomExponential")
 
 
 FUNCTIONS_JS_STOCHASTIC <- c(

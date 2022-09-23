@@ -10,7 +10,7 @@ generate_js <- function(ir, options) {
   }
 
   features <- vlapply(dat$features, identity)
-  supported <- c("continuous",
+  supported <- c("continuous", "discrete", "has_stochastic",
                  "initial_time_dependent", "has_array", "has_user",
                  "has_output", "has_delay", "has_interpolate")
   unsupported <- setdiff(names(features)[features], supported)
@@ -22,13 +22,17 @@ generate_js <- function(ir, options) {
   eqs <- generate_js_equations(dat, rewrite)
   core <- generate_js_core(eqs, dat, rewrite)
 
-  fns <- unlist(lapply(dat$equations, function(x) x$depends$functions),
-                FALSE, FALSE)
-  uses_sum <- any(c("odin_sum", "sum") %in% fns)
+  browser()
+  keep <- vlapply(dat$data$elements, function(x)
+    x$location == "internal" &&
+    x$storage_type %in% c("double", "int", "bool") &&
+    x$rank > 1)
+  internal_dim <- lapply(dat$data$elements[keep], function(x) x$dimnames$dim)
 
   ## This is all we need to dump out
   list(code = generate_js_generator(core, dat),
        name = dat$config$base,
+       internal_dim = internal_dim,
        ir = ir,
        features = dat$features)
 }
@@ -38,17 +42,19 @@ generate_js_core <- function(eqs, dat, rewrite) {
   core <- list(
     create = generate_js_core_create(eqs, dat, rewrite),
     set_user = generate_js_core_set_user(eqs, dat, rewrite),
-    output = generate_js_core_output(eqs, dat, rewrite),
-    metadata = generate_js_core_metadata(eqs, dat, rewrite),
-    initial_conditions = generate_js_core_initial_conditions(
-      eqs, dat, rewrite),
-    names = generate_js_core_names(),
-    get_metadata = generate_js_core_get_metadata(),
+    initial_conditions = generate_js_core_initial_conditions(eqs, dat, rewrite),
     get_internal = generate_js_core_get_internal())
+
   if (dat$features$discrete) {
-    core$rhs <- generate_js_core_update(eqs, dat, rewrite)
+    core$update <- generate_js_core_update(eqs, dat, rewrite)
+    core$info <- generate_js_core_info(eqs, dat, rewrite)
+    core$size <- generate_js_core_size(eqs, dat, rewrite)
   } else {
     core$rhs <- generate_js_core_deriv(eqs, dat, rewrite)
+    core$output <- generate_js_core_output(eqs, dat, rewrite)
+    core$names <- generate_js_core_names()
+    core$update_metadata <- generate_js_core_update_metadata(eqs, dat, rewrite)
+    core$get_metadata <- generate_js_core_get_metadata()
   }
   core
 }
@@ -70,17 +76,32 @@ generate_js_core_create <- function(eqs, dat, rewrite) {
 
 
 generate_js_core_set_user <- function(eqs, dat, rewrite) {
+  is_discrete <- dat$features$discrete
+
   update_metadata <- "this.updateMetadata();"
-  allowed <- paste(dquote(names(dat$user)), collapse = ", ")
-  check_user <- sprintf("this.base.user.checkUser(%s, [%s], unusedUserAction);",
-                        dat$meta$user, allowed)
   body <- collector()
-  body$add(check_user)
+
+  ## We can't yet do this for discrete models, requires a bit more
+  ## bits to be pulled into the helpers - probably easier to pull off
+  ## once we get the shared package sorted, or once we depend properly
+  ## on odin-js (if we do)?
+  if (!is_discrete) {
+    body$add(
+      "this.base.user.checkUser(%s, [%s], unusedUserAction);",
+      dat$meta$user, paste(dquote(names(dat$user)), collapse = ", "))
+  }
+
   if (dat$features$has_user) {
-    body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
+    body$add("const %s = this.%s;", dat$meta$internal, dat$meta$internal)
     body$add(js_flatten_eqs(eqs[dat$components$user$equations]))
   }
-  body$add(update_metadata)
+
+  ## This bit we only need to do for continuous models, and won't need
+  ## to do in practice.
+  if (!is_discrete) {
+    body$add("this.updateMetadata();")
+  }
+
   args <- c(dat$meta$user, "unusedUserAction")
   js_function(args, body$get())
 }
@@ -111,7 +132,8 @@ generate_js_core_update <- function(eqs, dat, rewrite) {
   unpack <- lapply(variables, js_unpack_variable, dat, dat$meta$state, rewrite)
   body <- js_flatten_eqs(c(internal, unpack, eqs[equations]))
 
-  args <- c(dat$meta$time, dat$meta$state, dat$meta$result, dat$meta$output)
+  ## TODO: also depend on the string 'random' in generate_js_sexp
+  args <- c(dat$meta$time, dat$meta$state, dat$meta$result, "random")
   js_function(args, body)
 }
 
@@ -125,7 +147,7 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
   equations <- dat$components$output$equations
 
   internal <- sprintf("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
-  alloc <- sprintf("var %s = new Array(%s);",
+  alloc <- sprintf("var %s = new Array(%s).fill(0);",
                    dat$meta$output, rewrite(dat$data$output$length))
   unpack <- lapply(variables, js_unpack_variable, dat, dat$meta$state, rewrite)
   ret <- sprintf("return %s;", dat$meta$output)
@@ -152,7 +174,7 @@ generate_js_core_get_internal <- function() {
 }
 
 
-generate_js_core_metadata <- function(eqs, dat, rewrite) {
+generate_js_core_update_metadata <- function(eqs, dat, rewrite) {
   body <- collector()
   body$add("this.metadata = {};")
   body$add("var internal = this.internal;")
@@ -250,6 +272,43 @@ generate_js_core_metadata <- function(eqs, dat, rewrite) {
 }
 
 
+## This differs to the metadata stored in the continuous time models,
+## following what we store in dust, which is a bit more flexible. Yet
+## another rough edge to sort out...
+generate_js_core_info <- function(eqs, dat, rewrite) {
+  body <- collector()
+  body$add("const ret = [];")
+  body$add("const %s = this.%s;", dat$meta$internal, dat$meta$internal)
+
+  for (el in dat$data$elements[names(dat$data$variable$contents)]) {
+    if (el$rank == 0) {
+      dim <- ""
+      len <- 1
+    } else if (el$rank == 1) {
+      len <- rewrite(el$dimnames$length)
+      dim <- len
+    } else {
+      len <- rewrite(el$dimnames$length)
+      dim <- paste(vcapply(el$dimnames$dim[[i]], rewrite), collapse = ", ")
+    }
+    body$add('ret.push({ dim: [%s], length: %s, name: "%s"});',
+             dim, len, el$name)
+  }
+
+  body$add("return ret;")
+
+  js_function(c(), body$get())
+}
+
+
+generate_js_core_size <- function(eqs, dat, rewrite) {
+  body <- c(
+    sprintf("const %s = this.%s;", dat$meta$internal, dat$meta$internal),
+    sprintf("return %s;", rewrite(dat$data$variable$length)))
+  js_function(c(), body)
+}
+
+
 generate_js_core_initial_conditions <- function(eqs, dat, rewrite) {
   set_initial <- function(el) {
     data_info <- dat$data$elements[[el$name]]
@@ -302,18 +361,27 @@ generate_js_generator <- function(core, dat) {
     x
   }
 
+  is_discrete <- dat$features$discrete
+
   body <- collector()
   body$add(core$create)
-  body$add(method("rhs", core$rhs))
-  if (!is.null(core$output)) {
-    body$add(method("output", core$output))
-  }
   body$add(method("initial", core$initial_conditions))
-  body$add(method("updateMetadata", core$metadata))
   body$add(method("setUser", core$set_user))
-  body$add(method("names", core$names))
   body$add(method("getInternal", core$get_internal))
-  body$add(method("getMetadata", core$get_metadata))
+
+  if (is_discrete) {
+    body$add(method("update", core$update))
+    body$add(method("info", core$info))
+    body$add(method("size", core$size))
+  } else {
+    body$add(method("rhs", core$rhs))
+    if (!is.null(core$output)) {
+      body$add(method("output", core$output))
+    }
+    body$add(method("names", core$names))
+    body$add(method("updateMetadata", core$update_metadata))
+    body$add(method("getMetadata", core$get_metadata))
+  }
 
   code <- c(sprintf("class %s {", dat$config$base),
             paste0("  ", body$get()),
