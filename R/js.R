@@ -181,13 +181,15 @@ odin_js_wrapper_continuous <- function(res) {
         control <- control[!vlapply(control, is.null)]
         control_js <- to_json_js(control, auto_unbox = TRUE)
 
+        ## TODO: it's not totally clear to me if/how we're doing names
+        ## correctly here for array variables?
         res <- js_call(private$context, sprintf("%s.run", private$name),
                        t_js, y_js, control_js)
 
         ## Need to add time on
         y <- cbind(t, res$y, deparse.level = 0)
         if (use_names) {
-          colnames(y) <- c(if (is_discrete) STEP else TIME, res$names)
+          colnames(y) <- c(TIME, res$names)
         }
 
         if (return_statistics) {
@@ -241,6 +243,18 @@ odin_js_wrapper_discrete <- function(res) {
       update_metadata = function() {
         private$metadata <-
           js_call(private$context, sprintf("%s.getMetadata", private$name))
+        info <- private$metadata$info
+        ## We need to do this bit of processing in R not JS to
+        ## guarantee ordering
+        if (is.data.frame(info)) {
+          private$metadata$order <- set_names(
+            as.list(info$dim),
+            info$name)
+        } else {
+          private$metadata$order <- set_names(
+            lapply(info, "[[", "dim"),
+            vcapply(info, "[[", "name"))
+        }
       }
     ),
 
@@ -280,15 +294,12 @@ odin_js_wrapper_discrete <- function(res) {
                 step_js, y_js)
       },
 
-      ## TODO: this one will be different, probably we need to stick a
-      ## little extra information here to make it all work, but
-      ## possibly this is already not working for most things as this
-      ## only applies to higher dimensional objects.
       contents = function() {
         ret <- js_call(private$context, sprintf("%s.getInternal", private$name))
-
-        browser()
-        stop("not finished")
+        for (nm in res$internal_dim) {
+          dim(ret[[nm]]) <- vnapply(res$internal_dim, function(x) ret[[x]])
+        }
+        ret
       },
 
       run = function(step, y = NULL, ..., use_names = TRUE) {
@@ -315,10 +326,9 @@ odin_js_wrapper_discrete <- function(res) {
       },
 
       transform_variables = function(y) {
-        ## this one will need a bunch of work, as it needs metadata
-        ## that we just have not copied over yet.
-        browser()
-        stop("not finished")
+        support_transform_variables(
+          y,
+          list(variable_order = private$metadata$order))
       }
     ))
 }

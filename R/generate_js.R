@@ -22,7 +22,6 @@ generate_js <- function(ir, options) {
   eqs <- generate_js_equations(dat, rewrite)
   core <- generate_js_core(eqs, dat, rewrite)
 
-  browser()
   keep <- vlapply(dat$data$elements, function(x)
     x$location == "internal" &&
     x$storage_type %in% c("double", "int", "bool") &&
