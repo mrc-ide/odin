@@ -76,6 +76,7 @@ odin_js_versions <- function() {
 
 odin_js_wrapper_continuous <- function(res) {
   context <- new_context("odin.js", res$code)
+  has_delay <- res$features$has_delay
   private <- NULL
   R6::R6Class(
     "odin_model",
@@ -158,7 +159,7 @@ odin_js_wrapper_continuous <- function(res) {
             dim(ret[[i]]) <- d
           }
         }
-        if (is_continuous_delay && is.null(ret$initial_t)) {
+        if (has_delay && is.null(ret$initial_t)) {
           ## NaN serialises to NULL, which is not quite what we want
           ret$initial_t <- NA_real_
         }
