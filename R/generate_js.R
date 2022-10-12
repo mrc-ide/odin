@@ -18,6 +18,9 @@ generate_js <- function(ir, options) {
     stop("Using unsupported features: ",
          paste(squote(unsupported), collapse = ", "))
   }
+  if (features[["discrete"]] && features[["has_output"]]) {
+    stop("Using unsupported features: 'has_output'")
+  }
 
   eqs <- generate_js_equations(dat, rewrite)
   core <- generate_js_core(eqs, dat, rewrite)

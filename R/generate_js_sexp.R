@@ -39,6 +39,13 @@ generate_js_sexp <- function(x, data, meta) {
     } else if (fn == "sum" || fn == "odin_sum") {
       ret <- generate_js_sexp_sum(args, data, meta)
     } else if (any(names(FUNCTIONS_JS_STOCHASTIC) == fn)) {
+      if (fn == "rbinom") {
+        ## See equivalent logic in the C version
+        ##
+        ## TODO: should be this.base.maths.round2 but we don't yet
+        ## import appropriate support from odin yet...
+        values[[1L]] <- sprintf("Math.round(%s)", values[[1L]])
+      }
       ret <- sprintf("random.%s(%s)",
                      FUNCTIONS_JS_STOCHASTIC[[fn]],
                      paste(values, collapse = ", "))
@@ -123,7 +130,7 @@ FUNCTIONS_JS_STOCHASTIC <- c(
   ## TODO: I should write out these ones somewhere
   ## And support many different distributions
   ## rbeta = "", # a, b
-  rbinom = "rbinom", # n, p - note that this is patched
+  rbinom = "binomial", # n, p
   ## rcauchy = "", # location, scale
   ## rchisq = "", # df
   rexp = "exponential", # rate

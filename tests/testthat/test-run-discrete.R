@@ -1,7 +1,6 @@
 context("run: discrete")
 
 test_that_odin("basic", {
-  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -20,7 +19,7 @@ test_that_odin("basic", {
 })
 
 test_that_odin("output", {
-  skip_for_target("js")
+  skip_for_target("js") # probably gets removed from odin soon
   gen <- odin({
     initial(x[]) <- x0[i]
     update(x[]) <- x[i] + r[i]
@@ -46,7 +45,7 @@ test_that_odin("output", {
 })
 
 test_that_odin("interpolate", {
-  skip_for_target("js")
+  skip_for_target("js") # not yet supported, may not be
   gen <- odin({
     initial(x) <- 0
     update(x) <- x + pulse
@@ -76,7 +75,6 @@ test_that_odin("interpolate", {
 })
 
 test_that_odin("use step in model", {
-  skip_for_target("js")
   gen <- odin({
     initial(x) <- step
     update(x) <- step + 1
@@ -89,7 +87,7 @@ test_that_odin("use step in model", {
 
 ## This is to avoid a regression with array_dim_name
 test_that_odin("2d array equations", {
-  skip_for_target("js")
+  skip_for_target("js") # needs better user support
   gen <- odin({
     initial(x[, ]) <- x0[i, j]
     update(x[, ]) <- x[i, j] + r[i, j]
@@ -115,7 +113,7 @@ test_that_odin("2d array equations", {
 
 ## This turns up in one of Neil's cases:
 test_that_odin("complex initialisation: scalar", {
-  skip_for_target("js")
+  skip_for_target("js") # random initial conditions not supported yet
   gen <- odin({
     initial(x1) <- norm_rand()
     r <- x1 * 2
@@ -134,14 +132,14 @@ test_that_odin("complex initialisation: scalar", {
   })
 
   mod <- gen$new()
-  model_set_seed(mod, 1)
+  set.seed(1)
 
   v <- mod$initial(0)
   vv <- mod$transform_variables(v)
 
-  model_set_seed(mod, 1)
+  set.seed(1)
   if (mod$engine() == "js") {
-    x1 <- model_random_numbers(mod, "normal", 1)
+    x1 <- model_random_numbers(mod, "randomNormal", 1)
   } else {
     x1 <- rnorm(1)
   }
@@ -152,7 +150,7 @@ test_that_odin("complex initialisation: scalar", {
   v2 <- mod2$initial(0)
   expect_equal(v2, v)
 
-  model_set_seed(mod, 1)
+  set.seed(1)
   z <- mod$run(0:5)
   z2 <- mod2$run(0:5)
   expect_equal(z, z2)
@@ -162,7 +160,7 @@ test_that_odin("complex initialisation: scalar", {
 })
 
 test_that_odin("complex initialisation: vector", {
-  skip_for_target("js")
+  skip_for_target("js") # random initial conditions not supported yet
   gen <- odin({
     initial(x1[]) <- norm_rand()
     r[] <- x1[i] * 2
@@ -177,14 +175,14 @@ test_that_odin("complex initialisation: vector", {
   })
 
   mod <- gen$new()
-  model_set_seed(mod, 1)
+  set.seed(1)
 
   v <- mod$initial(0)
   vv <- mod$transform_variables(v)
 
-  model_set_seed(mod, 1)
+  set.seed(1)
   if (mod$engine() == "js") {
-    cmp <- model_random_numbers(mod, "normal", 10)
+    cmp <- model_random_numbers(mod, "randomNormal", 10)
   } else {
     cmp <- rnorm(10)
   }
@@ -195,7 +193,6 @@ test_that_odin("complex initialisation: vector", {
 
 
 test_that_odin("can set initial conditions", {
-  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -208,7 +205,6 @@ test_that_odin("can set initial conditions", {
 
 
 test_that_odin("can set/omit ynames", {
-  skip_for_target("js")
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1

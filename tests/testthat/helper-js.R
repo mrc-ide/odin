@@ -36,25 +36,12 @@ model_set_seed <- function(mod, seed) {
 }
 
 
-model_random_numbers <- function(x, name, n, ...) {
-  ctx <- model_context(x)
-  ctx$eval(c(
-    "var repeat = function(f, n) {",
-    "  var ret = [];",
-    "  for (var i = 0; i < n; ++i) {",
-    "    ret.push(f());",
-    "  }",
-    "  return ret;",
-    "}"))
-  f <- V8::JS(sprintf("random.%s(%s)", name, paste(c(...), collapse = ", ")))
-  ctx$call("repeat", f, n)
-}
-
-
-with_options <- function(opts, code) {
-  oo <- options(opts)
-  on.exit(oo)
-  force(code)
+model_random_numbers <- function(mod, name, n, ...) {
+  stopifnot(mod$engine() == "js")
+  ctx <- V8::v8()
+  ctx$source(odin_file("js/dust.js"))
+  ctx$source("random.js")
+  jsonlite::fromJSON(ctx$call("random", name, n, list(...)))
 }
 
 

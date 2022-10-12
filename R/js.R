@@ -264,8 +264,9 @@ odin_js_wrapper_discrete <- function(res) {
         private$name <- sprintf("%s.%s", JS_INSTANCES, basename(tempfile("i")))
         ## TODO: ignores unused_user_action for now
         user_js <- to_js_user(user)
-        init <- sprintf("%s = new dust.PkgWrapper(%s, %s);",
-                        private$name, private$generator, user_js)
+        init <- sprintf("%s = new dust.PkgWrapper(%s, %s, %s);",
+                        private$name, private$generator, user_js,
+                        odin_js_dust_rng())
         js_eval(private$context, init)
         private$update_metadata()
       },
@@ -351,4 +352,10 @@ js_call <- function(context, ...) {
 
 js_eval <- function(context, ...) {
   tryCatch(context$eval(...), error = function(e) stop(e$message))
+}
+
+
+odin_js_dust_rng <- function() {
+  code <- readLines(odin_file("js/dust-rng.js"))
+  V8::JS(code[!grepl("^//", code)])
 }
