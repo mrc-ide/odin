@@ -41,10 +41,7 @@ generate_js_sexp <- function(x, data, meta) {
     } else if (any(names(FUNCTIONS_JS_STOCHASTIC) == fn)) {
       if (fn == "rbinom") {
         ## See equivalent logic in the C version
-        ##
-        ## TODO: should be this.base.maths.round2 but we don't yet
-        ## import appropriate support from odin yet...
-        values[[1L]] <- sprintf("Math.round(%s)", values[[1L]])
+        values[[1L]] <- sprintf("this.base.maths.round2(%s)", values[[1L]])
       }
       ret <- sprintf("random.%s(%s)",
                      FUNCTIONS_JS_STOCHASTIC[[fn]],

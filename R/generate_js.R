@@ -81,19 +81,15 @@ generate_js_core_set_user <- function(eqs, dat, rewrite) {
   is_discrete <- dat$features$discrete
 
   update_metadata <- "this.updateMetadata();"
-  body <- collector()
+  allowed <- paste(dquote(names(dat$user)), collapse = ", ")
+  check_user <- sprintf("this.base.user.checkUser(%s, [%s], unusedUserAction);",
+                        dat$meta$user, allowed)
 
-  ## We can't yet do this for discrete models, requires a bit more
-  ## bits to be pulled into the helpers - probably easier to pull off
-  ## once we get the shared package sorted, or once we depend properly
-  ## on odin-js (if we do)?
-  if (!is_discrete) {
-    body$add(
-      "this.base.user.checkUser(%s, [%s], unusedUserAction);",
-      dat$meta$user, paste(dquote(names(dat$user)), collapse = ", "))
-  }
+  body <- collector()
+  body$add(check_user)
 
   if (dat$features$has_user) {
+    ## TODO: lots of opportunities to use const here
     body$add("const %s = this.%s;", dat$meta$internal, dat$meta$internal)
     body$add(js_flatten_eqs(eqs[dat$components$user$equations]))
   }
@@ -101,7 +97,7 @@ generate_js_core_set_user <- function(eqs, dat, rewrite) {
   ## This bit we only need to do for continuous models, and won't need
   ## to do in practice.
   if (!is_discrete) {
-    body$add("this.updateMetadata();")
+    body$add(update_metadata)
   }
 
   args <- c(dat$meta$user, "unusedUserAction")
@@ -149,7 +145,7 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
   equations <- dat$components$output$equations
 
   internal <- sprintf("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
-  alloc <- sprintf("var %s = new Array(%s).fill(0);",
+  alloc <- sprintf("var %s = new Array(%s);",
                    dat$meta$output, rewrite(dat$data$output$length))
   unpack <- lapply(variables, js_unpack_variable, dat, dat$meta$state, rewrite)
   ret <- sprintf("return %s;", dat$meta$output)
