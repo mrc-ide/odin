@@ -1,6 +1,7 @@
 context("odin-js")
 
 test_that("trivial model", {
+  ## TODO: Automate testing if we can test in the absence of V8
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -272,4 +273,30 @@ test_that("Can show versions of js packages", {
   ## This list may grow over time and that should not fail the tests:
   expect_true(all(c("dfoptim", "dopri", "odinjs") %in% names(v)))
   expect_true(all(vlapply(v, inherits, "numeric_version")))
+})
+
+
+test_that("Can run simple discrete model", {
+  gen <- odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- 2
+  }, target = "js")
+
+  mod <- gen$new()
+  expect_is(mod, "odin_model")
+  expect_equal(mod$initial(0), 1)
+  expect_equal(mod$initial(10), 1)
+  expect_equal(mod$update(0, 0), 2)
+  expect_equal(mod$update(10, 10), 12)
+
+  tt <- 0:10
+  yy <- mod$run(tt)
+
+  expect_equal(colnames(yy), c("step", "y"))
+  expect_equal(yy[, "step"], tt)
+  expect_equal(yy[, "y"], seq(1, length.out = length(tt), by = 2))
+
+  expect_equal(sort_list(mod$contents()),
+               sort_list(list(initial_y = 1, r = 2)))
 })
