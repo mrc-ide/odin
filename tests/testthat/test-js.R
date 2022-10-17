@@ -300,3 +300,14 @@ test_that("Can run simple discrete model", {
   expect_equal(sort_list(mod$contents()),
                sort_list(list(initial_y = 1, r = 2)))
 })
+
+
+test_that("can't use output in js discrete time models", {
+  expect_error(odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- 2
+    output(z) <- y * 2
+  }, target = "js"),
+  "Using unsupported features: 'has_output'")
+})
