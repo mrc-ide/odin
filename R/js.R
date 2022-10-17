@@ -18,62 +18,6 @@ odin_js_wrapper_object <- function(res) {
 }
 
 
-##' @export
-coef.odin_js_generator <- function(object, ...) {
-  ## This is a workaround until odin drops the constructor interface
-  coef(structure(list(), ir = object$private_fields$ir_,
-                 class = "odin_generator"))
-}
-
-
-to_js_user <- function(user) {
-  to_js <- function(value) {
-    if (inherits(value, "JS_EVAL")) {
-      class(value) <- "json"
-    } else if (is.array(value)) {
-      value <- list(data = c(value), dim = I(dim(value)))
-    } else if (length(value) == 0) {
-    } else if (is.null(value)) { # leave as is
-    } else if (length(value) != 1L || inherits(value, "AsIs")) {
-      value <- list(data = value, dim = I(length(value)))
-    }
-    value
-  }
-  user <- user[!vlapply(user, is.null)]
-  if (length(user) == 0) {
-    return(V8::JS("{}"))
-  }
-  stopifnot(!is.null(names(user)))
-  user <- lapply(user, to_js)
-  args <- jsonlite::toJSON(user, auto_unbox = TRUE, digits = NA,
-                           null = "null", na = "null")
-  V8::JS(args)
-}
-
-
-to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
-  V8::JS(jsonlite::toJSON(x, auto_unbox = auto_unbox, digits = digits, ...))
-}
-
-
-##' Report versions of JavaScript packages used to run odin models.
-##'
-##' @title Report JS versions
-##'
-##' @return A named list of [package_version] versions, for `odinjs`
-##'   and other coponents used in the JavaScript support.
-##'
-##' @export
-##' @examples
-##' odin::odin_js_versions()
-odin_js_versions <- function() {
-  context <- V8::v8()
-  context$source(odin_file("js/odin.js"))
-  ## TODO: also get the dust versions here.
-  lapply(context$call("odinjs.versions"), package_version)
-}
-
-
 odin_js_wrapper_continuous <- function(res) {
   context <- new_context("odin.js", res$code)
   has_delay <- res$features$has_delay
@@ -337,6 +281,39 @@ odin_js_wrapper_discrete <- function(res) {
 }
 
 
+##' @export
+coef.odin_js_generator <- function(object, ...) {
+  ## This is a workaround until odin drops the constructor interface
+  coef(structure(list(), ir = object$private_fields$ir_,
+                 class = "odin_generator"))
+}
+
+
+to_js_user <- function(user) {
+  to_js <- function(value) {
+    if (inherits(value, "JS_EVAL")) {
+      class(value) <- "json"
+    } else if (is.array(value)) {
+      value <- list(data = c(value), dim = I(dim(value)))
+    } else if (length(value) == 0) {
+    } else if (is.null(value)) { # leave as is
+    } else if (length(value) != 1L || inherits(value, "AsIs")) {
+      value <- list(data = value, dim = I(length(value)))
+    }
+    value
+  }
+  user <- user[!vlapply(user, is.null)]
+  if (length(user) == 0) {
+    return(V8::JS("{}"))
+  }
+  stopifnot(!is.null(names(user)))
+  user <- lapply(user, to_js)
+  args <- jsonlite::toJSON(user, auto_unbox = TRUE, digits = NA,
+                           null = "null", na = "null")
+  V8::JS(args)
+}
+
+
 new_context <- function(support, code) {
   context <- V8::v8()
   context$source(odin_file(file.path("js", support)))
@@ -359,4 +336,26 @@ js_eval <- function(context, ...) {
 odin_js_dust_rng <- function() {
   code <- readLines(odin_file("js/dust-rng.js"))
   V8::JS(code[!grepl("^//", code)])
+}
+
+
+to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
+  V8::JS(jsonlite::toJSON(x, auto_unbox = auto_unbox, digits = digits, ...))
+}
+
+
+##' Report versions of JavaScript packages used to run odin models.
+##'
+##' @title Report JS versions
+##'
+##' @return A named list of [package_version] versions, for `odinjs`
+##'   and other coponents used in the JavaScript support.
+##'
+##' @export
+##' @examples
+##' odin::odin_js_versions()
+odin_js_versions <- function() {
+  context <- V8::v8()
+  context$source(odin_file("js/odin.js"))
+  lapply(context$call("odinjs.versions"), package_version)
 }

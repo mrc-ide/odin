@@ -124,7 +124,6 @@ generate_js_equation_array <- function(eq, data_info, dat, rewrite) {
 generate_js_equation_alloc <- function(eq, data_info, dat, rewrite) {
   lhs <- rewrite(eq$lhs)
   len <- rewrite(data_info$dimnames$length)
-  ## TODO: fill here
   sprintf("%s = new Array(%s);", lhs, len)
 }
 

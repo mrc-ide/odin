@@ -78,25 +78,21 @@ generate_js_core_create <- function(eqs, dat, rewrite) {
 
 
 generate_js_core_set_user <- function(eqs, dat, rewrite) {
-  is_discrete <- dat$features$discrete
-
   update_metadata <- "this.updateMetadata();"
   allowed <- paste(dquote(names(dat$user)), collapse = ", ")
   check_user <- sprintf("this.base.user.checkUser(%s, [%s], unusedUserAction);",
                         dat$meta$user, allowed)
-
   body <- collector()
   body$add(check_user)
-
   if (dat$features$has_user) {
-    ## TODO: lots of opportunities to use const here
-    body$add("const %s = this.%s;", dat$meta$internal, dat$meta$internal)
+    body$add("var %s = this.%s;", dat$meta$internal, dat$meta$internal)
     body$add(js_flatten_eqs(eqs[dat$components$user$equations]))
   }
 
+  ## TODO: can we drop this?
   ## This bit we only need to do for continuous models, and won't need
   ## to do in practice.
-  if (!is_discrete) {
+  if (!dat$features$discrete) {
     body$add(update_metadata)
   }
 
@@ -130,7 +126,6 @@ generate_js_core_update <- function(eqs, dat, rewrite) {
   unpack <- lapply(variables, js_unpack_variable, dat, dat$meta$state, rewrite)
   body <- js_flatten_eqs(c(internal, unpack, eqs[equations]))
 
-  ## TODO: also depend on the string 'random' in generate_js_sexp
   args <- c(dat$meta$time, dat$meta$state, dat$meta$result, "random")
   js_function(args, body)
 }
@@ -350,16 +345,10 @@ generate_js_core_initial_conditions <- function(eqs, dat, rewrite) {
 
 
 generate_js_generator <- function(core, dat) {
-  field <- function(name, x) {
-    x[[1]] <- sprintf("%s = %s", name, x[[1]])
-    x
-  }
   method <- function(name, x) {
     x[[1]] <- sub("^function", name, x[[1]])
     x
   }
-
-  is_discrete <- dat$features$discrete
 
   body <- collector()
   body$add(core$create)
@@ -367,7 +356,7 @@ generate_js_generator <- function(core, dat) {
   body$add(method("setUser", core$set_user))
   body$add(method("getInternal", core$get_internal))
 
-  if (is_discrete) {
+  if (dat$features$discrete) {
     body$add(method("update", core$update))
     body$add(method("info", core$info))
     body$add(method("size", core$size))
