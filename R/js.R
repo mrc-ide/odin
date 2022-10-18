@@ -243,8 +243,9 @@ odin_js_wrapper_discrete <- function(res) {
 
       contents = function() {
         ret <- js_call(private$context, sprintf("%s.getInternal", private$name))
-        for (nm in res$internal_dim) {
-          dim(ret[[nm]]) <- vnapply(res$internal_dim, function(x) ret[[x]])
+        for (nm in names(res$internal_dim)) {
+          dim(ret[[nm]]) <- vnapply(res$internal_dim[[nm]],
+                                    function(x) ret[[x]])
         }
         ret
       },

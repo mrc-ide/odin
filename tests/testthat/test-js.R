@@ -351,3 +351,16 @@ test_that("can get coefficients from discrete time models", {
   expect_equal(res, expected)
   expect_equal(coef(gen$new()), res)
 })
+
+
+test_that("cast internal arrays to correct dimension", {
+  gen <- odin({
+    update(y) <- y + sum(r)
+    initial(y) <- 1
+    r[, ] <- i * j
+    dim(r) <- c(3, 4)
+  }, target = "js")
+  mod <- gen$new()
+  res <- mod$contents()
+  expect_equal(res$r, outer(1:3, 1:4))
+})
