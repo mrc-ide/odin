@@ -10,14 +10,6 @@ generate_js <- function(ir, options) {
   }
 
   features <- vlapply(dat$features, identity)
-  supported <- c("continuous", "discrete", "has_stochastic",
-                 "initial_time_dependent", "has_array", "has_user",
-                 "has_output", "has_delay", "has_interpolate")
-  unsupported <- setdiff(names(features)[features], supported)
-  if (length(unsupported) > 0L) {
-    stop("Using unsupported features: ",
-         paste(squote(unsupported), collapse = ", "))
-  }
   if (features[["discrete"]] && features[["has_output"]]) {
     stop("Using unsupported features: 'has_output'")
   }
