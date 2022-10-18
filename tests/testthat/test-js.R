@@ -311,3 +311,43 @@ test_that("can't use output in js discrete time models", {
   }, target = "js"),
   "Using unsupported features: 'has_output'")
 })
+
+
+test_that("can get coefficients from continuous time models", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- user(2)
+  }, target = "js")
+  expected <- data.frame(
+    name = "r",
+    has_default = TRUE,
+    default_value = I(list(2)),
+    rank = 0,
+    min = -Inf,
+    max = Inf,
+    integer = FALSE)
+  res <- coef(gen)
+  expect_equal(res, expected)
+  expect_equal(coef(gen$new()), res)
+})
+
+
+test_that("can get coefficients from discrete time models", {
+  gen <- odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- user(2)
+  }, target = "js")
+  expected <- data.frame(
+    name = "r",
+    has_default = TRUE,
+    default_value = I(list(2)),
+    rank = 0,
+    min = -Inf,
+    max = Inf,
+    integer = FALSE)
+  res <- coef(gen)
+  expect_equal(res, expected)
+  expect_equal(coef(gen$new()), res)
+})
