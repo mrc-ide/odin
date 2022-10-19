@@ -267,6 +267,18 @@ test_that("Can show generated code", {
 })
 
 
+test_that("Can show generated code for discrete time models", {
+  skip_if_not_installed("V8")
+  gen <- odin({
+    update(y) <- 1
+    initial(y) <- 1
+  }, target = "js")
+  code <- gen$public_methods$code()
+  expect_type(code, "character")
+  expect_equal(code[[1]], "class odin {")
+})
+
+
 test_that("Can show versions of js packages", {
   skip_if_not_installed("V8")
   v <- odin_js_versions()
