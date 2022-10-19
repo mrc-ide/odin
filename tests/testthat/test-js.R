@@ -376,3 +376,26 @@ test_that("cast internal arrays to correct dimension", {
   res <- mod$contents()
   expect_equal(res$r, outer(1:3, 1:4))
 })
+
+
+test_that("can correctly pull metadata where model has variety of ranks", {
+  skip_if_not_installed("V8")
+  gen <- odin({
+    update(a) <- 1
+    update(b[]) <- i
+    update(c[, ]) <- i * j
+    initial(a) <- 0
+    initial(b[]) <- 0
+    initial(c[, ]) <- 0
+    dim(b) <- 2
+    dim(c) <- c(2, 3)
+  }, target = "js")
+  mod <- gen$new()
+  y <- mod$update(0, mod$initial(0))
+  expect_equal(y, c(1, 1:2, outer(1:2, 1:3)))
+  expect_equal(mod$transform_variables(y),
+               list(t = NA_real_,
+                    a = 1,
+                    b = 1:2,
+                    c = outer(1:2, 1:3)))
+})

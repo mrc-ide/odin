@@ -190,16 +190,12 @@ odin_js_wrapper_discrete <- function(res) {
           js_call(private$context, sprintf("%s.getMetadata", private$name))
         info <- private$metadata$info
         ## We need to do this bit of processing in R not JS to
-        ## guarantee ordering
-        if (is.data.frame(info)) {
-          private$metadata$order <- set_names(
-            as.list(info$dim),
-            info$name)
-        } else {
-          private$metadata$order <- set_names(
-            lapply(info, "[[", "dim"),
-            vcapply(info, "[[", "name"))
-        }
+        ## guarantee ordering (i.e., we can't just save the object in
+        ## js). There's also a small tweak to convert the empty vector
+        ## into NULL values, as that's what transform_variables assumes.
+        order <- set_names(as.list(info$dim), info$name)
+        order[vlapply(order, function(el) length(el) == 0)] <- list(NULL)
+        private$metadata$order <- order
       }
     ),
 

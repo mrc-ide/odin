@@ -274,7 +274,7 @@ generate_js_core_info <- function(eqs, dat, rewrite) {
       dim <- len
     } else {
       len <- rewrite(el$dimnames$length)
-      dim <- paste(vcapply(el$dimnames$dim[[i]], rewrite), collapse = ", ")
+      dim <- paste(vcapply(el$dimnames$dim, rewrite), collapse = ", ")
     }
     body$add('ret.push({ dim: [%s], length: %s, name: "%s"});',
              dim, len, el$name)
