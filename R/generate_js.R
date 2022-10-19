@@ -17,11 +17,12 @@ generate_js <- function(ir, options) {
   eqs <- generate_js_equations(dat, rewrite)
   core <- generate_js_core(eqs, dat, rewrite)
 
-  keep <- vlapply(dat$data$elements, function(x)
+  internal_dim_elements <- vlapply(dat$data$elements, function(x)
     x$location == "internal" &&
     x$storage_type %in% c("double", "int", "bool") &&
     x$rank > 1)
-  internal_dim <- lapply(dat$data$elements[keep], function(x) x$dimnames$dim)
+  internal_dim <- lapply(dat$data$elements[internal_dim_elements],
+                         function(x) x$dimnames$dim)
 
   ## This is all we need to dump out
   list(code = generate_js_generator(core, dat),
