@@ -1,6 +1,7 @@
 context("odin-js")
 
 test_that("trivial model", {
+  ## TODO: Automate testing if we can test in the absence of V8
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -266,10 +267,135 @@ test_that("Can show generated code", {
 })
 
 
+test_that("Can show generated code for discrete time models", {
+  skip_if_not_installed("V8")
+  gen <- odin({
+    update(y) <- 1
+    initial(y) <- 1
+  }, target = "js")
+  code <- gen$public_methods$code()
+  expect_type(code, "character")
+  expect_equal(code[[1]], "class odin {")
+})
+
+
 test_that("Can show versions of js packages", {
   skip_if_not_installed("V8")
   v <- odin_js_versions()
   ## This list may grow over time and that should not fail the tests:
   expect_true(all(c("dfoptim", "dopri", "odinjs") %in% names(v)))
   expect_true(all(vlapply(v, inherits, "numeric_version")))
+})
+
+
+test_that("Can run simple discrete model", {
+  gen <- odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- 2
+  }, target = "js")
+
+  mod <- gen$new()
+  expect_is(mod, "odin_model")
+  expect_equal(mod$initial(0), 1)
+  expect_equal(mod$initial(10), 1)
+  expect_equal(mod$update(0, 0), 2)
+  expect_equal(mod$update(10, 10), 12)
+
+  tt <- 0:10
+  yy <- mod$run(tt)
+
+  expect_equal(colnames(yy), c("step", "y"))
+  expect_equal(yy[, "step"], tt)
+  expect_equal(yy[, "y"], seq(1, length.out = length(tt), by = 2))
+
+  expect_equal(sort_list(mod$contents()),
+               sort_list(list(initial_y = 1, r = 2)))
+})
+
+
+test_that("can't use output in js discrete time models", {
+  expect_error(odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- 2
+    output(z) <- y * 2
+  }, target = "js"),
+  "Using unsupported features: 'has_output'")
+})
+
+
+test_that("can get coefficients from continuous time models", {
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- user(2)
+  }, target = "js")
+  expected <- data.frame(
+    name = "r",
+    has_default = TRUE,
+    default_value = I(list(2)),
+    rank = 0,
+    min = -Inf,
+    max = Inf,
+    integer = FALSE)
+  res <- coef(gen)
+  expect_equal(res, expected)
+  expect_equal(coef(gen$new()), res)
+})
+
+
+test_that("can get coefficients from discrete time models", {
+  gen <- odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- user(2)
+  }, target = "js")
+  expected <- data.frame(
+    name = "r",
+    has_default = TRUE,
+    default_value = I(list(2)),
+    rank = 0,
+    min = -Inf,
+    max = Inf,
+    integer = FALSE)
+  res <- coef(gen)
+  expect_equal(res, expected)
+  expect_equal(coef(gen$new()), res)
+})
+
+
+test_that("cast internal arrays to correct dimension", {
+  gen <- odin({
+    update(y) <- y + sum(r)
+    initial(y) <- 1
+    r[, ] <- i * j
+    dim(r) <- c(3, 4)
+  }, target = "js")
+  mod <- gen$new()
+  res <- mod$contents()
+  expect_equal(res$r, outer(1:3, 1:4))
+})
+
+
+test_that("can correctly pull metadata where model has variety of ranks", {
+  skip_if_not_installed("V8")
+  gen <- odin({
+    update(a) <- 1
+    update(b[]) <- i
+    update(c[, ]) <- i * j
+    initial(a) <- 0
+    initial(b[]) <- 0
+    initial(c[, ]) <- 0
+    dim(b) <- 2
+    dim(c) <- c(2, 3)
+  }, target = "js")
+  mod <- gen$new()
+  y <- mod$update(0, mod$initial(0))
+  expect_equal(y, c(1, 1:2, outer(1:2, 1:3)))
+  expect_equal(mod$transform_variables(y),
+               list(t = NA_real_,
+                    a = 1,
+                    b = 1:2,
+                    c = outer(1:2, 1:3)))
 })

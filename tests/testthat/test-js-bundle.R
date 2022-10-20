@@ -8,11 +8,14 @@ test_that("bundle works", {
             "r <- user()")
   bundle <- odin_js_bundle(code)
 
+  expect_false(bundle$is_discrete)
+  expect_equal(bundle$support_file, "odin.js")
+
   t0 <- 0
   t1 <- 10
   tn <- 11
 
-  res <- call_odin_bundle(bundle, list(r = 0.5), t0, t1, tn)
+  res <- call_odin_bundle_continuous(bundle, list(r = 0.5), t0, t1, tn)
 
   t <- seq(t0, t1, length.out = tn)
   sol <- with(list(K = 100, r = 0.5, y0 = 1),
@@ -43,7 +46,7 @@ test_that("include interpolate", {
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
   user <- list(tp = tp, zp = zp)
-  res <- call_odin_bundle(bundle, user, t0, t1, tn)
+  res <- call_odin_bundle_continuous(bundle, user, t0, t1, tn)
 
   tt <- seq(t0, t1, length.out = tn)
 
@@ -70,7 +73,7 @@ test_that("include sum", {
   t1 <- 10
   tn <- 101
 
-  res <- call_odin_bundle(bundle, NULL, t0, t1, tn)
+  res <- call_odin_bundle_continuous(bundle, NULL, t0, t1, tn)
   expect_equal(
     res$names,
     c("y[1]", "y[2]", "y[3]", "ytot", "y2[1]", "y2[2]", "y2[3]"))
@@ -115,7 +118,7 @@ test_that("include fancy sum", {
   t1 <- 50
   tn <- 101
 
-  res <- call_odin_bundle(bundle, user, t0, t1, tn)
+  res <- call_odin_bundle_continuous(bundle, user, t0, t1, tn)
 
   tt <- seq(t0, t1, length.out = tn)
   cmp <- odin::odin_(code, target = "r")$new(user = user)$run(tt)
@@ -125,22 +128,56 @@ test_that("include fancy sum", {
 })
 
 
+test_that("simple discrete model in a bundle", {
+  ## Not using the rng so that it's easy to push around:
+  code <- c(
+    "initial(x) <- 0",
+    "update(x) <- x + r",
+    "r <- user()")
+
+  ## TODO: why does this force loading pkgload, that seems stupid and
+  ## unneeded.
+  bundle <- odin_js_bundle(code)
+
+  expect_true(bundle$is_discrete)
+  expect_equal(bundle$support_file, "dust.js")
+
+  t0 <- 0
+  t1 <- 20
+  dt <- 1
+  np <- 3
+
+  res <- call_odin_bundle_discrete(bundle, list(r = 0.5), t0, t1, dt, np)
+  expect_setequal(names(res), c("x", "values"))
+  expect_equal(res$x, seq(t0, t1, dt))
+  expect_equal(res$values$mode, "Deterministic")
+  expect_equal(res$values$name, "x")
+  expect_equal(res$values$y, list(seq(0, by = 0.5, length.out = 21)))
+})
+
+
 test_that("simple stochastic model in a bundle", {
-  testthat::skip("FIXME")
   code <- c(
     "initial(x) <- 0",
     "update(x) <- x + norm_rand()")
 
-  res <- odin_js_bundle(code)
+  bundle <- odin_js_bundle(code)
 
-  ct <- V8::v8()
-  invisible(ct$eval(res))
-  ct$call("setSeed", 1)
-  tt <- 0:20
-  yy <- call_odin_bundle(ct, "odin", NULL, tt)
+  expect_true(bundle$is_discrete)
+  expect_equal(bundle$support_file, "dust.js")
 
-  mod <- odin_(code, target = "js")$new()
-  model_set_seed(mod, 1)
-  cmp <- mod$run(tt)
-  expect_equal(yy, cmp)
+  t0 <- 0
+  t1 <- 20
+  dt <- 0.5
+  np <- 3
+
+  res <- call_odin_bundle_discrete(bundle, NULL, t0, t1, dt, np)
+  expect_setequal(names(res), c("x", "values"))
+  expect_equal(res$x, seq(t0, t1, dt))
+  expect_equal(res$values$mode, rep(c("Individual", "Mean"), c(np, 1)))
+  expect_equal(res$values$name, rep("x", 4))
+  expect_length(res$values$y, 4)
+  expect_equal(
+    rowMeans(matrix(unlist(res$values$y[1:3]), ncol = 3)),
+    res$values$y[[4]])
 })

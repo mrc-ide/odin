@@ -93,7 +93,6 @@ generate_js_equation_user <- function(eq, data_info, dat, rewrite) {
               seq_len(rank)))
   } else {
     if (rank == 0L) {
-      size <- "null"
       ret <- sprintf(
         'this.base.user.setUserScalar(%s, "%s", %s, %s, %s, %s, %s);',
         user, eq$lhs, internal, default, min, max, is_integer)
