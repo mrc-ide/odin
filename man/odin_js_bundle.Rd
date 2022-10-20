@@ -12,10 +12,11 @@ odin code (as for \link{odin_parse_}). If \code{NULL}, compile no
 model and return only the support code.}
 
 \item{include_support}{Logical, indicating if the support code
-should be included (the solver and common driver code)}
+should be included. Without this you need to manually copy over
+odin.js or dust.js depending on what model type you have.}
 }
 \value{
-A list of character vectors.
+A list, with contents subject to change.
 }
 \description{
 Create a JavaScript bundle of an odin model
@@ -23,7 +24,10 @@ Create a JavaScript bundle of an odin model
 \section{Warning}{
 
 
-The interface and generated code here are subject to change.
+The interface and generated code here are subject to change. As it
+stands, it does what is needed for our work in
+\href{https://github.com/mrc-ide/odin.api}{odin.api} and does not
+actually produce a useful bundle!
 }
 
 \examples{
@@ -31,5 +35,5 @@ js <- odin::odin_js_bundle(quote({
   deriv(x) <- 1
   initial(x) <- 1
 }), include_support = FALSE)
-head(js)
+head(js$model$code, 20)
 }
