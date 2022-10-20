@@ -1,19 +1,36 @@
-call_odin_bundle <- function(bundle, user, t0, t1, tn, control = NULL) {
+call_odin_bundle_continuous <- function(bundle, user, t0, t1, tn,
+                                        control = NULL) {
+  stopifnot(!bundle$is_discrete)
+
   ct <- V8::v8()
   ct$eval(bundle$support)
   ct$eval(bundle$model$code)
-  ct$source(odin_file("js/test.js"))
+  ct$source(odin_file("js/test-continuous.js"))
   odin_js <- V8::JS(bundle$model$name)
   user_js <- to_js_user(user)
+
   if (length(control) == 0) {
     control_js <- V8::JS("{}")
   } else {
     control_js <- V8::JS(jsonlite::toJSON(control, auto_unbox = TRUE))
   }
-
   res <- ct$call("call_odin_bundle", odin_js, user_js, t0, t1, tn, control_js)
   res$y <- t(res$y)
   res
+}
+
+
+call_odin_bundle_discrete <- function(bundle, user, t0, t1, dt, n_particles) {
+  stopifnot(bundle$is_discrete)
+
+  ct <- V8::v8()
+  ct$eval(bundle$support)
+  ct$eval(bundle$model$code)
+  ct$source(odin_file("js/test-discrete.js"))
+  odin_js <- V8::JS(bundle$model$name)
+  user_js <- to_js_user(user)
+
+  ct$call("call_odin_bundle", odin_js, user_js, t0, t1, dt, n_particles)
 }
 
 
