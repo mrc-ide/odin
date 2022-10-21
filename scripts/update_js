@@ -26,18 +26,17 @@ update_source() {
 
 build_js() {
     SRC=$1
+    FILE=$2
+    DEST="$PACKAGE_ROOT/inst/js/$FILE"
     npm --prefix $SRC ci
     npm --prefix $SRC run webpack
+    cp $SRC/dist/$FILE $DEST
+    ## Webpack builds files with no newlines, let's add one here
+    echo "" >> $PACKAGE_ROOT/inst/js/$FILE
 }
 
 update_source https://github.com/mrc-ide/dust-js $PATH_DUST $DUST_JS_BRANCH
+build_js $PATH_DUST dust.js
+
 update_source https://github.com/mrc-ide/odin-js $PATH_ODIN $ODIN_JS_BRANCH
-build_js $PATH_DUST
-build_js $PATH_ODIN
-
-cp $PATH_DUST/dist/dust.js $PACKAGE_ROOT/inst/js
-cp $PATH_ODIN/dist/odin.js $PACKAGE_ROOT/inst/js
-
-## Webpack builds files with no newlines, let's add one here
-echo "" >> $PACKAGE_ROOT/inst/js/dust.js
-echo "" >> $PACKAGE_ROOT/inst/js/odin.js
+build_js $PATH_ODIN odin.js
