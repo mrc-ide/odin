@@ -82,9 +82,8 @@ generate_js_core_set_user <- function(eqs, dat, rewrite) {
     body$add(js_flatten_eqs(eqs[dat$components$user$equations]))
   }
 
-  ## TODO: can we drop this?
-  ## This bit we only need to do for continuous models, and won't need
-  ## to do in practice.
+  ## This bit we only need to do for continuous models, and then only
+  ## where they have interpolation data.
   if (!dat$features$discrete) {
     body$add(update_metadata)
   }
