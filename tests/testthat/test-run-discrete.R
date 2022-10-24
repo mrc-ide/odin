@@ -87,7 +87,6 @@ test_that_odin("use step in model", {
 
 ## This is to avoid a regression with array_dim_name
 test_that_odin("2d array equations", {
-  skip_for_target("js") # needs better user support
   gen <- odin({
     initial(x[, ]) <- x0[i, j]
     update(x[, ]) <- x[i, j] + r[i, j]
