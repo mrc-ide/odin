@@ -363,11 +363,9 @@ generate_js_generator <- function(core, dat) {
     body$add(method("getMetadata", core$get_metadata))
   }
 
-  code <- c(sprintf("class %s {", dat$config$base),
-            paste0("  ", body$get()),
-            "}")
-
-  code
+  c(sprintf("class %s {", dat$config$base),
+    paste0("  ", body$get()),
+    "}")
 }
 
 

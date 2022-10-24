@@ -30,8 +30,6 @@ odin_js_bundle <- function(code, include_support = TRUE) {
   ret <- list()
 
   options <- odin_options(target = "js")
-  ## It's not clear why this step is so slow, occasionally -
-  ## possibly the bytecode compiler?
   ir <- odin_parse_(code, options)
   dat <- generate_js(ir, options)
   ret$model <- list(code = dat$code, name = dat$name)
@@ -39,10 +37,7 @@ odin_js_bundle <- function(code, include_support = TRUE) {
   ret$support_file <- if (ret$is_discrete) "dust.js" else "odin.js"
 
   if (include_support) {
-    ## TODO: Better than warn = FALSE, add a newline when saving code
-    ## into the package.
-    ret$support <- readLines(odin_file(file.path("js", ret$support_file)),
-                             warn = FALSE)
+    ret$support <- readLines(odin_file(file.path("js", ret$support_file)))
   }
 
   ret

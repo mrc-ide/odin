@@ -126,8 +126,6 @@ odin_js_wrapper_continuous <- function(res) {
         control <- control[!vlapply(control, is.null)]
         control_js <- to_json_js(control, auto_unbox = TRUE)
 
-        ## TODO: it's not totally clear to me if/how we're doing names
-        ## correctly here for array variables?
         res <- js_call(private$context, sprintf("%s.run", private$name),
                        t_js, y_js, control_js)
 
