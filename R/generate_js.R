@@ -146,17 +146,17 @@ generate_js_core_output <- function(eqs, dat, rewrite) {
 
 
 generate_js_core_names <- function() {
-  js_function(c(), "return this.metadata.ynames.slice(1);")
+  js_function(NULL, "return this.metadata.ynames.slice(1);")
 }
 
 
 generate_js_core_get_metadata <- function() {
-  js_function(c(), "return this.metadata;")
+  js_function(NULL, "return this.metadata;")
 }
 
 
 generate_js_core_get_internal <- function() {
-  js_function(c(), "return this.internal;")
+  js_function(NULL, "return this.internal;")
 }
 
 
@@ -283,7 +283,7 @@ generate_js_core_info <- function(eqs, dat, rewrite) {
 
   body$add("return ret;")
 
-  js_function(c(), body$get())
+  js_function(NULL, body$get())
 }
 
 
@@ -291,7 +291,7 @@ generate_js_core_size <- function(eqs, dat, rewrite) {
   body <- c(
     sprintf("const %s = this.%s;", dat$meta$internal, dat$meta$internal),
     sprintf("return %s;", rewrite(dat$data$variable$length)))
-  js_function(c(), body)
+  js_function(NULL, body)
 }
 
 
