@@ -98,8 +98,9 @@ check_substitutions <- function(substitutions) {
   }
   assert_named(substitutions, TRUE)
   assert_is(substitutions, "list")
-  ok <- vlapply(substitutions, function(x)
-    is.numeric(x) && length(x) == 1L)
+  ok <- vlapply(substitutions, function(x) {
+    is.numeric(x) && length(x) == 1L
+  })
   if (any(!ok)) {
     stop("Invalid entry in substitutions: ",
          paste(squote(names_if(!ok)), collapse = ", "))

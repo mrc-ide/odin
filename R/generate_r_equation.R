@@ -53,8 +53,9 @@ generate_r_equation_inplace <- function(eq, data_info, dat, rewrite) {
 
 generate_r_equation_array <- function(eq, data_info, dat, rewrite) {
   lhs <- generate_r_equation_array_lhs(eq, data_info, dat, rewrite)
-  lapply(eq$rhs, function(x)
-    generate_r_equation_array_rhs(x$value, x$index, lhs, rewrite))
+  lapply(eq$rhs, function(x) {
+    generate_r_equation_array_rhs(x$value, x$index, lhs, rewrite)
+  })
 }
 
 
@@ -143,7 +144,7 @@ generate_r_equation_copy <- function(eq, data_info, dat, rewrite) {
 
   if (data_info$rank == 0) {
     lhs <- call("[[", storage, r_offset_to_position(offset))
-  } else{
+  } else {
     i <- call("seq_len", rewrite(data_info$dimnames$length))
     lhs <- call("[", storage, call("+", offset, i))
   }

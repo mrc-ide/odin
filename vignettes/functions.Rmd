@@ -24,8 +24,9 @@ render <- function(x) {
       ret <- sprintf("**%s**", el$title)
     }
     if (!is.null(el$examples)) {
-      examples <- vcapply(el$examples, function(ex)
-        sprintf("`%s` &rarr; `%s`", ex[[1]], ex[[2]]))
+      examples <- vcapply(el$examples, function(ex) {
+        sprintf("`%s` &rarr; `%s`", ex[[1]], ex[[2]])
+      })
       ret <- sprintf("%s (e.g., %s)", ret, paste(examples, collapse = "; "))
     }
     ret

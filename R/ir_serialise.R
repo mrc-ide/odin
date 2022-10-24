@@ -173,10 +173,11 @@ ir_serialise_equation_expression_inplace <- function(eq) {
 
 ir_serialise_equation_expression_array <- function(eq) {
   rhs <- function(x) {
-    index <- lapply(x$index, function(i)
+    index <- lapply(x$index, function(i) {
       list(value = ir_serialise_expression(i$value),
            is_range = scalar(i$is_range),
-           index = scalar(i$index)))
+           index = scalar(i$index))
+    })
     list(index = index, value = ir_serialise_expression(x$value))
   }
   list(rhs = lapply(eq$rhs, rhs))
@@ -202,14 +203,16 @@ ir_serialise_delay_continuous <- function(eq) {
   variables <- list(
     length = ir_serialise_expression(eq$delay$variables$length),
     contents = lapply(unname(eq$delay$variables$contents), f_contents))
-  substitutions <- lapply(eq$delay$substitutions, function(x)
-    list(from = scalar(x$from), to = scalar(x$to)))
+  substitutions <- lapply(eq$delay$substitutions, function(x) {
+    list(from = scalar(x$from), to = scalar(x$to))
+  })
   rhs <- list(value = ir_serialise_expression(eq$rhs$value))
   if (!is.null(eq$rhs$index)) {
-    rhs$index <- lapply(eq$rhs$index, function(i)
+    rhs$index <- lapply(eq$rhs$index, function(i) {
       list(value = ir_serialise_expression(i$value),
            is_range = scalar(i$is_range),
-           index = scalar(i$index)))
+           index = scalar(i$index))
+    })
   }
 
   list(rhs = rhs,
@@ -236,10 +239,11 @@ ir_serialise_delay_discrete <- function(eq) {
                 time = ir_serialise_expression(eq$delay$time),
                 default = ir_serialise_expression(eq$delay$default)))
   if (!is.null(eq$rhs$index)) {
-    ret$rhs$index <- lapply(eq$rhs$index, function(i)
+    ret$rhs$index <- lapply(eq$rhs$index, function(i) {
       list(value = ir_serialise_expression(i$value),
            is_range = scalar(i$is_range),
-           index = scalar(i$index)))
+           index = scalar(i$index))
+    })
   }
   ret
 }

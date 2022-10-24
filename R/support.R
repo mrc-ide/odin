@@ -64,13 +64,15 @@ support_transform_variables <- function(y, private) {
     }
     if (any(is_array)) {
       nt <- nrow(y)
-      ret[is_array] <- lapply(which(is_array), function(i)
-        array(y[, i0[[i]]:i1[[i]]], c(nt, ord[[i]])))
+      ret[is_array] <- lapply(which(is_array), function(i) {
+        array(y[, i0[[i]]:i1[[i]]], c(nt, ord[[i]]))
+      })
     }
   } else if (is.array(y)) {
     if (any(is_scalar)) {
-      ret[is_scalar] <- lapply(i0[is_scalar], function(i)
-        adrop(y[, i, , drop = FALSE], 2L))
+      ret[is_scalar] <- lapply(i0[is_scalar], function(i) {
+        adrop(y[, i, , drop = FALSE], 2L)
+      })
     }
     if (has_time) {
       ret[[1]] <- ret[[1]][, 1L, drop = TRUE]
@@ -78,8 +80,9 @@ support_transform_variables <- function(y, private) {
     if (any(is_array)) {
       nt <- nrow(y)
       nr <- dim(y)[[3L]]
-      ret[is_array] <- lapply(which(is_array), function(i)
-        array(y[, i0[[i]]:i1[[i]], ], c(nt, ord[[i]], nr)))
+      ret[is_array] <- lapply(which(is_array), function(i) {
+        array(y[, i0[[i]]:i1[[i]], ], c(nt, ord[[i]], nr))
+      })
     }
   } else {
     if (any(is_scalar)) {
@@ -89,8 +92,9 @@ support_transform_variables <- function(y, private) {
       shape_array <- function(x, ord) {
         if (length(ord) == 1L) unname(x) else array(x, ord)
       }
-      ret[is_array] <- lapply(which(is_array), function(i)
-        shape_array(y[i0[[i]]:i1[[i]]], ord[[i]]))
+      ret[is_array] <- lapply(which(is_array), function(i) {
+        shape_array(y[i0[[i]]:i1[[i]]], ord[[i]])
+      })
     }
   }
   ret

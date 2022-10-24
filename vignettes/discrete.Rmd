@@ -175,7 +175,8 @@ We start by loading the `odin` code for a discrete, stochastic SIR
 model:
 
 ``` {r load_sir}
-path_sir_model <- system.file("examples/discrete_deterministic_sir.R", package = "odin")
+path_sir_model <- system.file("examples/discrete_deterministic_sir.R",
+                              package = "odin")
 ```
 
 ``` {r echo = FALSE, results = "asis"}
@@ -227,7 +228,8 @@ The stochastic equivalent of the previous model can be formulated
 in `odin` as follows:
 
 ``` {r load_sir_s}
-path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R", package = "odin")
+path_sir_model_s <- system.file("examples/discrete_stochastic_sir.R",
+                                package = "odin")
 ```
 
 ``` {r echo = FALSE, results = "asis"}
@@ -258,7 +260,8 @@ is of limited interest. As an alternative, we can generate a large
 number of replicates using arrays for each compartment:
 
 ``` {r }
-path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R", package = "odin")
+path_sir_model_s_a <- system.file("examples/discrete_stochastic_sir_arrays.R",
+                                  package = "odin")
 ```
 
 ``` {r echo = FALSE, results = "asis"}
@@ -344,7 +347,8 @@ $$
 The formulation of the model in `odin` is:
 
 ``` {r load_seirds}
-path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R", package = "odin")
+path_seirds_model <- system.file("examples/discrete_stochastic_seirds.R",
+                                 package = "odin")
 ```
 
 ``` {r echo = FALSE, results = "asis"}
@@ -357,14 +361,16 @@ seirds_generator
 x <- seirds_generator$new()
 
 
-seirds_col <- c("#8c8cd9", "#e67300", "#d279a6", "#ff4d4d", "#999966", "#660000")
+seirds_col <- c("#8c8cd9", "#e67300", "#d279a6", "#ff4d4d", "#999966",
+                "#660000")
 
 set.seed(1)
 x_res <- x$run(0:365)
 par(mar = c(4.1, 5.1, 0.5, 0.5), las = 1)
 matplot(x_res[, 1], x_res[, -1], xlab = "Time", ylab = "Number of individuals",
         type = "l", col = seirds_col, lty = 1)
-legend("left", lwd = 1, col = seirds_col, legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
+legend("left", lwd = 1, col = seirds_col,
+       legend = c("S", "E", "Ir", "Id", "R", "D"), bty = "n")
 ```
 
 

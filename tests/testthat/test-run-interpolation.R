@@ -139,8 +139,9 @@ test_that_odin("constant 3d array", {
                "Integration times do not span interpolation")
 
   yy <- mod$run(tt)
-  cmp <- sapply(1:4, function(i)
-    ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
+  cmp <- sapply(1:4, function(i) {
+    ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1)))
+  })
   tol <- variable_tolerance(mod, 1e-5, js = 5e-4)
   expect_equal(unname(yy[, -1]), cmp, tolerance = tol)
 })
@@ -416,8 +417,9 @@ test_that_odin("user sized interpolation, 2d", {
 
   tt <- seq(0, 3, length.out = 301)
   yy <- mod$run(tt)
-  cmp <- sapply(1:4, function(i)
-    ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1))))
+  cmp <- sapply(1:4, function(i) {
+    ifelse(tt < 1, 0, ifelse(tt > 2, i, i * (tt - 1)))
+  })
   tol <- variable_tolerance(mod, 1e-5, js = 1e-3)
   expect_equal(unname(yy[, -1]), cmp, tolerance = tol)
 })

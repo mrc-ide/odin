@@ -43,8 +43,9 @@ read_include_c <- function(filename) {
     stop("Parse error for ", filename)
   }
   name <- sub(re1, "\\1", d[i1])
-  defn <- setNames(vcapply(seq_along(i1), function(k)
-    paste(d[i1[[k]]:i2[[k]]], collapse = "\n")), name)
+  defn <- setNames(vcapply(seq_along(i1), function(k) {
+    paste(d[i1[[k]]:i2[[k]]], collapse = "\n")
+  }), name)
   decl <- sub("^([^{]*?)\\s*\\{.*", "\\1;", defn)
 
   list(

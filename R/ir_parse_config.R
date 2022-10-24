@@ -58,10 +58,11 @@ ir_parse_config_include <- function(include, root, source, read_include) {
       x$source, source)
   }
 
-  res <- lapply(filename_full, function(path)
+  res <- lapply(filename_full, function(path) {
     withCallingHandlers(
       read_include(path),
-      error = function(e) message(sprintf("While reading '%s'", path))))
+      error = function(e) message(sprintf("While reading '%s'", path)))
+  })
 
   nms <- unlist(lapply(res, "[[", "names"))
   dups <- unique(nms[duplicated(nms)])
