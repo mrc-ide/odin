@@ -354,5 +354,8 @@ to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
 odin_js_versions <- function() {
   context <- V8::v8()
   context$source(odin_file("js/odin.js"))
-  lapply(context$call("odinjs.versions"), package_version)
+  context$source(odin_file("js/dust.js"))
+  utils::modifyList(
+    lapply(context$call("dust.versions"), package_version),
+    lapply(context$call("odinjs.versions"), package_version))
 }
