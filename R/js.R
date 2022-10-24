@@ -287,7 +287,8 @@ coef.odin_js_generator <- function(object, ...) {
 to_js_user <- function(user) {
   to_js <- function(value) {
     if (inherits(value, "JS_EVAL")) {
-      class(value) <- "json"
+      ## See mrc-3726 for details
+      stop("Direct passing of JS objects not currently supported")
     } else if (is.array(value)) {
       value <- list(data = c(value), dim = I(dim(value)))
     } else if (length(value) == 0) {

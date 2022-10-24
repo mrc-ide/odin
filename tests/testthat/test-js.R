@@ -136,8 +136,7 @@ test_that("models with output", {
 test_that("accept matrices directly if asked nicely", {
   ## We disabled handling matrices like [[a, b, c], [d, e, f]] because
   ## the validation is a bit tedious, and we don't use this for
-  ## anything atm.
-  testthat::skip("not supported atm")
+  ## anything atm; see mrc-3726 for details.
   gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1
@@ -146,13 +145,8 @@ test_that("accept matrices directly if asked nicely", {
   }, target = "js")
 
   m <- matrix(1:12, c(3, 4))
-  mod <- gen$new(matrix = to_json_columnwise(m))
-  expect_equal(
-    mod$contents()$matrix, m)
-
-  mod <- gen$new(matrix = m)
-  expect_equal(
-    mod$contents()$matrix, m)
+  expect_error(gen$new(matrix = to_json_columnwise(m)),
+               "Direct passing of JS objects not currently supported")
 })
 
 
