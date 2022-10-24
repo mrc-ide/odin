@@ -5,12 +5,10 @@ on:
     branches:
       - main
       - master
-      - mrc-3182
   pull_request:
     branches:
       - main
       - master
-      - mrc-3182
 
 name: R-CMD-check
 
