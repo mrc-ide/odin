@@ -270,7 +270,6 @@ test_that_odin("interpolation with two variables", {
 
 
 test_that_odin("interpolation in a delay", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -300,7 +299,6 @@ test_that_odin("interpolation in a delay", {
 
 
 test_that_odin("interpolation in a delay, with default", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -426,7 +424,6 @@ test_that_odin("user sized interpolation, 2d", {
 
 
 test_that_odin("double delayed interpolation function", {
-  skip_for_target("js")
   gen <- odin({
     deriv(y) <- ud
     initial(y) <- 0
@@ -458,9 +455,12 @@ test_that_odin("double delayed interpolation function", {
 
   expect_equal(yy[, "udd"], ifelse(tt < 5, 0, 0.5))
 
+  ## Small inconsistency here, where js version does not report the
+  ## out of range *value* just "Interpolation failed as 'x' is out of
+  ## range"
   expect_error(gen$new(ut = c(0, 2), uy = uy)$run(tt),
-               "Interpolation failed as -2.* is out of range")
+               "Interpolation failed as .* is out of range")
   expect_error(gen$new(ut = c(-2, 2), uy = uy)$run(tt),
-               "Interpolation failed as -3.* is out of range")
+               "Interpolation failed as .* is out of range")
   expect_equal(gen$new(ut = c(-3, 2), uy = uy)$run(tt), yy)
 })

@@ -123,11 +123,11 @@ test_that_odin("user variables", {
 
   expect_error(gen$new())
   expect_error(gen$new(r = NULL),
-               "Expected a value for 'r'", fixed = TRUE)
+               "Expected a (number|value) for 'r'")
   expect_error(gen$new(r = 1:2),
-               "Expected a scalar numeric for 'r'")
+               "Expected a (number|scalar numeric) for 'r'")
   expect_error(gen$new(r = numeric(0)),
-               "Expected a scalar numeric for 'r'")
+               "Expected a (number|scalar numeric) for 'r'")
 
   expect_equal(gen$new(r = pi)$contents()[c("N0", "r")],
                list(N0 = 1, r = pi))
@@ -182,7 +182,7 @@ test_that_odin("output", {
 
   ## TODO: this is pretty poor, we might think about silently ignoring
   ## this argument?
-  skip_for_target("js")
+  skip_for_target("js") # R interface specific
   yy2 <- gen$new(use_dde = TRUE)$run(tt)
   expect_equal(colnames(yy2), c("t", "y", "z"))
   expect_equal(yy2[, "t"], tt)
@@ -260,6 +260,7 @@ test_that_odin("discrete", {
 
 
 test_that_odin("discrete with output", {
+  skip_for_target("js") # discrete output, removed from odin soon?
   gen <- odin({
     initial(x) <- 1
     update(x) <- x + 1
@@ -512,23 +513,17 @@ test_that_odin("interpolation", {
 test_that_odin("stochastic", {
   gen <- odin({
     initial(x) <- 0
-    update(x) <- x + norm_rand()
+    update(x) <- x + unif_rand()
   })
   mod <- gen$new()
   expect_equal(mod$initial(0), 0)
 
-  if (mod$engine() == "js") {
-    model_set_seed(mod, 1)
-    x <- model_random_numbers(mod, "normal", 3)
-    model_set_seed(mod, 1)
-  } else {
-    set.seed(1)
-    x <- rnorm(3)
-    set.seed(1)
-  }
+  set.seed(1)
+  x <- runif(3)
+  set.seed(1)
   y <- replicate(3, mod$update(0, 0))
 
-  expect_identical(x, y)
+  expect_equal(x, y)
 })
 
 
@@ -676,7 +671,7 @@ test_that_odin("rich user sized arrays", {
 
 
 test_that_odin("discrete delays: matrix", {
-  skip_for_target("js")
+  skip_for_target("js") # discrete delays, not supported
   gen <- odin({
     initial(y[, ]) <- 1
     update(y[, ]) <- y[i, j] + 1
@@ -700,7 +695,7 @@ test_that_odin("discrete delays: matrix", {
 
 
 test_that_odin("multinomial", {
-  skip_for_target("js")
+  skip_for_target("js") # multinomial needs random.js support
   gen <- odin({
     q[] <- user()
     p[] <- q[i] / sum(q)

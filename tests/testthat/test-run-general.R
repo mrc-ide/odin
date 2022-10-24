@@ -69,7 +69,6 @@ test_that_odin("user variables on models with none", {
 })
 
 test_that_odin("non-numeric time", {
-  skip_for_target("js")
   ## Only an issue for delay models or models with time-dependent
   ## initial conditions.
   gen <- odin({
@@ -84,7 +83,6 @@ test_that_odin("non-numeric time", {
 })
 
 test_that_odin("delays and initial conditions", {
-  skip_for_target("js")
   gen <- odin({
     ylag <- delay(y, 10)
     initial(y) <- 0.5
@@ -113,7 +111,10 @@ test_that_odin("delays and initial conditions", {
   res4 <- mod$run(t + 3, 0.6)
 
   expect_equal(mod$contents()$initial_t, 3.0)
-  expect_equal(mod$contents()$initial_y, 0.6)
+  ## NOTE: we don't save this for js models, because we never look it up later
+  if (mod$engine() != "js") {
+    expect_equal(mod$contents()$initial_y, 0.6)
+  }
   expect_false(isTRUE(all.equal(res4[, 2], res1[, 2])))
 })
 
@@ -729,41 +730,46 @@ test_that_odin("non-numeric input", {
   expect_equal(dat$array4, array4)
 
   ## Then test for errors on each as we convert to character:
+  if (mod$engine() == "js") {
+    fmt <- "Expected a number for '%s'"
+  } else {
+    fmt <- "Expected a numeric value for '%s'"
+  }
   expect_error(
     gen$new(scalar = convert(scalar, "character"),
         vector = vector,
         matrix = matrix,
         array = array,
         array4 = array4),
-    "Expected a numeric value for 'scalar'")
+    sprintf(fmt, "scalar"))
   expect_error(
     gen$new(scalar = scalar,
         vector = convert(vector, "character"),
         matrix = matrix,
         array = array,
         array4 = array4),
-    "Expected a numeric value for 'vector'")
+    sprintf(fmt, "vector"))
   expect_error(
     gen$new(scalar = scalar,
         vector = vector,
         matrix = convert(matrix, "character"),
         array = array,
         array4 = array4),
-    "Expected a numeric value for 'matrix'")
+    sprintf(fmt, "matrix"))
   expect_error(
     gen$new(scalar = scalar,
         vector = vector,
         matrix = matrix,
         array = convert(array, "character"),
         array4 = array4),
-    "Expected a numeric value for 'array'")
+    sprintf(fmt, "array"))
   expect_error(
     gen$new(scalar = scalar,
         vector = vector,
         matrix = matrix,
         array = array,
         array4 = convert(array4, "character")),
-    "Expected a numeric value for 'array4'")
+    sprintf(fmt, "array4"))
 })
 
 test_that_odin("only used in output", {
@@ -924,6 +930,7 @@ test_that_odin("sum over two dimensions", {
 })
 
 test_that_odin("sum for a 4d array", {
+  skip_for_target("js")
   ## I don't want to check absolutely everything here, so hopefully if
   ## these few go OK then given the more exhaustive tests above we'll
   ## be OK
@@ -1210,6 +1217,7 @@ test_that_odin("user parameter validation", {
     initial(y) <- 1
     r <- user()
   })
+  engine <- gen$public_methods$engine()
 
   ## Honour all the options:
   expect_error(
@@ -1218,9 +1226,15 @@ test_that_odin("user parameter validation", {
   expect_warning(
     gen$new(user = list(r = 1, a = 1), unused_user_action = "warning"),
     "Unknown user parameters: a")
-  expect_message(
-    gen$new(user = list(r = 1, a = 1), unused_user_action = "message"),
-    "Unknown user parameters: a")
+  if (engine != "js") {
+    ## TODO: this, and the warning version, are a bit suboptimal;
+    ## warning includes whitespace on the console and message just
+    ## prints. Instead we should use the support that V8
+    ## arranges. We'll pick this up later.
+    expect_message(
+      gen$new(user = list(r = 1, a = 1), unused_user_action = "message"),
+      "Unknown user parameters: a")
+  }
   expect_silent(
     gen$new(user = list(r = 1, a = 1), unused_user_action = "ignore"))
 
@@ -1231,11 +1245,13 @@ test_that_odin("user parameter validation", {
     fixed = TRUE)
 
   ## Inherit action from option
-  with_options(
-    list(odin.unused_user_action = "message"),
-    expect_message(
-      gen$new(user = list(r = 1, a = 1)),
-      "Unknown user parameters: a"))
+  if (engine != "js") {
+    with_options(
+      list(odin.unused_user_action = "message"),
+      expect_message(
+        gen$new(user = list(r = 1, a = 1)),
+        "Unknown user parameters: a"))
+  }
 
   ## Override option
   with_options(

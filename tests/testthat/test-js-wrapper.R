@@ -2,6 +2,7 @@ context("wrapper")
 
 
 test_that("force a vector of strings", {
+  skip_if_no_js()
   gen <- odin(c("deriv(y) <- 0.5", "initial(y) <- 1"),
               target = "js")
   expect_equal(gen$public_methods$engine(), "js")
@@ -12,6 +13,7 @@ test_that("force a vector of strings", {
 
 
 test_that("force a symbol of code", {
+  skip_if_no_js()
   code <- quote({
     deriv(y) <- 0.5
     initial(y) <- 1
@@ -24,6 +26,7 @@ test_that("force a symbol of code", {
 
 
 test_that("allow initial conditions", {
+  skip_if_no_js()
   code <- quote({
     deriv(y) <- 0.5
     initial(y) <- 1
@@ -36,6 +39,7 @@ test_that("allow initial conditions", {
 
 
 test_that("return statistics", {
+  skip_if_no_js()
   code <- quote({
     deriv(y) <- sin(y)
     initial(y) <- 1

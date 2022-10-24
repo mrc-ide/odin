@@ -4,17 +4,19 @@
 \alias{odin_js_bundle}
 \title{Create a bundle of an odin model}
 \usage{
-odin_js_bundle(code, include = NULL, include_dopri = TRUE)
+odin_js_bundle(code, include_support = TRUE)
 }
 \arguments{
 \item{code}{An expression, string or path to a file containing
-odin code (as for \link{odin_parse_}}
+odin code (as for \link{odin_parse_}). If \code{NULL}, compile no
+model and return only the support code.}
 
-\item{include}{Optional vector of paths of filenames to include
-into the javascript bundle}
-
-\item{include_dopri}{Logical, indicating if the dopri solver
-should be included as well.}
+\item{include_support}{Logical, indicating if the support code
+should be included. Without this you need to manually copy over
+odin.js or dust.js depending on what model type you have.}
+}
+\value{
+A list, with contents subject to change.
 }
 \description{
 Create a JavaScript bundle of an odin model
@@ -22,13 +24,16 @@ Create a JavaScript bundle of an odin model
 \section{Warning}{
 
 
-The interface and generated code here are subject to change.
+The interface and generated code here are subject to change. As it
+stands, it does what is needed for our work in
+\href{https://github.com/mrc-ide/odin.api}{odin.api} and does not
+actually produce a useful bundle!
 }
 
 \examples{
 js <- odin::odin_js_bundle(quote({
   deriv(x) <- 1
   initial(x) <- 1
-}), include_dopri = FALSE)
-head(js)
+}), include_support = FALSE)
+head(js$model$code, 20)
 }

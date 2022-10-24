@@ -1,6 +1,7 @@
 context("odin-js")
 
 test_that("trivial model", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -13,6 +14,7 @@ test_that("trivial model", {
   expect_equal(mod$initial(10), 1)
   expect_equal(mod$deriv(0, 0), 2)
   expect_equal(mod$deriv(10, 10), 2)
+
   tt <- 0:10
   yy <- mod$run(tt)
 
@@ -33,14 +35,13 @@ test_that("trivial model", {
 ##
 ## This should integrate to a parabola y = 1 + t^2
 test_that("Time dependent rhs", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
     r <- 2 * t
   }, target = "js")
 
-  ## This looks like a reasonable rhs but it's going through the
-  ## internal storage instead of being transient.
   mod <- gen$new()
 
   tt <- 0:10
@@ -53,6 +54,7 @@ test_that("Time dependent rhs", {
 
 
 test_that("Time dependent initial conditions", {
+  skip_if_no_js()
   gen <- odin({
     y1 <- cos(t)
     y2 <- y1 * (r + t)
@@ -78,6 +80,7 @@ test_that("Time dependent initial conditions", {
 
 
 test_that("user variables", {
+  skip_if_no_js()
   gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
@@ -86,14 +89,15 @@ test_that("user variables", {
     r <- user()
   }, target = "js")
 
-  expect_error(gen$new())
+  expect_error(gen$new(),
+               "Expected a value for 'r'")
   ## TODO: Some of these errors are not the same as the other engines
   expect_error(gen$new(user = NULL),
                "Expected a value for 'r'", fixed = TRUE)
   expect_error(gen$new(r = 1:2),
-               "Expected a scalar numeric for 'r'")
+               "Expected a number for 'r'")
   expect_error(gen$new(r = numeric(0)),
-               "Expected a scalar numeric for 'r'")
+               "Expected a number for 'r'")
 
   expect_equal(sort_list(gen$new(r = pi)$contents()),
                sort_list(list(K = 100, N0 = 1, initial_N = 1, r = pi)))
@@ -110,7 +114,34 @@ test_that("user variables", {
 })
 
 
+test_that("models with output", {
+  skip_if_no_js()
+  gen <- odin({
+    deriv(y) <- 2
+    initial(y) <- 1
+    output(z) <- t
+  }, target = "js")
+
+  tt <- 0:10
+
+  mod <- gen$new()
+
+  expect_equal(mod$deriv(0, 1), structure(2, output = 0))
+  expect_equal(mod$deriv(10, 1), structure(2, output = 10))
+
+  yy1 <- mod$run(tt)
+  expect_equal(colnames(yy1), c("t", "y", "z"))
+  expect_equal(yy1[, "t"], tt)
+  expect_equal(yy1[, "y"], seq(1, length.out = length(tt), by = 2))
+  expect_equal(yy1[, "z"], tt)
+})
+
+
 test_that("accept matrices directly if asked nicely", {
+  skip_if_no_js()
+  ## We disabled handling matrices like [[a, b, c], [d, e, f]] because
+  ## the validation is a bit tedious, and we don't use this for
+  ## anything atm; see mrc-3726 for details.
   gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1
@@ -119,28 +150,13 @@ test_that("accept matrices directly if asked nicely", {
   }, target = "js")
 
   m <- matrix(1:12, c(3, 4))
-  mod <- gen$new(matrix = to_json_columnwise(m))
-  expect_equal(
-    mod$contents()$matrix, m)
-
-  mod <- gen$new(matrix = m)
-  expect_equal(
-    mod$contents()$matrix, m)
-})
-
-
-test_that("delay models are not supported", {
-  expect_error(
-    odin({
-      ylag <- delay(y, 10)
-      initial(y) <- 0.5
-      deriv(y) <- 0.2 * ylag * 1 / (1 + ylag^10) - 0.1 * y
-    }, target = "js"),
-    "Using unsupported features: 'has_delay'")
+  expect_error(gen$new(matrix = to_json_columnwise(m)),
+               "Direct passing of JS objects not currently supported")
 })
 
 
 test_that("some R functions are not available", {
+  skip_if_no_js()
   expect_error(
     odin({
       deriv(y) <- 1
@@ -151,6 +167,7 @@ test_that("some R functions are not available", {
 
 
 test_that("can adjust tolerance in the solver", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- cos(t)
     initial(y) <- 0
@@ -164,6 +181,7 @@ test_that("can adjust tolerance in the solver", {
 
 
 test_that("can adjust max steps", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- cos(t)
     initial(y) <- 0
@@ -177,6 +195,7 @@ test_that("can adjust max steps", {
 
 
 test_that("can specify min step sizes and allow continuation with them", {
+  skip_if_no_js()
   lorenz <- odin({
     deriv(y1) <- sigma * (y2 - y1)
     deriv(y2) <- R * y1 - y2 - y1 * y3
@@ -202,6 +221,7 @@ test_that("can specify min step sizes and allow continuation with them", {
 
 
 test_that("can specify max step sizes", {
+  skip_if_no_js()
   lorenz <- odin({
     deriv(y1) <- sigma * (y2 - y1)
     deriv(y2) <- R * y1 - y2 - y1 * y3
@@ -226,7 +246,7 @@ test_that("can specify max step sizes", {
 
 
 test_that("Can't include code into js models (yet)", {
-  skip_if_not_installed("V8")
+  skip_if_no_js()
   expect_error(odin({
     config(include) <- "user_fns.js"
     z <- squarepulse(t, 1, 2)
@@ -236,4 +256,156 @@ test_that("Can't include code into js models (yet)", {
   }, target = "js"),
   "config(include) is not yet supported with JavaScript",
   fixed = TRUE)
+})
+
+
+test_that("Can show generated code", {
+  skip_if_no_js()
+  gen <- odin({
+    deriv(y) <- 1
+    initial(y) <- 1
+  }, target = "js")
+  code <- gen$public_methods$code()
+  expect_type(code, "character")
+  expect_equal(code[[1]], "class odin {")
+})
+
+
+test_that("Can show generated code for discrete time models", {
+  skip_if_no_js()
+  gen <- odin({
+    update(y) <- 1
+    initial(y) <- 1
+  }, target = "js")
+  code <- gen$public_methods$code()
+  expect_type(code, "character")
+  expect_equal(code[[1]], "class odin {")
+})
+
+
+test_that("Can show versions of js packages", {
+  skip_if_no_js()
+  v <- odin_js_versions()
+  ## This list may grow over time and that should not fail the tests:
+  expect_true(
+    all(c("dfoptim", "dopri", "dust", "odinjs", "random") %in% names(v)))
+  expect_true(all(vlapply(v, inherits, "numeric_version")))
+})
+
+
+test_that("Can run simple discrete model", {
+  skip_if_no_js()
+  gen <- odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- 2
+  }, target = "js")
+
+  mod <- gen$new()
+  expect_is(mod, "odin_model")
+  expect_equal(mod$initial(0), 1)
+  expect_equal(mod$initial(10), 1)
+  expect_equal(mod$update(0, 0), 2)
+  expect_equal(mod$update(10, 10), 12)
+
+  tt <- 0:10
+  yy <- mod$run(tt)
+
+  expect_equal(colnames(yy), c("step", "y"))
+  expect_equal(yy[, "step"], tt)
+  expect_equal(yy[, "y"], seq(1, length.out = length(tt), by = 2))
+
+  expect_equal(sort_list(mod$contents()),
+               sort_list(list(initial_y = 1, r = 2)))
+})
+
+
+test_that("can't use output in js discrete time models", {
+  skip_if_no_js()
+  expect_error(odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- 2
+    output(z) <- y * 2
+  }, target = "js"),
+  "Using unsupported features: 'has_output'")
+})
+
+
+test_that("can get coefficients from continuous time models", {
+  skip_if_no_js()
+  gen <- odin({
+    deriv(y) <- r
+    initial(y) <- 1
+    r <- user(2)
+  }, target = "js")
+  expected <- data.frame(
+    name = "r",
+    has_default = TRUE,
+    default_value = I(list(2)),
+    rank = 0,
+    min = -Inf,
+    max = Inf,
+    integer = FALSE)
+  res <- coef(gen)
+  expect_equal(res, expected)
+  expect_equal(coef(gen$new()), res)
+})
+
+
+test_that("can get coefficients from discrete time models", {
+  skip_if_no_js()
+  gen <- odin({
+    update(y) <- y + r
+    initial(y) <- 1
+    r <- user(2)
+  }, target = "js")
+  expected <- data.frame(
+    name = "r",
+    has_default = TRUE,
+    default_value = I(list(2)),
+    rank = 0,
+    min = -Inf,
+    max = Inf,
+    integer = FALSE)
+  res <- coef(gen)
+  expect_equal(res, expected)
+  expect_equal(coef(gen$new()), res)
+})
+
+
+test_that("cast internal arrays to correct dimension", {
+  skip_if_no_js()
+  gen <- odin({
+    update(y) <- y + sum(r)
+    initial(y) <- 1
+    r[, ] <- i * j
+    dim(r) <- c(3, 4)
+  }, target = "js")
+  mod <- gen$new()
+  res <- mod$contents()
+  expect_equal(res$r, outer(1:3, 1:4))
+})
+
+
+test_that("can correctly pull metadata where model has variety of ranks", {
+  skip_if_no_js()
+  gen <- odin({
+    update(a) <- 1
+    update(b[]) <- i
+    update(c[, ]) <- i * j
+    initial(a) <- 0
+    initial(b[]) <- 0
+    initial(c[, ]) <- 0
+    dim(b) <- 2
+    dim(c) <- c(2, 3)
+  }, target = "js")
+  mod <- gen$new()
+  y <- mod$update(0, mod$initial(0))
+  expect_equal(y, c(1, 1:2, outer(1:2, 1:3)))
+  expect_equal(mod$transform_variables(y),
+               list(t = NA_real_,
+                    a = 1,
+                    b = 1:2,
+                    c = outer(1:2, 1:3)))
 })

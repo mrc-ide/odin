@@ -6,13 +6,25 @@ odin_js_wrapper <- function(ir, options) {
 
 ##' @importFrom R6 R6Class
 odin_js_wrapper_object <- function(res) {
-  context <- js_context(names(which(res$include)))
-  context$eval(paste(res$code, collapse = "\n"))
+  if (res$features$discrete) {
+    ret <- odin_js_wrapper_discrete(res)
+  } else {
+    ret <- odin_js_wrapper_continuous(res)
+  }
+  ## TODO: we should drop this I think, and move to the same
+  ## workaround as the main odin generators soon.
+  class(ret) <- c("odin_js_generator", class(ret))
+  ret
+}
 
-  ret <- R6::R6Class(
+
+odin_js_wrapper_continuous <- function(res) {
+  context <- new_context("odin.js", res$code)
+  has_delay <- res$features$has_delay
+  private <- NULL
+  R6::R6Class(
     "odin_model",
     cloneable = FALSE,
-    lock_objects = FALSE,
 
     private = list(
       context = context,
@@ -25,27 +37,15 @@ odin_js_wrapper_object <- function(res) {
       ir_ = res$ir,
 
       finalize = function() {
-        private$js_eval(sprintf("delete %s;", private$name))
+        js_eval(private$context, sprintf("delete %s;", private$name))
       },
 
       update_metadata = function() {
-        private$internal_order <-
-          private$context$get(
-            sprintf("%s.metadata.internalOrder", private$name))
-        private$variable_order <-
-          private$context$get(
-            sprintf("%s.metadata.variableOrder", private$name))
-        private$output_order <-
-          private$context$get(
-            sprintf("%s.metadata.outputOrder", private$name))
-      },
-
-      js_call = function(...) {
-        tryCatch(private$context$call(...), error = function(e) stop(e$message))
-      },
-
-      js_eval = function(...) {
-        tryCatch(private$context$eval(...), error = function(e) stop(e$message))
+        metadata <- js_call(private$context,
+                            sprintf("%s.getMetadata", private$name))
+        private$internal_order <- metadata$internalOrder
+        private$variable_order <- metadata$variableOrder
+        private$output_order <- metadata$outputOrder
       }
     ),
 
@@ -53,26 +53,20 @@ odin_js_wrapper_object <- function(res) {
       initialize = function(..., user = list(...), unused_user_action = NULL) {
         private$name <- sprintf("%s.%s", JS_INSTANCES, basename(tempfile("i")))
 
-        user_js <- to_json_user(user)
+        user_js <- to_js_user(user)
         unused_user_action <- unused_user_action %||%
           getOption("odin.unused_user_action", "warning")
-        init <- sprintf("%s = new %s.%s(%s, %s);",
-                        private$name, JS_GENERATORS, private$generator,
-                        user_js, dquote(unused_user_action))
-        if (private$features$discrete) {
-          self$update <- self$rhs
-        } else {
-          self$deriv <- self$rhs
-        }
-        private$js_eval(init)
-        private$update_metadata()
 
-        lockEnvironment(self)
+        init <- sprintf("%s = new odinjs.PkgWrapper(%s, %s, %s);",
+                        private$name, private$generator,
+                        user_js, dquote(unused_user_action))
+        js_eval(private$context, init)
+        private$update_metadata()
       },
 
       initial = function(t) {
         t_js <- to_json_js(scalar(t))
-        private$js_call(sprintf("%s.initial", private$name), t_js)
+        js_call(private$context, sprintf("%s.initial", private$name), t_js)
       },
 
       ir = function() {
@@ -82,34 +76,36 @@ odin_js_wrapper_object <- function(res) {
       set_user = function(..., user = list(...), unused_user_action = NULL) {
         unused_user_action <- unused_user_action %||%
           getOption("odin.unused_user_action", "warning")
-        user_js <- to_json_user(user)
-        private$js_call(sprintf("%s.setUser", private$name),
+        user_js <- to_js_user(user)
+        js_call(private$context, sprintf("%s.setUser", private$name),
                         user_js, unused_user_action)
         private$update_metadata()
       },
 
-      rhs = function(t, y) {
-        ## TODO: check length of 'y' here?
+      deriv = function(t, y) {
         t_js <- to_json_js(scalar(t))
         y_js <- to_json_js(y, auto_unbox = FALSE)
-        ret <- private$js_call(sprintf("%s.rhsEval", private$name),
-                               t_js, y_js)
-        ## This is super ugly but should do the trick for now:
-        if (length(ret) > length(y)) {
-          i <- seq_along(y)
-          ret <- structure(ret[i], output = ret[-i])
+        res <- js_call(private$context, sprintf("%s.rhs", private$name),
+                       t_js, y_js)
+        if (length(res$output) == 0) {
+          res$state
+        } else {
+          structure(res$state, output = res$output)
         }
-        ret
       },
 
       contents = function() {
-        ret <- private$context$get(sprintf("%s.internal", private$name))
+        ret <- js_call(private$context, sprintf("%s.getInternal", private$name))
         order <- private$internal_order
         for (i in names(ret)) {
           d <- order[[i]]
           if (length(d) > 1) {
             dim(ret[[i]]) <- d
           }
+        }
+        if (has_delay && is.null(ret$initial_t)) {
+          ## NaN serialises to NULL, which is not quite what we want
+          ret$initial_t <- NA_real_
         }
         ret
       },
@@ -119,11 +115,7 @@ odin_js_wrapper_object <- function(res) {
                      step_size_max = NULL, step_size_min_allow = NULL,
                      use_names = TRUE, return_statistics = FALSE) {
         t_js <- to_json_js(t, auto_unbox = FALSE)
-        if (is.null(y)) {
-          y_js <- V8::JS("null")
-        } else {
-          y_js <- to_json_js(y, auto_unbox = FALSE)
-        }
+        y_js <- to_json_js(y, auto_unbox = FALSE, null = "null")
         control <- list(atol = atol,
                         rtol = rtol,
                         tcrit = tcrit,
@@ -134,12 +126,13 @@ odin_js_wrapper_object <- function(res) {
         control <- control[!vlapply(control, is.null)]
         control_js <- to_json_js(control, auto_unbox = TRUE)
 
-        ## NOTE: tcrit here is ignored when calling the discrete time
-        ## model
-        res <- private$js_call(sprintf("%s.run", private$name),
-                               t_js, y_js, control_js)
+        res <- js_call(private$context, sprintf("%s.run", private$name),
+                       t_js, y_js, control_js)
+
+        ## Need to add time on
+        y <- cbind(t, res$y, deparse.level = 0)
         if (use_names) {
-          colnames(res$y) <- res$names
+          colnames(y) <- c(TIME, res$names)
         }
 
         if (return_statistics) {
@@ -149,9 +142,13 @@ odin_js_wrapper_object <- function(res) {
                           n_step = res$statistics$nSteps,
                           n_accept = res$statistics$nStepsAccepted,
                           n_reject = res$statistics$nStepsRejected)
-          attr(res$y, "statistics") <- statistics
+          attr(y, "statistics") <- statistics
         }
-        res$y
+        y
+      },
+
+      code = function() {
+        res$code
       },
 
       engine = function() {
@@ -162,27 +159,120 @@ odin_js_wrapper_object <- function(res) {
         support_transform_variables(y, private)
       }
     ))
-
-  ## TODO: we should drop this I think, and move to the same
-  ## workaround as the main odin generators soon.
-  class(ret) <- c("odin_js_generator", class(ret))
-  ret
 }
 
 
-js_context <- function(include) {
-  ct <- V8::v8()
+## This is very similar to the above, but just different enough to
+## make it really annoying to try and do with if/else type logic.
+odin_js_wrapper_discrete <- function(res) {
+  context <- new_context("dust.js", res$code)
+  private <- NULL
+  R6::R6Class(
+    "odin_model",
+    cloneable = FALSE,
 
-  ct$source(odin_file("js/dopri.js"))
-  ct$source(odin_file("js/support.js"))
-  for (f in include) {
-    ct$source(odin_file(file.path("js", f)))
-  }
+    private = list(
+      context = context,
+      generator = res$name,
+      name = NULL,
+      features = res$features,
+      metadata = NULL,
+      ir_ = res$ir,
 
-  ## TODO: once working drop this GENERATORS bit
-  ct$eval(sprintf("var %s = {};", JS_GENERATORS))
-  ct$eval(sprintf("var %s = {};", JS_INSTANCES))
-  ct
+      finalize = function() {
+        js_eval(private$context, sprintf("delete %s;", private$name))
+      },
+
+      update_metadata = function() {
+        private$metadata <-
+          js_call(private$context, sprintf("%s.getMetadata", private$name))
+        info <- private$metadata$info
+        ## We need to do this bit of processing in R not JS to
+        ## guarantee ordering (i.e., we can't just save the object in
+        ## js). There's also a small tweak to convert the empty vector
+        ## into NULL values, as that's what transform_variables assumes.
+        order <- set_names(as.list(info$dim), info$name)
+        order[vlapply(order, function(el) length(el) == 0)] <- list(NULL)
+        private$metadata$order <- order
+      }
+    ),
+
+    public = list(
+      initialize = function(..., user = list(...), unused_user_action = NULL) {
+        private$name <- sprintf("%s.%s", JS_INSTANCES, basename(tempfile("i")))
+        user_js <- to_js_user(user)
+        unused_user_action <- unused_user_action %||%
+          getOption("odin.unused_user_action", "warning")
+        init <- sprintf("%s = new dust.PkgWrapper(%s, %s, %s, %s);",
+                        private$name, private$generator, user_js,
+                        dquote(unused_user_action), odin_js_dust_rng())
+        js_eval(private$context, init)
+        private$update_metadata()
+      },
+
+      initial = function(step) {
+        step_js <- to_json_js(scalar(step))
+        js_call(private$context, sprintf("%s.initial", private$name), step_js)
+      },
+
+      ir = function() {
+        private$ir_
+      },
+
+      set_user = function(..., user = list(...), unused_user_action = NULL) {
+        unused_user_action <- unused_user_action %||%
+          getOption("odin.unused_user_action", "warning")
+        user_js <- to_js_user(user)
+        js_call(private$context, sprintf("%s.setUser", private$name),
+                user_js, unused_user_action)
+        private$update_metadata()
+      },
+
+      update = function(step, y) {
+        step_js <- to_json_js(scalar(step))
+        y_js <- to_json_js(y, auto_unbox = FALSE)
+        js_call(private$context, sprintf("%s.update", private$name),
+                step_js, y_js)
+      },
+
+      contents = function() {
+        ret <- js_call(private$context, sprintf("%s.getInternal", private$name))
+        for (nm in names(res$internal_dim)) {
+          dim(ret[[nm]]) <- vnapply(res$internal_dim[[nm]],
+                                    function(x) ret[[x]])
+        }
+        ret
+      },
+
+      run = function(step, y = NULL, ..., use_names = TRUE) {
+        step_js <- to_json_js(step, auto_unbox = FALSE)
+        y_js <- to_json_js(y, auto_unbox = FALSE, null = "null")
+        res <- js_call(private$context, sprintf("%s.run", private$name),
+                       step_js, y_js)
+        ret <- cbind(
+          step,
+          matrix(res$y, ncol = private$metadata$size, byrow = TRUE),
+          deparse.level = 0)
+        if (use_names) {
+          colnames(ret) <- c(STEP, private$metadata$names)
+        }
+        ret
+      },
+
+      code = function() {
+        res$code
+      },
+
+      engine = function() {
+        "js"
+      },
+
+      transform_variables = function(y) {
+        support_transform_variables(
+          y,
+          list(variable_order = private$metadata$order))
+      }
+    ))
 }
 
 
@@ -194,27 +284,77 @@ coef.odin_js_generator <- function(object, ...) {
 }
 
 
-to_json_user <- function(user) {
-  f <- function(x) {
-    if (inherits(x, "JS_EVAL")) {
-      class(x) <- "json"
-    } else if (is.array(x)) {
-      x <- list(data = c(x), dim = I(dim(x)))
-    } else if (is.null(x)) { # leave as is
-    } else if (length(x) != 1L || inherits(x, "AsIs")) {
-      x <- list(data = x, dim = I(length(x)))
+to_js_user <- function(user) {
+  to_js <- function(value) {
+    if (inherits(value, "JS_EVAL")) {
+      ## See mrc-3726 for details
+      stop("Direct passing of JS objects not currently supported")
+    } else if (is.array(value)) {
+      value <- list(data = c(value), dim = I(dim(value)))
+    } else if (length(value) == 0) {
+    } else if (is.null(value)) { # leave as is
+    } else if (length(value) != 1L || inherits(value, "AsIs")) {
+      value <- list(data = value, dim = I(length(value)))
     }
-    x
+    value
   }
-  if (length(user) > 0) {
-    stopifnot(!is.null(names(user)))
+  user <- user[!vlapply(user, is.null)]
+  if (length(user) == 0) {
+    return(V8::JS("{}"))
   }
-  user <- lapply(user, f)
-  to_json_js(user, auto_unbox = TRUE, json_verbatim = TRUE,
-             null = "null", na = "null")
+  stopifnot(!is.null(names(user)))
+  user <- lapply(user, to_js)
+  args <- jsonlite::toJSON(user, auto_unbox = TRUE, digits = NA,
+                           null = "null", na = "null")
+  V8::JS(args)
+}
+
+
+new_context <- function(support, code) {
+  context <- V8::v8()
+  context$source(odin_file(file.path("js", support)))
+  context$eval(sprintf("var %s = {};", JS_INSTANCES))
+  context$eval(paste(code, collapse = "\n"))
+  context
+}
+
+
+js_call <- function(context, ...) {
+  tryCatch(context$call(...), error = function(e) stop(e$message))
+}
+
+
+js_eval <- function(context, ...) {
+  tryCatch(context$eval(...), error = function(e) stop(e$message))
+}
+
+
+odin_js_dust_rng <- function() {
+  code <- readLines(odin_file("js/dust-rng.js"))
+  V8::JS(code[!grepl("^//", code)])
 }
 
 
 to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
   V8::JS(jsonlite::toJSON(x, auto_unbox = auto_unbox, digits = digits, ...))
+}
+
+
+##' Report versions of JavaScript packages used to run odin models.
+##'
+##' @title Report JS versions
+##'
+##' @return A named list of [package_version] versions, for `odinjs`
+##'   and other coponents used in the JavaScript support.
+##'
+##' @export
+##' @examples
+##' odin::odin_js_versions()
+odin_js_versions <- function() {
+  context <- V8::v8()
+  context$source(odin_file("js/odin.js"))
+  context$source(odin_file("js/dust.js"))
+  utils::modifyList(
+    lapply(context$call("dust.versions"), package_version),
+    lapply(context$call("odinjs.versions"), package_version))
 }

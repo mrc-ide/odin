@@ -1,6 +1,7 @@
 context("bundle")
 
 test_that("bundle works", {
+  skip_if_no_js()
   code <- c("deriv(N) <- r * N * (1 - N / K)",
             "initial(N) <- N0",
             "N0 <- user(1)",
@@ -8,24 +9,27 @@ test_that("bundle works", {
             "r <- user()")
   bundle <- odin_js_bundle(code)
 
-  ## Keep unwanted bits out:
-  expect_false(any(grepl("odinSum2", bundle)))
-  expect_false(any(grepl("interpolateCheckY", bundle)))
+  expect_false(bundle$is_discrete)
+  expect_equal(bundle$support_file, "odin.js")
 
-  ct <- V8::v8()
-  invisible(ct$eval(bundle))
+  t0 <- 0
+  t1 <- 10
+  tn <- 11
 
-  t <- 0:10
-  res <- call_odin_bundle(ct, "odin", list(r = 0.5), t)
+  res <- call_odin_bundle_continuous(bundle, list(r = 0.5), t0, t1, tn)
+
+  t <- seq(t0, t1, length.out = tn)
   sol <- with(list(K = 100, r = 0.5, y0 = 1),
               K / (1 + (K / y0 - 1) * exp(-r * t)))
 
-  expect_equal(res[, "t"], t)
-  expect_equal(res[, "N"], sol, tolerance = 1e-6)
+  expect_equal(res$names, "N")
+  expect_equal(res$x, t)
+  expect_equal(drop(res$y), sol, tolerance = 1e-6)
 })
 
 
 test_that("include interpolate", {
+  skip_if_no_js()
   code <- c("deriv(y) <- pulse",
             "initial(y) <- 0",
             "pulse <- interpolate(tp, zp, 'constant')",
@@ -35,22 +39,27 @@ test_that("include interpolate", {
             "dim(zp) <- user()",
             "output(p) <- pulse")
 
-  res <- odin_js_bundle(code)
+  bundle <- odin_js_bundle(code)
 
-  ct <- V8::v8()
-  invisible(ct$eval(res))
+  t0 <- 0
+  t1 <- 3
+  tn <- 301
 
-  tt <- seq(0, 3, length.out = 301)
   tp <- c(0, 1, 2)
   zp <- c(0, 1, 0)
   user <- list(tp = tp, zp = zp)
-  yy <- call_odin_bundle(ct, "odin", user, tt)
+  res <- call_odin_bundle_continuous(bundle, user, t0, t1, tn)
+
+  tt <- seq(t0, t1, length.out = tn)
+
+  expect_equal(res$names, c("y", "p"))
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(yy[, 2], zz, tolerance = 2e-5)
+  expect_equal(res$y[, 1], zz, tolerance = 2e-5)
 })
 
 
 test_that("include sum", {
+  skip_if_no_js()
   code <- c("deriv(y[]) <- r[i] * y[i]",
             "initial(y[]) <- 1",
             "r[] <- 0.1",
@@ -61,18 +70,23 @@ test_that("include sum", {
             "output(y2[]) <- y[i] * 2",
             "dim(y2) <- length(y)")
 
+  bundle <- odin_js_bundle(code)
 
-  res <- odin_js_bundle(code)
+  t0 <- 0
+  t1 <- 10
+  tn <- 101
 
-  ct <- V8::v8()
-  invisible(ct$eval(res))
-  tt <- seq(0, 10, length.out = 101)
-  yy <- call_odin_bundle(ct, "odin", NULL, tt)
-  res <- list(y = unname(yy[, 2:4]),
-              ytot = unname(yy[, 5, drop = TRUE]),
-              y2 = unname(yy[, 6:8]))
-  expect_equal(res$ytot, rowSums(res$y))
-  expect_equal(res$y2, res$y * 2)
+  res <- call_odin_bundle_continuous(bundle, NULL, t0, t1, tn)
+  expect_equal(
+    res$names,
+    c("y[1]", "y[2]", "y[3]", "ytot", "y2[1]", "y2[2]", "y2[3]"))
+
+  y <- res$y[, 1:3]
+  ytot <- res$y[, 4]
+  y2 <- res$y[, 5:7]
+
+  expect_equal(ytot, rowSums(y))
+  expect_equal(y2, y * 2)
 })
 
 
@@ -80,7 +94,7 @@ test_that("include sum", {
 ## includes a partial sum but *not* a complete sum, which may trigger
 ## a failure to include the sum support.
 test_that("include fancy sum", {
-  ## This will error on the partial sums during model
+  skip_if_no_js()
   code <- c(
     "deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))",
     "initial(y[]) <- y0[i]",
@@ -95,7 +109,7 @@ test_that("include fancy sum", {
     "dim(a) <- c(n_spp, n_spp)",
     "dim(ay) <- c(n_spp, n_spp)")
 
-  res <- odin_js_bundle(code)
+  bundle <- odin_js_bundle(code)
 
   user <- list(r = c(1.00, 0.72, 1.53, 1.27),
                a = rbind(c(1.00, 1.09, 1.52, 0.00),
@@ -104,32 +118,72 @@ test_that("include fancy sum", {
                          c(1.21, 0.51, 0.35, 1.00)),
                y0 = c(0.3013, 0.4586, 0.1307, 0.3557))
 
-  ct <- V8::v8()
-  invisible(ct$eval(res))
+  t0 <- 0
+  t1 <- 50
+  tn <- 101
 
-  tt <- seq(0, 50, length.out = 101)
-  yy <- call_odin_bundle(ct, "odin", user, tt)
+  res <- call_odin_bundle_continuous(bundle, user, t0, t1, tn)
 
+  tt <- seq(t0, t1, length.out = tn)
   cmp <- odin::odin_(code, target = "r")$new(user = user)$run(tt)
-  expect_equivalent(yy, cmp[], tolerance = 1e-5)
+
+  expect_equal(res$names, c("y[1]", "y[2]", "y[3]", "y[4]"))
+  expect_equal(res$y, unname(cmp[, -1]), tolerance = 1e-5)
+})
+
+
+test_that("simple discrete model in a bundle", {
+  skip_if_no_js()
+  ## Not using the rng so that it's easy to push around:
+  code <- c(
+    "initial(x) <- 0",
+    "update(x) <- x + r",
+    "r <- user()")
+
+  ## TODO: why does this force loading pkgload, that seems stupid and
+  ## unneeded.
+  bundle <- odin_js_bundle(code)
+
+  expect_true(bundle$is_discrete)
+  expect_equal(bundle$support_file, "dust.js")
+
+  t0 <- 0
+  t1 <- 20
+  dt <- 1
+  np <- 3
+
+  res <- call_odin_bundle_discrete(bundle, list(r = 0.5), t0, t1, dt, np)
+  expect_setequal(names(res), c("x", "values"))
+  expect_equal(res$x, seq(t0, t1, dt))
+  expect_equal(res$values$mode, "Deterministic")
+  expect_equal(res$values$name, "x")
+  expect_equal(res$values$y, list(seq(0, by = 0.5, length.out = 21)))
 })
 
 
 test_that("simple stochastic model in a bundle", {
+  skip_if_no_js()
   code <- c(
     "initial(x) <- 0",
     "update(x) <- x + norm_rand()")
 
-  res <- odin_js_bundle(code)
+  bundle <- odin_js_bundle(code)
 
-  ct <- V8::v8()
-  invisible(ct$eval(res))
-  ct$call("setSeed", 1)
-  tt <- 0:20
-  yy <- call_odin_bundle(ct, "odin", NULL, tt)
+  expect_true(bundle$is_discrete)
+  expect_equal(bundle$support_file, "dust.js")
 
-  mod <- odin_(code, target = "js")$new()
-  model_set_seed(mod, 1)
-  cmp <- mod$run(tt)
-  expect_equal(yy, cmp)
+  t0 <- 0
+  t1 <- 20
+  dt <- 0.5
+  np <- 3
+
+  res <- call_odin_bundle_discrete(bundle, NULL, t0, t1, dt, np)
+  expect_setequal(names(res), c("x", "values"))
+  expect_equal(res$x, seq(t0, t1, dt))
+  expect_equal(res$values$mode, rep(c("Individual", "Mean"), c(np, 1)))
+  expect_equal(res$values$name, rep("x", 4))
+  expect_length(res$values$y, 4)
+  expect_equal(
+    rowMeans(matrix(unlist(res$values$y[1:3]), ncol = 3)),
+    res$values$y[[4]])
 })

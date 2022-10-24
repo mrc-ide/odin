@@ -1,11 +1,9 @@
 Package: odin
 Title: ODE Generation and Integration
-Version: 1.3.6
+Version: 1.4.0
 Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     email = "rich.fitzjohn@gmail.com"),
              person("Thibaut", "Jombart", role = "ctb"),
-             person("Travis", "Fischer", role = c("aut", "cph"),
-                    comment = "Author of random.js"),
              person("Imperial College of Science, Technology and Medicine",
                     role = "cph"))
 Description: Generate systems of ordinary differential equations
@@ -49,7 +47,7 @@ Suggests:
     rmarkdown,
     testthat
 VignetteBuilder: knitr
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
 Roxygen: list(old_usage = TRUE, markdown = TRUE)
 Encoding: UTF-8
 Language: en-GB

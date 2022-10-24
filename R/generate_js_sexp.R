@@ -39,7 +39,11 @@ generate_js_sexp <- function(x, data, meta) {
     } else if (fn == "sum" || fn == "odin_sum") {
       ret <- generate_js_sexp_sum(args, data, meta)
     } else if (any(names(FUNCTIONS_JS_STOCHASTIC) == fn)) {
-      ret <- sprintf("random.%s(%s)()",
+      if (fn == "rbinom") {
+        ## See equivalent logic in the C version
+        values[[1L]] <- sprintf("this.base.maths.round2(%s)", values[[1L]])
+      }
+      ret <- sprintf("random.%s(%s)",
                      FUNCTIONS_JS_STOCHASTIC[[fn]],
                      paste(values, collapse = ", "))
     } else {
@@ -78,7 +82,7 @@ generate_js_sexp_sum <- function(args, data, meta) {
 
   if (length(args) == 1L) {
     len <- generate_js_sexp(data_info$dimnames$length, data, meta)
-    sprintf("odinSum1(%s, 0, %s)", target, len)
+    sprintf("this.base.maths.odinSum1(%s, 0, %s)", target, len)
   } else {
     i <- seq(2, length(args), by = 2)
 
@@ -88,7 +92,7 @@ generate_js_sexp_sum <- function(args, data, meta) {
     values[-i] <- vcapply(all_args[-i], generate_js_sexp, data, meta)
     arg_str <- paste(values, collapse = ", ")
 
-    sprintf("odinSum%d(%s)", length(i), arg_str)
+    sprintf("this.base.maths.odinSum%d(%s)", length(i), arg_str)
   }
 }
 
@@ -96,9 +100,9 @@ generate_js_sexp_sum <- function(args, data, meta) {
 FUNCTIONS_JS_RENAME <- c(
   "^" = "Math.pow",
   ceiling = "Math.ceil",
-  round = "round2",
-  "%%" = "modr",
-  "%/%" = "intdivr",
+  round = "this.base.maths.round2",
+  "%%" = "this.base.maths.modr",
+  "%/%" = "this.base.maths.intdivr",
   "as.integer" = "Math.floor"
 )
 
@@ -114,16 +118,16 @@ FUNCTIONS_JS_MATH <- c(
 
 
 FUNCTIONS_JS_STOCHASTIC_SPECIAL <- c(
-  unif_rand = "unifRand",
-  norm_rand = "normRand",
-  exp_rand = "expRand")
+  unif_rand = "randomUniform",
+  norm_rand = "randomNormal",
+  exp_rand = "randomExponential")
 
 
 FUNCTIONS_JS_STOCHASTIC <- c(
   ## TODO: I should write out these ones somewhere
   ## And support many different distributions
   ## rbeta = "", # a, b
-  rbinom = "rbinom", # n, p - note that this is patched
+  rbinom = "binomial", # n, p
   ## rcauchy = "", # location, scale
   ## rchisq = "", # df
   rexp = "exponential", # rate
