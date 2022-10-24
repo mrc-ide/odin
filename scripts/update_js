@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -exu
+
+ODIN_JS_BRANCH=main
+DUST_JS_BRANCH=main
+
+HERE=$(dirname $0)
+PACKAGE_ROOT=$(realpath $HERE/..)
+
+PATH_BUILD=$PACKAGE_ROOT/build
+PATH_DUST=$PATH_BUILD/dust-js
+PATH_ODIN=$PATH_BUILD/odin-js
+
+update_source() {
+    SRC=$1
+    DEST=$2
+    REF=$3
+    if [[ -d "$DEST" ]]; then
+        git -C "$DEST" fetch
+    else
+        mkdir -p $PATH_BUILD
+        git clone "$SRC" "$DEST"
+    fi
+    git -C "$DEST" checkout "origin/$REF"
+}
+
+build_js() {
+    SRC=$1
+    FILE=$2
+    DEST="$PACKAGE_ROOT/inst/js/$FILE"
+    npm --prefix $SRC ci
+    npm --prefix $SRC run webpack
+    cp $SRC/dist/$FILE $DEST
+    ## Webpack builds files with no newlines, let's add one here
+    echo "" >> $PACKAGE_ROOT/inst/js/$FILE
+}
+
+update_source https://github.com/mrc-ide/dust-js $PATH_DUST $DUST_JS_BRANCH
+build_js $PATH_DUST dust.js
+
+update_source https://github.com/mrc-ide/odin-js $PATH_ODIN $ODIN_JS_BRANCH
+build_js $PATH_ODIN odin.js

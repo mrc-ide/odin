@@ -18,5 +18,5 @@ tests/testthat/eugene
 docs
 *~
 TODO.md
-js/node_modules
+build/
 .V8history
