@@ -65,3 +65,12 @@ model_random_numbers <- function(mod, name, n, ...) {
 to_json_columnwise <- function(x) {
   V8::JS(jsonlite::toJSON(x, matrix = "columnmajor"))
 }
+
+
+skip_if_no_js <- function() {
+  skip_if_not_installed("V8")
+  ## Historically we've had issues with the non-standard V8 build on
+  ## Fedora, it's not documented what is different there, but it
+  ## behaves poorly.
+  skip_on_cran()
+}

@@ -1,6 +1,7 @@
 context("bundle")
 
 test_that("bundle works", {
+  skip_if_no_js()
   code <- c("deriv(N) <- r * N * (1 - N / K)",
             "initial(N) <- N0",
             "N0 <- user(1)",
@@ -28,6 +29,7 @@ test_that("bundle works", {
 
 
 test_that("include interpolate", {
+  skip_if_no_js()
   code <- c("deriv(y) <- pulse",
             "initial(y) <- 0",
             "pulse <- interpolate(tp, zp, 'constant')",
@@ -57,6 +59,7 @@ test_that("include interpolate", {
 
 
 test_that("include sum", {
+  skip_if_no_js()
   code <- c("deriv(y[]) <- r[i] * y[i]",
             "initial(y[]) <- 1",
             "r[] <- 0.1",
@@ -91,6 +94,7 @@ test_that("include sum", {
 ## includes a partial sum but *not* a complete sum, which may trigger
 ## a failure to include the sum support.
 test_that("include fancy sum", {
+  skip_if_no_js()
   code <- c(
     "deriv(y[]) <- r[i] * y[i] * (1 - sum(ay[i, ]))",
     "initial(y[]) <- y0[i]",
@@ -129,6 +133,7 @@ test_that("include fancy sum", {
 
 
 test_that("simple discrete model in a bundle", {
+  skip_if_no_js()
   ## Not using the rng so that it's easy to push around:
   code <- c(
     "initial(x) <- 0",
@@ -157,6 +162,7 @@ test_that("simple discrete model in a bundle", {
 
 
 test_that("simple stochastic model in a bundle", {
+  skip_if_no_js()
   code <- c(
     "initial(x) <- 0",
     "update(x) <- x + norm_rand()")

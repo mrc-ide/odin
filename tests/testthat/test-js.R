@@ -1,7 +1,7 @@
 context("odin-js")
 
 test_that("trivial model", {
-  ## TODO: Automate testing if we can test in the absence of V8
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -35,6 +35,7 @@ test_that("trivial model", {
 ##
 ## This should integrate to a parabola y = 1 + t^2
 test_that("Time dependent rhs", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -53,6 +54,7 @@ test_that("Time dependent rhs", {
 
 
 test_that("Time dependent initial conditions", {
+  skip_if_no_js()
   gen <- odin({
     y1 <- cos(t)
     y2 <- y1 * (r + t)
@@ -78,6 +80,7 @@ test_that("Time dependent initial conditions", {
 
 
 test_that("user variables", {
+  skip_if_no_js()
   gen <- odin({
     deriv(N) <- r * N * (1 - N / K)
     initial(N) <- N0
@@ -112,6 +115,7 @@ test_that("user variables", {
 
 
 test_that("models with output", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- 2
     initial(y) <- 1
@@ -134,6 +138,7 @@ test_that("models with output", {
 
 
 test_that("accept matrices directly if asked nicely", {
+  skip_if_no_js()
   ## We disabled handling matrices like [[a, b, c], [d, e, f]] because
   ## the validation is a bit tedious, and we don't use this for
   ## anything atm; see mrc-3726 for details.
@@ -151,6 +156,7 @@ test_that("accept matrices directly if asked nicely", {
 
 
 test_that("some R functions are not available", {
+  skip_if_no_js()
   expect_error(
     odin({
       deriv(y) <- 1
@@ -161,6 +167,7 @@ test_that("some R functions are not available", {
 
 
 test_that("can adjust tolerance in the solver", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- cos(t)
     initial(y) <- 0
@@ -174,6 +181,7 @@ test_that("can adjust tolerance in the solver", {
 
 
 test_that("can adjust max steps", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- cos(t)
     initial(y) <- 0
@@ -187,6 +195,7 @@ test_that("can adjust max steps", {
 
 
 test_that("can specify min step sizes and allow continuation with them", {
+  skip_if_no_js()
   lorenz <- odin({
     deriv(y1) <- sigma * (y2 - y1)
     deriv(y2) <- R * y1 - y2 - y1 * y3
@@ -212,6 +221,7 @@ test_that("can specify min step sizes and allow continuation with them", {
 
 
 test_that("can specify max step sizes", {
+  skip_if_no_js()
   lorenz <- odin({
     deriv(y1) <- sigma * (y2 - y1)
     deriv(y2) <- R * y1 - y2 - y1 * y3
@@ -236,7 +246,7 @@ test_that("can specify max step sizes", {
 
 
 test_that("Can't include code into js models (yet)", {
-  skip_if_not_installed("V8")
+  skip_if_no_js()
   expect_error(odin({
     config(include) <- "user_fns.js"
     z <- squarepulse(t, 1, 2)
@@ -250,7 +260,7 @@ test_that("Can't include code into js models (yet)", {
 
 
 test_that("Can show generated code", {
-  skip_if_not_installed("V8")
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- 1
     initial(y) <- 1
@@ -262,7 +272,7 @@ test_that("Can show generated code", {
 
 
 test_that("Can show generated code for discrete time models", {
-  skip_if_not_installed("V8")
+  skip_if_no_js()
   gen <- odin({
     update(y) <- 1
     initial(y) <- 1
@@ -274,7 +284,7 @@ test_that("Can show generated code for discrete time models", {
 
 
 test_that("Can show versions of js packages", {
-  skip_if_not_installed("V8")
+  skip_if_no_js()
   v <- odin_js_versions()
   ## This list may grow over time and that should not fail the tests:
   expect_true(
@@ -284,6 +294,7 @@ test_that("Can show versions of js packages", {
 
 
 test_that("Can run simple discrete model", {
+  skip_if_no_js()
   gen <- odin({
     update(y) <- y + r
     initial(y) <- 1
@@ -310,6 +321,7 @@ test_that("Can run simple discrete model", {
 
 
 test_that("can't use output in js discrete time models", {
+  skip_if_no_js()
   expect_error(odin({
     update(y) <- y + r
     initial(y) <- 1
@@ -321,6 +333,7 @@ test_that("can't use output in js discrete time models", {
 
 
 test_that("can get coefficients from continuous time models", {
+  skip_if_no_js()
   gen <- odin({
     deriv(y) <- r
     initial(y) <- 1
@@ -341,6 +354,7 @@ test_that("can get coefficients from continuous time models", {
 
 
 test_that("can get coefficients from discrete time models", {
+  skip_if_no_js()
   gen <- odin({
     update(y) <- y + r
     initial(y) <- 1
@@ -361,6 +375,7 @@ test_that("can get coefficients from discrete time models", {
 
 
 test_that("cast internal arrays to correct dimension", {
+  skip_if_no_js()
   gen <- odin({
     update(y) <- y + sum(r)
     initial(y) <- 1
@@ -374,7 +389,7 @@ test_that("cast internal arrays to correct dimension", {
 
 
 test_that("can correctly pull metadata where model has variety of ranks", {
-  skip_if_not_installed("V8")
+  skip_if_no_js()
   gen <- odin({
     update(a) <- 1
     update(b[]) <- i
