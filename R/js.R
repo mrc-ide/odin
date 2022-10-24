@@ -126,8 +126,6 @@ odin_js_wrapper_continuous <- function(res) {
         control <- control[!vlapply(control, is.null)]
         control_js <- to_json_js(control, auto_unbox = TRUE)
 
-        ## TODO: it's not totally clear to me if/how we're doing names
-        ## correctly here for array variables?
         res <- js_call(private$context, sprintf("%s.run", private$name),
                        t_js, y_js, control_js)
 
@@ -289,7 +287,8 @@ coef.odin_js_generator <- function(object, ...) {
 to_js_user <- function(user) {
   to_js <- function(value) {
     if (inherits(value, "JS_EVAL")) {
-      class(value) <- "json"
+      ## See mrc-3726 for details
+      stop("Direct passing of JS objects not currently supported")
     } else if (is.array(value)) {
       value <- list(data = c(value), dim = I(dim(value)))
     } else if (length(value) == 0) {
@@ -354,5 +353,8 @@ to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
 odin_js_versions <- function() {
   context <- V8::v8()
   context$source(odin_file("js/odin.js"))
-  lapply(context$call("odinjs.versions"), package_version)
+  context$source(odin_file("js/dust.js"))
+  utils::modifyList(
+    lapply(context$call("dust.versions"), package_version),
+    lapply(context$call("odinjs.versions"), package_version))
 }

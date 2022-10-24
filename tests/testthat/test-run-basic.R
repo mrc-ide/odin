@@ -671,7 +671,7 @@ test_that_odin("rich user sized arrays", {
 
 
 test_that_odin("discrete delays: matrix", {
-  skip_for_target("js") # discrete delays, not recommended
+  skip_for_target("js") # discrete delays, not supported
   gen <- odin({
     initial(y[, ]) <- 1
     update(y[, ]) <- y[i, j] + 1

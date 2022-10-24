@@ -43,7 +43,8 @@ validate_ir <- function() {
   if (on_travis() && getRversion() < numeric_version("3.6.0")) {
     FALSE
   }
-  requireNamespace("jsonvalidate", quietly = TRUE)
+  requireNamespace("jsonvalidate", quietly = TRUE) &&
+    requireNamespace("V8", quietly = TRUE)
 }
 
 
@@ -117,7 +118,9 @@ test_odin_targets <- function() {
   if (on_cran()) {
     "r"
   } else {
-    c("r", "c", "js")
+    has_c <- requireNamespace("pkgbuild", quietly = TRUE)
+    has_js <- requireNamespace("V8", quietly = TRUE)
+    c("r", if (has_c) "c", if (has_js) "js")
   }
 }
 

@@ -964,7 +964,6 @@ test_that_odin("sum for a 4d array", {
 })
 
 test_that_odin("sum initial condition from initial condition", {
-  skip_for_target("js")
   gen <- odin({
     update(a[, ]) <- 1
     update(b) <- 1
@@ -1278,7 +1277,6 @@ test_that_odin("user parameter validation", {
 })
 
 test_that_odin("sum over integer", {
-  skip_for_target("js")
   gen <- odin({
     x[] <- user()
     dim(x) <- user()

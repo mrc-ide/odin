@@ -1,3 +1,7 @@
+# odin 1.4.0
+
+* Overhaul of the odin to JavaScript compilation, generates code compatible with wodin (https://reside-ic.github.io/wodin-news)
+
 # odin 1.3.3
 
 * More gracefully cope with filenames containing parentheses
