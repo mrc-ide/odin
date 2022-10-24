@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.6</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.0</span>
       </span>
     </div>
 
@@ -94,7 +94,7 @@
       <h1 data-toc-skip>odin</h1>
                         <h4 data-toc-skip class="author">Rich FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2022-06-21</h4>
+            <h4 data-toc-skip class="date">2022-10-24</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/odin.Rmd" class="external-link"><code>vignettes/odin.Rmd</code></a></small>
       <div class="hidden name"><code>odin.Rmd</code></div>
@@ -108,129 +108,129 @@
 </h2>
 <p>We’ll first start with a very simple model; logistic growth. We have one variable <code>N</code> which grows towards a carrying capacity <code>K</code>. The growth rate is <code>r</code> when <code>N</code> is very small (note that this equation can be easily solved analytically and it’s only included here for demonstration!)</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">path_logistic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/logistic.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path_logistic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/logistic.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span> <span class="op">*</span> <span class="va">N</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">N</span> <span class="op">/</span> <span class="va">K</span><span class="op">)</span>
-<span class="fu">initial</span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">N0</span>
-
-<span class="va">N0</span> <span class="op">&lt;-</span> <span class="fl">1</span>
-<span class="va">K</span> <span class="op">&lt;-</span> <span class="fl">100</span>
-<span class="va">r</span> <span class="op">&lt;-</span> <span class="fl">0.5</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span> <span class="op">*</span> <span class="va">N</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">N</span> <span class="op">/</span> <span class="va">K</span><span class="op">)</span></span>
+<span><span class="fu">initial</span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">N0</span></span>
+<span></span>
+<span><span class="va">N0</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
+<span><span class="va">K</span> <span class="op">&lt;-</span> <span class="fl">100</span></span>
+<span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fl">0.5</span></span></code></pre></div>
 <p>The time derivatives are indicated by <code>deriv(N) &lt;-</code>; the right hand side of this is the differential equation. Initial conditions are always given (future versions may make them optional) and can be in terms of variables. Note that the definition of declaration is not important; the derivative calculation references parameters <code>r</code> and <code>K</code> which have not been defined and the initial conditions reference <code>N0</code>.</p>
 <p><strong>NOTE</strong> while this <em>looks</em> like R (and must <em>parse</em> as R) it is not actually R code. Copying and pasting this code into an R session would throw an error</p>
 <p>To compile this as a standalone model (not suitable for inclusion in a package) use <code><a href="../reference/odin.html">odin::odin</a></code>;</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="va">path_logistic</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## Loading required namespace: pkgbuild</span></code></pre>
+<code class="sourceCode R"><span><span class="va">generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="va">path_logistic</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Loading required namespace: pkgbuild</span></span></code></pre>
 <p>This returns an R6 generator that can be used to create an instance of the model:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span>
-<span class="va">mod</span></code></pre></div>
-<pre><code><span class="co">## &lt;odin_model&gt;</span>
-<span class="co">##   Public:</span>
-<span class="co">##     contents: function () </span>
-<span class="co">##     deriv: function (t, y) </span>
-<span class="co">##     engine: function () </span>
-<span class="co">##     initial: function (t) </span>
-<span class="co">##     initialize: function (..., user = list(...), use_dde = FALSE, unused_user_action = NULL) </span>
-<span class="co">##     ir: function () </span>
-<span class="co">##     rhs: function (t, y) </span>
-<span class="co">##     run: function (t, y = NULL, ..., use_names = TRUE) </span>
-<span class="co">##     set_user: function (..., user = list(...), unused_user_action = NULL) </span>
-<span class="co">##     transform_variables: function (y) </span>
-<span class="co">##   Private:</span>
-<span class="co">##     cfuns: list</span>
-<span class="co">##     dll: logisticcc3de092</span>
-<span class="co">##     interpolate_t: NULL</span>
-<span class="co">##     n_out: 0</span>
-<span class="co">##     odin: environment</span>
-<span class="co">##     output_order: NULL</span>
-<span class="co">##     ptr: externalptr</span>
-<span class="co">##     registration: function () </span>
-<span class="co">##     set_initial: function (t, y, use_dde) </span>
-<span class="co">##     update_metadata: function () </span>
-<span class="co">##     use_dde: FALSE</span>
-<span class="co">##     user: NULL</span>
-<span class="co">##     variable_order: list</span>
-<span class="co">##     ynames: t N</span></code></pre>
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">mod</span></span></code></pre></div>
+<pre><code><span><span class="co">## &lt;odin_model&gt;</span></span>
+<span><span class="co">##   Public:</span></span>
+<span><span class="co">##     contents: function () </span></span>
+<span><span class="co">##     deriv: function (t, y) </span></span>
+<span><span class="co">##     engine: function () </span></span>
+<span><span class="co">##     initial: function (t) </span></span>
+<span><span class="co">##     initialize: function (..., user = list(...), use_dde = FALSE, unused_user_action = NULL) </span></span>
+<span><span class="co">##     ir: function () </span></span>
+<span><span class="co">##     rhs: function (t, y) </span></span>
+<span><span class="co">##     run: function (t, y = NULL, ..., use_names = TRUE) </span></span>
+<span><span class="co">##     set_user: function (..., user = list(...), unused_user_action = NULL) </span></span>
+<span><span class="co">##     transform_variables: function (y) </span></span>
+<span><span class="co">##   Private:</span></span>
+<span><span class="co">##     cfuns: list</span></span>
+<span><span class="co">##     dll: logistic6c0d071f</span></span>
+<span><span class="co">##     interpolate_t: NULL</span></span>
+<span><span class="co">##     n_out: 0</span></span>
+<span><span class="co">##     odin: environment</span></span>
+<span><span class="co">##     output_order: NULL</span></span>
+<span><span class="co">##     ptr: externalptr</span></span>
+<span><span class="co">##     registration: function () </span></span>
+<span><span class="co">##     set_initial: function (t, y, use_dde) </span></span>
+<span><span class="co">##     update_metadata: function () </span></span>
+<span><span class="co">##     use_dde: FALSE</span></span>
+<span><span class="co">##     user: NULL</span></span>
+<span><span class="co">##     variable_order: list</span></span>
+<span><span class="co">##     ynames: t N</span></span></code></pre>
 <p>This is an <code>ode_system</code> object and can be used to run the system of differential equations, query the internal state, and so on. Most of the listed elements above do not need to be accessed ever (I would make them private but that incurs a very slight performance cost).</p>
 <p>The initial conditions:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span><span class="op">$</span><span class="va">init</span></code></pre></div>
-<pre><code><span class="co">## NULL</span></code></pre>
+<code class="sourceCode R"><span><span class="va">mod</span><span class="op">$</span><span class="va">init</span></span></code></pre></div>
+<pre><code><span><span class="co">## NULL</span></span></code></pre>
 <p>dN/dt evaluated at the time zero, with the initial conditions:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span><span class="op">$</span><span class="fu">deriv</span><span class="op">(</span><span class="fl">0</span>, <span class="va">mod</span><span class="op">$</span><span class="fu">initial</span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## [1] 0.495</span></code></pre>
+<code class="sourceCode R"><span><span class="va">mod</span><span class="op">$</span><span class="fu">deriv</span><span class="op">(</span><span class="fl">0</span>, <span class="va">mod</span><span class="op">$</span><span class="fu">initial</span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] 0.495</span></span></code></pre>
 <p>or with arbitrary conditions:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span><span class="op">$</span><span class="fu">deriv</span><span class="op">(</span><span class="fl">0</span>, <span class="fl">50</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## [1] 12.5</span></code></pre>
+<code class="sourceCode R"><span><span class="va">mod</span><span class="op">$</span><span class="fu">deriv</span><span class="op">(</span><span class="fl">0</span>, <span class="fl">50</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] 12.5</span></span></code></pre>
 <p>To see the contents of all the variables, intermediates and parameters tracked by odin use <code>contents()</code>:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span><span class="op">$</span><span class="fu">contents</span><span class="op">(</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## $initial_N</span>
-<span class="co">## [1] 1</span>
-<span class="co">## </span>
-<span class="co">## $K</span>
-<span class="co">## [1] 100</span>
-<span class="co">## </span>
-<span class="co">## $N0</span>
-<span class="co">## [1] 1</span>
-<span class="co">## </span>
-<span class="co">## $r</span>
-<span class="co">## [1] 0.5</span></code></pre>
+<code class="sourceCode R"><span><span class="va">mod</span><span class="op">$</span><span class="fu">contents</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## $initial_N</span></span>
+<span><span class="co">## [1] 1</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## $K</span></span>
+<span><span class="co">## [1] 100</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## $N0</span></span>
+<span><span class="co">## [1] 1</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## $r</span></span>
+<span><span class="co">## [1] 0.5</span></span></code></pre>
 <p>To run the model, provide a set of times:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">30</span>, length.out <span class="op">=</span> <span class="fl">101</span><span class="op">)</span>
-<span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">30</span>, length.out <span class="op">=</span> <span class="fl">101</span><span class="op">)</span></span>
+<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-9-1.png" width="672"></p>
 <p>While initial conditions are computed, you may pass in arbitrary initial conditions;</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">y2</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span>, <span class="fl">50</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y2</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">y2</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span>, <span class="fl">50</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y2</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-10-1.png" width="672"></p>
 <div class="section level3">
 <h3 id="specifying-parameters">Specifying parameters<a class="anchor" aria-label="anchor" href="#specifying-parameters"></a>
 </h3>
 <p>The above is about the simplest possible useful model I could come up with. But it’s not that useful because all the parameters are hard coded into the model. Here’s a slightly tweaked version where the parameters may be specified at runtime:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span> <span class="op">*</span> <span class="va">N</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">N</span> <span class="op">/</span> <span class="va">K</span><span class="op">)</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">N0</span>
-
-  <span class="va">N0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>
-  <span class="va">K</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>
-  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="op">}</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span> <span class="op">*</span> <span class="va">N</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">N</span> <span class="op">/</span> <span class="va">K</span><span class="op">)</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">N</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">N0</span></span>
+<span></span>
+<span>  <span class="va">N0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span>  <span class="va">K</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">100</span><span class="op">)</span></span>
+<span>  <span class="va">r</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>when used as <code>user(1)</code> (as for <code>N</code> and <code>K</code>) it means we allow a user parameter called <code>N0</code> to be specified, but if omitted it has a default value of 1. When used as <code>user()</code> (as for <code>r</code>) it means that there is no default value and <code>r</code> <strong>must</strong> be provided.</p>
 <p>Note this example takes the code of the model as its first argument. It can also be specified as text, but the form above should be nicer to write than text, especially in editors with support for things like autocompletion.</p>
 <p>Because <code>r</code> is required, it is an error to initialise the model without any parameters:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## Error in self$set_user(user = user, unused_user_action = unused_user_action): Expected a value for 'r'</span></code></pre>
+<code class="sourceCode R"><span><span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Error in self$set_user(user = user, unused_user_action = unused_user_action): Expected a value for 'r'</span></span></code></pre>
 <p>Providing <code>r</code>:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>r <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>r <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p>The model contains the set value of r</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span><span class="op">$</span><span class="fu">contents</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">r</span></code></pre></div>
-<pre><code><span class="co">## [1] 1</span></code></pre>
+<code class="sourceCode R"><span><span class="va">mod</span><span class="op">$</span><span class="fu">contents</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">r</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] 1</span></span></code></pre>
 <p>Running the model shows the effect of doubling the growth rate:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">y3</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y3</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">y3</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y3</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-15-1.png" width="672"></p>
 <p>Once created a model can have the parameters re-set:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span><span class="op">$</span><span class="fu">set_user</span><span class="op">(</span>r <span class="op">=</span> <span class="fl">0.25</span>, K <span class="op">=</span> <span class="fl">75</span>, N0 <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>
-<span class="va">y4</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y3</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y4</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">mod</span><span class="op">$</span><span class="fu">set_user</span><span class="op">(</span>r <span class="op">=</span> <span class="fl">0.25</span>, K <span class="op">=</span> <span class="fl">75</span>, N0 <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="va">y4</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"N"</span>, las <span class="op">=</span> <span class="fl">1</span>, main <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y3</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">y4</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-16-1.png" width="672"></p>
 </div>
 </div>
@@ -239,34 +239,34 @@
 </h2>
 <p>Once more than one variable is involved, there is a bit more book-keeping to take care of.</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">path_lorenz</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/lorenz.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path_lorenz</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/lorenz.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
 <p>The Lorenz attractor is a set of coupled ODEs that displays chaotic behaviour. It was found by reducing a set of equations describing atmospheric convection in the 1960s. Mostly I just think it looks pretty.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">sigma</span> <span class="op">*</span> <span class="op">(</span><span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">R</span> <span class="op">*</span> <span class="va">y1</span> <span class="op">-</span> <span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y3</span>
-<span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">y3</span> <span class="op">+</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y2</span>
-
-<span class="fu">initial</span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">10.0</span>
-<span class="fu">initial</span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span>
-<span class="fu">initial</span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span>
-
-<span class="co">## These are the classical parameters:</span>
-<span class="va">sigma</span> <span class="op">&lt;-</span> <span class="fl">10</span>
-<span class="va">R</span> <span class="op">&lt;-</span> <span class="fl">28</span>
-<span class="va">b</span> <span class="op">&lt;-</span>  <span class="fl">8</span> <span class="op">/</span> <span class="fl">3</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">sigma</span> <span class="op">*</span> <span class="op">(</span><span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">R</span> <span class="op">*</span> <span class="va">y1</span> <span class="op">-</span> <span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y3</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">y3</span> <span class="op">+</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y2</span></span>
+<span></span>
+<span><span class="fu">initial</span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">10.0</span></span>
+<span><span class="fu">initial</span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span></span>
+<span><span class="fu">initial</span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span></span>
+<span></span>
+<span><span class="co">## These are the classical parameters:</span></span>
+<span><span class="va">sigma</span> <span class="op">&lt;-</span> <span class="fl">10</span></span>
+<span><span class="va">R</span> <span class="op">&lt;-</span> <span class="fl">28</span></span>
+<span><span class="va">b</span> <span class="op">&lt;-</span>  <span class="fl">8</span> <span class="op">/</span> <span class="fl">3</span></span></code></pre></div>
 <p>The system is not chaotic with all parameters. The initial conditions are fairly arbitrary here as the system will settle into its characteristic shape from most points (though with completely different realisations).</p>
 <p>Building the generator, and from that a system, is the same as the above:</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="va">path_lorenz</span><span class="op">)</span>
-<span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="va">path_lorenz</span><span class="op">)</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>Because of the rapid changes that characterise this model, we’ll take a <em>lot</em> of samples.</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">20000</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">##    user  system elapsed </span>
-<span class="co">##   0.009   0.001   0.009</span></code></pre>
+<code class="sourceCode R"><span><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">20000</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">tt</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##    user  system elapsed </span></span>
+<span><span class="co">##   0.008   0.001   0.009</span></span></code></pre>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, lwd <span class="op">=</span> <span class="fl">.2</span>, col <span class="op">=</span> <span class="st">"#00000055"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, lwd <span class="op">=</span> <span class="fl">.2</span>, col <span class="op">=</span> <span class="st">"#00000055"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-20-1.png" width="672"></p>
 </div>
 <div class="section level2">
@@ -275,32 +275,32 @@
 <p>Models with lags and delays represent a challenge in solving and representing the system, see <a href="https://en.wikipedia.org/wiki/Delay_differential_equation" class="external-link">this wikipedia article</a> for some of the issues. In the general case this gives a set of partial differential equations, which are much harder to solve generally than ordinary differential equations.</p>
 <p>Like Berkeley Madonna, <code>odin</code> allows solving equations with lags, using the machinery available in <code>deSolve</code>. One can specify a lag in a state variable or an expression. The lag times can also be variables.</p>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span>
-  <span class="va">ylag</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/base-defunct.html" class="external-link">delay</a></span><span class="op">(</span><span class="va">y</span>, <span class="va">tau</span><span class="op">)</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">0.5</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">0.2</span> <span class="op">*</span> <span class="va">ylag</span> <span class="op">*</span> <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="va">ylag</span><span class="op">^</span><span class="fl">10</span><span class="op">)</span> <span class="op">-</span> <span class="fl">0.1</span> <span class="op">*</span> <span class="va">y</span>
-  <span class="va">tau</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>
-  <span class="fu">output</span><span class="op">(</span><span class="va">ylag</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">ylag</span>
-<span class="op">}</span><span class="op">)</span>
-<span class="va">dde</span> <span class="op">&lt;-</span> <span class="va">gen</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">ylag</span> <span class="op">&lt;-</span> <span class="fu">delay</span><span class="op">(</span><span class="va">y</span>, <span class="va">tau</span><span class="op">)</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">0.5</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">0.2</span> <span class="op">*</span> <span class="va">ylag</span> <span class="op">*</span> <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="va">ylag</span><span class="op">^</span><span class="fl">10</span><span class="op">)</span> <span class="op">-</span> <span class="fl">0.1</span> <span class="op">*</span> <span class="va">y</span></span>
+<span>  <span class="va">tau</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
+<span>  <span class="fu">output</span><span class="op">(</span><span class="va">ylag</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">ylag</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">dde</span> <span class="op">&lt;-</span> <span class="va">gen</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The first line here</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ylag</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/base-defunct.html" class="external-link">delay</a></span><span class="op">(</span><span class="va">y</span>, <span class="va">tau</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">ylag</span> <span class="op">&lt;-</span> <span class="fu">delay</span><span class="op">(</span><span class="va">y</span>, <span class="va">tau</span><span class="op">)</span></span></code></pre></div>
 <p>specifies the delay; it says that <code>ylag</code> should be equal to <code>y</code> from <code>tau</code> ago. Or; <code>ylag(t) = y(t - tau)</code>.</p>
 <p><code>delay</code> expressions must be the only expressions on the rhs of an assignment. The first argument can be a single variable (like here) or it can be an expression.</p>
 <p>Running the model will automatically use the <code><a href="https://rdrr.io/pkg/deSolve/man/dede.html" class="external-link">deSolve::dede</a></code> function.</p>
 <div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">300</span>, length.out <span class="op">=</span> <span class="fl">301</span><span class="op">)</span>
-<span class="va">y1</span> <span class="op">&lt;-</span> <span class="va">dde</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y1</span>, ylab <span class="op">=</span> <span class="st">"y"</span>, mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, which <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y1</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, xlab <span class="op">=</span> <span class="st">"y"</span>, ylab <span class="op">=</span> <span class="st">"ylag"</span>, mfrow <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"l"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">300</span>, length.out <span class="op">=</span> <span class="fl">301</span><span class="op">)</span></span>
+<span><span class="va">y1</span> <span class="op">&lt;-</span> <span class="va">dde</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y1</span>, ylab <span class="op">=</span> <span class="st">"y"</span>, mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, which <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y1</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, xlab <span class="op">=</span> <span class="st">"y"</span>, ylab <span class="op">=</span> <span class="st">"ylag"</span>, mfrow <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"l"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-22-1.png" width="672"></p>
 <p>Increasing the lag time creates much more complicated trajectories:</p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">dde</span><span class="op">$</span><span class="fu">set_user</span><span class="op">(</span>tau <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>
-<span class="va">y2</span> <span class="op">&lt;-</span> <span class="va">dde</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y2</span>, ylab <span class="op">=</span> <span class="st">"y"</span>, mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, which <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y2</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, xlab <span class="op">=</span> <span class="st">"y"</span>, ylab <span class="op">=</span> <span class="st">"ylag"</span>, mfrow <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"l"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">dde</span><span class="op">$</span><span class="fu">set_user</span><span class="op">(</span>tau <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
+<span><span class="va">y2</span> <span class="op">&lt;-</span> <span class="va">dde</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y2</span>, ylab <span class="op">=</span> <span class="st">"y"</span>, mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, which <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">y2</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1L</span><span class="op">]</span>, xlab <span class="op">=</span> <span class="st">"y"</span>, ylab <span class="op">=</span> <span class="st">"ylag"</span>, mfrow <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"l"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-23-1.png" width="672"></p>
 </div>
 <div class="section level2">
@@ -313,40 +313,40 @@
 </h3>
 <p>This example comes from the <a href="https://en.wikipedia.org/wiki/Competitive_Lotka%E2%80%93Volterra_equations#4-dimensional_example" class="external-link">wikipedia page</a>, in turn from <a href="http://sprott.physics.wisc.edu/pubs/paper288.pdf" class="external-link">Vano et al 2006</a>. This model has four non-linear differential equations that have chaotic behaviour in fairly low dimension.</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ay</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">y0</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>
-
-  <span class="va">y0</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">r</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">a</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">ay</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">j</span><span class="op">]</span>
-
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">n_spp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span>
-
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">n_spp</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y0</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">n_spp</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">n_spp</span>, <span class="va">n_spp</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">ay</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">n_spp</span>, <span class="va">n_spp</span><span class="op">)</span>
-
-  <span class="fu">config</span><span class="op">(</span><span class="va">base</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"lv4"</span>
-<span class="op">}</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">r</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ay</span><span class="op">[</span><span class="va">i</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">y</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">y0</span><span class="op">[</span><span class="va">i</span><span class="op">]</span></span>
+<span></span>
+<span>  <span class="va">y0</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">r</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">a</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">ay</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="va">j</span><span class="op">]</span></span>
+<span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">n_spp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">n_spp</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y0</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">n_spp</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">n_spp</span>, <span class="va">n_spp</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">ay</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">n_spp</span>, <span class="va">n_spp</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="fu">config</span><span class="op">(</span><span class="va">base</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"lv4"</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>These are the parameters from the wikipedia article, with <code>y0</code> being close to the (unstable) equilibrium.</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">pars</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>r <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.00</span>, <span class="fl">0.72</span>, <span class="fl">1.53</span>, <span class="fl">1.27</span><span class="op">)</span>,
-             a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.00</span>, <span class="fl">1.09</span>, <span class="fl">1.52</span>, <span class="fl">0.00</span><span class="op">)</span>,
-                       <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.00</span>, <span class="fl">1.00</span>, <span class="fl">0.44</span>, <span class="fl">1.36</span><span class="op">)</span>,
-                       <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2.33</span>, <span class="fl">0.00</span>, <span class="fl">1.00</span>, <span class="fl">0.47</span><span class="op">)</span>,
-                       <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.21</span>, <span class="fl">0.51</span>, <span class="fl">0.35</span>, <span class="fl">1.00</span><span class="op">)</span><span class="op">)</span>,
-             y0 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3013</span>, <span class="fl">0.4586</span>, <span class="fl">0.1307</span>, <span class="fl">0.3557</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">pars</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>r <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.00</span>, <span class="fl">0.72</span>, <span class="fl">1.53</span>, <span class="fl">1.27</span><span class="op">)</span>,</span>
+<span>             a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.00</span>, <span class="fl">1.09</span>, <span class="fl">1.52</span>, <span class="fl">0.00</span><span class="op">)</span>,</span>
+<span>                       <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.00</span>, <span class="fl">1.00</span>, <span class="fl">0.44</span>, <span class="fl">1.36</span><span class="op">)</span>,</span>
+<span>                       <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2.33</span>, <span class="fl">0.00</span>, <span class="fl">1.00</span>, <span class="fl">0.47</span><span class="op">)</span>,</span>
+<span>                       <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.21</span>, <span class="fl">0.51</span>, <span class="fl">0.35</span>, <span class="fl">1.00</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             y0 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3013</span>, <span class="fl">0.4586</span>, <span class="fl">0.1307</span>, <span class="fl">0.3557</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Note that we pass in <code>r</code> as a matrix, from which the number of species is determined. The competitive matrix <code>a</code> is passed through as a matrix – both dimensions must be the same as the length of <code>r</code> (you can’t just pass in a vector and hope it gets unpacked in the right order).</p>
 <div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">gen</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>user <span class="op">=</span> <span class="va">pars</span><span class="op">)</span>
-
-<span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2000</span>, length.out <span class="op">=</span> <span class="fl">10001</span><span class="op">)</span>
-<span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, col <span class="op">=</span> <span class="st">"#00000055"</span>, lwd <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">gen</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>user <span class="op">=</span> <span class="va">pars</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2000</span>, length.out <span class="op">=</span> <span class="fl">10001</span><span class="op">)</span></span>
+<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">y</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span>, panel <span class="op">=</span> <span class="va">lines</span>, col <span class="op">=</span> <span class="st">"#00000055"</span>, lwd <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-26-1.png" width="672"></p>
 </div>
 </div>
@@ -362,27 +362,27 @@
 <p>The <code>interpolate</code> takes as its first argument a vector of times. If you’re using constant or linear interpolating functions it is important that you include these times within times that the integrator passes through because otherwise the integrator may struggle needlessly with the discontinuities in the function or its derivatives (NOTE: future versions may handle this automatically, and this will not work at all with <code>dde</code> which does not yet support stopping at critical times).</p>
 <p>The second argument of each interpolating function is a vector, matrix or array of values for the target function. The dimensionality (rank) of the structure must be one greater than the rhs. So if you want a classic 1d function, you’d write:</p>
 <div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">z</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">tt</span>, <span class="va">y</span><span class="op">)</span>
-<span class="va">tt</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="va">y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">z</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">tt</span>, <span class="va">y</span><span class="op">)</span></span>
+<span><span class="va">tt</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span></span></code></pre></div>
 <p>and <code>z</code> will be a scalar double, and <code>t</code> and <code>y</code> are both vectors with lengths that must match. The check for matching is done at runtime (when the model is initialised) so you can always just leave the dimensions as <code>user()</code>. Future versions may allow autogeneration of the boilerplate here, but for now you must specify the four lines required to initialise <code>t</code> and <code>y</code>.</p>
 <p>Note that <code>t</code> cannot be used as the first argument because it’s a reserved variable!</p>
 <p>If you want to interpolate a <em>vector</em> of <code>y</code> values over time, then you’d write:</p>
 <div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">z</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">tt</span>, <span class="va">y</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">4</span>
-<span class="va">tt</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="va">y</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">z</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">tt</span>, <span class="va">y</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">4</span></span>
+<span><span class="va">tt</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">y</span><span class="op">[</span>, <span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tt</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>In this case, <code>z</code> is a vector (here length 4), so <code>y</code> must be a matrix with <code>length(t)</code> rows and 4 columns. This does not do anything clever - the interpolation happens for each of the four variables independently.</p>
 <p>If you want to drive the size of this off of <code>y</code> then specify:</p>
 <div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="co"># (other entries same as above)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># (other entries same as above)</span></span></code></pre></div>
 <p>in which case the size of <code>z</code> is determined from the number of columns of <code>y</code>.</p>
 <p>By default, <code>odin</code> assumes you want do do cubic interpolation, but you can alter that with the third argument. Specify <code>"constant"</code> to indicate constant interpolation and <code>"linear"</code> to indicate linear interpolation.</p>
 <p>All modes of interpolation use a fast lookup (bisection search that remembers where it started from on the last lookup) to try and make interpolation as fast as possible. Performance should be <em>O(log(n))</em> in the number of points used to create the interpolating function, so the penalty for using many points in your interpolation should be low.</p>
@@ -391,96 +391,96 @@
 <p>The model here is:</p>
 <p>dC/dt = flux(t) - k * C</p>
 <div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">flux_model</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span> <span class="op">-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">C0</span>
-  <span class="va">flux</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, <span class="st">"linear"</span><span class="op">)</span>
-  <span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">kk</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu">output</span><span class="op">(</span><span class="va">deposition</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span>
-  <span class="co">## Fair bit of boilerplate here that may be removed in future</span>
-  <span class="co">## versions:</span>
-  <span class="va">flux_t</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">flux_y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_t</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="op">}</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">flux_model</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span> <span class="op">-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">C0</span></span>
+<span>  <span class="va">flux</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, <span class="st">"linear"</span><span class="op">)</span></span>
+<span>  <span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">kk</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">output</span><span class="op">(</span><span class="va">deposition</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span></span>
+<span>  <span class="co">## Fair bit of boilerplate here that may be removed in future</span></span>
+<span>  <span class="co">## versions:</span></span>
+<span>  <span class="va">flux_t</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">flux_y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_t</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>Here we arrange for the components of the interpolating function to be passed through as user vectors, which is the only way of specifying these models at present. The interpolation type, here “linear”, is hard coded and cannot be changed at runtime.</p>
 <div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">flux_t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">11</span>, <span class="fl">21</span>, <span class="fl">41</span>, <span class="fl">73</span>, <span class="fl">83</span>, <span class="fl">93</span>, <span class="fl">103</span>, <span class="fl">113</span>, <span class="fl">123</span>, <span class="fl">133</span>, <span class="fl">143</span>, <span class="fl">153</span>,
-            <span class="fl">163</span>, <span class="fl">173</span>, <span class="fl">183</span>, <span class="fl">194</span>, <span class="fl">204</span>, <span class="fl">214</span>, <span class="fl">224</span>, <span class="fl">234</span>, <span class="fl">244</span>, <span class="fl">254</span>, <span class="fl">264</span>,
-            <span class="fl">274</span>, <span class="fl">284</span>, <span class="fl">294</span>, <span class="fl">304</span>, <span class="fl">315</span>, <span class="fl">325</span>, <span class="fl">335</span>, <span class="fl">345</span>, <span class="fl">355</span>, <span class="fl">365</span><span class="op">)</span>
-<span class="va">flux_y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.654</span>, <span class="fl">0.167</span>, <span class="fl">0.06</span>, <span class="fl">0.07</span>, <span class="fl">0.277</span>, <span class="fl">0.186</span>, <span class="fl">0.14</span>, <span class="fl">0.255</span>, <span class="fl">0.231</span>,
-            <span class="fl">0.309</span>, <span class="fl">1.127</span>, <span class="fl">1.923</span>, <span class="fl">1.091</span>, <span class="fl">1.001</span>, <span class="fl">1.691</span>, <span class="fl">1.404</span>, <span class="fl">1.226</span>, <span class="fl">0.767</span>,
-            <span class="fl">0.893</span>, <span class="fl">0.737</span>, <span class="fl">0.772</span>, <span class="fl">0.726</span>, <span class="fl">0.624</span>, <span class="fl">0.439</span>, <span class="fl">0.168</span>, <span class="fl">0.28</span>, <span class="fl">0.202</span>,
-            <span class="fl">0.193</span>, <span class="fl">0.286</span>, <span class="fl">0.599</span>, <span class="fl">1.889</span>, <span class="fl">0.996</span>, <span class="fl">0.681</span>, <span class="fl">1.135</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, type <span class="op">=</span> <span class="st">"l"</span>, ylab <span class="op">=</span> <span class="st">"Flux"</span>, xlab <span class="op">=</span> <span class="st">"Time"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">flux_t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">11</span>, <span class="fl">21</span>, <span class="fl">41</span>, <span class="fl">73</span>, <span class="fl">83</span>, <span class="fl">93</span>, <span class="fl">103</span>, <span class="fl">113</span>, <span class="fl">123</span>, <span class="fl">133</span>, <span class="fl">143</span>, <span class="fl">153</span>,</span>
+<span>            <span class="fl">163</span>, <span class="fl">173</span>, <span class="fl">183</span>, <span class="fl">194</span>, <span class="fl">204</span>, <span class="fl">214</span>, <span class="fl">224</span>, <span class="fl">234</span>, <span class="fl">244</span>, <span class="fl">254</span>, <span class="fl">264</span>,</span>
+<span>            <span class="fl">274</span>, <span class="fl">284</span>, <span class="fl">294</span>, <span class="fl">304</span>, <span class="fl">315</span>, <span class="fl">325</span>, <span class="fl">335</span>, <span class="fl">345</span>, <span class="fl">355</span>, <span class="fl">365</span><span class="op">)</span></span>
+<span><span class="va">flux_y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.654</span>, <span class="fl">0.167</span>, <span class="fl">0.06</span>, <span class="fl">0.07</span>, <span class="fl">0.277</span>, <span class="fl">0.186</span>, <span class="fl">0.14</span>, <span class="fl">0.255</span>, <span class="fl">0.231</span>,</span>
+<span>            <span class="fl">0.309</span>, <span class="fl">1.127</span>, <span class="fl">1.923</span>, <span class="fl">1.091</span>, <span class="fl">1.001</span>, <span class="fl">1.691</span>, <span class="fl">1.404</span>, <span class="fl">1.226</span>, <span class="fl">0.767</span>,</span>
+<span>            <span class="fl">0.893</span>, <span class="fl">0.737</span>, <span class="fl">0.772</span>, <span class="fl">0.726</span>, <span class="fl">0.624</span>, <span class="fl">0.439</span>, <span class="fl">0.168</span>, <span class="fl">0.28</span>, <span class="fl">0.202</span>,</span>
+<span>            <span class="fl">0.193</span>, <span class="fl">0.286</span>, <span class="fl">0.599</span>, <span class="fl">1.889</span>, <span class="fl">0.996</span>, <span class="fl">0.681</span>, <span class="fl">1.135</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, type <span class="op">=</span> <span class="st">"l"</span>, ylab <span class="op">=</span> <span class="st">"Flux"</span>, xlab <span class="op">=</span> <span class="st">"Time"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-28-1.png" width="672"></p>
 <p>Following the deSolve vignette, the initial conditions are derived from the parameters and the flux over time:</p>
 <div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">k</span> <span class="op">&lt;-</span> <span class="fl">0.01</span>
-<span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approx</a></span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, xout <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">365</span><span class="op">)</span><span class="op">$</span><span class="va">y</span><span class="op">)</span> <span class="op">/</span> <span class="va">k</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">k</span> <span class="op">&lt;-</span> <span class="fl">0.01</span></span>
+<span><span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approx</a></span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, xout <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">365</span><span class="op">)</span><span class="op">$</span><span class="va">y</span><span class="op">)</span> <span class="op">/</span> <span class="va">k</span></span></code></pre></div>
 <p>Initialise the model:</p>
 <div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">flux_model</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>kk <span class="op">=</span> <span class="va">k</span>, C0 <span class="op">=</span> <span class="va">C0</span>, flux_t <span class="op">=</span> <span class="va">flux_t</span>, flux_y <span class="op">=</span> <span class="va">flux_y</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">flux_model</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>kk <span class="op">=</span> <span class="va">k</span>, C0 <span class="op">=</span> <span class="va">C0</span>, flux_t <span class="op">=</span> <span class="va">flux_t</span>, flux_y <span class="op">=</span> <span class="va">flux_y</span><span class="op">)</span></span></code></pre></div>
 <p>And run over one year:</p>
 <div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">365</span><span class="op">)</span>
-<span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span>, tcrit <span class="op">=</span> <span class="fl">365</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">365</span><span class="op">)</span></span>
+<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span>, tcrit <span class="op">=</span> <span class="fl">365</span><span class="op">)</span></span></code></pre></div>
 <p>The output in all its glory:</p>
 <div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"red"</span>, ylab <span class="op">=</span> <span class="st">"Flux &amp; deposition"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"red"</span>, ylab <span class="op">=</span> <span class="st">"Flux &amp; deposition"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-32-1.png" width="672"></p>
 <p>Alternatively, we could have used constant or spline interpolation. This (at least at present) requires re-specifying and recompiling the entire model. So, for a constant model:</p>
 <div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">flux_model_c</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span> <span class="op">-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">C0</span>
-  <span class="va">flux</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, <span class="st">"constant"</span><span class="op">)</span>
-  <span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">kk</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu">output</span><span class="op">(</span><span class="va">flux</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span>
-  <span class="fu">output</span><span class="op">(</span><span class="va">deposition</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span>
-  <span class="co">## Fair bit of boilerplate here that may be removed in future</span>
-  <span class="co">## versions:</span>
-  <span class="va">flux_t</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">flux_y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_t</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="op">}</span><span class="op">)</span>
-
-<span class="va">mod_c</span> <span class="op">&lt;-</span> <span class="va">flux_model_c</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>kk <span class="op">=</span> <span class="va">k</span>, C0 <span class="op">=</span> <span class="va">C0</span>, flux_t <span class="op">=</span> <span class="va">flux_t</span>, flux_y <span class="op">=</span> <span class="va">flux_y</span><span class="op">)</span>
-<span class="va">y_c</span> <span class="op">&lt;-</span> <span class="va">mod_c</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span>, tcrit <span class="op">=</span> <span class="fl">365</span><span class="op">)</span>
-
-<span class="va">mod_c</span><span class="op">$</span><span class="va">output_order</span></code></pre></div>
-<pre><code><span class="co">## NULL</span></code></pre>
+<code class="sourceCode R"><span><span class="va">flux_model_c</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span> <span class="op">-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">C0</span></span>
+<span>  <span class="va">flux</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, <span class="st">"constant"</span><span class="op">)</span></span>
+<span>  <span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">kk</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">output</span><span class="op">(</span><span class="va">flux</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span></span>
+<span>  <span class="fu">output</span><span class="op">(</span><span class="va">deposition</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span></span>
+<span>  <span class="co">## Fair bit of boilerplate here that may be removed in future</span></span>
+<span>  <span class="co">## versions:</span></span>
+<span>  <span class="va">flux_t</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">flux_y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_t</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">mod_c</span> <span class="op">&lt;-</span> <span class="va">flux_model_c</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>kk <span class="op">=</span> <span class="va">k</span>, C0 <span class="op">=</span> <span class="va">C0</span>, flux_t <span class="op">=</span> <span class="va">flux_t</span>, flux_y <span class="op">=</span> <span class="va">flux_y</span><span class="op">)</span></span>
+<span><span class="va">y_c</span> <span class="op">&lt;-</span> <span class="va">mod_c</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span>, tcrit <span class="op">=</span> <span class="fl">365</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">mod_c</span><span class="op">$</span><span class="va">output_order</span></span></code></pre></div>
+<pre><code><span><span class="co">## NULL</span></span></code></pre>
 <div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_c</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">"s"</span>, col <span class="op">=</span> <span class="st">"red"</span>, ylab <span class="op">=</span> <span class="st">"Flux &amp; deposition"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_c</span><span class="op">[</span>, <span class="fl">4</span><span class="op">]</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_c</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">"s"</span>, col <span class="op">=</span> <span class="st">"red"</span>, ylab <span class="op">=</span> <span class="st">"Flux &amp; deposition"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_c</span><span class="op">[</span>, <span class="fl">4</span><span class="op">]</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-33-1.png" width="672"></p>
 <p>Or with cubic splines:</p>
 <div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">flux_model_s</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span> <span class="op">-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">C0</span>
-  <span class="va">flux</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, <span class="st">"spline"</span><span class="op">)</span>
-  <span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">kk</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu">output</span><span class="op">(</span><span class="va">flux</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span>
-  <span class="fu">output</span><span class="op">(</span><span class="va">deposition</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span>
-  <span class="co">## Fair bit of boilerplate here that may be removed in future</span>
-  <span class="co">## versions:</span>
-  <span class="va">flux_t</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="va">flux_y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_t</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span>
-<span class="op">}</span><span class="op">)</span>
-
-<span class="va">mod_s</span> <span class="op">&lt;-</span> <span class="va">flux_model_s</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>kk <span class="op">=</span> <span class="va">k</span>, C0 <span class="op">=</span> <span class="va">C0</span>, flux_t <span class="op">=</span> <span class="va">flux_t</span>, flux_y <span class="op">=</span> <span class="va">flux_y</span><span class="op">)</span>
-<span class="va">y_s</span> <span class="op">&lt;-</span> <span class="va">mod_s</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span>, tcrit <span class="op">=</span> <span class="fl">365</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_s</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"red"</span>, ylab <span class="op">=</span> <span class="st">"Flux &amp; deposition"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_s</span><span class="op">[</span>, <span class="fl">4</span><span class="op">]</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">flux_model_s</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span> <span class="op">-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">C</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">C0</span></span>
+<span>  <span class="va">flux</span> <span class="op">&lt;-</span> <span class="fu">interpolate</span><span class="op">(</span><span class="va">flux_t</span>, <span class="va">flux_y</span>, <span class="st">"spline"</span><span class="op">)</span></span>
+<span>  <span class="va">C0</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">kk</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">output</span><span class="op">(</span><span class="va">flux</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">flux</span></span>
+<span>  <span class="fu">output</span><span class="op">(</span><span class="va">deposition</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">kk</span> <span class="op">*</span> <span class="va">C</span></span>
+<span>  <span class="co">## Fair bit of boilerplate here that may be removed in future</span></span>
+<span>  <span class="co">## versions:</span></span>
+<span>  <span class="va">flux_t</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">flux_y</span><span class="op">[</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_t</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">flux_y</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">mod_s</span> <span class="op">&lt;-</span> <span class="va">flux_model_s</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>kk <span class="op">=</span> <span class="va">k</span>, C0 <span class="op">=</span> <span class="va">C0</span>, flux_t <span class="op">=</span> <span class="va">flux_t</span>, flux_y <span class="op">=</span> <span class="va">flux_y</span><span class="op">)</span></span>
+<span><span class="va">y_s</span> <span class="op">&lt;-</span> <span class="va">mod_s</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span>, tcrit <span class="op">=</span> <span class="fl">365</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_s</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"red"</span>, ylab <span class="op">=</span> <span class="st">"Flux &amp; deposition"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">t</span>, <span class="va">y_s</span><span class="op">[</span>, <span class="fl">4</span><span class="op">]</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="odin_files/figure-html/unnamed-chunk-34-1.png" width="672"></p>
 </div>
   </div>
@@ -497,12 +497,12 @@
 
       <footer><div class="copyright">
   <p></p>
-<p>Developed by Rich FitzJohn, Travis Fischer.</p>
+<p>Developed by Rich FitzJohn.</p>
 </div>
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer>

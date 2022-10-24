@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.6</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.0</span>
       </span>
     </div>
 
@@ -63,6 +63,9 @@
       <small>Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="1.4.0" id="odin-140">odin 1.4.0<a class="anchor" aria-label="anchor" href="#odin-140"></a></h2>
+<ul><li>Overhaul of the odin to JavaScript compilation, generates code compatible with wodin (<a href="https://reside-ic.github.io/wodin-news" class="external-link uri">https://reside-ic.github.io/wodin-news</a>)</li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="1.3.3" id="odin-133">odin 1.3.3<a class="anchor" aria-label="anchor" href="#odin-133"></a></h2>
 <ul><li>More gracefully cope with filenames containing parentheses</li></ul></div>
@@ -131,54 +134,54 @@
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.2.4" id="odin-024">odin 0.2.4<a class="anchor" aria-label="anchor" href="#odin-024"></a></h2>
 <ul><li>
-<code>odin_package</code> now works with R staged installation as introduced in 3.6.0 (<a href="https://github.com/mrc-ide/odin/pull/170" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/170" class="external-link">#170</a>, <code>mrc-257</code>)</li></ul></div>
+<code>odin_package</code> now works with R staged installation as introduced in 3.6.0 (<a href="https://github.com/mrc-ide/odin/pull/170" class="external-link">#170</a>, <code>mrc-257</code>)</li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.2.3" id="odin-023">odin 0.2.3<a class="anchor" aria-label="anchor" href="#odin-023"></a></h2>
-<ul><li>Better error messages for some invalid uses of array indices that previously manifested as compiler errors <a href="https://github.com/mrc-ide/odin/issues/166" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/166" class="external-link">#166</a>
+<ul><li>Better error messages for some invalid uses of array indices that previously manifested as compiler errors <a href="https://github.com/mrc-ide/odin/issues/166" class="external-link">#166</a>
 </li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.2.2" id="odin-022">odin 0.2.2<a class="anchor" aria-label="anchor" href="#odin-022"></a></h2>
-<ul><li>Fix two memory leaks (<a href="https://github.com/mrc-ide/odin/issues/163" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/163" class="external-link">#163</a>); these leaked once per model creation.</li></ul></div>
+<ul><li>Fix two memory leaks (<a href="https://github.com/mrc-ide/odin/issues/163" class="external-link">#163</a>); these leaked once per model creation.</li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.2.1" id="odin-021">odin 0.2.1<a class="anchor" aria-label="anchor" href="#odin-021"></a></h2>
-<ul><li>Continuous time models with delays can now return derivatives (<a href="https://github.com/mrc-ide/odin/issues/161" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/161" class="external-link">#161</a>, <a href="https://github.com/mrc-ide/odin/issues/162" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/162" class="external-link">#162</a>)</li></ul></div>
+<ul><li>Continuous time models with delays can now return derivatives (<a href="https://github.com/mrc-ide/odin/issues/161" class="external-link">#161</a>, <a href="https://github.com/mrc-ide/odin/issues/162" class="external-link">#162</a>)</li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.2.0" id="odin-020">odin 0.2.0<a class="anchor" aria-label="anchor" href="#odin-020"></a></h2>
 <p>A complete rewrite of the odin engine, designed to increase future maintainability but have few user-visible effects. In brief, this does add</p>
 <ul><li>Ability to transpile to R (removing the need for a C compiler, though creating code that is necessarily much slower than the compiled version). Pass <code>target = "r"</code> to use this.</li>
 <li>A new intermediate representation for odin models that can be used to determine features of a model</li>
-<li>Better caching (<a href="https://github.com/mrc-ide/odin/issues/64" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/64" class="external-link">#64</a>)</li>
-<li>Delays on discrete time models are much more efficient and work properly with stochastic equations (<a href="https://github.com/mrc-ide/odin/issues/72" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/72" class="external-link">#72</a>, <a href="https://github.com/mrc-ide/odin/issues/98" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/98" class="external-link">#98</a>)</li>
-</ul><p>This does introduce a few user-visible <strong>breaking changes</strong>: - use of array indices outside of an array subset (e.g., <code>x[] &lt;- i</code>) produces output that is off-by-one compared with the previous version (see <a href="https://github.com/mrc-ide/odin/issues/136" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/136" class="external-link">#136</a>) - The “safe” mode has been removed, at least for now. This failed to compile for complex models and was not well used. A better static check mechanism will be introduced (<a href="https://github.com/mrc-ide/odin/issues/148" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/148" class="external-link">#148</a>) - Arguments to <code><a href="../reference/odin.html">odin()</a></code> have been modified slightly - <code><a href="../reference/odin_package.html">odin_package()</a></code> no longer supports multi-file mode (I don’t think this was ever used). - Argument order in generated functions, as well as variable/output order, is likely to change but this should not generally be relied upon. - The methods for a model object have been extensively rationalised. I don’t think that anything has been removed that anyone is using in their code. - The parameters passed as a list <code>user</code> are validated and providing additional parameters is a warning (by default; this can be configured to be more or less strict as desired).</p>
-<p>Fixes many outstanding issues: <a href="https://github.com/mrc-ide/odin/issues/139" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/139" class="external-link">#139</a>, <a href="https://github.com/mrc-ide/odin/issues/136" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/136" class="external-link">#136</a>, <a href="https://github.com/mrc-ide/odin/issues/132" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/132" class="external-link">#132</a>, <a href="https://github.com/mrc-ide/odin/issues/130" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/130" class="external-link">#130</a>, <a href="https://github.com/mrc-ide/odin/issues/129" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/129" class="external-link">#129</a>, <a href="https://github.com/mrc-ide/odin/issues/127" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/127" class="external-link">#127</a>, <a href="https://github.com/mrc-ide/odin/issues/123" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/123" class="external-link">#123</a>, <a href="https://github.com/mrc-ide/odin/issues/122" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/122" class="external-link">#122</a>, <a href="https://github.com/mrc-ide/odin/issues/121" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/121" class="external-link">#121</a>, <a href="https://github.com/mrc-ide/odin/issues/120" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/120" class="external-link">#120</a>, <a href="https://github.com/mrc-ide/odin/issues/117" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/117" class="external-link">#117</a>, <a href="https://github.com/mrc-ide/odin/issues/115" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/115" class="external-link">#115</a>, <a href="https://github.com/mrc-ide/odin/issues/112" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/112" class="external-link">#112</a>, <a href="https://github.com/mrc-ide/odin/issues/106" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/106" class="external-link">#106</a>, <a href="https://github.com/mrc-ide/odin/issues/99" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/99" class="external-link">#99</a>, <a href="https://github.com/mrc-ide/odin/issues/98" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/98" class="external-link">#98</a>, <a href="https://github.com/mrc-ide/odin/issues/84" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/84" class="external-link">#84</a>, <a href="https://github.com/mrc-ide/odin/issues/72" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/72" class="external-link">#72</a>, <a href="https://github.com/mrc-ide/odin/issues/64" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/64" class="external-link">#64</a>, <a href="https://github.com/mrc-ide/odin/issues/57" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/57" class="external-link">#57</a>, <a href="https://github.com/mrc-ide/odin/issues/52" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/52" class="external-link">#52</a>, <a href="https://github.com/mrc-ide/odin/issues/12" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/12" class="external-link">#12</a>, <a href="https://github.com/mrc-ide/odin/issues/4" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/4" class="external-link">#4</a></p>
+<li>Better caching (<a href="https://github.com/mrc-ide/odin/issues/64" class="external-link">#64</a>)</li>
+<li>Delays on discrete time models are much more efficient and work properly with stochastic equations (<a href="https://github.com/mrc-ide/odin/issues/72" class="external-link">#72</a>, <a href="https://github.com/mrc-ide/odin/issues/98" class="external-link">#98</a>)</li>
+</ul><p>This does introduce a few user-visible <strong>breaking changes</strong>: - use of array indices outside of an array subset (e.g., <code>x[] &lt;- i</code>) produces output that is off-by-one compared with the previous version (see <a href="https://github.com/mrc-ide/odin/issues/136" class="external-link">#136</a>) - The “safe” mode has been removed, at least for now. This failed to compile for complex models and was not well used. A better static check mechanism will be introduced (<a href="https://github.com/mrc-ide/odin/issues/148" class="external-link">#148</a>) - Arguments to <code><a href="../reference/odin.html">odin()</a></code> have been modified slightly - <code><a href="../reference/odin_package.html">odin_package()</a></code> no longer supports multi-file mode (I don’t think this was ever used). - Argument order in generated functions, as well as variable/output order, is likely to change but this should not generally be relied upon. - The methods for a model object have been extensively rationalised. I don’t think that anything has been removed that anyone is using in their code. - The parameters passed as a list <code>user</code> are validated and providing additional parameters is a warning (by default; this can be configured to be more or less strict as desired).</p>
+<p>Fixes many outstanding issues: <a href="https://github.com/mrc-ide/odin/issues/139" class="external-link">#139</a>, <a href="https://github.com/mrc-ide/odin/issues/136" class="external-link">#136</a>, <a href="https://github.com/mrc-ide/odin/issues/132" class="external-link">#132</a>, <a href="https://github.com/mrc-ide/odin/issues/130" class="external-link">#130</a>, <a href="https://github.com/mrc-ide/odin/issues/129" class="external-link">#129</a>, <a href="https://github.com/mrc-ide/odin/issues/127" class="external-link">#127</a>, <a href="https://github.com/mrc-ide/odin/issues/123" class="external-link">#123</a>, <a href="https://github.com/mrc-ide/odin/issues/122" class="external-link">#122</a>, <a href="https://github.com/mrc-ide/odin/issues/121" class="external-link">#121</a>, <a href="https://github.com/mrc-ide/odin/issues/120" class="external-link">#120</a>, <a href="https://github.com/mrc-ide/odin/issues/117" class="external-link">#117</a>, <a href="https://github.com/mrc-ide/odin/issues/115" class="external-link">#115</a>, <a href="https://github.com/mrc-ide/odin/issues/112" class="external-link">#112</a>, <a href="https://github.com/mrc-ide/odin/issues/106" class="external-link">#106</a>, <a href="https://github.com/mrc-ide/odin/issues/99" class="external-link">#99</a>, <a href="https://github.com/mrc-ide/odin/issues/98" class="external-link">#98</a>, <a href="https://github.com/mrc-ide/odin/issues/84" class="external-link">#84</a>, <a href="https://github.com/mrc-ide/odin/issues/72" class="external-link">#72</a>, <a href="https://github.com/mrc-ide/odin/issues/64" class="external-link">#64</a>, <a href="https://github.com/mrc-ide/odin/issues/57" class="external-link">#57</a>, <a href="https://github.com/mrc-ide/odin/issues/52" class="external-link">#52</a>, <a href="https://github.com/mrc-ide/odin/issues/12" class="external-link">#12</a>, <a href="https://github.com/mrc-ide/odin/issues/4" class="external-link">#4</a></p>
 </div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.1.2" id="odin-012">odin 0.1.2<a class="anchor" aria-label="anchor" href="#odin-012"></a></h2>
 <ul><li>Validate parameters in input</li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.0.10" id="odin-0010">odin 0.0.10<a class="anchor" aria-label="anchor" href="#odin-0010"></a></h2>
-<ul><li>Replication interface for discrete models (primarily for stochastic models) <a href="https://github.com/mrc-ide/odin/issues/125" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/125" class="external-link">#125</a>.</li></ul></div>
+<ul><li>Replication interface for discrete models (primarily for stochastic models) <a href="https://github.com/mrc-ide/odin/issues/125" class="external-link">#125</a>.</li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.0.9" id="odin-009">odin 0.0.9<a class="anchor" aria-label="anchor" href="#odin-009"></a></h2>
-<ul><li>Delay differential equations may use interpolated functions within their delays <a href="https://github.com/mrc-ide/odin/issues/130" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/130" class="external-link">#130</a>
+<ul><li>Delay differential equations may use interpolated functions within their delays <a href="https://github.com/mrc-ide/odin/issues/130" class="external-link">#130</a>
 </li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.0.6" id="odin-006">odin 0.0.6<a class="anchor" aria-label="anchor" href="#odin-006"></a></h2>
-<ul><li>Fix caching of models specified with files (rather than inline code) <a href="https://github.com/mrc-ide/odin/issues/99" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/99" class="external-link">#99</a>
+<ul><li>Fix caching of models specified with files (rather than inline code) <a href="https://github.com/mrc-ide/odin/issues/99" class="external-link">#99</a>
 </li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.0.5" id="odin-005">odin 0.0.5<a class="anchor" aria-label="anchor" href="#odin-005"></a></h2>
-<ul><li>Support for multinomial distributions, which are the first example of supported vector-returning functions <a href="https://github.com/mrc-ide/odin/issues/100" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/100" class="external-link">#100</a>
+<ul><li>Support for multinomial distributions, which are the first example of supported vector-returning functions <a href="https://github.com/mrc-ide/odin/issues/100" class="external-link">#100</a>
 </li>
-<li>New vignette for discrete time models, contributed by <a href="https://github.com/thibautjombart" class="external-link"><code><a href="https://github.com/thibautjombart" class="external-link">@thibautjombart</a></code></a> <a href="https://github.com/mrc-ide/odin/pull/102" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/102" class="external-link">#102</a>
+<li>New vignette for discrete time models, contributed by <a href="https://github.com/thibautjombart" class="external-link"><code>@thibautjombart</code></a> <a href="https://github.com/mrc-ide/odin/pull/102" class="external-link">#102</a>
 </li>
 </ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.0.4" id="odin-004">odin 0.0.4<a class="anchor" aria-label="anchor" href="#odin-004"></a></h2>
-<ul><li>Generate odin models in “safe” mode, where all array access is bounds-checked. This will run slower but make debugging crashes much simpler (<a href="https://github.com/mrc-ide/odin/issues/79" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/79" class="external-link">#79</a>, <a href="https://github.com/mrc-ide/odin/issues/49" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/49" class="external-link">#49</a>)</li></ul></div>
+<ul><li>Generate odin models in “safe” mode, where all array access is bounds-checked. This will run slower but make debugging crashes much simpler (<a href="https://github.com/mrc-ide/odin/issues/79" class="external-link">#79</a>, <a href="https://github.com/mrc-ide/odin/issues/49" class="external-link">#49</a>)</li></ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.0.3" id="odin-003">odin 0.0.3<a class="anchor" aria-label="anchor" href="#odin-003"></a></h2>
-<ul><li>Implement caching layer <a href="https://github.com/mrc-ide/odin/issues/54" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/54" class="external-link">#54</a> and possibly enough for <a href="https://github.com/mrc-ide/odin/issues/62" class="external-link"></a><a href="https://github.com/mrc-ide/odin/issues/62" class="external-link">#62</a>. The interface here is subject to change (currently there is no way to interact with the cache) but should be enough for most cases. Setting the output directory explicitly will be necessary to cache across sessions.</li></ul></div>
+<ul><li>Implement caching layer <a href="https://github.com/mrc-ide/odin/issues/54" class="external-link">#54</a> and possibly enough for <a href="https://github.com/mrc-ide/odin/issues/62" class="external-link">#62</a>. The interface here is subject to change (currently there is no way to interact with the cache) but should be enough for most cases. Setting the output directory explicitly will be necessary to cache across sessions.</li></ul></div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -189,11 +192,11 @@
 
 
       <footer><div class="copyright">
-  <p></p><p>Developed by Rich FitzJohn, Travis Fischer.</p>
+  <p></p><p>Developed by Rich FitzJohn.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

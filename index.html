@@ -56,7 +56,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.6</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.0</span>
       </span>
     </div>
 
@@ -130,17 +130,17 @@
 <p>While the <code>deSolve</code> authors are bearish on the benefits of this, I have often seen performance improvements of over 100x. Where an ODE is being used in application where it is called repeatedly (e.g., an optimisation or MCMC) the cost of rewriting the system pays itself back.</p>
 <p>For simple systems the rewriting is essentially mechanical. The lorenz attractor could be implemented in R as:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">lorenz</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span>, <span class="va">parms</span><span class="op">)</span> <span class="op">{</span>
-  <span class="va">sigma</span> <span class="op">&lt;-</span> <span class="va">parms</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>
-  <span class="va">R</span> <span class="op">&lt;-</span> <span class="va">parms</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span>
-  <span class="va">b</span> <span class="op">&lt;-</span> <span class="va">parms</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span>
-  <span class="va">y1</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>
-  <span class="va">y2</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span>
-  <span class="va">y3</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span>
-  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">sigma</span> <span class="op">*</span> <span class="op">(</span><span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span><span class="op">)</span>,
-         <span class="va">R</span> <span class="op">*</span> <span class="va">y1</span> <span class="op">-</span> <span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y3</span>,
-         <span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">y3</span> <span class="op">+</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y2</span><span class="op">)</span><span class="op">)</span>
-<span class="op">}</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">lorenz</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span>, <span class="va">parms</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">sigma</span> <span class="op">&lt;-</span> <span class="va">parms</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span>  <span class="va">R</span> <span class="op">&lt;-</span> <span class="va">parms</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
+<span>  <span class="va">b</span> <span class="op">&lt;-</span> <span class="va">parms</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span></span>
+<span>  <span class="va">y1</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span>  <span class="va">y2</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
+<span>  <span class="va">y3</span> <span class="op">&lt;-</span> <span class="va">y</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">sigma</span> <span class="op">*</span> <span class="op">(</span><span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span><span class="op">)</span>,</span>
+<span>         <span class="va">R</span> <span class="op">*</span> <span class="va">y1</span> <span class="op">-</span> <span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y3</span>,</span>
+<span>         <span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">y3</span> <span class="op">+</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <p>and in C as</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1"></a><span class="dt">void</span> initmod(<span class="dt">void</span> (* odeparms)(<span class="dt">int</span> *, <span class="dt">double</span> *)) {</span>
 <span id="cb2-2"><a href="#cb2-2"></a>  <span class="dt">int</span> N=<span class="dv">3</span>;</span>
@@ -165,29 +165,29 @@
 </h2>
 <p>The Lorenz attractor above can be implemented as:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">lorenz</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span>
-  <span class="co">## Derivatives</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">sigma</span> <span class="op">*</span> <span class="op">(</span><span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span><span class="op">)</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">R</span> <span class="op">*</span> <span class="va">y1</span> <span class="op">-</span> <span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y3</span>
-  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">y3</span> <span class="op">+</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y2</span>
-
-  <span class="co">## Initial conditions</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">10.0</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span>
-  <span class="fu">initial</span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span>
-
-  <span class="co">## parameters</span>
-  <span class="va">sigma</span> <span class="op">&lt;-</span> <span class="fl">10.0</span>
-  <span class="va">R</span>     <span class="op">&lt;-</span> <span class="fl">28.0</span>
-  <span class="va">b</span>     <span class="op">&lt;-</span>  <span class="fl">8.0</span> <span class="op">/</span> <span class="fl">3.0</span>
-<span class="op">}</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">lorenz</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="reference/odin.html">odin</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="co">## Derivatives</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">sigma</span> <span class="op">*</span> <span class="op">(</span><span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">R</span> <span class="op">*</span> <span class="va">y1</span> <span class="op">-</span> <span class="va">y2</span> <span class="op">-</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y3</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/deriv.html" class="external-link">deriv</a></span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">y3</span> <span class="op">+</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y2</span></span>
+<span></span>
+<span>  <span class="co">## Initial conditions</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">y1</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">10.0</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">y2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span></span>
+<span>  <span class="fu">initial</span><span class="op">(</span><span class="va">y3</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">1.0</span></span>
+<span></span>
+<span>  <span class="co">## parameters</span></span>
+<span>  <span class="va">sigma</span> <span class="op">&lt;-</span> <span class="fl">10.0</span></span>
+<span>  <span class="va">R</span>     <span class="op">&lt;-</span> <span class="fl">28.0</span></span>
+<span>  <span class="va">b</span>     <span class="op">&lt;-</span>  <span class="fl">8.0</span> <span class="op">/</span> <span class="fl">3.0</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>The connection to the R and C versions in the section above should be fairly clear. The code above is never actually evaluated though; instead it is parsed and used to build up C code for the model.</p>
 <p>Note that this includes initial conditions; all odin models include specifications for initial conditions because the ordering of the variables is arbitrary and may be re-ordered.</p>
 <p>This generates an object that can be used to integrate the set of differential equations, by default starting at the initial conditions specified above (though custom initial conditions can be given). The equations are translated into C, compiled, loaded, and bundled into an object. <code>lorenz</code> here is a function that generates an instance of the model.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu">lorenz</span><span class="op">(</span><span class="op">)</span>
-<span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">50000</span><span class="op">)</span>
-<span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu">lorenz</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span>, length.out <span class="op">=</span> <span class="fl">50000</span><span class="op">)</span></span>
+<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="va">t</span><span class="op">)</span></span></code></pre></div>
 <p>For more complicated examples, check out an <a href="https://github.com/mrc-ide/odin/blob/master/tests/testthat/examples/array_odin.R" class="external-link">age structured SIR model</a>, and for more details see the <a href="https://mrc-ide.github.io/odin/articles/odin.html" class="external-link">main package vignette</a></p>
 </div>
 <div class="section level2">
@@ -227,17 +227,17 @@
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p>Install odin from CRAN with</p>
-<pre><code><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"odin"</span><span class="op">)</span></code></pre>
+<pre><code><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"odin"</span><span class="op">)</span></span></code></pre>
 <p>Alternatively, you can install a potentially more recent version of odin from the <a href="https://mrc-ide.github.io/drat/" class="external-link"><code>mrc-ide</code> drat repository</a></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># install.packages("drat") # -- if you don't have drat installed</span>
-<span class="fu">drat</span><span class="fu">:::</span><span class="fu">add</span><span class="op">(</span><span class="st">"mrc-ide"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"odin"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># install.packages("drat") # -- if you don't have drat installed</span></span>
+<span><span class="fu">drat</span><span class="fu">:::</span><span class="fu">add</span><span class="op">(</span><span class="st">"mrc-ide"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
 <p>You will need a compiler to install dependencies for the package, and to build any models with odin. Windows users should install <a href="https://cran.r-project.org/bin/windows/Rtools/" class="external-link">Rtools</a>. See the relevant section in <a href="https://cran.r-project.org/doc/manuals/r-release/R-admin.html#The-Windows-toolset" class="external-link">R-admin</a> for advice. Be sure to select the “edit PATH” checkbox during installation or the tools will not be found.</p>
 <p>The function <code><a href="reference/can_compile.html">odin::can_compile()</a></code> will check if it is able to compile things, but by the time you install the package that will probably have been satisfied.</p>
 <p>The development version of the package can be installed directly from github if you prefer with:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"mrc-ide/odin"</span>, upgrade <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"mrc-ide/odin"</span>, upgrade <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
@@ -278,7 +278,6 @@
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
 <li>Rich FitzJohn <br><small class="roles"> Author, maintainer </small>  </li>
-<li>Travis Fischer <br><small class="roles"> Author, copyright holder </small>  </li>
 <li><a href="authors.html">More about authors...</a></li>
 </ul>
 </div>
@@ -299,12 +298,12 @@
 
       <footer><div class="copyright">
   <p></p>
-<p>Developed by Rich FitzJohn, Travis Fischer.</p>
+<p>Developed by Rich FitzJohn.</p>
 </div>
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer>

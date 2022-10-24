@@ -19,7 +19,7 @@ than individually named options."><meta property="og:image" content="/logo.png">
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.6</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.0</span>
       </span>
     </div>
 
@@ -73,11 +73,11 @@ than individually named options.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">odin_options</span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">NULL</span>, target <span class="op">=</span> <span class="cn">NULL</span>, workdir <span class="op">=</span> <span class="cn">NULL</span>,
-  validate <span class="op">=</span> <span class="cn">NULL</span>, pretty <span class="op">=</span> <span class="cn">NULL</span>, skip_cache <span class="op">=</span> <span class="cn">NULL</span>,
-  compiler_warnings <span class="op">=</span> <span class="cn">NULL</span>, no_check_unused_equations <span class="op">=</span> <span class="cn">NULL</span>,
-  rewrite_dims <span class="op">=</span> <span class="cn">NULL</span>, rewrite_constants <span class="op">=</span> <span class="cn">NULL</span>, substitutions <span class="op">=</span> <span class="cn">NULL</span>,
-  options <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">odin_options</span><span class="op">(</span>verbose <span class="op">=</span> <span class="cn">NULL</span>, target <span class="op">=</span> <span class="cn">NULL</span>, workdir <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  validate <span class="op">=</span> <span class="cn">NULL</span>, pretty <span class="op">=</span> <span class="cn">NULL</span>, skip_cache <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  compiler_warnings <span class="op">=</span> <span class="cn">NULL</span>, no_check_unused_equations <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  rewrite_dims <span class="op">=</span> <span class="cn">NULL</span>, rewrite_constants <span class="op">=</span> <span class="cn">NULL</span>, substitutions <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  options <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -179,7 +179,7 @@ options are ignored.</p></dd>
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="fu">odin_options</span><span class="op">(</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">odin_options</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $validate</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -193,7 +193,7 @@ options are ignored.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $workdir</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpmXhGfr/file884359ca6d2"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/var/folders/24/8k48jl6d249_n_qfxwsl6xvm0000gn/T//RtmpVOIt99/file148437b8c302"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $skip_cache</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
@@ -230,7 +230,7 @@ options are ignored.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     list(names = name, data = list(names = name, declarations = decl, </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         definitions = defn, filename = filename))</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x7f8deedfe028&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x7fdc22e3d5d8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:odin&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
@@ -245,11 +245,11 @@ options are ignored.</p></dd>
 
 
       <footer><div class="copyright">
-  <p></p><p>Developed by Rich FitzJohn, Travis Fischer.</p>
+  <p></p><p>Developed by Rich FitzJohn.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.4.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>
