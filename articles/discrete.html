@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.1</span>
       </span>
     </div>
 
@@ -94,7 +94,7 @@
       <h1 data-toc-skip>odin discrete models</h1>
                         <h4 data-toc-skip class="author">Thibaut Jombart, Rich FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2022-10-24</h4>
+            <h4 data-toc-skip class="date">2022-10-26</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/discrete.Rmd" class="external-link"><code>vignettes/discrete.Rmd</code></a></small>
       <div class="hidden name"><code>discrete.Rmd</code></div>
@@ -181,7 +181,8 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 </h3>
 <p>We start by loading the <code>odin</code> code for a discrete, stochastic SIR model:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path_sir_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_deterministic_sir.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path_sir_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_deterministic_sir.R"</span>,</span>
+<span>                              package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Core equations for transitions between compartments:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/update.html" class="external-link">update</a></span><span class="op">(</span><span class="va">S</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">S</span> <span class="op">-</span> <span class="va">beta</span> <span class="op">*</span> <span class="va">S</span> <span class="op">*</span> <span class="va">I</span> <span class="op">/</span> <span class="va">N</span></span>
@@ -231,12 +232,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.deterministic.sir9bc75138</span></span>
+<span><span class="co">##     dll: discrete.deterministic.sir18f6a9f4</span></span>
 <span><span class="co">##     user: beta gamma I_ini S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.deterministic.sir9bc75138&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.deterministic.sir18f6a9f4&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -259,7 +260,7 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="co">##     update: function (step, y) </span></span>
 <span><span class="co">##   Private:</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.deterministic.sir9bc75138</span></span>
+<span><span class="co">##     dll: discrete.deterministic.sir18f6a9f4</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     n_out: 0</span></span>
 <span><span class="co">##     odin: environment</span></span>
@@ -304,7 +305,8 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 </h3>
 <p>The stochastic equivalent of the previous model can be formulated in <code>odin</code> as follows:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path_sir_model_s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_sir.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path_sir_model_s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_sir.R"</span>,</span>
+<span>                                package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Core equations for transitions between compartments:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/update.html" class="external-link">update</a></span><span class="op">(</span><span class="va">S</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">S</span> <span class="op">-</span> <span class="va">n_SI</span></span>
@@ -359,12 +361,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.stochastic.sir005bec94</span></span>
+<span><span class="co">##     dll: discrete.stochastic.sir50cf8544</span></span>
 <span><span class="co">##     user: beta gamma I_ini S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir005bec94&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir50cf8544&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -383,7 +385,8 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 </div>
 <p>This gives us a single stochastic realisation of the model, which is of limited interest. As an alternative, we can generate a large number of replicates using arrays for each compartment:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path_sir_model_s_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_sir_arrays.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path_sir_model_s_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_sir_arrays.R"</span>,</span>
+<span>                                  package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Core equations for transitions between compartments:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/update.html" class="external-link">update</a></span><span class="op">(</span><span class="va">S</span><span class="op">[</span><span class="op">]</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">S</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">n_SI</span><span class="op">[</span><span class="va">i</span><span class="op">]</span></span>
@@ -447,12 +450,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.stochastic.sir.arraysac57347c</span></span>
+<span><span class="co">##     dll: discrete.stochastic.sir.arrays095d5e48</span></span>
 <span><span class="co">##     user: beta gamma I_ini nsim S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arraysac57347c&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arrays095d5e48&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -528,7 +531,8 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 \]</span></p>
 <p>The formulation of the model in <code>odin</code> is:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path_seirds_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_seirds.R"</span>, package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">path_seirds_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_seirds.R"</span>,</span>
+<span>                                 package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Core equations for transitions between compartments:</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/update.html" class="external-link">update</a></span><span class="op">(</span><span class="va">S</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">S</span> <span class="op">-</span> <span class="va">n_SE</span> <span class="op">+</span> <span class="va">n_RS</span></span>
@@ -612,12 +616,12 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.stochastic.seirds0a846e58</span></span>
+<span><span class="co">##     dll: discrete.stochastic.seirds06138d9b</span></span>
 <span><span class="co">##     user: beta delta E_ini epsilon gamma_D gamma_R mu omega S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.seirds0a846e58&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.seirds06138d9b&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -625,14 +629,16 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="va">seirds_generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span></span>
-<span><span class="va">seirds_col</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#8c8cd9"</span>, <span class="st">"#e67300"</span>, <span class="st">"#d279a6"</span>, <span class="st">"#ff4d4d"</span>, <span class="st">"#999966"</span>, <span class="st">"#660000"</span><span class="op">)</span></span>
+<span><span class="va">seirds_col</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#8c8cd9"</span>, <span class="st">"#e67300"</span>, <span class="st">"#d279a6"</span>, <span class="st">"#ff4d4d"</span>, <span class="st">"#999966"</span>,</span>
+<span>                <span class="st">"#660000"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">x_res</span> <span class="op">&lt;-</span> <span class="va">x</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">365</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4.1</span>, <span class="fl">5.1</span>, <span class="fl">0.5</span>, <span class="fl">0.5</span><span class="op">)</span>, las <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/matplot.html" class="external-link">matplot</a></span><span class="op">(</span><span class="va">x_res</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>, <span class="va">x_res</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span>, xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"Number of individuals"</span>,</span>
 <span>        type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="va">seirds_col</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"left"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">seirds_col</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"E"</span>, <span class="st">"Ir"</span>, <span class="st">"Id"</span>, <span class="st">"R"</span>, <span class="st">"D"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"left"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">seirds_col</span>,</span>
+<span>       legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"E"</span>, <span class="st">"Ir"</span>, <span class="st">"Id"</span>, <span class="st">"R"</span>, <span class="st">"D"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="discrete_files/figure-html/seirds-1.png" width="672"></p>
 <p>Several runs can be obtained without rewriting the model, for instance, to get 100 replicates:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
