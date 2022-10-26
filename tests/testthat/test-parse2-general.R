@@ -53,8 +53,8 @@ test_that("parse array indices", {
 
   ## TODO: Arguably an error; requires more general solution probably
   ## expect_error(
-  ##  odin_parse("deriv(A) <- 1\ninitial(A) <- 1\nx[1:A] <- 1; dim(x) <- 1"),
-  ##             "Array indices may not be time")
+  ## > odin_parse("deriv(A) <- 1\ninitial(A) <- 1\nx[1:A] <- 1; dim(x) <- 1"),
+  ## >            "Array indices may not be time")
 
   expect_error(
     odin_parse_(ex("x[1] <- 1\ny[x] <- 1\ndim(x) <- 1\ndim(y) <- 1")),

@@ -46,8 +46,9 @@ join_deps <- function(x) {
   stopifnot(is.list(x))
   x <- x[!vlapply(x, is.null)]
   ## This should never be triggered
-  ok <- vlapply(x, function(el)
-    identical(names(el), c("functions", "variables")))
+  ok <- vlapply(x, function(el) {
+    identical(names(el), c("functions", "variables"))
+  })
   stopifnot(all(ok))
   if (length(x) == 0L) {
     list(functions = character(0), variables = character(0))

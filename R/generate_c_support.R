@@ -12,8 +12,9 @@ generate_c_support_sum <- function(rank) {
   ## here, though in general they are not needed as function scope
   ## avoids the worst of things.
   index <- INDEX[i]
-  mult <- vcapply(seq_len(rank), function(x)
-    array_dim_name("x", paste(seq_len(x - 1), collapse = "")))
+  mult <- vcapply(seq_len(rank), function(x) {
+    array_dim_name("x", paste(seq_len(x - 1), collapse = ""))
+  })
   counter <- vcapply(index, strrep, n = 2, USE.NAMES = FALSE)
 
   limits <- rbind(sprintf_safe("from_%s", index),

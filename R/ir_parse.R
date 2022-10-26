@@ -37,8 +37,9 @@ ir_parse <- function(x, options, type = NULL) {
     eqs <- ir_parse_interpolate(eqs, common, source)
     i <- vcapply(eqs, "[[", "type") == "alloc_interpolate"
     f <- function(v) {
-      sort(unique(unlist(unname(lapply(eqs[i], function(eq)
-        eq$control[[v]]))))) %||% character(0)
+      sort(unique(unlist(unname(lapply(eqs[i], function(eq) {
+        eq$control[[v]]
+      }))))) %||% character(0)
     }
     interpolate <-
       list(min = f("min"), max = f("max"), critical = f("critical"))
@@ -62,8 +63,9 @@ ir_parse <- function(x, options, type = NULL) {
   dependencies <- ir_parse_dependencies(eqs, variables, common$time, source)
   stage <- ir_parse_stage(eqs, dependencies, variables, common$time, source)
 
-  eqs_initial <- names_if(vlapply(eqs, function(x)
-    identical(x$lhs$special, "initial")))
+  eqs_initial <- names_if(vlapply(eqs, function(x) {
+    identical(x$lhs$special, "initial")
+  }))
   features$initial_time_dependent <-
     features$has_delay || max(stage[eqs_initial]) == STAGE_TIME
 
@@ -71,8 +73,9 @@ ir_parse <- function(x, options, type = NULL) {
 
   if (features$has_user) {
     is_user <- vcapply(eqs, "[[", "type") == "user"
-    user <- unname(lapply(eqs[is_user], function(x)
-      list(name = x$name, has_default = !is.null(x$user$default))))
+    user <- unname(lapply(eqs[is_user], function(x) {
+      list(name = x$name, has_default = !is.null(x$user$default))
+    }))
     user <- user[order(vlapply(user, "[[", "has_default"))]
   } else {
     user <- list()
@@ -130,8 +133,9 @@ ir_parse_packing <- function(eqs, variables, source) {
 
 ir_parse_data <- function(eqs, packing, stage, source) {
   type <- vcapply(eqs, function(x) x$type, USE.NAMES = FALSE)
-  is_alloc <- vlapply(eqs, function(x)
-    x$type == "alloc" && x$name != x$lhs$name_lhs)
+  is_alloc <- vlapply(eqs, function(x) {
+    x$type == "alloc" && x$name != x$lhs$name_lhs
+  })
   i <- !(is_alloc | type %in% c("copy", "config"))
 
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
@@ -295,8 +299,9 @@ ir_parse_dependencies <- function(eqs, variables, time_name, source) {
   ## we'll add an implicit time dependency).
   implicit <- set_names(rep(list(character(0)), length(variables) + 1),
                         c(variables, time_name))
-  explicit <- lapply(eqs, function(eq)
-    setdiff(eq$depends$variables, c(eq$name, INDEX, "")))
+  explicit <- lapply(eqs, function(eq) {
+    setdiff(eq$depends$variables, c(eq$name, INDEX, ""))
+  })
   deps <- c(explicit, implicit)
 
   msg <- lapply(deps, setdiff, names(deps))
@@ -487,26 +492,30 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
 
   ## NOTE: we need the equation name here, not the variable name
   rhs_special <- if (common$continuous) "deriv" else "update"
-  rhs <- names_if(vlapply(eqs, function(x)
-    identical(x$lhs$special, rhs_special)))
+  rhs <- names_if(vlapply(eqs, function(x) {
+    identical(x$lhs$special, rhs_special)
+  }))
   v <- unique(unlist(dependencies[rhs], use.names = FALSE))
   eqs_rhs <- intersect(eqs_time, c(rhs, v))
   variables_rhs <- intersect(variables, v)
 
-  output <- names_if(vlapply(eqs, function(x)
-    identical(x$lhs$special, "output")))
+  output <- names_if(vlapply(eqs, function(x) {
+    identical(x$lhs$special, "output")
+  }))
   v <- unique(c(character(), unlist(dependencies[output], use.names = FALSE)))
   eqs_output <- intersect(eqs_time, c(output, v))
   variables_output <- intersect(variables, v)
 
-  initial <- names_if(vlapply(eqs, function(x)
-    identical(x$lhs$special, "initial")))
+  initial <- names_if(vlapply(eqs, function(x) {
+    identical(x$lhs$special, "initial")
+  }))
   v <- unique(c(initial, unlist(dependencies[initial], use.names = FALSE)))
   eqs_initial <- intersect(eqs_time, v)
 
   if (common$mixed) {
-    update_stochastic <- names_if(vlapply(eqs, function(x)
-      identical(x$lhs$special, "update")))
+    update_stochastic <- names_if(vlapply(eqs, function(x) {
+      identical(x$lhs$special, "update")
+    }))
     v <- unique(unlist(dependencies[update_stochastic], use.names = FALSE))
     eqs_update_stochastic <- intersect(eqs_time, c(update_stochastic, v))
     variables_update_stochastic <- intersect(variables, v)
@@ -519,8 +528,9 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
   core <- unique(c(initial, rhs, output, eqs_initial, eqs_rhs, eqs_output,
                    eqs_update_stochastic))
 
-  used_in_delay <- unlist(lapply(eqs[type == "delay_continuous"], function(x)
-    x$delay$depends$variables), FALSE, FALSE)
+  used_in_delay <- unlist(lapply(eqs[type == "delay_continuous"],
+                                 function(x) x$delay$depends$variables),
+                          FALSE, FALSE)
   core <- union(core, used_in_delay)
   ignore <- c("config", "null", "delay_index", "alloc")
   core <- c(core, names(eqs)[type %in% ignore])
@@ -549,9 +559,9 @@ ir_parse_check_unused <- function(eqs, dependencies, core, stage, source) {
   ## ignorable. Practically this will just be for user and constant
   ## variables as missing time-varying variables will be excluded
   ## due to not contributing to the graph.
-  ignored <- vlapply(eqs[unused], function(x)
-    any(grepl("#\\s*ignore\\.unused", source[x$source])),
-    USE.NAMES = FALSE)
+  ignored <- vlapply(eqs[unused], function(x) {
+    any(grepl("#\\s*ignore\\.unused", source[x$source]))
+  }, USE.NAMES = FALSE)
 
   ## This is almost certainly not what is wanted, but for now we'll
   ## just raise a message rather than an error:
@@ -786,8 +796,9 @@ ir_parse_expr_lhs_index <- function(lhs, line, source) {
     if (length(index) == 1L) {
       index[] <- list(bquote(1:length(.(lhs[[2L]])))) # nolint
     } else {
-      index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
-        bquote(1:dim(.(lhs[[2L]]), .(i))))
+      index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i) {
+        bquote(1:dim(.(lhs[[2L]]), .(i))) # nolint
+      })
     }
     lhs[-(1:2)] <- index # nolint
   }
@@ -1248,8 +1259,9 @@ ir_parse_delay <- function(eqs, common, variables, source) {
       initial_time <- initial_name(TIME)
       initial_time_type <- "double"
 
-      subs <- unique(unlist(lapply(eqs[names_if(type == "delay")], function(x)
-        x$delay$substitutions), FALSE, FALSE))
+      subs <- unique(unlist(lapply(eqs[names_if(type == "delay")],
+                                   function(x)  x$delay$substitutions),
+                            FALSE, FALSE))
 
       ## TODO: ideally we'd get the correct lines here for source, but
       ## that's low down the list of needs.
@@ -1339,10 +1351,11 @@ ir_parse_delay_continuous <- function(eq, eqs, variables, source) {
   arrays <- names_if(
     vcapply(eqs[graph$equations], "[[", "type") == "expression_array")
   if (length(arrays) > 0L) {
-    substitutions <- lapply(arrays, function(x)
+    substitutions <- lapply(arrays, function(x) {
       list(from = x,
            to = sprintf("delay_array_%s", x),
-           dim = eqs[[x]]$array$dimnames$length))
+           dim = eqs[[x]]$array$dimnames$length)
+    })
   } else {
     substitutions <- list()
   }
@@ -1487,8 +1500,9 @@ ir_parse_delay_continuous_graph <- function(eq, eqs, variables, source) {
 
   ## Then we need to compute a packing for each variable, which
   ## duplicates some code that determines the storage types.
-  i <- vlapply(eqs, function(x)
-    identical(x$lhs$special, "deriv") && x$lhs$name_data %in% used_vars)
+  i <- vlapply(eqs, function(x) {
+    identical(x$lhs$special, "deriv") && x$lhs$name_data %in% used_vars
+  })
 
   ## TODO: this could get a slightly better offset name - elsewhere we
   ## use "delay_state_<x>", and this is the offset to that, so that
@@ -1623,8 +1637,9 @@ ir_parse_rewrite_constants <- function(eqs) {
 
 ir_parse_rewrite_compute_eqs <- function(nms, eqs) {
   cache <- new_empty_env()
-  lapply(eqs[nms], function(eq)
-    static_eval(ir_parse_rewrite_compute(eq$rhs$value, eqs, cache)))
+  lapply(eqs[nms], function(eq) {
+    static_eval(ir_parse_rewrite_compute(eq$rhs$value, eqs, cache))
+  })
 }
 
 
@@ -1676,8 +1691,9 @@ ir_parse_rewrite <- function(nms, eqs) {
   ## One small wrinkle here: don't rewrite things that are the target
   ## of a copy as the rewrite is complicated. This affects almost
   ## nothing in reality outside the tests?
-  copy_self <- unlist(lapply(eqs, function(x)
-    if (x$type == "copy") x$lhs$name_data), FALSE)
+  copy_self <- unlist(lapply(eqs, function(x) {
+    if (x$type == "copy") x$lhs$name_data
+  }), FALSE)
   subs <- subs[setdiff(names(subs), copy_self)]
 
   is_dim <- vlapply(eqs, function(x) isTRUE(x$lhs$dim))
@@ -1700,8 +1716,9 @@ ir_parse_rewrite <- function(nms, eqs) {
   }
 
   subs_env <- list2env(subs, parent = emptyenv())
-  subs_dep <- vcapply(subs, function(x)
-    if (is.numeric(x)) NA_character_ else deparse_str(x))
+  subs_dep <- vcapply(subs, function(x) {
+    if (is.numeric(x)) NA_character_ else deparse_str(x)
+  })
 
   replace <- function(x, y) {
     i <- match(vcapply(x, function(x) x %||% ""), names(y))

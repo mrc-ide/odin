@@ -58,8 +58,9 @@ ir_parse_arrays <- function(eqs, variables, include, source) {
   ##
   ## > dim(x) <- c(dim(a), dim(b))
   dims_nms <- names(eqs[is_dim])
-  deps <- lapply(eqs[is_dim], function(x)
-    intersect(x$depends$variables, dims_nms))
+  deps <- lapply(eqs[is_dim], function(x) {
+    intersect(x$depends$variables, dims_nms)
+  })
   dims <- topological_order(deps)
 
   output <- ir_parse_find_exclusive_output(eqs, source)
@@ -87,8 +88,9 @@ ir_parse_arrays_check_usage <- function(eqs, source) {
   is_copy <- vlapply(eqs, function(x) x$type == "copy")
   is_delay <- vlapply(eqs, function(x) x$type == "delay")
   is_config <- vlapply(eqs, function(x) x$type == "config")
-  is_delay_array <- vlapply(eqs, function(x)
-    x$type == "delay" && !is.null(x$lhs$index))
+  is_delay_array <- vlapply(eqs, function(x) {
+    x$type == "delay" && !is.null(x$lhs$index)
+  })
   name_data <- vcapply(eqs, function(x) x$lhs$name_data)
 
   ## First, check that every variable that is an array is always
@@ -160,8 +162,9 @@ ir_parse_arrays_check_usage2 <- function(eqs, include, source) {
   nms_arrays <- names(rank)
 
   is_int <- vlapply(eqs, function(x) identical(x$lhs$storage_type, "int"))
-  int_arrays <- intersect(nms_arrays, vcapply(eqs[is_int], function(x)
-    x$lhs$name_data))
+  int_arrays <- intersect(nms_arrays, vcapply(eqs[is_int], function(x) {
+    x$lhs$name_data
+  }))
 
   for (eq in eqs) {
     if (eq$type == "expression_scalar" || eq$type == "expression_inplace") {
@@ -327,8 +330,9 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
       rank <- 1L
     } else if (is_call(eq$rhs$value, "c")) {
       value <- as.list(eq$rhs$value[-1L])
-      ok <- vlapply(value, function(x)
-        is.symbol(x) || is.numeric(x) || is_dim_or_length(x))
+      ok <- vlapply(value, function(x) {
+        is.symbol(x) || is.numeric(x) || is_dim_or_length(x)
+      })
       if (!all(ok)) {
         ir_parse_error(
           "Invalid dim() rhs; c() must contain symbols, numbers or lengths",
@@ -348,10 +352,11 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
   ## Eject the original dim() call and add our new equations
   eqs <- c(eqs[names(eqs) != eq$name], dims$eqs)
 
-  i <- which(vlapply(eqs, function(x)
+  i <- which(vlapply(eqs, function(x) {
     x$lhs$name_data == eq$lhs$name_data &&
     x$type != "alloc" &&
-    x$type != "copy"))
+    x$type != "copy"
+  }))
 
   if (length(i) == 0L) {
     ir_parse_error(sprintf(
@@ -390,8 +395,9 @@ ir_parse_arrays_collect <- function(eq, eqs, variables, output, source) {
     } else if (eq_use$type == "delay") {
       eq_use$rhs$index <- eq_use$lhs$index
     } else if (eq_use$type != "user") {
-      eq_use$rhs <- lapply(use, function(x)
-        list(index = x$lhs$index, value = x$rhs$value))
+      eq_use$rhs <- lapply(use, function(x) {
+        list(index = x$lhs$index, value = x$rhs$value)
+      })
       if (length(use) > 1L) {
         eq_use$depends <- join_deps(lapply(use, "[[", "depends"))
         eq_use$stochastic <- any(vlapply(use, "[[", "stochastic"))
@@ -542,8 +548,9 @@ ir_parse_expr_rhs_expression_sum <- function(rhs, line, source) {
           if (length(index) == 1L) {
             index[] <- list(bquote(1:length(.(target)))) # nolint
           } else {
-            index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i)
-              bquote(1:dim(.(target), .(i))))
+            index[is_empty] <- lapply(as.numeric(which(is_empty)), function(i) {
+              bquote(1:dim(.(target), .(i))) # nolint
+            })
           }
         }
         tmp <- lapply(index, ir_parse_expr_lhs_check_index)
@@ -606,9 +613,10 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
   ## eventual static checking of array access etc, so that can wait
   ## until we do it then.
   if (TIME %in% index_vars) {
-    i <- which(is_array)[vlapply(eqs[is_array], function(x)
+    i <- which(is_array)[vlapply(eqs[is_array], function(x) {
       any(TIME %in% x$lhs$depends$variables) ||
-      any(TIME %in% x$rhs$depends$variables))]
+        any(TIME %in% x$rhs$depends$variables)
+    })]
     if (any(i)) {
       ir_parse_error("Array indices may not be time",
                     ir_parse_error_lines(eqs[i]), source)
@@ -621,8 +629,9 @@ ir_parse_arrays_check_indices <- function(eqs, source) {
   ## division).
   err <- intersect(index_vars, names_if(is_array))
   if (length(err) > 0L) {
-    i <- which(is_array)[vlapply(eqs[is_array], function(x)
-      any(err %in% x$lhs$depends$variables))]
+    i <- which(is_array)[vlapply(eqs[is_array], function(x) {
+      any(err %in% x$lhs$depends$variables)
+    })]
     ir_parse_error(sprintf("Array indices may not be arrays (%s used)",
                           pastec(err)),
                   ir_parse_error_lines(eqs[i]), source)
@@ -644,8 +653,9 @@ ir_parse_arrays_find_integers <- function(eqs, variables, source) {
   ## that are used as indices.  Here we'll throw in the index arrays
   ## too (treated separtately for now...)
   integer_arrays <- ir_parse_arrays_used_as_index(eqs)
-  integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x)
-    any(deparse(x$rhs$value[[1]]) == c("rmultinom", "rmhyper"))))
+  integer_inplace <- names_if(vlapply(eqs[is_inplace], function(x) {
+    any(deparse(x$rhs$value[[1]]) == c("rmultinom", "rmhyper"))
+  }))
   integer_vars <- unique(c(index_vars, integer_arrays, integer_inplace))
 
   err <- vcapply(eqs[integer_inplace], function(x) x$lhs$name_data) %in%

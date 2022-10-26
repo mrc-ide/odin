@@ -17,10 +17,11 @@ generate_js <- function(ir, options) {
   eqs <- generate_js_equations(dat, rewrite)
   core <- generate_js_core(eqs, dat, rewrite)
 
-  internal_dim_elements <- vlapply(dat$data$elements, function(x)
+  internal_dim_elements <- vlapply(dat$data$elements, function(x) {
     x$location == "internal" &&
     x$storage_type %in% c("double", "int", "bool") &&
-    x$rank > 1)
+    x$rank > 1
+  })
   internal_dim <- lapply(dat$data$elements[internal_dim_elements],
                          function(x) x$dimnames$dim)
 
@@ -203,26 +204,28 @@ generate_js_core_update_metadata <- function(eqs, dat, rewrite) {
   }
 
   if (dat$features$has_interpolate) {
-    args_min <- js_fold_call("Math.max",
-                             vcapply(dat$interpolate$min, function(x)
-                               sprintf("%s[0]", rewrite(x))))
+    args_min <- js_fold_call(
+      "Math.max",
+      vcapply(dat$interpolate$min, function(x) sprintf("%s[0]", rewrite(x))))
     if (length(dat$interpolate$max) == 0) {
       args_max <- "Infinity"
     } else {
       args_max <- js_fold_call(
         "Math.min",
-        vcapply(dat$interpolate$max, function(x)
+        vcapply(dat$interpolate$max, function(x) {
           sprintf("%s[%s - 1]", rewrite(x),
-                  rewrite(dat$data$elements[[x]]$dimnames$length))))
+                  rewrite(dat$data$elements[[x]]$dimnames$length))
+        }))
     }
   }
 
   len_block <- function(location) {
     if (location == "internal") {
       ## This excludes interpolate_data and ring_buffer
-      keep <- vlapply(dat$data$elements, function(x)
+      keep <- vlapply(dat$data$elements, function(x) {
         x$location == "internal" &&
-        x$storage_type %in% c("double", "int", "bool"))
+          x$storage_type %in% c("double", "int", "bool")
+      })
       contents <- dat$data$elements[keep]
     } else {
       contents <- dat$data$elements[names(dat$data[[location]]$contents)]
@@ -240,11 +243,13 @@ generate_js_core_update_metadata <- function(eqs, dat, rewrite) {
   body$add(len_block("output"))
 
   if (dat$features$has_interpolate) {
-    args_min <- vcapply(dat$interpolate$min, function(x)
-      sprintf("%s[0]", rewrite(x)))
-    args_max <- vcapply(dat$interpolate$max, function(x)
+    args_min <- vcapply(dat$interpolate$min, function(x) {
+      sprintf("%s[0]", rewrite(x))
+    })
+    args_max <- vcapply(dat$interpolate$max, function(x) {
       sprintf("%s[%s - 1]", rewrite(x),
-              rewrite(dat$data$elements[[x]]$dimnames$length)))
+              rewrite(dat$data$elements[[x]]$dimnames$length))
+    })
     array <- function(x) {
       sprintf("[%s]", paste(x, collapse = ", "))
     }

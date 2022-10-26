@@ -78,8 +78,9 @@ test_that("multivariate hypergeometric distribution", {
   expect_equal(colMeans(res), n * k / N, tolerance = 0.05)
 
   ## Variance and covariance
-  expected <- outer(k, k, function(ki, kj)
-    - n * (N - n) / (N - 1) * ki / N * kj / N)
+  expected <- outer(k, k, function(ki, kj) {
+    - n * (N - n) / (N - 1) * ki / N * kj / N
+  })
   diag(expected) <- n * (N - n) / (N - 1) * k / N * (1 - k / N)
   expect_equal(cov(res), expected, tolerance = 0.05)
 })

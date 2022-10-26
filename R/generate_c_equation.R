@@ -80,8 +80,9 @@ generate_c_equation_inplace_rmhyper <- function(eq, lhs, data_info, dat,
 
 generate_c_equation_array <- function(eq, data_info, dat, rewrite) {
   lhs <- generate_c_equation_array_lhs(eq, data_info, dat, rewrite)
-  lapply(eq$rhs, function(x)
-    generate_c_equation_array_rhs(x$value, x$index, lhs, rewrite))
+  lapply(eq$rhs, function(x) {
+    generate_c_equation_array_rhs(x$value, x$index, lhs, rewrite)
+  })
 }
 
 
@@ -447,7 +448,7 @@ generate_c_equation_delay_discrete <- function(eq, data_info, dat, rewrite) {
     advance,
     sprintf_safe("double * %s;", tail),
     c_expr_if(time_check, data_initial, data_offset),
-    assign) -> ret
+    assign)
 }
 
 

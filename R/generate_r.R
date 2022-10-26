@@ -267,16 +267,18 @@ generate_r_interpolate_t <- function(dat, env, rewrite) {
     return(function(...) NULL)
   }
 
-  args_min <- lapply(dat$interpolate$min, function(x)
-    call("[[", rewrite(x), 1L))
+  args_min <- lapply(dat$interpolate$min, function(x) {
+    call("[[", rewrite(x), 1L)
+  })
   if (length(args_min) == 1L) {
     min <- args_min[[1L]]
   } else {
     min <- as.call(c(list(quote(max)), args_min))
   }
 
-  args_max <- lapply(dat$interpolate$max, function(x)
-    call("[[", rewrite(x), call("length", rewrite(x))))
+  args_max <- lapply(dat$interpolate$max, function(x) {
+    call("[[", rewrite(x), call("length", rewrite(x)))
+  })
   if (length(args_max) == 0L) {
     max <- Inf
   } else if (length(args_max) == 1L) {
@@ -310,10 +312,11 @@ generate_r_set_initial <- function(dat, env, rewrite) {
 
   set_y <- call(
     "if", call("!", call("is.null", as.name(dat$meta$state))),
-    r_expr_block(lapply(dat$data$variable$contents, function(x)
+    r_expr_block(lapply(dat$data$variable$contents, function(x) {
       call("<-", rewrite(x$initial),
            r_extract_variable(x, dat$data$elements, as.name(dat$meta$state),
-                              rewrite)))))
+                              rewrite))
+    })))
   set_t <- call("<-", rewrite(dat$meta$initial_time), as.name(dat$meta$time))
 
   body <- list(set_y, set_t)

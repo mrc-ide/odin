@@ -640,14 +640,16 @@ generate_c_compiled_metadata <- function(dat, rewrite) {
     ## TODO: we should generate out the the critical bits but that's
     ## another problem.  See the comments in
     ## support_check_interpolate_t
-    args_min <- c_fold_call("fmax", vcapply(dat$interpolate$min, function(x)
-      sprintf("%s[0]", rewrite(x))))
+    args_min <- c_fold_call("fmax", vcapply(dat$interpolate$min, function(x) {
+      sprintf("%s[0]", rewrite(x))
+    }))
     if (length(dat$interpolate$max) == 0) {
       args_max <- "R_PosInf"
     } else {
-      args_max <- c_fold_call("fmin", vcapply(dat$interpolate$max, function(x)
+      args_max <- c_fold_call("fmin", vcapply(dat$interpolate$max, function(x) {
         sprintf("%s[%s - 1]", rewrite(x),
-                rewrite(dat$data$elements[[x]]$dimnames$length))))
+                rewrite(dat$data$elements[[x]]$dimnames$length))
+      }))
     }
 
     body$add("SEXP interpolate_t = PROTECT(allocVector(VECSXP, 3));")
@@ -700,8 +702,9 @@ generate_c_compiled_library <- function(dat, is_package) {
   }
   if (dat$features$has_user && dat$features$has_array) {
     d <- dat$data$elements
-    user_arrays <- any(vlapply(dat$equations, function(x)
-      !is.null(x$user) && d[[x$name]]$rank > 0))
+    user_arrays <- any(vlapply(dat$equations, function(x) {
+      !is.null(x$user) && d[[x$name]]$rank > 0
+    }))
     if (user_arrays) {
       v <- c(v, "user_get_array_dim",
              "user_get_array", "user_get_array_check",
@@ -715,8 +718,8 @@ generate_c_compiled_library <- function(dat, is_package) {
     v <- c(v, "interpolate_check_y")
   }
 
-  used <- unique(unlist(lapply(dat$equations, function(x)
-    x$depends$functions), FALSE, FALSE))
+  used <- unique(unlist(lapply(dat$equations, function(x) x$depends$functions),
+                        FALSE, FALSE))
   if ("%%" %in% used) {
     v <- c(v, "fmodr")
   }
@@ -746,8 +749,9 @@ generate_c_compiled_library <- function(dat, is_package) {
       nms <- vcapply(extra, "[[", "name")
       extra_lib <- list(
         declarations = set_names(vcapply(extra, "[[", "declaration"), nms),
-        definitions = set_names(vcapply(extra, function(x)
-          paste0(x$definition, "\n", collapse = "")), nms))
+        definitions = set_names(vcapply(extra, function(x) {
+          paste0(x$definition, "\n", collapse = "")
+        }), nms))
       lib <- join_library(list(lib, extra_lib))
     }
   }
