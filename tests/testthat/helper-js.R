@@ -14,9 +14,8 @@ call_odin_bundle_continuous <- function(bundle, user, t0, t1, tn,
   } else {
     control_js <- V8::JS(jsonlite::toJSON(control, auto_unbox = TRUE))
   }
-  res <- ct$call("call_odin_bundle", odin_js, user_js, t0, t1, tn, control_js)
-  res$y <- t(res$y)
-  res
+
+  ct$call("call_odin_bundle", odin_js, user_js, t0, t1, tn, control_js)
 }
 
 
@@ -73,4 +72,8 @@ skip_if_no_js <- function() {
   ## Fedora, it's not documented what is different there, but it
   ## behaves poorly.
   skip_on_cran()
+}
+
+list_to_matrix <- function(x) {
+  matrix(unlist(x), ncol = length(x))
 }

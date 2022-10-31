@@ -22,9 +22,9 @@ test_that("bundle works", {
   sol <- with(list(K = 100, r = 0.5, y0 = 1),
               K / (1 + (K / y0 - 1) * exp(-r * t)))
 
-  expect_equal(res$names, "N")
   expect_equal(res$x, t)
-  expect_equal(drop(res$y), sol, tolerance = 1e-6)
+  expect_equal(res$values$name, "N")
+  expect_equal(res$values$y[[1]], sol, tolerance = 1e-6)
 })
 
 
@@ -52,9 +52,9 @@ test_that("include interpolate", {
 
   tt <- seq(t0, t1, length.out = tn)
 
-  expect_equal(res$names, c("y", "p"))
+  expect_equal(res$values$name, c("y", "p"))
   zz <- ifelse(tt < 1, 0, ifelse(tt > 2, 1, tt - 1))
-  expect_equal(res$y[, 1], zz, tolerance = 2e-5)
+  expect_equal(res$values$y[[1]], zz, tolerance = 2e-5)
 })
 
 
@@ -78,12 +78,12 @@ test_that("include sum", {
 
   res <- call_odin_bundle_continuous(bundle, NULL, t0, t1, tn)
   expect_equal(
-    res$names,
+    res$values$name,
     c("y[1]", "y[2]", "y[3]", "ytot", "y2[1]", "y2[2]", "y2[3]"))
 
-  y <- res$y[, 1:3]
-  ytot <- res$y[, 4]
-  y2 <- res$y[, 5:7]
+  y <- list_to_matrix(res$values$y[1:3])
+  ytot <- res$values$y[[4]]
+  y2 <- list_to_matrix(res$values$y[5:7])
 
   expect_equal(ytot, rowSums(y))
   expect_equal(y2, y * 2)
@@ -127,8 +127,10 @@ test_that("include fancy sum", {
   tt <- seq(t0, t1, length.out = tn)
   cmp <- odin::odin_(code, target = "r")$new(user = user)$run(tt)
 
-  expect_equal(res$names, c("y[1]", "y[2]", "y[3]", "y[4]"))
-  expect_equal(res$y, unname(cmp[, -1]), tolerance = 1e-5)
+  expect_equal(res$values$name, c("y[1]", "y[2]", "y[3]", "y[4]"))
+
+  expect_equal(list_to_matrix(res$values$y),
+               unname(cmp[, -1]), tolerance = 1e-5)
 })
 
 
