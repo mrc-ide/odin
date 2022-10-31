@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -exu
 
-ODIN_JS_BRANCH=main
-DUST_JS_BRANCH=main
+ODIN_JS_BRANCH=mrc-3736
+DUST_JS_BRANCH=mrc-3744
 
 HERE=$(dirname $0)
 PACKAGE_ROOT=$(realpath $HERE/..)
