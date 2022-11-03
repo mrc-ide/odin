@@ -88,13 +88,14 @@
 
       
 
-      </header><script src="discrete_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>odin discrete models</h1>
-                        <h4 data-toc-skip class="author">Thibaut Jombart, Rich FitzJohn</h4>
+                        <h4 data-toc-skip class="author">Thibaut
+Jombart, Rich FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2022-11-02</h4>
+            <h4 data-toc-skip class="date">2022-11-03</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/discrete.Rmd" class="external-link"><code>vignettes/discrete.Rmd</code></a></small>
       <div class="hidden name"><code>discrete.Rmd</code></div>
@@ -109,7 +110,8 @@
 <div class="section level3">
 <h3 id="from-continuous-to-discrete-time">From continuous to discrete time<a class="anchor" aria-label="anchor" href="#from-continuous-to-discrete-time"></a>
 </h3>
-<p>In its simplest form, a SIR model is typically written in continuous time as:</p>
+<p>In its simplest form, a SIR model is typically written in continuous
+time as:</p>
 <p><span class="math display">\[
 \frac{dS}{dt} = - \beta \frac{S_t I_t}{N_t}
 \]</span></p>
@@ -119,8 +121,11 @@
 <p><span class="math display">\[
 \frac{dR}{dt} = \gamma I_t
 \]</span></p>
-<p>Where <span class="math inline">\(\beta\)</span> is an infection rate and <span class="math inline">\(\gamma\)</span> a removal rate, assuming ‘R’ stands for ‘recovered’, which can mean recovery or death.</p>
-<p>For discrete time equivalent, we take a small time step <span class="math inline">\(t\)</span> (typically a day), and write the changes of individuals in each compartment as:</p>
+<p>Where <span class="math inline">\(\beta\)</span> is an infection rate
+and <span class="math inline">\(\gamma\)</span> a removal rate, assuming
+‘R’ stands for ‘recovered’, which can mean recovery or death.</p>
+<p>For discrete time equivalent, we take a small time step <span class="math inline">\(t\)</span> (typically a day), and write the
+changes of individuals in each compartment as:</p>
 <p><span class="math display">\[
 S_{t+1} = S_t - \beta \frac{S_t I_t}{N_t}
 \]</span></p>
@@ -134,41 +139,99 @@ R_{t+1} = R_t + \gamma I_t
 <div class="section level3">
 <h3 id="stochastic-processes">Stochastic processes<a class="anchor" aria-label="anchor" href="#stochastic-processes"></a>
 </h3>
-<p>The discrete model above remains deterministic: for given values of the rates <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span>, dynamics will be fixed. It is fairly straightforward to convert this discrete model into a stochastic one: one merely needs to uses appropriate probability distributions to model the transfer of individuals across compartments. There are at least 3 types of such distributions which will be useful to consider.</p>
+<p>The discrete model above remains deterministic: for given values of
+the rates <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span>, dynamics will be fixed. It is
+fairly straightforward to convert this discrete model into a stochastic
+one: one merely needs to uses appropriate probability distributions to
+model the transfer of individuals across compartments. There are at
+least 3 types of such distributions which will be useful to
+consider.</p>
 <div class="section level4">
 <h4 id="binomial-distribution">Binomial distribution<a class="anchor" aria-label="anchor" href="#binomial-distribution"></a>
 </h4>
-<p>This distribution will be used to determine numbers of individuals <strong>leaving</strong> a given compartment. While we may be tempted to use a Poisson distribution with the rates specified in the equations above, this could lead to over-shooting, i.e. more individuals leaving a compartment than there actually are. To avoid infecting more people than there are susceptibles, we use a binomial distribution, with one draw for each individual in the compartment of interest. The workflow will be:</p>
+<p>This distribution will be used to determine numbers of individuals
+<strong>leaving</strong> a given compartment. While we may be tempted to
+use a Poisson distribution with the rates specified in the equations
+above, this could lead to over-shooting, i.e. more individuals leaving a
+compartment than there actually are. To avoid infecting more people than
+there are susceptibles, we use a binomial distribution, with one draw
+for each individual in the compartment of interest. The workflow will
+be:</p>
 <ol style="list-style-type: decimal">
-<li><p>determine a <em>per-capita probability</em> of leaving the compartment, based on the original rates specified in the equations; if the rate at which each individual leaves a compartment is <span class="math inline">\(\lambda\)</span>, then the corresponding probability of this individual leaving the compartment in one time unit is <span class="math inline">\(p = 1 - e^{- \lambda}\)</span>.</p></li>
-<li><p>determine the number of individuals leaving the compartment using a <em>Binomial</em> distribution, with one draw per individual and a probability <span class="math inline">\(p\)</span></p></li>
+<li><p>determine a <em>per-capita probability</em> of leaving the
+compartment, based on the original rates specified in the equations; if
+the rate at which each individual leaves a compartment is <span class="math inline">\(\lambda\)</span>, then the corresponding
+probability of this individual leaving the compartment in one time unit
+is <span class="math inline">\(p = 1 - e^{- \lambda}\)</span>.</p></li>
+<li><p>determine the number of individuals leaving the compartment using
+a <em>Binomial</em> distribution, with one draw per individual and a
+probability <span class="math inline">\(p\)</span></p></li>
 </ol>
-<p>As an example, let us consider transition <span class="math inline">\(S \rightarrow I\)</span> in the SIR model. The overall rate at which this change happens is <span class="math inline">\(\beta \frac{S_t I_t}{N_t}\)</span>. The corresponding <em>per susceptible</em> rate is <span class="math inline">\(\beta \frac{I_t}{N_t}\)</span>. Therefore, the probability for an individual to move from <em>S</em> to <em>I</em> at time <span class="math inline">\(t\)</span> is <span class="math inline">\(p_{(S \rightarrow I), t} = 1 - e^{- \beta \frac{I_t}{N_t}}\)</span>.</p>
+<p>As an example, let us consider transition <span class="math inline">\(S \rightarrow I\)</span> in the SIR model. The
+overall rate at which this change happens is <span class="math inline">\(\beta \frac{S_t I_t}{N_t}\)</span>. The
+corresponding <em>per susceptible</em> rate is <span class="math inline">\(\beta \frac{I_t}{N_t}\)</span>. Therefore, the
+probability for an individual to move from <em>S</em> to <em>I</em> at
+time <span class="math inline">\(t\)</span> is <span class="math inline">\(p_{(S \rightarrow I), t} = 1 - e^{- \beta
+\frac{I_t}{N_t}}\)</span>.</p>
 </div>
 <div class="section level4">
 <h4 id="poisson-distribution">Poisson distribution<a class="anchor" aria-label="anchor" href="#poisson-distribution"></a>
 </h4>
-<p>Poisson distributions will be useful when individuals enter a compartment at a given rate, from ‘the outside’. This could be birth or migration (for <span class="math inline">\(S\)</span>), or introduction of infections from an external reservoir (for <span class="math inline">\(I\)</span>), etc. The essential distinction with the previous process is that individuals are <em>not leaving</em> an existing compartment.</p>
-<p>This case is simple to handle: one just needs to draw new individuals entering the compartment from a Poisson distribution with the rate directly coming from the equations.</p>
-<p>For instance, let us now consider a variant of the SIR model where new infectious cases are imported at a constant rate <span class="math inline">\(\epsilon\)</span>. The only change to the equation is for the infected compartment:</p>
+<p>Poisson distributions will be useful when individuals enter a
+compartment at a given rate, from ‘the outside’. This could be birth or
+migration (for <span class="math inline">\(S\)</span>), or introduction
+of infections from an external reservoir (for <span class="math inline">\(I\)</span>), etc. The essential distinction with
+the previous process is that individuals are <em>not leaving</em> an
+existing compartment.</p>
+<p>This case is simple to handle: one just needs to draw new individuals
+entering the compartment from a Poisson distribution with the rate
+directly coming from the equations.</p>
+<p>For instance, let us now consider a variant of the SIR model where
+new infectious cases are imported at a constant rate <span class="math inline">\(\epsilon\)</span>. The only change to the equation
+is for the infected compartment:</p>
 <p><span class="math display">\[
 I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 \]</span></p>
 <p>where:</p>
 <ul>
-<li><p>individuals move from <span class="math inline">\(S\)</span> to <span class="math inline">\(I\)</span> according to a Binomial distribution <span class="math inline">\(\mathcal{B}(S_t, 1 - e^{- \beta \frac{I_t}{N_t}})\)</span></p></li>
-<li><p>new infected individuals are imported according to a Poisson distribution <span class="math inline">\(\mathcal{P}(\epsilon)\)</span></p></li>
-<li><p>individual move from <span class="math inline">\(I\)</span> to <span class="math inline">\(R\)</span> according to a Binomial distribution <span class="math inline">\(\mathcal{B}(I_t, 1 - e^{- \gamma})\)</span></p></li>
+<li><p>individuals move from <span class="math inline">\(S\)</span> to
+<span class="math inline">\(I\)</span> according to a Binomial
+distribution <span class="math inline">\(\mathcal{B}(S_t, 1 - e^{- \beta
+\frac{I_t}{N_t}})\)</span></p></li>
+<li><p>new infected individuals are imported according to a Poisson
+distribution <span class="math inline">\(\mathcal{P}(\epsilon)\)</span></p></li>
+<li><p>individual move from <span class="math inline">\(I\)</span> to
+<span class="math inline">\(R\)</span> according to a Binomial
+distribution <span class="math inline">\(\mathcal{B}(I_t, 1 - e^{-
+\gamma})\)</span></p></li>
 </ul>
 </div>
 <div class="section level4">
 <h4 id="multinomial-distribution">Multinomial distribution<a class="anchor" aria-label="anchor" href="#multinomial-distribution"></a>
 </h4>
-<p>This distribution will be useful when individuals leaving a compartment are distributed over several compartments. The Multinomial distribution will be used to determine how many individuals end up in each compartment. Let us assume that individuals move from a compartment <span class="math inline">\(X\)</span> to compartments <span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span>, and <span class="math inline">\(C\)</span>, at rates <span class="math inline">\(\lambda_A\)</span>, <span class="math inline">\(\lambda_B\)</span> and <span class="math inline">\(\lambda_C\)</span>. The workflow to handle these transitions will be:</p>
+<p>This distribution will be useful when individuals leaving a
+compartment are distributed over several compartments. The Multinomial
+distribution will be used to determine how many individuals end up in
+each compartment. Let us assume that individuals move from a compartment
+<span class="math inline">\(X\)</span> to compartments <span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span>, and <span class="math inline">\(C\)</span>, at rates <span class="math inline">\(\lambda_A\)</span>, <span class="math inline">\(\lambda_B\)</span> and <span class="math inline">\(\lambda_C\)</span>. The workflow to handle these
+transitions will be:</p>
 <ol style="list-style-type: decimal">
-<li><p>determine the total number of individuals leaving <span class="math inline">\(X\)</span>; this is done by summing the rates (<span class="math inline">\(\lambda = \lambda_A + \lambda_B + \lambda_C\)</span>) to compute the <em>per capita</em> probability of leaving <span class="math inline">\(X\)</span> <span class="math inline">\((p_(X \rightarrow ...) = 1 - e^{- \lambda})\)</span>, and drawing the number of individuals leaving <span class="math inline">\(X\)</span> (<span class="math inline">\(n_{_(X \rightarrow ...)}\)</span>) from a binomial distribution <span class="math inline">\(n_{(X \rightarrow ...)} \sim B(X, p_(X \rightarrow ...))\)</span></p></li>
-<li><p>compute relative probabilities of moving to the different compartments (using <span class="math inline">\(i\)</span> as a placeholder for <span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span>, <span class="math inline">\(C\)</span>): <span class="math inline">\(p_i = \frac{\lambda_i}{\sum_i \lambda_i}\)</span></p></li>
-<li><p>determine the numbers of individuals moving to <span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span> and <span class="math inline">\(C\)</span> using a Multinomial distribution: <span class="math inline">\(n_{(X \rightarrow A, B, C)} \sim \mathcal{M}(n_{(X \rightarrow ...)}, p_A, p_B, p_C)\)</span></p></li>
+<li><p>determine the total number of individuals leaving <span class="math inline">\(X\)</span>; this is done by summing the rates
+(<span class="math inline">\(\lambda = \lambda_A + \lambda_B +
+\lambda_C\)</span>) to compute the <em>per capita</em> probability of
+leaving <span class="math inline">\(X\)</span> <span class="math inline">\((p_(X \rightarrow ...) = 1 - e^{-
+\lambda})\)</span>, and drawing the number of individuals leaving <span class="math inline">\(X\)</span> (<span class="math inline">\(n_{_(X
+\rightarrow ...)}\)</span>) from a binomial distribution <span class="math inline">\(n_{(X \rightarrow ...)} \sim B(X, p_(X \rightarrow
+...))\)</span></p></li>
+<li><p>compute relative probabilities of moving to the different
+compartments (using <span class="math inline">\(i\)</span> as a
+placeholder for <span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span>, <span class="math inline">\(C\)</span>): <span class="math inline">\(p_i =
+\frac{\lambda_i}{\sum_i \lambda_i}\)</span></p></li>
+<li><p>determine the numbers of individuals moving to <span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span>
+and <span class="math inline">\(C\)</span> using a Multinomial
+distribution: <span class="math inline">\(n_{(X \rightarrow A, B, C)}
+\sim \mathcal{M}(n_{(X \rightarrow ...)}, p_A, p_B,
+p_C)\)</span></p></li>
 </ol>
 </div>
 </div>
@@ -179,7 +242,8 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <div class="section level3">
 <h3 id="deterministic-sir-model">Deterministic SIR model<a class="anchor" aria-label="anchor" href="#deterministic-sir-model"></a>
 </h3>
-<p>We start by loading the <code>odin</code> code for a discrete, stochastic SIR model:</p>
+<p>We start by loading the <code>odin</code> code for a discrete,
+stochastic SIR model:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path_sir_model</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_deterministic_sir.R"</span>,</span>
 <span>                              package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
@@ -203,7 +267,9 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="va">I_ini</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">0.2</span><span class="op">)</span></span>
 <span><span class="va">gamma</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">0.1</span><span class="op">)</span></span></code></pre></div>
-<p>As said in the previous vignette, remember this looks and parses like R code, but is not actually R code. Copy-pasting this in a R session will trigger errors.</p>
+<p>As said in the previous vignette, remember this looks and parses like
+R code, but is not actually R code. Copy-pasting this in a R session
+will trigger errors.</p>
 <p>We then use <code>odin</code> to compile this model:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sir_generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="va">path_sir_model</span><span class="op">)</span></span></code></pre></div>
@@ -241,8 +307,12 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
-<p><strong>Note</strong>: this is the slow part (generation and then compilation of C code)! Which means for computer-intensive work, the number of times this is done should be minimized.</p>
-<p>The returned object <code>sir_generator</code>is an R6 generator that can be used to create an instance of the model: generate an instance of the model:</p>
+<p><strong>Note</strong>: this is the slow part (generation and then
+compilation of C code)! Which means for computer-intensive work, the
+number of times this is done should be minimized.</p>
+<p>The returned object <code>sir_generator</code>is an R6 generator that
+can be used to create an instance of the model: generate an instance of
+the model:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="va">sir_generator</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">x</span></span></code></pre></div>
@@ -273,7 +343,10 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="co">##     user: beta gamma I_ini S_ini</span></span>
 <span><span class="co">##     variable_order: list</span></span>
 <span><span class="co">##     ynames: step S I R</span></span></code></pre>
-<p><code>x</code> is an <code>ode_model</code> object which can be used to generate dynamics of a discrete-time, deterministic SIR model. This is achieved using the function <code>x$run()</code>, providing time steps as single argument, e.g.:</p>
+<p><code>x</code> is an <code>ode_model</code> object which can be used
+to generate dynamics of a discrete-time, deterministic SIR model. This
+is achieved using the function <code>x$run()</code>, providing time
+steps as single argument, e.g.:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sir_col</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#8c8cd9"</span>, <span class="st">"#cc0044"</span>, <span class="st">"#999966"</span><span class="op">)</span></span>
 <span><span class="va">x</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span></code></pre></div>
@@ -303,7 +376,8 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <div class="section level3">
 <h3 id="stochastic-sir-model">Stochastic SIR model<a class="anchor" aria-label="anchor" href="#stochastic-sir-model"></a>
 </h3>
-<p>The stochastic equivalent of the previous model can be formulated in <code>odin</code> as follows:</p>
+<p>The stochastic equivalent of the previous model can be formulated in
+<code>odin</code> as follows:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path_sir_model_s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_sir.R"</span>,</span>
 <span>                                package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
@@ -335,7 +409,8 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <span><span class="va">I_ini</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">0.2</span><span class="op">)</span></span>
 <span><span class="va">gamma</span> <span class="op">&lt;-</span> <span class="fu">user</span><span class="op">(</span><span class="fl">0.1</span><span class="op">)</span></span></code></pre></div>
-<p>We can use the same workflow as before to run the model, using 10 initial infected individuals (<code>I_ini = 10</code>):</p>
+<p>We can use the same workflow as before to run the model, using 10
+initial infected individuals (<code>I_ini = 10</code>):</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sir_s_generator</span> <span class="op">&lt;-</span> <span class="fu">odin</span><span class="fu">::</span><span class="fu"><a href="../reference/odin.html">odin</a></span><span class="op">(</span><span class="va">path_sir_model_s</span><span class="op">)</span></span>
 <span><span class="va">sir_s_generator</span></span></code></pre></div>
@@ -383,7 +458,9 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <img src="discrete_files/figure-html/sir-stochastic_1-1.png" alt="&lt;i&gt;An example of stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
 <i>An example of stochastic, discrete-time SIR model</i><br></p>
 </div>
-<p>This gives us a single stochastic realisation of the model, which is of limited interest. As an alternative, we can generate a large number of replicates using arrays for each compartment:</p>
+<p>This gives us a single stochastic realisation of the model, which is
+of limited interest. As an alternative, we can generate a large number
+of replicates using arrays for each compartment:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path_sir_model_s_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples/discrete_stochastic_sir_arrays.R"</span>,</span>
 <span>                                  package <span class="op">=</span> <span class="st">"odin"</span><span class="op">)</span></span></code></pre></div>
@@ -477,45 +554,57 @@ I_{t+1} = I_t + \beta \frac{S_t I_t}{N_t} + \epsilon - \gamma I_t
 <div class="section level3">
 <h3 id="a-stochastic-seirds-model">A stochastic SEIRDS model<a class="anchor" aria-label="anchor" href="#a-stochastic-seirds-model"></a>
 </h3>
-<p>This model is a more complex version of the previous one, which we will use to illustrate the use of all distributions mentioned in the first part: Binomial, Poisson and Multinomial.</p>
+<p>This model is a more complex version of the previous one, which we
+will use to illustrate the use of all distributions mentioned in the
+first part: Binomial, Poisson and Multinomial.</p>
 <p>The model is contains the following compartments:</p>
 <ul>
 <li>
 <span class="math inline">\(S\)</span>: susceptibles</li>
 <li>
-<span class="math inline">\(E\)</span>: exposed, i.e. infected but not yet contagious</li>
+<span class="math inline">\(E\)</span>: exposed, i.e. infected but
+not yet contagious</li>
 <li>
-<span class="math inline">\(I_R\)</span>: infectious who will survive</li>
+<span class="math inline">\(I_R\)</span>: infectious who will
+survive</li>
 <li>
-<span class="math inline">\(I_D\)</span>: infectious who will die</li>
+<span class="math inline">\(I_D\)</span>: infectious who will
+die</li>
 <li>
 <span class="math inline">\(R\)</span>: recovered</li>
 <li>
 <span class="math inline">\(D\)</span>: dead</li>
 </ul>
-<p>There are no birth of natural death processes in this model. Parameters are:</p>
+<p>There are no birth of natural death processes in this model.
+Parameters are:</p>
 <ul>
 <li>
 <span class="math inline">\(\beta\)</span>: rate of infection</li>
 <li>
-<span class="math inline">\(\delta\)</span>: rate at which symptoms appear (i.e inverse of mean incubation period)</li>
+<span class="math inline">\(\delta\)</span>: rate at which symptoms
+appear (i.e inverse of mean incubation period)</li>
 <li>
 <span class="math inline">\(\gamma_R\)</span>: recovery rate</li>
 <li>
 <span class="math inline">\(\gamma_D\)</span>: death rate</li>
 <li>
-<span class="math inline">\(\mu\)</span>: case fatality ratio (proportion of cases who die)</li>
+<span class="math inline">\(\mu\)</span>: case fatality ratio
+(proportion of cases who die)</li>
 <li>
-<span class="math inline">\(\epsilon\)</span>: import rate of infected individuals (applies to <span class="math inline">\(E\)</span> and <span class="math inline">\(I\)</span>)</li>
+<span class="math inline">\(\epsilon\)</span>: import rate of
+infected individuals (applies to <span class="math inline">\(E\)</span>
+and <span class="math inline">\(I\)</span>)</li>
 <li>
-<span class="math inline">\(\omega\)</span>: rate waning immunity</li>
+<span class="math inline">\(\omega\)</span>: rate waning
+immunity</li>
 </ul>
 <p>The model will be written as:</p>
 <p><span class="math display">\[
 S_{t+1} = S_t - \beta \frac{S_t (I_{R,t} + I_{D,t})}{N_t} + \omega R_t
 \]</span></p>
 <p><span class="math display">\[
-E_{t+1} = E_t + \beta \frac{S_t (I_{R,t} + I_{D,t})}{N_t} - \delta E_t + \epsilon
+E_{t+1} = E_t + \beta \frac{S_t (I_{R,t} + I_{D,t})}{N_t} - \delta E_t +
+\epsilon
 \]</span></p>
 <p><span class="math display">\[
 I_{R,t+1} = I_{R,t} + \delta (1 - \mu) E_t - \gamma_R I_{R,t} + \epsilon
@@ -640,7 +729,8 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"left"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">seirds_col</span>,</span>
 <span>       legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"E"</span>, <span class="st">"Ir"</span>, <span class="st">"Id"</span>, <span class="st">"R"</span>, <span class="st">"D"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="discrete_files/figure-html/seirds-1.png" width="672"></p>
-<p>Several runs can be obtained without rewriting the model, for instance, to get 100 replicates:</p>
+<p>Several runs can be obtained without rewriting the model, for
+instance, to get 100 replicates:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">replicate</a></span><span class="op">(</span><span class="fl">100</span>, <span class="va">x</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">365</span><span class="op">)</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">x_res</span><span class="op">)</span></span></code></pre></div>
@@ -665,7 +755,8 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <img src="discrete_files/figure-html/seirds_100-1.png" alt="&lt;i&gt;100 replicates of a stochastic, discrete-time SEIRDS model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
 <i>100 replicates of a stochastic, discrete-time SEIRDS model</i><br></p>
 </div>
-<p>It is then possible to explore the behaviour of the model using a simple function:</p>
+<p>It is then possible to explore the behaviour of the model using a
+simple function:</p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">check_model</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span> <span class="op">=</span> <span class="fl">50</span>, <span class="va">t</span> <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">365</span>, <span class="va">alpha</span> <span class="op">=</span> <span class="fl">0.2</span>, <span class="va">...</span>,</span>
 <span>                        <span class="va">legend_pos</span> <span class="op">=</span> <span class="st">"topright"</span><span class="op">)</span> <span class="op">{</span></span>
@@ -682,7 +773,8 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <span>  <span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="va">legend_pos</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">seirds_col</span>,</span>
 <span>         legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"E"</span>, <span class="st">"Ir"</span>, <span class="st">"Id"</span>, <span class="st">"R"</span>, <span class="st">"D"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>This is a sanity check with a null infection rate and no imported case:</p>
+<p>This is a sanity check with a null infection rate and no imported
+case:</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>beta <span class="op">=</span> <span class="fl">0</span>, epsilon <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
@@ -696,7 +788,8 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <img src="discrete_files/figure-html/unnamed-chunk-11-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: no importation or waning immunity&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
 <i>Stochastic SEIRDS model: no importation or waning immunity</i><br></p>
 </div>
-<p>A more nuanced case: persistence of the disease with limited import, waning immunity, low severity, larger population:</p>
+<p>A more nuanced case: persistence of the disease with limited import,
+waning immunity, low severity, larger population:</p>
 <div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>t <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="op">(</span><span class="fl">365</span> <span class="op">*</span> <span class="fl">3</span><span class="op">)</span>, epsilon <span class="op">=</span> <span class="fl">0.1</span>, beta <span class="op">=</span> <span class="fl">.2</span>, omega <span class="op">=</span> <span class="fl">.01</span>,</span>
 <span>            mu <span class="op">=</span> <span class="fl">0.005</span>, S_ini <span class="op">=</span> <span class="fl">1e5</span><span class="op">)</span></span></code></pre></div>

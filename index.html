@@ -110,6 +110,7 @@
 <div class="page-header"><h1 id="odin-">odin <img src="reference/figures/logo.png" align="right" height="139"><a class="anchor" aria-label="anchor" href="#odin-"></a>
 </h1></div>
 <!-- badges: start -->
+
 <p><code>odin</code> implements a high-level language for describing and implementing ordinary differential equations in R. It provides a “domain specific language” (DSL) which <em>looks</em> like R but is compiled directly to C. The actual solution of the differential equations is done with the <a href="https://cran.r-project.org/package=deSolve" class="external-link"><code>deSolve</code></a> package, giving access to the excellent Livermore solvers (<code>lsoda</code>, <code>lsode</code>, etc), or with <a href="https://cran.r-project.org/package=dde" class="external-link"><code>dde</code></a> for use with delay differential equations.</p>
 <ul>
 <li>The DSL is <em>declarative</em> reflecting the mathematical nature of the equations (typically ordinary differential equations are simple mathematical relationships, so the order should not matter).</li>
@@ -142,21 +143,21 @@
 <span>         <span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">y3</span> <span class="op">+</span> <span class="va">y1</span> <span class="op">*</span> <span class="va">y2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>and in C as</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1"></a><span class="dt">void</span> initmod(<span class="dt">void</span> (* odeparms)(<span class="dt">int</span> *, <span class="dt">double</span> *)) {</span>
-<span id="cb2-2"><a href="#cb2-2"></a>  <span class="dt">int</span> N=<span class="dv">3</span>;</span>
-<span id="cb2-3"><a href="#cb2-3"></a>  odeparms(&amp;N, parms);</span>
-<span id="cb2-4"><a href="#cb2-4"></a>}</span>
-<span id="cb2-5"><a href="#cb2-5"></a><span class="dt">void</span> lorenz(<span class="dt">int</span> *n, <span class="dt">double</span> *t, <span class="dt">double</span> *y, <span class="dt">double</span> *dydt, <span class="dt">double</span> *yout, <span class="dt">int</span> *ip) {</span>
-<span id="cb2-6"><a href="#cb2-6"></a>  <span class="dt">double</span> sigma = parms[<span class="dv">0</span>];</span>
-<span id="cb2-7"><a href="#cb2-7"></a>  <span class="dt">double</span> R = parms[<span class="dv">1</span>];</span>
-<span id="cb2-8"><a href="#cb2-8"></a>  <span class="dt">double</span> b = parms[<span class="dv">2</span>];</span>
-<span id="cb2-9"><a href="#cb2-9"></a>  <span class="dt">double</span> y1 = y[<span class="dv">0</span>];</span>
-<span id="cb2-10"><a href="#cb2-10"></a>  <span class="dt">double</span> y2 = y[<span class="dv">2</span>];</span>
-<span id="cb2-11"><a href="#cb2-11"></a>  <span class="dt">double</span> y3 = y[<span class="dv">3</span>];</span>
-<span id="cb2-12"><a href="#cb2-12"></a>  dydt[<span class="dv">0</span>] = sigma * (y2 - y1);</span>
-<span id="cb2-13"><a href="#cb2-13"></a>  dydt[<span class="dv">1</span>] = R * y1 - y2 - y1 * y3;</span>
-<span id="cb2-14"><a href="#cb2-14"></a>  dydt[<span class="dv">2</span>] = -b * y3 + y1 * y2;</span>
-<span id="cb2-15"><a href="#cb2-15"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> initmod<span class="op">(</span><span class="dt">void</span> <span class="op">(*</span> odeparms<span class="op">)(</span><span class="dt">int</span> <span class="op">*,</span> <span class="dt">double</span> <span class="op">*))</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> N<span class="op">=</span><span class="dv">3</span><span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  odeparms<span class="op">(&amp;</span>N<span class="op">,</span> parms<span class="op">);</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> lorenz<span class="op">(</span><span class="dt">int</span> <span class="op">*</span>n<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>t<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>y<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>dydt<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>yout<span class="op">,</span> <span class="dt">int</span> <span class="op">*</span>ip<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> sigma <span class="op">=</span> parms<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> R <span class="op">=</span> parms<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> b <span class="op">=</span> parms<span class="op">[</span><span class="dv">2</span><span class="op">];</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> y1 <span class="op">=</span> y<span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> y2 <span class="op">=</span> y<span class="op">[</span><span class="dv">2</span><span class="op">];</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> y3 <span class="op">=</span> y<span class="op">[</span><span class="dv">3</span><span class="op">];</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  dydt<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> sigma <span class="op">*</span> <span class="op">(</span>y2 <span class="op">-</span> y1<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  dydt<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> R <span class="op">*</span> y1 <span class="op">-</span> y2 <span class="op">-</span> y1 <span class="op">*</span> y3<span class="op">;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  dydt<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> <span class="op">-</span>b <span class="op">*</span> y3 <span class="op">+</span> y1 <span class="op">*</span> y2<span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>The connection between the two languages should be fairly obvious. As systems get more complicated much of the difficulty of writing the systems in C becomes the tedium of book keeping as parameters and state vectors are unpacked, rather than any deep programming challenges. Modifying large systems is a particular challenge as technical debt can accrue quickly.</p>
 <p>The core job of <code>odin</code> is to simplify this transition so that models can be both developed and solved rapidly.</p>
 </div>
