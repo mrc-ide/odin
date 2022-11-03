@@ -47,9 +47,11 @@ build_package <- function(path, verbose = TRUE) {
     unlink(lib, recursive = TRUE)
   }
 
+  loadns <- loadNamespace
+
   list(name = name,
        path = path,
        lib = lib,
-       env = loadNamespace(name, lib.loc = lib),
+       env = loadns(name, lib.loc = lib),
        cleanup = cleanup)
 }
