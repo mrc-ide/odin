@@ -157,7 +157,7 @@ test_that("simple discrete model in a bundle", {
   res <- call_odin_bundle_discrete(bundle, list(r = 0.5), t0, t1, dt, np)
   expect_setequal(names(res), c("x", "values"))
   expect_equal(res$x, seq(t0, t1, dt))
-  expect_equal(res$values$mode, "Deterministic")
+  expect_equal(res$values$description, "Deterministic")
   expect_equal(res$values$name, "x")
   expect_equal(res$values$y, list(seq(0, by = 0.5, length.out = 21)))
 })
@@ -182,7 +182,7 @@ test_that("simple stochastic model in a bundle", {
   res <- call_odin_bundle_discrete(bundle, NULL, t0, t1, dt, np)
   expect_setequal(names(res), c("x", "values"))
   expect_equal(res$x, seq(t0, t1, dt))
-  expect_equal(res$values$mode, rep(c("Individual", "Mean"), c(np, 1)))
+  expect_equal(res$values$description, rep(c("Individual", "Mean"), c(np, 1)))
   expect_equal(res$values$name, rep("x", 4))
   expect_length(res$values$y, 4)
   expect_equal(
