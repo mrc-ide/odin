@@ -82,7 +82,7 @@ ir_parse <- function(x, options, type = NULL) {
     user <- list()
   }
 
-  if (features$has_debug_print) {
+  if (features$has_debug) {
     debug <- lapply(debug, ir_parse_debug_value, data, source)
   }
   ## For printing debug information, we could print things immediately
@@ -482,6 +482,7 @@ ir_parse_features <- function(eqs, debug, config, source) {
   is_interpolate <- vlapply(eqs, function(x) !is.null(x$interpolate))
   is_stochastic <- vlapply(eqs, function(x) isTRUE(x$stochastic))
 
+  ## We'll support other debugging bits later, I imagine.
   is_debug_print <- vlapply(debug, function(x) x$type == "print")
 
   if (!any(is_update | is_deriv)) {
@@ -499,7 +500,7 @@ ir_parse_features <- function(eqs, debug, config, source) {
        has_interpolate = any(is_interpolate),
        has_stochastic = any(is_stochastic),
        has_include = !is.null(config$include),
-       has_debug_print = any(is_debug_print),
+       has_debug = any(is_debug_print),
        initial_time_dependent = NULL)
 }
 

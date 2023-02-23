@@ -200,7 +200,7 @@
                 "has_interpolate": { "type": "boolean" },
                 "has_stochastic": { "type": "boolean" },
                 "has_include": { "type": "boolean" },
-                "has_debug_print": { "type": "boolean" },
+                "has_debug": { "type": "boolean" },
                 "initial_time_dependent": { "type": "boolean" }
             },
             "required": ["discrete", "has_array", "has_output", "has_user",

@@ -798,7 +798,7 @@ generate_c_compiled_include <- function(dat) {
 
 
 generate_c_compiled_debug <- function(debug, dat, rewrite) {
-  if (!dat$features$has_debug_print || !dat$options$debug_enable) {
+  if (!dat$features$has_debug || !dat$options$debug_enable) {
     return(NULL)
   }
 
