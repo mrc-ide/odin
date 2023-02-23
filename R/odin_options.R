@@ -40,6 +40,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
                          compiler_warnings = NULL,
                          no_check_unused_equations = NULL,
                          rewrite_dims = NULL, rewrite_constants = NULL,
+                         debug_enable = NULL,
                          substitutions = NULL, options = NULL) {
   default_target <-
     if (is.null(target) && !can_compile(verbose = FALSE)) "r" else "c"
@@ -53,6 +54,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
     rewrite_dims = FALSE,
     rewrite_constants = FALSE,
     substitutions = NULL,
+    debug_enable = FALSE,
     no_check_unused_equations = FALSE,
     compiler_warnings = FALSE)
   if (is.null(options)) {
@@ -66,6 +68,7 @@ odin_options <- function(verbose = NULL, target = NULL, workdir = NULL,
       rewrite_dims = assert_scalar_logical_or_null(rewrite_dims),
       rewrite_constants = assert_scalar_logical_or_null(rewrite_constants),
       substitutions = check_substitutions(substitutions),
+      debug_enable = assert_scalar_logical_or_null(debug_enable),
       no_check_unused_equations =
         assert_scalar_logical_or_null(no_check_unused_equations),
       compiler_warnings = assert_scalar_logical_or_null(compiler_warnings))
