@@ -89,8 +89,15 @@ ir_parse <- function(x, options, type = NULL) {
   ## after all dependencies are done, or we could print the end. The
   ## latter is ok if things don't crash as things don't really
   ## change. We could add an "after" or "immediate" flag to the print
-  ## to change this, perhaps.
-  components <- ir_parse_components(eqs, debug, dependencies, variables, stage,
+  ## to change this, perhaps. It's not totally obvious though as there
+  ## are many places that it *could* go (constant, user, initial,
+  ## rhs/update and output) and that decision might vary with the
+  ## things included in the statement. If we default to "at the end of
+  ## the rhs/update" then at least that's something reliable and
+  ## generally not a bad idea, and we can always offer modifications
+  ## to this as additional arguments.
+
+  components <- ir_parse_components(eqs, dependencies, variables, stage,
                                     common, source, options)
   equations <- ir_parse_equations(eqs)
 
@@ -497,7 +504,7 @@ ir_parse_features <- function(eqs, debug, config, source) {
 }
 
 
-ir_parse_components <- function(eqs, debug, dependencies, variables, stage,
+ir_parse_components <- function(eqs, dependencies, variables, stage,
                                 common, source, options) {
   eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
   eqs_user <- intersect(names_if(stage == STAGE_USER), names(eqs))
