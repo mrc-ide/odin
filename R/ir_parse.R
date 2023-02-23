@@ -1899,7 +1899,7 @@ ir_parse_debug_print <- function(eq, data, source) {
   }
 
   format <- paste0("%", vcapply(parts, "[[", "format"))
-  eq$fmt <- debug_substitute_string(expr, format)
+  eq$format <- debug_substitute_string(expr, format)
 
   if (!is.null(args$when)) {
     eq$when <- args$when

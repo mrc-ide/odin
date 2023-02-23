@@ -821,7 +821,7 @@ generate_c_compiled_debug <- function(debug, dat, rewrite) {
     if (eq$type == "print") {
       eq_args <- paste(vcapply(eq$args, rewrite), collapse = ", ")
       eq_str <- sprintf_safe('REprintf("[%s] %s\\n", %s, %s);',
-                             time_fmt, eq$fmt, time_name, eq_args)
+                             time_fmt, eq$format, time_name, eq_args)
       if (is.null(eq$when)) {
         ret$add(eq_str)
       } else {

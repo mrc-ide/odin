@@ -824,7 +824,31 @@
         },
 
         "debug": {
-            "type": "array"
+            "type": "array",
+            "elements": {
+                "$ref": "#/definitions/debug_expression"
+            }
+        },
+
+        "debug_expression": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "print"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "args": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "when": {
+                    "$ref": "#/definitions/sexpression_or_null"
+                },
+                "depends": {
+                    "$ref": "#/definitions/dependencies"
+                }
+            }
         }
     },
 
