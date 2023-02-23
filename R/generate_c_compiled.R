@@ -802,14 +802,15 @@ generate_c_compiled_debug <- function(debug, dat, rewrite) {
     return(NULL)
   }
 
+  ret <- collector()
+
   ## Any write-only variable will be missing here, so we need to make
   ## sure that we get these copied out too; possibly this moves into
   ## the parse though, as we could have a 'debug_variables' component
   ## here
-  ret <- collector()
   msg <- intersect(setdiff(names(dat$data$variable$contents),
                            dat$components$rhs$variables),
-                   unlist(lapply(debug, "[[", "args")))
+                   unlist(lapply(debug, function(x) x$depends$variables)))
   if (length(msg) > 0) {
     ret$add(c_flatten_eqs(
       lapply(msg, c_unpack_variable, dat, dat$meta$state, rewrite)))

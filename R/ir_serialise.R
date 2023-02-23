@@ -273,6 +273,7 @@ ir_serialise_debug <- function(debug) {
 ir_serialise_debug_expression <- function(expr) {
   list(type = scalar(expr$type),
        fmt = scalar(expr$fmt),
+       args = lapply(expr$args, ir_serialise_expression),
        source = scalar(expr$source),
-       args = expr$depends)
+       depends = expr$depends)
 }

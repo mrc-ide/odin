@@ -1832,46 +1832,54 @@ ir_parse_debug_print <- function(eq, data, source) {
     ir_parse_error("print() expects exactly one argument", eq$source, source)
   }
   if (!is.character(eq$args[[1]])) {
+    ## TODO: arg 'when = <condition>'
     ir_parse_error("print() a string argument", eq$source, source)
   }
 
-  ## Next up, we need to transform the data
-  seen <- collector_list()
-  transformer <- function(text, envir) {
-    if (!is_c_identifier(text)) {
-      stop("handle complex cases...")
-    }
-    var <- text
-    seen$add(var)
+  expr <- eq$args[[1]]
 
-    d <- data$elements[[var]]
-    if (is.null(d)) {
-      ir_parse_error(sprintf("Unknown variable '%s' used in print()", var),
-                     eq$source, source)
-    }
-    ## We can relax this later.
-    if (d$rank != 0L) {
-      ir_parse_error(sprintf("Can only print scalars, error for '%s'", var),
-                     eq$source, source)
-    }
-    switch(
-      d$storage_type,
-      bool = "%d",
-      int = "%d",
-      double = "%f",
-      ir_parse_error(
-        sprintf("Can't print variables of type '%s' (error for '%s')",
-                d$storage_type, var),
-        eq$source, source))
-  }
-  eq$fmt <- c(glue::glue(eq$args[[1]], .transformer = transformer))
-  eq$depends <- unique(unlist(seen$get()))
+  parts <- as.list(debug_parse_string(eq$args[[1]]))
 
   ## This makes no sense, and was likely an error from the user.
-  if (length(eq$depends) == 0) {
+  if (length(parts) == 0) {
     ir_parse_error("Invalid debug expression does not reference any values",
                    eq$source, source)
   }
+
+  for (i in seq_along(parts)) {
+    s <- parts[[i]]
+    el <- tryCatch(debug_parse_element(s), error = function(e) {
+      ir_parse_error(sprintf("Failed to parse debug string '%s': %s",
+                             s, e$message), eq$source, source)
+    })
+    err <- setdiff(el$depends$variables, names(data$elements))
+    if (length(err) > 0) {
+      ir_parse_error(sprintf("Unknown variable %s in format element '%s'",
+                             paste(squote(err), collapse = ", "), s),
+                     eq$source, source)
+    }
+    parts[[i]] <- el
+  }
+
+  eq$args <- lapply(parts, "[[", "expr")
+  eq$depends <- join_deps(lapply(parts, "[[", "depends"))
+
+  for (i in seq_along(parts)) {
+    if (is.null(parts[[i]]$format)) {
+      expr_i <- parts[[i]]$expr
+      if (is.name(expr_i)) {
+        type <- data$elements[[as.character(expr_i)]]$storage_type
+        parts[[i]]$format <- if (type %in% c("bool", "int")) "d" else "f"
+      } else {
+        ## Reasonable fallback, most things are floats
+        parts[[i]]$format <- "f"
+      }
+    }
+    parts[[i]]$depends <- NULL # not needed any more
+  }
+
+  format <- paste0("%", vcapply(parts, "[[", "format"))
+  eq$fmt <- debug_substitute_string(expr, format)
 
   eq
 }
