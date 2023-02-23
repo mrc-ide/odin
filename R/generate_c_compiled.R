@@ -805,9 +805,7 @@ generate_c_compiled_debug <- function(debug, dat, rewrite) {
   ret <- collector()
 
   ## Any write-only variable will be missing here, so we need to make
-  ## sure that we get these copied out too; possibly this moves into
-  ## the parse though, as we could have a 'debug_variables' component
-  ## here
+  ## sure that we get these copied out too
   msg <- intersect(setdiff(names(dat$data$variable$contents),
                            dat$components$rhs$variables),
                    unlist(lapply(debug, function(x) x$depends$variables)))
@@ -822,8 +820,13 @@ generate_c_compiled_debug <- function(debug, dat, rewrite) {
   for (eq in debug) {
     if (eq$type == "print") {
       eq_args <- paste(vcapply(eq$args, rewrite), collapse = ", ")
-      ret$add('REprintf("[%s] %s\\n", %s, %s);',
-              time_fmt, eq$fmt, time_name, eq_args)
+      eq_str <- sprintf_safe('REprintf("[%s] %s\\n", %s, %s);',
+                             time_fmt, eq$fmt, time_name, eq_args)
+      if (is.null(eq$when)) {
+        ret$add(eq_str)
+      } else {
+        ret$add(c_expr_if(rewrite(eq$when), eq_str))
+      }
     }
   }
 

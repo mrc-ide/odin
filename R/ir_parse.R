@@ -1828,15 +1828,35 @@ ir_parse_debug_value <- function(eq, data, source) {
 
 
 ir_parse_debug_print <- function(eq, data, source) {
-  if (length(eq$args) != 1) {
-    ir_parse_error("print() expects exactly one argument", eq$source, source)
+  ## This is a bit tedious, we could work with match.call but it's a
+  ## bit too magic.
+  if (length(eq$args) == 0) {
+    ir_parse_error("print() expects at least one argument", eq$source, source)
   }
-  if (!is.character(eq$args[[1]])) {
-    ## TODO: arg 'when = <condition>'
-    ir_parse_error("print() a string argument", eq$source, source)
+  if (!is.null(names(eq$args)) && nzchar(names(eq$args)[[1]])) {
+    ir_parse_error("print() expects the first argument to be unnamed",
+                   eq$source, source)
   }
 
   expr <- eq$args[[1]]
+  args <- as.list(eq$args[-1])
+
+  if (!is.character(expr)) {
+    ir_parse_error("print() a string argument", eq$source, source)
+  }
+
+  if (is.null(names(args)) || any(!nzchar(names(args)))) {
+    ir_parse_error("print() expects every argument but the first to be named",
+                   eq$source, source)
+  }
+
+  args_allowed <- "when"
+  err <- setdiff(names(args), args_allowed)
+  if (length(err) > 0) {
+    ir_parse_error(sprintf("Unknown argument to print(); %s",
+                           paste(squote(err), collapse = ", ")),
+                   eq$source, source)
+  }
 
   parts <- as.list(debug_parse_string(eq$args[[1]]))
 
@@ -1880,6 +1900,11 @@ ir_parse_debug_print <- function(eq, data, source) {
 
   format <- paste0("%", vcapply(parts, "[[", "format"))
   eq$fmt <- debug_substitute_string(expr, format)
+
+  if (!is.null(args$when)) {
+    eq$when <- args$when
+    eq$depends <- join_deps(list(eq$depends, find_symbols(args$when)))
+  }
 
   eq
 }
