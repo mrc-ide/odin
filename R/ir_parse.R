@@ -6,11 +6,12 @@ ir_parse <- function(x, options, type = NULL) {
 
   dat <- ir_parse_exprs(exprs)
   eqs <- dat$eqs
+  debug <- dat$debug
   source <- dat$source
   ## Data elements:
   config <- ir_parse_config(eqs, base, root, source, options$read_include,
                             options$config_custom)
-  features <- ir_parse_features(eqs, config, source)
+  features <- ir_parse_features(eqs, debug, config, source)
 
   common <- ir_parse_common(features)
 
@@ -81,7 +82,15 @@ ir_parse <- function(x, options, type = NULL) {
     user <- list()
   }
 
-  components <- ir_parse_components(eqs, dependencies, variables, stage,
+  if (features$has_debug_print) {
+    debug <- lapply(debug, ir_parse_debug_value, data, source)
+  }
+  ## For printing debug information, we could print things immediately
+  ## after all dependencies are done, or we could print the end. The
+  ## latter is ok if things don't crash as things don't really
+  ## change. We could add an "after" or "immediate" flag to the print
+  ## to change this, perhaps.
+  components <- ir_parse_components(eqs, debug, dependencies, variables, stage,
                                     common, source, options)
   equations <- ir_parse_equations(eqs)
 
@@ -94,6 +103,7 @@ ir_parse <- function(x, options, type = NULL) {
               features = features,
               data = data,
               equations = equations,
+              debug = debug,
               components = components,
               user = user,
               interpolate = interpolate,
@@ -455,7 +465,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
 ## A downside of the approach here is that we do make the checks in a
 ## few different places.  It might be worth trying to shift more of
 ## this classification into the initial equation parsing.
-ir_parse_features <- function(eqs, config, source) {
+ir_parse_features <- function(eqs, debug, config, source) {
   is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
@@ -464,6 +474,8 @@ ir_parse_features <- function(eqs, config, source) {
   is_delay <- vlapply(eqs, function(x) !is.null(x$delay))
   is_interpolate <- vlapply(eqs, function(x) !is.null(x$interpolate))
   is_stochastic <- vlapply(eqs, function(x) isTRUE(x$stochastic))
+
+  is_debug_print <- vlapply(debug, function(x) x$type == "print")
 
   if (!any(is_update | is_deriv)) {
     ir_parse_error("Did not find a deriv() or an update() call",
@@ -480,11 +492,12 @@ ir_parse_features <- function(eqs, config, source) {
        has_interpolate = any(is_interpolate),
        has_stochastic = any(is_stochastic),
        has_include = !is.null(config$include),
+       has_debug_print = any(is_debug_print),
        initial_time_dependent = NULL)
 }
 
 
-ir_parse_components <- function(eqs, dependencies, variables, stage,
+ir_parse_components <- function(eqs, debug, dependencies, variables, stage,
                                 common, source, options) {
   eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
   eqs_user <- intersect(names_if(stage == STAGE_USER), names(eqs))
@@ -615,15 +628,28 @@ ir_parse_exprs <- function(exprs) {
     length(x) == 3L &&
       (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
   }
-  err <- which(!vlapply(exprs, expr_is_assignment))
-  if (length(err) > 0L) {
-    ir_parse_error("Every line must contain an assignment",
-                   unlist(lines[err]), src)
+  ## Later we'll support assertions here too.
+  expr_is_debug <- function(x) {
+    is_call(x, "print")
   }
 
-  eqs <- Map(ir_parse_expr, exprs, lines, MoreArgs = list(source = src))
+  is_assignment <- vlapply(exprs, expr_is_assignment)
+  is_debug <- vlapply(exprs, expr_is_debug)
+  err <- !(is_assignment | is_debug)
+  if (any(err)) {
+    ir_parse_error(
+      "Every line must contain an assignment (or a debug statement)",
+      unlist(lines[err]), src)
+  }
+
+  eqs <- Map(ir_parse_expr, exprs[is_assignment], lines[is_assignment],
+             MoreArgs = list(source = src))
   names(eqs) <- vcapply(eqs, "[[", "name")
-  list(eqs = eqs, source = src)
+
+  debug <- Map(ir_parse_debug, exprs[is_debug], lines[is_debug],
+               MoreArgs = list(source = src))
+
+  list(eqs = eqs, source = src, debug = debug)
 }
 
 
@@ -1767,4 +1793,71 @@ ir_parse_rewrite <- function(nms, eqs) {
   keep <- names_if(!vlapply(eqs, function(x) is.null(x$lhs$special)))
   i <- setdiff(names(eqs), setdiff(names(subs), keep))
   lapply(eqs[i], rewrite_eq)
+}
+
+
+ir_parse_debug <- function(expr, line, source) {
+  # This check always true, until we extend this to support
+  # assertions.
+  stopifnot(is_call(expr, "print"))
+  ## Later, we might allow some additional control over the printing here:
+  ## * conditional printing
+  ## * default formatting
+  ## * log levels, even?
+  list(type = as.character(expr[[1]]),
+       args = as.list(expr[-1]),
+       source = line)
+}
+
+
+ir_parse_debug_value <- function(eq, data, source) {
+  switch(
+    eq$type,
+    print = ir_parse_debug_print(eq, data, source),
+    ir_parse_error(sprintf("Unknown debug function %s", eq$type),
+                   eq$source, source))
+}
+
+
+ir_parse_debug_print <- function(eq, data, source) {
+  if (length(eq$args) != 1) {
+    ir_parse_error("print() expects exactly one argument", eq$source, source)
+  }
+  if (!is.character(eq$args[[1]])) {
+    ir_parse_error("print() a string argument", eq$source, source)
+  }
+
+  ## Next up, we need to transform the data
+  seen <- collector_list()
+  transformer <- function(text, envir) {
+    if (!is_c_identifier(text)) {
+      stop("handle complex cases...")
+    }
+    var <- text
+    seen$add(var)
+
+    d <- data$elements[[var]]
+    if (is.null(d)) {
+      ir_parse_error(sprintf("Unknown variable '%s' used in print()", var),
+                     eq$source, source)
+    }
+    ## We can relax this later.
+    if (d$rank != 0L) {
+      ir_parse_error(sprintf("Can only print scalars, error for '%s'", var),
+                     eq$source, source)
+    }
+    switch(
+      d$storage_type,
+      bool = "%d",
+      int = "%d",
+      double = "%f",
+      ir_parse_error(
+        sprintf("Can't print variables of type '%s' (error for '%s')",
+                d$storage_type, var),
+        eq$source, source))
+  }
+  eq$fmt <- c(glue::glue(eq$args[[1]], .transformer = transformer))
+  eq$depends <- unique(unlist(seen$get()))
+  eq$condition <- NULL
+  eq
 }

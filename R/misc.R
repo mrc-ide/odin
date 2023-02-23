@@ -74,7 +74,7 @@ read_include_unsupported <- function(target) {
 
 
 is_c_identifier <- function(x) {
-  grepl("^[A-Za-z_][A-Za-z0-9_]*", x) & !(x %in% RESERVED_C)
+  grepl("^[A-Za-z_][A-Za-z0-9_]*$", x) & !(x %in% RESERVED_C)
 }
 
 
