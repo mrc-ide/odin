@@ -1865,6 +1865,12 @@ ir_parse_debug_print <- function(eq, data, source) {
   }
   eq$fmt <- c(glue::glue(eq$args[[1]], .transformer = transformer))
   eq$depends <- unique(unlist(seen$get()))
-  eq$condition <- NULL
+
+  ## This makes no sense, and was likely an error from the user.
+  if (length(eq$depends) == 0) {
+    ir_parse_error("Invalid debug expression does not reference any values",
+                   eq$source, source)
+  }
+
   eq
 }
