@@ -1828,83 +1828,48 @@ ir_parse_debug_value <- function(eq, data, source) {
 
 
 ir_parse_debug_print <- function(eq, data, source) {
-  ## This is a bit tedious, we could work with match.call but it's a
-  ## bit too magic.
-  if (length(eq$args) == 0) {
-    ir_parse_error("print() expects at least one argument", eq$source, source)
-  }
-  if (!is.null(names(eq$args)) && nzchar(names(eq$args)[[1]])) {
-    ir_parse_error("print() expects the first argument to be unnamed",
-                   eq$source, source)
-  }
+  ret <- debug_parse_print_call(eq$args, eq$source, source)
 
-  expr <- eq$args[[1]]
-  args <- as.list(eq$args[-1])
+  parts <- as.list(debug_parse_string(ret$expr))
 
-  if (!is.character(expr)) {
-    ir_parse_error("print() a string argument", eq$source, source)
-  }
-
-  if (length(args) > 0 && (is.null(names(args)) || any(!nzchar(names(args))))) {
-    ir_parse_error("print() expects every argument but the first to be named",
-                   eq$source, source)
-  }
-
-  args_allowed <- "when"
-  err <- setdiff(names(args), args_allowed)
-  if (length(err) > 0) {
-    ir_parse_error(sprintf("Unknown argument to print(); %s",
-                           paste(squote(err), collapse = ", ")),
-                   eq$source, source)
-  }
-
-  parts <- as.list(debug_parse_string(eq$args[[1]]))
-
-  ## This makes no sense, and was likely an error from the user.
   if (length(parts) == 0) {
+    ## This would make no sense, and is likely an error from the user.
     ir_parse_error("Invalid debug expression does not reference any values",
                    eq$source, source)
   }
 
-  for (i in seq_along(parts)) {
-    s <- parts[[i]]
-    el <- tryCatch(debug_parse_element(s), error = function(e) {
-      ir_parse_error(sprintf("Failed to parse debug string '%s': %s",
-                             s, e$message), eq$source, source)
-    })
-    err <- setdiff(el$depends$variables, names(data$elements))
-    if (length(err) > 0) {
-      ir_parse_error(sprintf("Unknown variable %s in format element '%s'",
-                             paste(squote(err), collapse = ", "), s),
-                     eq$source, source)
+  parts <- lapply(parts, function(p) {
+    tryCatch(
+      debug_parse_element(p), error = function(e) {
+        ir_parse_error(sprintf("Failed to parse debug string '%s': %s",
+                               p, e$message), eq$source, source)
+      })
+  })
+
+  ret$args <- lapply(parts, "[[", "expr")
+  ret$depends <- join_deps(c(lapply(parts, "[[", "depends"),
+                             list(find_symbols(ret$when))))
+
+  err <- setdiff(ret$depends$variables, names(data$elements))
+  if (length(err) > 0) {
+    ir_parse_error(sprintf("Unknown variable %s in format element '%s'",
+                           paste(squote(err), collapse = ", "), s),
+                   eq$source, source)
+  }
+
+  ## Then default format where none available; fall back onto float
+  ## except for things that are known to be integer
+  format <- vcapply(parts, function(p) {
+    if (is.null(p$format)) {
+      is_integer <- is.name(p$expr) &&
+        data$elements[[as.character(p$expr)]]$storage_type %in% c("bool", "int")
+      if (is_integer) "d" else "f"
+    } else {
+      p$format
     }
-    parts[[i]] <- el
-  }
+  })
 
-  eq$args <- lapply(parts, "[[", "expr")
-  eq$depends <- join_deps(lapply(parts, "[[", "depends"))
+  ret$format <- debug_substitute_string(ret$expr, paste0("%", format))
 
-  for (i in seq_along(parts)) {
-    if (is.null(parts[[i]]$format)) {
-      expr_i <- parts[[i]]$expr
-      if (is.name(expr_i)) {
-        type <- data$elements[[as.character(expr_i)]]$storage_type
-        parts[[i]]$format <- if (type %in% c("bool", "int")) "d" else "f"
-      } else {
-        ## Reasonable fallback, most things are floats
-        parts[[i]]$format <- "f"
-      }
-    }
-    parts[[i]]$depends <- NULL # not needed any more
-  }
-
-  format <- paste0("%", vcapply(parts, "[[", "format"))
-  eq$format <- debug_substitute_string(expr, format)
-
-  if (!is.null(args$when)) {
-    eq$when <- args$when
-    eq$depends <- join_deps(list(eq$depends, find_symbols(args$when)))
-  }
-
-  eq
+  ret
 }
