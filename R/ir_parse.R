@@ -1845,7 +1845,7 @@ ir_parse_debug_print <- function(eq, data, source) {
     ir_parse_error("print() a string argument", eq$source, source)
   }
 
-  if (is.null(names(args)) || any(!nzchar(names(args)))) {
+  if (length(args) > 0 && (is.null(names(args)) || any(!nzchar(names(args))))) {
     ir_parse_error("print() expects every argument but the first to be named",
                    eq$source, source)
   }
