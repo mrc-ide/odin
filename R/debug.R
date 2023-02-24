@@ -56,7 +56,7 @@ debug_parse_print_call <- function(args, line, source) {
   args <- as.list(args[-1])
 
   if (!is.character(expr)) {
-    ir_parse_error("print() a string argument", line, source)
+    ir_parse_error("print() requires a string argument", line, source)
   }
 
   if (length(args) > 0 && (is.null(names(args)) || any(!nzchar(names(args))))) {
@@ -67,7 +67,7 @@ debug_parse_print_call <- function(args, line, source) {
   args_allowed <- "when"
   err <- setdiff(names(args), args_allowed)
   if (length(err) > 0) {
-    ir_parse_error(sprintf("Unknown argument to print(); %s",
+    ir_parse_error(sprintf("Unknown argument to print(): %s",
                            paste(squote(err), collapse = ", ")),
                    line, source)
   }
