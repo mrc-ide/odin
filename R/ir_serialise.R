@@ -272,7 +272,7 @@ ir_serialise_debug <- function(debug) {
 ## This will need changing around quite a bit, I think
 ir_serialise_debug_expression <- function(expr) {
   list(type = scalar(expr$type),
-       format = scalar(expr$format), # todo -> format
+       format = scalar(expr$format),
        args = lapply(expr$args, ir_serialise_expression),
        depends = expr$depends,
        when = ir_serialise_expression(expr$when))

@@ -19,7 +19,7 @@ test_that("Can parse debug element", {
   deps <- function(vars, fns = NULL) {
     list(functions = fns %||% character(0), variables = vars)
   }
-  
+
   expect_equal(
     debug_parse_element("x"),
     list(expr = quote(x), depends = deps("x"), format = NULL))
