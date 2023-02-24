@@ -64,6 +64,11 @@ test_that("Can process print call", {
     debug_parse_print_call(list("str", a = TRUE, b = FALSE), line, letters),
     "Unknown argument to print(): 'a', 'b'",
     fixed = TRUE, class = "odin_error")
+
+  expect_error(
+    debug_parse_print_call(list(), line, letters),
+    "print() expects at least one argument",
+    fixed = TRUE, class = "odin_error")
 })
 
 
@@ -128,4 +133,11 @@ test_that("Error if we reference unknown variables in print", {
     }),
     "Unknown variable 'y', 'z' in print()",
     fixed = TRUE, class = "odin_error")
+})
+
+
+test_that("prevent currently unknown debug types", {
+  expect_error(
+    ir_parse_debug_value(list(type = "assert", source = 1), list(), letters),
+    "Unknown debug function assert")
 })

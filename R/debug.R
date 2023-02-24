@@ -76,9 +76,3 @@ debug_parse_print_call <- function(args, line, source) {
        expr = expr,
        when = args$when)
 }
-
-
-check_format <- function(fmt) {
-  sprintf(paste0("%", fmt), 1)
-  fmt
-}

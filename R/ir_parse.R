@@ -1822,7 +1822,7 @@ ir_parse_debug_value <- function(eq, data, source) {
   switch(
     eq$type,
     print = ir_parse_debug_print(eq, data, source),
-    ir_parse_error(sprintf("Unknown debug function %s", eq$type),
+    ir_parse_error(sprintf("Unknown debug function %s [odin bug]", eq$type),
                    eq$source, source))
 }
 
