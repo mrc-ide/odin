@@ -1805,13 +1805,7 @@ ir_parse_rewrite <- function(nms, eqs) {
 
 
 ir_parse_debug <- function(expr, line, source) {
-  # This check always true, until we extend this to support
-  # assertions.
   stopifnot(is_call(expr, "print"))
-  ## Later, we might allow some additional control over the printing here:
-  ## * conditional printing
-  ## * default formatting
-  ## * log levels, even?
   list(type = as.character(expr[[1]]),
        args = as.list(expr[-1]),
        source = line)

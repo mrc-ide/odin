@@ -269,7 +269,6 @@ ir_serialise_debug <- function(debug) {
 }
 
 
-## This will need changing around quite a bit, I think
 ir_serialise_debug_expression <- function(expr) {
   list(type = scalar(expr$type),
        format = scalar(expr$format),
