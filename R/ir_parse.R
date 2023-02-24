@@ -1834,7 +1834,7 @@ ir_parse_debug_print <- function(eq, data, source) {
 
   if (length(parts) == 0) {
     ## This would make no sense, and is likely an error from the user.
-    ir_parse_error("Invalid debug expression does not reference any values",
+    ir_parse_error("Invalid print() expression does not reference any values",
                    eq$source, source)
   }
 
@@ -1852,8 +1852,8 @@ ir_parse_debug_print <- function(eq, data, source) {
 
   err <- setdiff(ret$depends$variables, names(data$elements))
   if (length(err) > 0) {
-    ir_parse_error(sprintf("Unknown variable %s in format element '%s'",
-                           paste(squote(err), collapse = ", "), s),
+    ir_parse_error(sprintf("Unknown variable %s in print()",
+                           paste(squote(err), collapse = ", ")),
                    eq$source, source)
   }
 

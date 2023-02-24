@@ -65,3 +65,66 @@ test_that("Can process print call", {
     "Unknown argument to print(): 'a', 'b'",
     fixed = TRUE, class = "odin_error")
 })
+
+
+test_that("Can process a model with debug printing", {
+  ir <- odin_parse({
+    deriv(x) <- 1
+    initial(x) <- 0
+    print("x: {x}")
+  })
+  dat <- ir_deserialise(ir)
+  expect_length(dat$debug, 1)
+  expect_equal(dat$debug[[1]]$type, "print")
+  expect_equal(dat$debug[[1]]$format, "x: %f")
+  expect_equal(dat$debug[[1]]$args, list("x"))
+  expect_equal(dat$debug[[1]]$depends,
+               list(functions = character(), variables = "x"))
+  expect_null(dat$debug[[1]]$when)
+})
+
+
+test_that("Require that debug string contains at least one variable", {
+  expect_error(
+    odin_parse({
+      deriv(x) <- 1
+      initial(x) <- 0
+      print("x: %f")
+    }),
+    "Invalid print() expression does not reference any values",
+    fixed = TRUE, class = "odin_error")
+})
+
+
+test_that("Handle parse failure gracefully", {
+  skip_on_cran() # somewhat platform specific
+  err <- tryCatch(sprintf("%z"), error = identity)
+  expect_error(
+    odin_parse({
+      deriv(x) <- 1
+      initial(x) <- 0
+      print("x: {x; z}")
+    }),
+    paste("Failed to parse debug string 'x; z':", err$msg),
+    fixed = TRUE, class = "odin_error")
+})
+
+
+test_that("Error if we reference unknown variables in print", {
+  expect_error(
+    odin_parse({
+      deriv(x) <- 1
+      initial(x) <- 0
+      print("x: {z}")
+    }),
+    "Unknown variable 'z' in print()",
+    fixed = TRUE, class = "odin_error")
+  expect_error(
+    odin_parse({
+      deriv(x) <- 1
+      initial(x) <- 0
+      print("{x} - {y} - {z}")
+    }),
+    "Unknown variable 'y', 'z' in print()",
+    fixed = TRUE, class = "odin_error")
+})
