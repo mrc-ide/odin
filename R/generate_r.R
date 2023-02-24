@@ -14,6 +14,7 @@ generate_r <- function(dat, options) {
                                                   dimnames = NULL)
   }
 
+  dat$options <- options
   dat$meta$support <-
     list(get_user_double = "_get_user_double",
          get_user_dim = "_get_user_dim",
@@ -164,7 +165,7 @@ generate_r_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
 
   ## NOTE: this is really similar to code in ic but that goes the
   ## other way, into the state vector.
-  f <- function(x) {
+  extract_variable <- function(x) {
     d <- dat$data$elements[[x$name]]
     state <- as.name(dat$meta$state)
     if (d$rank == 0L) {
@@ -179,7 +180,8 @@ generate_r_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
     call("<-", as.name(x$name), extract)
   }
 
-  vars <- unname(drop_null(lapply(dat$data$variable$contents[use_vars], f)))
+  vars <- unname(drop_null(lapply(dat$data$variable$contents[use_vars],
+                                  extract_variable)))
 
   ## NOTE: There are two reasonable things to do here - we can look up
   ## the length of the variable (dat$data$variable$length) or we can
@@ -218,7 +220,17 @@ generate_r_rhs <- function(eqs, dat, env, rewrite, rhs_type) {
   }
 
   eqs_include <- r_flatten_eqs(eqs[use_eqs])
-  body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_include, ret)))
+
+  if (dat$features$has_debug && dat$options$debug_enable) {
+    msg <- intersect(setdiff(names(dat$data$variable$contents), use_vars),
+                     unlist(lapply(dat$debug, function(x) x$depends$variables)))
+    vars_debug <- unname(drop_null(lapply(dat$data$variable$contents[msg],
+                                          extract_variable)))
+    exprs_debug <- lapply(dat$debug, generate_r_debug_equation, dat, rewrite)
+    eqs_include <- c(eqs_include, drop_null(c(vars_debug, exprs_debug)))
+  }
+
+  body <- as.call(c(list(quote(`{`)), c(vars, alloc, eqs_include, debug, ret)))
   args <- alist(t = , y = , parms = ) # nolint
   names(args)[[1]] <- dat$meta$time
   names(args)[[2]] <- dat$meta$state
@@ -473,5 +485,19 @@ generate_r_include <- function(dat, env) {
     on.exit(unlink(tmp))
     writeLines(src, tmp)
     sys.source(tmp, env)
+  }
+}
+
+generate_r_debug_equation <- function(eq, dat, rewrite) {
+  time_fmt <- if (dat$features$continuous) "%f" else "%d"
+  time_name <- as.name(dat$meta$time)
+  if (eq$type == "print") {
+    args <- lapply(eq$args, rewrite)
+    fmt <- sprintf("[%s] %s\n", time_fmt, eq$format)
+    expr <- call("cat", as.call(c(list(quote(sprintf), fmt, time_name), args)))
+    if (!is.null(eq$when)) {
+      expr <- call("if", rewrite(eq$when), r_expr_block(expr))
+    }
+    expr
   }
 }

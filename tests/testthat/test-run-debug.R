@@ -1,6 +1,5 @@
 test_that_odin("print unconditional debugging", {
   skip_for_target("js")
-  skip_for_target("r")
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- 0
@@ -16,7 +15,6 @@ test_that_odin("print unconditional debugging", {
 
 test_that_odin("don't print debugging if not enabled", {
   skip_for_target("js")
-  skip_for_target("r")
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- 0
@@ -30,7 +28,6 @@ test_that_odin("don't print debugging if not enabled", {
 
 test_that_odin("print debug based on condition", {
   skip_for_target("js")
-  skip_for_target("r")
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- 0
@@ -46,7 +43,6 @@ test_that_odin("print debug based on condition", {
 
 test_that_odin("format to different levels of precision", {
   skip_for_target("js")
-  skip_for_target("r")
   gen <- odin({
     deriv(x) <- 1
     initial(x) <- 0
