@@ -27,7 +27,7 @@ debug_parse_element <- function(str) {
     format <- sub(re, "\\2", str)
     ## Try applying the format in; we'll error here and be caught
     ## later if this is not interpretable.
-    sprintf(paste0("%", format), 1)    
+    sprintf(paste0("%", format), 1)
     value <- sub(re, "\\1", str)
   } else {
     format <- NULL
@@ -37,7 +37,7 @@ debug_parse_element <- function(str) {
   expr <- parse(text = value)[[1]]
   depends <- find_symbols(expr)
 
-  return(list(expr = expr, depends = depends, format = format))
+  list(expr = expr, depends = depends, format = format)
 }
 
 
