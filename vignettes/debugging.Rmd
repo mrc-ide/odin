@@ -71,7 +71,7 @@ print("x: {x}, y: {y}")
 
 is roughly equivalent to writing
 
-```{r}
+```r
 sprintf("x: %f, y: %f", x, y)
 ```
 
