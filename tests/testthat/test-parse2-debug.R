@@ -74,7 +74,7 @@ test_that("Can process a model with debug printing", {
     print("x: {x}")
   })
   dat <- ir_deserialise(ir)
-  expct_true(dat$features$has_debug)
+  expect_true(dat$features$has_debug)
   expect_length(dat$debug, 1)
   expect_equal(dat$debug[[1]]$type, "print")
   expect_equal(dat$debug[[1]]$format, "x: %f")
