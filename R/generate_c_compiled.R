@@ -196,6 +196,8 @@ generate_c_compiled_deriv <- function(eqs, dat, rewrite) {
     body$add("}")
   }
 
+  body$add(generate_c_compiled_debug(dat$debug, dat, rewrite))
+
   args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
             double = dat$meta$time,
             "double *" = dat$meta$state,
@@ -350,7 +352,8 @@ generate_c_compiled_update <- function(eqs, dat, rewrite) {
   equations <- union(dat$components$rhs$equations,
                      dat$components$output$equations)
   unpack <- lapply(variables, c_unpack_variable, dat, dat$meta$state, rewrite)
-  body <- c_flatten_eqs(c(unpack, eqs[equations]))
+  debug <- generate_c_compiled_debug(dat$debug, dat, rewrite)
+  body <- c_flatten_eqs(c(unpack, eqs[equations], debug))
 
   args <- c(set_names(dat$meta$internal, paste0(dat$meta$c$internal_t, "*")),
             "size_t" = dat$meta$time,
@@ -791,4 +794,41 @@ generate_c_compiled_include <- function(dat) {
          definitions = set_names(list_to_character(x$definitions), nms))
   })
   unlist(ret, FALSE)
+}
+
+
+generate_c_compiled_debug <- function(debug, dat, rewrite) {
+  if (!dat$features$has_debug || !dat$options$debug_enable) {
+    return(NULL)
+  }
+
+  ret <- collector()
+
+  ## Any write-only variable will be missing here, so we need to make
+  ## sure that we get these copied out too
+  msg <- intersect(setdiff(names(dat$data$variable$contents),
+                           dat$components$rhs$variables),
+                   unlist(lapply(debug, function(x) x$depends$variables)))
+  if (length(msg) > 0) {
+    ret$add(c_flatten_eqs(
+      lapply(msg, c_unpack_variable, dat, dat$meta$state, rewrite)))
+  }
+
+  time_fmt <- if (dat$features$continuous) "%f" else "%d"
+  time_name <- dat$meta$time
+
+  for (eq in debug) {
+    if (eq$type == "print") {
+      eq_args <- paste(vcapply(eq$args, rewrite), collapse = ", ")
+      eq_str <- sprintf_safe('Rprintf("[%s] %s\\n", %s, %s);',
+                             time_fmt, eq$format, time_name, eq_args)
+      if (is.null(eq$when)) {
+        ret$add(eq_str)
+      } else {
+        ret$add(c_expr_if(rewrite(eq$when), eq_str))
+      }
+    }
+  }
+
+  ret$get()
 }

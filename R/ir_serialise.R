@@ -5,6 +5,7 @@ ir_serialise <- function(dat, pretty) {
               features = ir_serialise_features(dat$features),
               data = ir_serialise_data(dat$data),
               equations = ir_serialise_equations(dat$equations),
+              debug = ir_serialise_debug(dat$debug),
               components = ir_serialise_components(dat$components),
               user = ir_serialise_user(dat$user),
               interpolate = ir_serialise_interpolate(dat$interpolate),
@@ -260,4 +261,18 @@ ir_serialise_expression <- function(expr) {
   } else {
     stop("unhandled expression [odin bug]") # nocov
   }
+}
+
+
+ir_serialise_debug <- function(debug) {
+  lapply(debug, ir_serialise_debug_expression)
+}
+
+
+ir_serialise_debug_expression <- function(expr) {
+  list(type = scalar(expr$type),
+       format = scalar(expr$format),
+       args = lapply(expr$args, ir_serialise_expression),
+       depends = expr$depends,
+       when = ir_serialise_expression(expr$when))
 }

@@ -200,6 +200,7 @@
                 "has_interpolate": { "type": "boolean" },
                 "has_stochastic": { "type": "boolean" },
                 "has_include": { "type": "boolean" },
+                "has_debug": { "type": "boolean" },
                 "initial_time_dependent": { "type": "boolean" }
             },
             "required": ["discrete", "has_array", "has_output", "has_user",
@@ -820,6 +821,34 @@
             },
             "required": ["min", "max", "critical"],
             "additionalProperties": false
+        },
+
+        "debug": {
+            "type": "array",
+            "elements": {
+                "$ref": "#/definitions/debug_expression"
+            }
+        },
+
+        "debug_expression": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "const": "print"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "args": {
+                    "$ref": "#/definitions/sexpression"
+                },
+                "when": {
+                    "$ref": "#/definitions/sexpression_or_null"
+                },
+                "depends": {
+                    "$ref": "#/definitions/dependencies"
+                }
+            }
         }
     },
 
@@ -852,11 +881,14 @@
         "interpolate": {
             "$ref": "#/definitions/interpolate"
         },
+        "debug": {
+            "$ref": "#/definitions/debug"
+        },
         "source": {
             "$ref": "#/definitions/basic/character_vector"
         }
     },
     "required": ["version", "config", "features", "data", "equations",
-                 "components", "user", "interpolate", "source"],
+                 "components", "user", "interpolate", "source", "debug"],
     "additionalProperties": false
 }

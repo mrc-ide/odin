@@ -6,11 +6,12 @@ ir_parse <- function(x, options, type = NULL) {
 
   dat <- ir_parse_exprs(exprs)
   eqs <- dat$eqs
+  debug <- dat$debug
   source <- dat$source
   ## Data elements:
   config <- ir_parse_config(eqs, base, root, source, options$read_include,
                             options$config_custom)
-  features <- ir_parse_features(eqs, config, source)
+  features <- ir_parse_features(eqs, debug, config, source)
 
   common <- ir_parse_common(features)
 
@@ -81,6 +82,21 @@ ir_parse <- function(x, options, type = NULL) {
     user <- list()
   }
 
+  if (features$has_debug) {
+    debug <- lapply(debug, ir_parse_debug_value, data, source)
+  }
+  ## For printing debug information, we could print things immediately
+  ## after all dependencies are done, or we could print the end. The
+  ## latter is ok if things don't crash as things don't really
+  ## change. We could add an "after" or "immediate" flag to the print
+  ## to change this, perhaps. It's not totally obvious though as there
+  ## are many places that it *could* go (constant, user, initial,
+  ## rhs/update and output) and that decision might vary with the
+  ## things included in the statement. If we default to "at the end of
+  ## the rhs/update" then at least that's something reliable and
+  ## generally not a bad idea, and we can always offer modifications
+  ## to this as additional arguments.
+
   components <- ir_parse_components(eqs, dependencies, variables, stage,
                                     common, source, options)
   equations <- ir_parse_equations(eqs)
@@ -94,6 +110,7 @@ ir_parse <- function(x, options, type = NULL) {
               features = features,
               data = data,
               equations = equations,
+              debug = debug,
               components = components,
               user = user,
               interpolate = interpolate,
@@ -455,7 +472,7 @@ ir_parse_packing_internal <- function(names, rank, len, variables,
 ## A downside of the approach here is that we do make the checks in a
 ## few different places.  It might be worth trying to shift more of
 ## this classification into the initial equation parsing.
-ir_parse_features <- function(eqs, config, source) {
+ir_parse_features <- function(eqs, debug, config, source) {
   is_update <- vlapply(eqs, function(x) identical(x$lhs$special, "update"))
   is_deriv <- vlapply(eqs, function(x) identical(x$lhs$special, "deriv"))
   is_output <- vlapply(eqs, function(x) identical(x$lhs$special, "output"))
@@ -464,6 +481,9 @@ ir_parse_features <- function(eqs, config, source) {
   is_delay <- vlapply(eqs, function(x) !is.null(x$delay))
   is_interpolate <- vlapply(eqs, function(x) !is.null(x$interpolate))
   is_stochastic <- vlapply(eqs, function(x) isTRUE(x$stochastic))
+
+  ## We'll support other debugging bits later, I imagine.
+  is_debug_print <- vlapply(debug, function(x) x$type == "print")
 
   if (!any(is_update | is_deriv)) {
     ir_parse_error("Did not find a deriv() or an update() call",
@@ -480,6 +500,7 @@ ir_parse_features <- function(eqs, config, source) {
        has_interpolate = any(is_interpolate),
        has_stochastic = any(is_stochastic),
        has_include = !is.null(config$include),
+       has_debug = any(is_debug_print),
        initial_time_dependent = NULL)
 }
 
@@ -615,15 +636,28 @@ ir_parse_exprs <- function(exprs) {
     length(x) == 3L &&
       (identical(x[[1]], quote(`<-`)) || identical(x[[1]], quote(`=`)))
   }
-  err <- which(!vlapply(exprs, expr_is_assignment))
-  if (length(err) > 0L) {
-    ir_parse_error("Every line must contain an assignment",
-                   unlist(lines[err]), src)
+  ## Later we'll support assertions here too.
+  expr_is_debug <- function(x) {
+    is_call(x, "print")
   }
 
-  eqs <- Map(ir_parse_expr, exprs, lines, MoreArgs = list(source = src))
+  is_assignment <- vlapply(exprs, expr_is_assignment)
+  is_debug <- vlapply(exprs, expr_is_debug)
+  err <- !(is_assignment | is_debug)
+  if (any(err)) {
+    ir_parse_error(
+      "Every line must contain an assignment (or a debug statement)",
+      unlist(lines[err]), src)
+  }
+
+  eqs <- Map(ir_parse_expr, exprs[is_assignment], lines[is_assignment],
+             MoreArgs = list(source = src))
   names(eqs) <- vcapply(eqs, "[[", "name")
-  list(eqs = eqs, source = src)
+
+  debug <- Map(ir_parse_debug, exprs[is_debug], lines[is_debug],
+               MoreArgs = list(source = src))
+
+  list(eqs = eqs, source = src, debug = debug)
 }
 
 
@@ -1767,4 +1801,69 @@ ir_parse_rewrite <- function(nms, eqs) {
   keep <- names_if(!vlapply(eqs, function(x) is.null(x$lhs$special)))
   i <- setdiff(names(eqs), setdiff(names(subs), keep))
   lapply(eqs[i], rewrite_eq)
+}
+
+
+ir_parse_debug <- function(expr, line, source) {
+  stopifnot(is_call(expr, "print"))
+  list(type = as.character(expr[[1]]),
+       args = as.list(expr[-1]),
+       source = line)
+}
+
+
+ir_parse_debug_value <- function(eq, data, source) {
+  switch(
+    eq$type,
+    print = ir_parse_debug_print(eq, data, source),
+    ir_parse_error(sprintf("Unknown debug function %s [odin bug]", eq$type),
+                   eq$source, source))
+}
+
+
+ir_parse_debug_print <- function(eq, data, source) {
+  ret <- debug_parse_print_call(eq$args, eq$source, source)
+
+  parts <- as.list(debug_parse_string(ret$expr))
+
+  if (length(parts) == 0) {
+    ## This would make no sense, and is likely an error from the user.
+    ir_parse_error("Invalid print() expression does not reference any values",
+                   eq$source, source)
+  }
+
+  parts <- lapply(parts, function(p) {
+    tryCatch(
+      debug_parse_element(p), error = function(e) {
+        ir_parse_error(sprintf("Failed to parse debug string '%s': %s",
+                               p, e$message), eq$source, source)
+      })
+  })
+
+  ret$args <- lapply(parts, "[[", "expr")
+  ret$depends <- join_deps(c(lapply(parts, "[[", "depends"),
+                             list(find_symbols(ret$when))))
+
+  err <- setdiff(ret$depends$variables, names(data$elements))
+  if (length(err) > 0) {
+    ir_parse_error(sprintf("Unknown variable %s in print()",
+                           paste(squote(err), collapse = ", ")),
+                   eq$source, source)
+  }
+
+  ## Then default format where none available; fall back onto float
+  ## except for things that are known to be integer
+  format <- vcapply(parts, function(p) {
+    if (is.null(p$format)) {
+      is_integer <- is.name(p$expr) &&
+        data$elements[[as.character(p$expr)]]$storage_type %in% c("bool", "int")
+      if (is_integer) "d" else "f"
+    } else {
+      p$format
+    }
+  })
+
+  ret$format <- debug_substitute_string(ret$expr, paste0("%", format))
+
+  ret
 }

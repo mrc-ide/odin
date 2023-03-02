@@ -1,0 +1,116 @@
+---
+title: "debugging"
+author: "Rich FitzJohn"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{debugging}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Debugging odin models can be challenging because:
+
+* They're not composable - you end up with a fairly large set of equations that govern your system, and you can't easily split this into smaller testable units and compose them together.
+* You are writing in the DSL but the model runs in some other language; this sometimes behaves unexpectedly and is much less inspectable than just using R
+* You can't (easily) interrupt the running of the program at any point and inspect it
+
+Here, we outline some strategies for debugging, and describe the new features that aim to make this easier.
+
+# Using `print()`
+
+As of odin 1.4.5, you can print the value of some variables in the middle of running your model. We will expand and change this functionality in future versions, your feedback is very welcome.
+
+Consider the simple model below, which illustrates the idea:
+
+```{r}
+gen <- odin::odin({
+  deriv(x) <- x
+  initial(x) <- 1
+  print("x: {x}")
+}, debug_enable = TRUE)
+mod <- gen$new()
+mod$run(c(0, 0.1))
+```
+
+Here we've told odin that we want to watch the variable `x` and print its value at every evaluation (the third line of the model code) and to include generated code that actually prints the debugging information (`debug_enable = TRUE`). When we run the model it prints out the time in square brackets then the debug information following. Notice that we only requested the solution at times 0 and 0.1 but the debug information shows every point in time that the ODE solver evaluated this system of equations.
+
+While this function shares its name with R's `print()` it has entirely different functionality.
+
+Importantly, adding the `print()` statement to a model has no effect unless it is compiled with `debug_enable = TRUE`. It's safe to leave these statements in with no performance cost as if `debug_enable = FALSE` (the default) odin will simply not generate any related code.
+
+## `print` format strings
+
+For print formatting, we use [glue](https://glue.tidyverse.org/) to drive the formatting, and if you have used that package the format will feel familiar. 
+
+The most simple usage is as above; you can refer to variables within `{curly braces}`; so long as your variable is a scalar this will work. Outside of curly braces the string is printed verbatim.
+
+### Conditional display
+
+If your model takes many steps, or if you want to narrow down on a problem, you may want to enable conditional display of your debug information. Use the argument `when =` to control display, such as
+
+```r
+print("x: {x}", when = x > 1)
+```
+
+which will display the value of `x` when it is greater than 1. You can chain together expressions with parentheses and `&&` or `||` and reference any value in your system. For example:
+
+```r
+printf("{x} {y} {z}", when = x > (x + y + z) / 2 && a < 1)
+```
+
+### Controlling precision
+
+You can control the way that quantities are displayed through the use of formatting options. The formatting is the same as used by R, so you can experiment in the console easily. The default is to print as a generic floating point number, so this:
+
+```r
+print("x: {x}, y: {y}")
+```
+
+is roughly equivalent to writing
+
+```r
+sprintf("x: %f, y: %f", x, y)
+```
+
+See `?sprintf` for more information; but this defaults to 6 decimal places of precision.  This may not be appropriate if you are dealing with numbers that are very large or very small; these both look a bit silly:
+
+```{r}
+sprintf("x: %f, y: %f", 1e-7, 1e7)
+```
+
+The first loses all information - the only non-zero parts of the number fall after the precision cut-off, while in the second the 6 decimal places just add noise. So above we might prefer:
+
+```{r}
+sprintf("x: %g, y: %g", 1e-7, 1e7)
+```
+
+which we could write in odin's approach as 
+
+```r
+print("x: {x; g}, y: {y; g}")
+```
+
+Anything after the `;` is interpreted as a format specifier. You could also do
+
+```r
+print("x: {x; g}, y: {y; .2f}")
+```
+
+which would format `y` to 2 decimal places. We follow here the example
+of the [sprintf transformer example in
+glue](https://glue.tidyverse.org/articles/transformers.html#sprintf-transformer)
+by not including the `%` placeholder, but allow all formats that the
+underlying library supports.
+
+## Current limitations
+
+This is an experimental interface, and it has not been exposed to much real-world use. As such it is possible that you might write fairly innocent looking code and it produce a compiler error rather than a nicer R error - please let us know so we can fix this.
+
+* There's no good way of printing out the contents of an array aside from indexing into it. That's possibly a reasonable thing to do though, given that most arrays get very large very quickly.
+* You can't yet control the way that time is formatted (e.g., disabling it or changing the precision)
+* The print statement only runs in your right-hand-side function (ODE models) or update function (discrete time models) and so it's possible that some variables that you refer to in your print statements won't exist in this function (e.g., transient quantities used only to compute some initial condition). We hope this is rare in real-use examples but welcome minimal examples that show where this causes problems (likely you will see a compiler error)
+* We print the result at the end of the rhs/update function; if you have a crash (or are writing off the end of memory) then this might not be what you want (e.g., the variables you see are the ones in the iteration prior to the crash, or after they have been overwritten by junk). We may support printing more eagerly, after all dependencies in the expression are satisfied, with an additional option to `print`
+* Be careful of using integer printing (e.g., `{x; d}`) for variables that are merely integer-like, or you will get unexpected junk output out.

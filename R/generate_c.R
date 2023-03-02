@@ -22,6 +22,7 @@ generate_c_meta <- function(base, internal) {
 
 
 generate_c_code <- function(dat, options, package) {
+  dat$options <- options
   dat$meta$c <- generate_c_meta(dat$config$base, dat$meta$internal)
 
   if (dat$features$mixed) {

@@ -40,6 +40,7 @@ ir_deserialise <- function(ir) {
 
   dat$interpolate <- lapply(dat$interpolate, list_to_character)
   dat$equations <- lapply(dat$equations, ir_deserialise_equation)
+  dat$debug <- lapply(dat$debug, ir_deserialise_debug)
   dat$ir <- ir
 
   dat
@@ -58,6 +59,14 @@ ir_deserialise_equation <- function(eq) {
       set_names(
         vcapply(eq$delay$substitutions, "[[", "to"),
         vcapply(eq$delay$substitutions, "[[", "from"))
+  }
+  eq
+}
+
+
+ir_deserialise_debug <- function(eq) {
+  if (!is.null(eq$depends)) {
+    eq$depends <- lapply(eq$depends, list_to_character)
   }
   eq
 }
