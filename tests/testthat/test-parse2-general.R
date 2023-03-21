@@ -42,6 +42,10 @@ test_that("expression parsing", {
   expect_error(odin_parse_(quote(x[i] <- y[i])),
                "Special index variable i may not be used on array lhs",
                class = "odin_error")
+  
+  expect_error(odin_parse_(quote(y[1:n + 1] <- 1)),
+               "Invalid array use on lhs:\n\t\tFull bracketting required in array sequence",
+               class = "odin_error")
 })
 
 

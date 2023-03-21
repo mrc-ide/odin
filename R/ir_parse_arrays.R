@@ -812,12 +812,47 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, include, eq,
   invisible(NULL) # never return anything at all.
 }
 
+ir_parse_expr_lhs_check_index_miss_brackets <- function(str) {
+
+  # f:g is ok.
+  # f(1:5):g(1:5) is ok.
+  # f:g+1 is not ok - it needs to be f:(g+1).
+  
+  # Anything within a bracket is ok and can be collapsed.
+  
+  while (grepl("\\(", str)) {
+    str <- gsub("\\s*\\([^\\)]+\\)", "", str, perl = TRUE)
+  }
+  
+  # If this isn't an array sequence, then no problem.
+  
+  if (!grepl(":", str)) {
+    return(FALSE)
+  }
+  
+  parts <- strsplit(str, ":")[[1]]
+  
+  forbidden <- c("\\+", "-", "\\*", "/", "%", "\\^")
+  
+  any(vapply(forbidden, function(x) {
+    grepl(x, parts[1]) || grepl(x, parts[2])
+  }, logical(1)))
+  
+}
 
 ir_parse_expr_lhs_check_index <- function(x) {
   seen <- counter()
   err <- collector()
   valid <- setdiff(VALID_ARRAY, ":")
-
+  
+  # In x:y, x and y must both be atomic.
+  # x:y+1 must be written x:(y+1)
+  
+  if (ir_parse_expr_lhs_check_index_miss_brackets(
+    as.character(as.expression(x)))) {
+    err$add("Full bracketting required in array sequence")
+  }
+  
   f <- function(x, max) {
     if (is.recursive(x)) {
       nm <- as.character(x[[1L]])
