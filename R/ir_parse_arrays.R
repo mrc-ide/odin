@@ -844,15 +844,15 @@ ir_parse_expr_lhs_check_index <- function(x) {
   seen <- counter()
   err <- collector()
   valid <- setdiff(VALID_ARRAY, ":")
-  
+
   # In x:y, x and y must both be atomic.
   # x:y+1 must be written x:(y+1)
-  
+
   if (ir_parse_expr_lhs_check_index_miss_brackets(
     as.character(as.expression(x)))) {
     err$add("Full bracketting required in array sequence")
   }
-  
+
   f <- function(x, max) {
     if (is.recursive(x)) {
       nm <- as.character(x[[1L]])

@@ -44,7 +44,7 @@ test_that("expression parsing", {
                class = "odin_error")
   expect_error(odin_parse_(quote(y[1:n + 1] <- 1)),
                paste0("Invalid array use on lhs:\n",
-               "\t\tFull bracketting required in array sequence", 
+               "\t\tFull bracketting required in array sequence",
                collapse = ""), class = "odin_error")
 })
 
