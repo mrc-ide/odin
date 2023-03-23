@@ -44,7 +44,7 @@ test_that("expression parsing", {
                class = "odin_error")
   expect_error(odin_parse_(quote(y[1:n + 1] <- 1)),
                paste0("Invalid array use on lhs:\n",
-               "\t\tFull bracketting required in array sequence",
+               "\t\tYou are writing an ambiguous range",
                collapse = ""), class = "odin_error")
 })
 
@@ -290,11 +290,6 @@ test_that("custom functions ignore arrays", {
 })
 
 test_that("lhs array checking", {
-  res <- ir_parse_expr_lhs_check_index(quote(a + (2:(n - 3) - 4) + z))
-  expect_true(res)
-  expect_equal(attr(res, "value_max"), quote(a + ((n - 3) - 4) + z))
-  expect_equal(attr(res, "value_min"), quote(a + (2 - 4) + z))
-
   res <- ir_parse_expr_lhs_check_index(quote(a))
   expect_true(res)
   expect_equal(attr(res, "value_max"), quote(a))
