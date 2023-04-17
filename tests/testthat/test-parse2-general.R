@@ -45,13 +45,18 @@ test_that("expression parsing", {
 
   expect_error(odin_parse_(quote(y[1:n + 1] <- 1)),
                paste0("Invalid array use on lhs:\n",
-               "\t\tYou are writing an ambiguous range, consider 1:(n + 1)*",
+               "\t\tYou are writing an ambiguous range, consider 1:(n \\+ 1)*",
                collapse = ""), class = "odin_error")
 
   expect_error(odin_parse_(quote(y[1:n + 1 + 2] <- 1)),
                paste0("Invalid array use on lhs:\n\t\tYou are ",
                "writing an ambiguous range, consider using parentheses*",
                collapse = ""), class = "odin_error")
+
+  expect_error(odin_parse_(quote(y[1 + 1:n] <- 1)),
+               paste0("Invalid array use on lhs:\n\t\tYou are ",
+                      "writing an ambiguous range, consider 1 \\+ (1:n)*",
+                      collapse = ""), class = "odin_error")
 })
 
 test_that("parse array indices", {

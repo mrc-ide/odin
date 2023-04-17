@@ -861,8 +861,8 @@ ir_parse_expr_lhs_check_index <- function(x) {
         fix <- deparse_str(call(":", x[[2]][[2]], call("(",
           call(as.character(x[[1]]), x[[2]][[3]], x[[3]]))))
       } else if ((length(x) > 2) && (is_call(x[[3]], ":"))) {
-        fix <- deparse_str(call(":", call("(",
-          call(as.character(x[[1]]), x[[2]], x[[3]][[2]])), x[[3]][[3]]))
+        fix <- deparse_str(call(as.character(x[[1]]), x[[2]], call("(",
+          call(":", x[[3]][[2]], x[[3]][[3]]))))
       } else {
         fix <- "using parentheses"
       }
