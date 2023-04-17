@@ -849,10 +849,10 @@ ir_parse_expr_lhs_check_index <- function(x) {
   }
 
   value_max <- f(x, TRUE)
-  
-  # If errors have already been spotted, don't check further; 
+
+  # If errors have already been spotted, don't check further;
   # results/suggestions will be confusing.
-  
+
   if ((length(err$get()) == 0) && (seen$get() > 0)) { # check minimum branch
     seen$reset()
     value_min <- f(x, FALSE)

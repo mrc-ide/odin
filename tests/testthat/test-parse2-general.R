@@ -42,18 +42,17 @@ test_that("expression parsing", {
   expect_error(odin_parse_(quote(x[i] <- y[i])),
                "Special index variable i may not be used on array lhs",
                class = "odin_error")
-  
+
   expect_error(odin_parse_(quote(y[1:n + 1] <- 1)),
                paste0("Invalid array use on lhs:\n",
                "\t\tYou are writing an ambiguous range, consider 1:(n + 1)*",
                collapse = ""), class = "odin_error")
-  
+
   expect_error(odin_parse_(quote(y[1:n + 1 + 2] <- 1)),
-               paste0("Invalid array use on lhs:\n",
-               "\t\tYou are writing an ambiguous range, consider using parentheses*",
+               paste0("Invalid array use on lhs:\n\t\tYou are ",
+               "writing an ambiguous range, consider using parentheses*",
                collapse = ""), class = "odin_error")
 })
-
 
 test_that("parse array indices", {
   expect_error(odin_parse(
@@ -300,7 +299,7 @@ test_that("lhs array checking", {
   expect_true(res)
   expect_equal(attr(res, "value_max"), quote(a))
   expect_null(attr(res, "value_min"))
-  
+
   expect_single_error <- function(err, expected) {
     expect_false(err)
     count <- length(attr(err, "message"))
@@ -309,19 +308,19 @@ test_that("lhs array checking", {
       expect_equal(expected, attr(err, "message"))
     }
   }
-  
+
   expect_single_error(ir_parse_expr_lhs_check_index(quote(a:b + c:d)),
                       "Multiple calls to ':' are not allowed")
-  
+
   expect_single_error(ir_parse_expr_lhs_check_index(quote(-(a:b))),
                       "Unary minus invalid in array calculation")   # nolint
-  
+
   expect_single_error(ir_parse_expr_lhs_check_index(quote((a:b):c)),
                       "Multiple calls to ':' are not allowed")
-  
+
   expect_single_error(ir_parse_expr_lhs_check_index(quote(c:(a:b))),
                       "Multiple calls to ':' are not allowed")
-  
+
   expect_single_error(ir_parse_expr_lhs_check_index(quote((-a))),
                       "Unary minus invalid in array calculation")
 })
