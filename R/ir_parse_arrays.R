@@ -857,19 +857,36 @@ ir_parse_expr_lhs_check_index <- function(x) {
     seen$reset()
     value_min <- f(x, FALSE)
     if (!is_call(x, ":")) {
+
       if (is_call(x[[2]], ":")) {
 
-        fix <- paste0(deparse_str(call(":", x[[2]][[2]], call("(",
-          call(as.character(x[[1]]), x[[2]][[3]], x[[3]])))), " or ",
-          deparse_str(call(as.character(x[[1]]), call("(",
-          call(as.character(x[[2]][[1]]), x[[2]][[2]], x[[2]][[3]])), x[[3]])))
+        # Handle 1:n+1, which is:-
+        # `+`   (':', 1, n)   1  - so x[[2]][[1]] is ":" and...
+
+        lhs <- x[[2]][[2]]
+        rhs <- x[[2]][[3]]
+
+        # Suggest either 1:(n+1) or (1:n)+1
+
+        fix <- paste0(deparse_str(call(":", lhs,
+          call("(",call(as.character(x[[1]]), rhs, x[[3]])))), " or ",
+            deparse_str(call(as.character(x[[1]]),
+              call("(",call(":", lhs, rhs)), x[[3]])))
 
       } else if ((length(x) > 2) && (is_call(x[[3]], ":"))) {
 
-        fix <- paste0(deparse_str(call(as.character(x[[1]]), x[[2]], call("(",
-          call(":", x[[3]][[2]], x[[3]][[3]])))), " or ",
-          deparse_str(call(":", call("(",
-          call(as.character(x[[1]]), x[[2]], x[[3]][[2]])), x[[3]][[3]])))
+        # Handle a+1:n, which is:-
+        # `+`   a   (`:`   1   n)   - so x[[3]][[1]] is ":" and...
+
+        lhs <- x[[3]][[2]]
+        rhs <- x[[3]][[3]]
+
+        # Suggest either a+(1:n) or (a+1):n
+
+        fix <- paste0(deparse_str(call(as.character(x[[1]]), x[[2]],
+          call("(", call(":", lhs, rhs)))), " or ",
+            deparse_str(call(":",
+              call("(",call(as.character(x[[1]]), x[[2]], lhs)), rhs)))
 
       } else {
         fix <- "using parentheses"
