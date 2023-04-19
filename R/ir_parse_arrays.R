@@ -869,9 +869,9 @@ ir_parse_expr_lhs_check_index <- function(x) {
         # Suggest either 1:(n+1) or (1:n)+1
 
         fix <- paste0(deparse_str(call(":", lhs,
-          call("(",call(as.character(x[[1]]), rhs, x[[3]])))), " or ",
+          call("(", call(as.character(x[[1]]), rhs, x[[3]])))), " or ",
             deparse_str(call(as.character(x[[1]]),
-              call("(",call(":", lhs, rhs)), x[[3]])))
+              call("(", call(":", lhs, rhs)), x[[3]])))
 
       } else if ((length(x) > 2) && (is_call(x[[3]], ":"))) {
 
@@ -886,7 +886,7 @@ ir_parse_expr_lhs_check_index <- function(x) {
         fix <- paste0(deparse_str(call(as.character(x[[1]]), x[[2]],
           call("(", call(":", lhs, rhs)))), " or ",
             deparse_str(call(":",
-              call("(",call(as.character(x[[1]]), x[[2]], lhs)), rhs)))
+              call("(", call(as.character(x[[1]]), x[[2]], lhs)), rhs)))
 
       } else {
         fix <- "using parentheses"
