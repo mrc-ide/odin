@@ -812,7 +812,6 @@ ir_parse_arrays_check_rhs <- function(rhs, rank, int_arrays, include, eq,
   invisible(NULL) # never return anything at all.
 }
 
-
 ir_parse_expr_lhs_check_index <- function(x) {
   seen <- counter()
   err <- collector()
@@ -850,9 +849,50 @@ ir_parse_expr_lhs_check_index <- function(x) {
   }
 
   value_max <- f(x, TRUE)
-  if (seen$get() > 0) { # check minimum branch
+
+  # If errors have already been spotted, don't check further;
+  # results/suggestions will be confusing.
+
+  if ((length(err$get()) == 0) && (seen$get() > 0)) { # check minimum branch
     seen$reset()
     value_min <- f(x, FALSE)
+    if (!is_call(x, ":")) {
+
+      if (is_call(x[[2]], ":")) {
+
+        # Handle 1:n+1, which is:-
+        # `+`   (':', 1, n)   1  - so x[[2]][[1]] is ":" and...
+
+        lhs <- x[[2]][[2]]
+        rhs <- x[[2]][[3]]
+
+        # Suggest either 1:(n+1) or (1:n)+1
+
+        fix <- paste0(deparse_str(call(":", lhs,
+          call("(", call(as.character(x[[1]]), rhs, x[[3]])))), " or ",
+            deparse_str(call(as.character(x[[1]]),
+              call("(", call(":", lhs, rhs)), x[[3]])))
+
+      } else if ((length(x) > 2) && (is_call(x[[3]], ":"))) {
+
+        # Handle a+1:n, which is:-
+        # `+`   a   (`:`   1   n)   - so x[[3]][[1]] is ":" and...
+
+        lhs <- x[[3]][[2]]
+        rhs <- x[[3]][[3]]
+
+        # Suggest either a+(1:n) or (a+1):n
+
+        fix <- paste0(deparse_str(call(as.character(x[[1]]), x[[2]],
+          call("(", call(":", lhs, rhs)))), " or ",
+            deparse_str(call(":",
+              call("(", call(as.character(x[[1]]), x[[2]], lhs)), rhs)))
+
+      } else {
+        fix <- "using parentheses"
+      }
+      err$add(sprintf("You are writing an ambiguous range, consider %s", fix))
+    }
   } else {
     value_min <- NULL
   }
