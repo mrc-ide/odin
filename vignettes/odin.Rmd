@@ -70,9 +70,9 @@ of the listed elements above do not need to be accessed ever (I
 would make them private but that incurs a very slight performance
 cost).
 
-The initial conditions:
+The initial conditions at time zero:
 ``` {r }
-mod$init
+mod$initial(0)
 ```
 
 dN/dt evaluated at the time zero, with the initial conditions:
