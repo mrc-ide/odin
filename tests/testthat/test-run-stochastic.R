@@ -92,9 +92,6 @@ test_that_odin("stochastic initial conditions don't get called every step", {
 
   if (mod$engine() != "js") {
     expect_equal(.Random.seed, cmp)
-
-    ## Initial conditions (why is $init even a member here?)
-    expect_null(mod$init)
   }
 
   ## Re-running the initial conditions gives different answers:

@@ -34,8 +34,6 @@ test_that_odin("basic interface", {
     mod_c <- gen$new()
     expect_is(mod_c, "odin_model")
 
-    ## expect_equal(mod_c$init,
-    ##              if (has_delay) NULL else unname(mod_r$initial(t0)))
     expect_equivalent(mod_c$initial(t0), unname(mod_r$initial(t0)))
 
     priv <- r6_private(mod_c)
