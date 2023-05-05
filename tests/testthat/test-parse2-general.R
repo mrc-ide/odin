@@ -510,10 +510,10 @@ test_that("sums", {
                "Argument to sum must be a symbol or indexed array",
                class = "odin_error")
   expect_error(odin_parse_(quote(x <- sum(a, b))),
-               "Expected 1 argument in sum call, but recieved 2",
+               "Expected 1 argument in sum call, but received 2",
                class = "odin_error")
   expect_error(odin_parse_(quote(x <- sum())),
-               "Expected 1 argument in sum call, but recieved 0",
+               "Expected 1 argument in sum call, but received 0",
                class = "odin_error")
 
   expect_error(odin_parse_(quote(x <- sum(a[f(b)]))),
@@ -917,5 +917,5 @@ test_that("Validate arguments to stochastic functions", {
       initial(a) <- 0
       update(a) <- a + rnorm(1)
     }),
-    "Expected 2 arguments in rnorm call, but recieved 1")
+    "Expected 2 arguments in rnorm call, but received 1")
 })
