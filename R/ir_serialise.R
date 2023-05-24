@@ -136,6 +136,7 @@ ir_serialise_equation <- function(eq) {
     expression_inplace = ir_serialise_equation_expression_inplace(eq),
     interpolate = ir_serialise_equation_interpolate(eq),
     user = ir_serialise_equation_user(eq),
+    data = ir_serialise_equation_data(eq),
     stop("odin bug"))
   c(base, extra)
 }
@@ -193,6 +194,11 @@ ir_serialise_equation_user <- function(eq) {
                    dim = scalar(eq$user$dim),
                    min = ir_serialise_expression(eq$user$min),
                    max = ir_serialise_expression(eq$user$max)))
+}
+
+
+ir_serialise_equation_data <- function(eq) {
+  list(data = list(type = scalar(eq$data$type)))
 }
 
 

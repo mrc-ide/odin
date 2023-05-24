@@ -481,6 +481,8 @@ ir_parse_features <- function(eqs, debug, config, source) {
   is_delay <- vlapply(eqs, function(x) !is.null(x$delay))
   is_interpolate <- vlapply(eqs, function(x) !is.null(x$interpolate))
   is_stochastic <- vlapply(eqs, function(x) isTRUE(x$stochastic))
+  is_data <- vlapply(eqs, function(x) !is.null(x$data))
+  is_compare <- vlapply(eqs, function(x) !is.null(x$compare))
 
   ## We'll support other debugging bits later, I imagine.
   is_debug_print <- vlapply(debug, function(x) x$type == "print")
@@ -499,6 +501,8 @@ ir_parse_features <- function(eqs, debug, config, source) {
        has_delay = any(is_delay),
        has_interpolate = any(is_interpolate),
        has_stochastic = any(is_stochastic),
+       has_data = any(is_data),
+       has_compare = any(is_compare),
        has_include = !is.null(config$include),
        has_debug = any(is_debug_print),
        initial_time_dependent = NULL)
@@ -669,6 +673,8 @@ ir_parse_expr <- function(expr, line, source) {
 
   if (!is.null(rhs$user)) {
     type <- "user"
+  } else if (!is.null(rhs$data)) {
+    type <- "data"
   } else if (!is.null(rhs$interpolate)) {
     type <- "interpolate"
   } else if (!is.null(rhs$delay)) {
@@ -677,6 +683,8 @@ ir_parse_expr <- function(expr, line, source) {
     type <- "dim"
   } else if (identical(lhs$special, "config")) {
     type <- "config"
+  } else if (identical(lhs$special, "compare")) {
+    type <- "compare"
   } else if (lhs$type == "expression_scalar") {
     type <- "expression_scalar"
   } else if (lhs$type == "expression_array") {
@@ -931,6 +939,8 @@ ir_parse_expr_rhs <- function(rhs, line, source) {
     ir_parse_expr_rhs_delay(rhs, line, source)
   } else if (is_call(rhs, quote(user))) {
     ir_parse_expr_rhs_user(rhs, line, source)
+  } else if (is_call(rhs, quote(data))) {
+    ir_parse_expr_rhs_data(rhs, line, source)
   } else if (is_call(rhs, quote(interpolate))) {
     ir_parse_expr_rhs_interpolate(rhs, line, source)
   } else {
@@ -1022,6 +1032,17 @@ ir_parse_expr_rhs_user <- function(rhs, line, source) {
                min = m$min,
                max = m$max)
   list(user = user)
+}
+
+
+ir_parse_expr_rhs_data <- function(rhs, line, source) {
+  args <- as.list(rhs[-1L])
+
+  if (length(args) != 0) {
+    ir_parse_error("Calls to data() must have no arguments", line, source)
+  }
+  data <- list(type = "real_type")
+  list(data = data)
 }
 
 
