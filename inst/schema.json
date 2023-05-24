@@ -59,7 +59,6 @@
                     "delay_discrete",
                     "interpolate",
                     "user",
-                    "data",
                     "compare",
                     "expression_array",
                     "expression_inplace",
@@ -345,7 +344,6 @@
                         {"$ref": "#/definitions/equation_alloc_interpolate"},
                         {"$ref": "#/definitions/equation_alloc_ring"},
                         {"$ref": "#/definitions/equation_user"},
-                        {"$ref": "#/definitions/equation_data"},
                         {"$ref": "#/definitions/equation_compare"},
                         {"$ref": "#/definitions/equation_expression_array"},
                         {"$ref": "#/definitions/equation_expression_inplace"},
@@ -657,29 +655,6 @@
                 }
             },
             "required": ["type", "user"],
-            "additionalProperties": false
-        },
-
-        "equation_data": {
-            "type": "object",
-            "properties": {
-                "type": {"const": "data"},
-                "name": {},
-                "source": {},
-                "depends": {},
-                "lhs": {},
-                "data": {
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "const": "real_type"
-                        }
-                    },
-                    "required": ["type"],
-                    "additionalProperties": false
-                }
-            },
-            "required": ["type", "data"],
             "additionalProperties": false
         },
 

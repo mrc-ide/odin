@@ -5,11 +5,7 @@ test_that("Can parse with a data element", {
     d <- data()
   })
   d <- ir_deserialise(ir)
-  expect_length(d$equations, 3)
-  expect_mapequal(
-    d$equations$d,
-    list(name = "d", type = "data", source = list(3),
-         depends = NULL, lhs = "d", data = list(type = "real_type")))
+  expect_length(d$equations, 2)
   expect_true(d$features$has_data)
   expect_mapequal(
     d$data$elements$d,
@@ -27,7 +23,7 @@ test_that("Can parse with a compare expression", {
   })
   d <- ir_deserialise(ir)
 
-  expect_length(d$equations, 4)
+  expect_length(d$equations, 3)
   expect_mapequal(
     d$equations$compare_d,
     list(name = "compare_d",

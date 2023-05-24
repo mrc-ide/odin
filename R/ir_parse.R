@@ -1160,7 +1160,7 @@ ir_parse_expr_rhs_delay <- function(rhs, line, source) {
 
 ir_parse_equations <- function(eqs) {
   type <- vcapply(eqs, "[[", "type")
-  eqs[!(type %in% c("null", "config"))]
+  eqs[!(type %in% c("null", "config", "data"))]
 }
 
 
