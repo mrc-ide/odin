@@ -137,7 +137,9 @@ ir_serialise_equation <- function(eq) {
     interpolate = ir_serialise_equation_interpolate(eq),
     user = ir_serialise_equation_user(eq),
     data = ir_serialise_equation_data(eq),
-    stop("odin bug"))
+    compare = ir_serialise_equation_compare(eq),
+    stop(sprintf("Can't serialise unknown equation type '%s' [odin bug]",
+                 eq$type)))
   c(base, extra)
 }
 
@@ -199,6 +201,13 @@ ir_serialise_equation_user <- function(eq) {
 
 ir_serialise_equation_data <- function(eq) {
   list(data = list(type = scalar(eq$data$type)))
+}
+
+
+ir_serialise_equation_compare <- function(eq) {
+  compare <- list(distribution = scalar(eq$rhs$distribution),
+                  args = lapply(eq$rhs$args, ir_serialise_expression))
+  list(compare = compare)
 }
 
 

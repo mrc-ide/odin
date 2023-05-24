@@ -153,7 +153,7 @@ ir_parse_data <- function(eqs, packing, stage, source) {
   is_alloc <- vlapply(eqs, function(x) {
     x$type == "alloc" && x$name != x$lhs$name_lhs
   })
-  i <- !(is_alloc | type %in% c("copy", "config"))
+  i <- !(is_alloc | type %in% c("copy", "config", "compare", "data"))
 
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
@@ -355,8 +355,12 @@ ir_parse_stage <- function(eqs, dependencies, variables, time_name, source) {
       !is.null(x$rhs$delay) || !is.null(x$rhs$interpolate) ||
       isTRUE(x$stochastic) || x$type == "delay_continuous"
   }
+  is_data <- function(x) {
+    x$type == "data"
+  }
 
   stage[names_if(vlapply(eqs, is_user))] <- STAGE_USER
+  stage[names_if(vlapply(eqs, is_data))] <- STAGE_TIME
   stage[names_if(vlapply(eqs, is_time_dependent))] <- STAGE_TIME
   stage[time_name] <- STAGE_TIME
   stage[variables] <- STAGE_TIME
@@ -482,7 +486,7 @@ ir_parse_features <- function(eqs, debug, config, source) {
   is_interpolate <- vlapply(eqs, function(x) !is.null(x$interpolate))
   is_stochastic <- vlapply(eqs, function(x) isTRUE(x$stochastic))
   is_data <- vlapply(eqs, function(x) !is.null(x$data))
-  is_compare <- vlapply(eqs, function(x) !is.null(x$compare))
+  is_compare <- vlapply(eqs, function(x) identical(x$lhs$special, "compare"))
 
   ## We'll support other debugging bits later, I imagine.
   is_debug_print <- vlapply(debug, function(x) x$type == "print")
@@ -549,9 +553,16 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     variables_update_stochastic <- character(0)
   }
 
+  compare <- names_if(vlapply(eqs, function(x) {
+    identical(x$lhs$special, "compare")
+  }))
+  v <- unique(c(compare, unlist(dependencies[compare], use.names = FALSE)))
+  eqs_compare <- intersect(eqs_time, v)
+  variables_compare <- intersect(variables, v)
+
   type <- vcapply(eqs, "[[", "type")
   core <- unique(c(initial, rhs, output, eqs_initial, eqs_rhs, eqs_output,
-                   eqs_update_stochastic))
+                   eqs_update_stochastic, eqs_compare))
 
   used_in_delay <- unlist(lapply(eqs[type == "delay_continuous"],
                                  function(x) x$delay$depends$variables),
@@ -571,7 +582,8 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     rhs = list(variables = variables_rhs, equations = eqs_rhs),
     update_stochastic = list(variables = variables_update_stochastic,
                              equations = eqs_update_stochastic),
-    output = list(variables = variables_output, equations = eqs_output))
+    output = list(variables = variables_output, equations = eqs_output),
+    compare = list(variables = variables_compare, equations = eqs_compare))
 }
 
 
@@ -644,15 +656,25 @@ ir_parse_exprs <- function(exprs) {
   expr_is_debug <- function(x) {
     is_call(x, "print")
   }
-
+  expr_is_compare <- function(x) {
+    length(x) == 3L && is_call(x[[2]], "compare")
+  }
   is_assignment <- vlapply(exprs, expr_is_assignment)
   is_debug <- vlapply(exprs, expr_is_debug)
-  err <- !(is_assignment | is_debug)
+  is_compare <- vlapply(exprs, expr_is_compare)
+  err <- !(is_assignment | is_debug | is_compare)
   if (any(err)) {
     ir_parse_error(
-      "Every line must contain an assignment (or a debug statement)",
+      paste("Every line must contain an assignment, a compare statement",
+            "or a debug statement"),
       unlist(lines[err]), src)
   }
+
+  ## The comparison equations are different enough that we do them
+  ## separately, then join back together:
+  compare <- Map(ir_parse_compare, exprs[is_compare], lines[is_compare],
+                 MoreArgs = list(source = src))
+  names(compare) <- vcapply(compare, "[[", "name")
 
   eqs <- Map(ir_parse_expr, exprs[is_assignment], lines[is_assignment],
              MoreArgs = list(source = src))
@@ -661,7 +683,7 @@ ir_parse_exprs <- function(exprs) {
   debug <- Map(ir_parse_debug, exprs[is_debug], lines[is_debug],
                MoreArgs = list(source = src))
 
-  list(eqs = eqs, source = src, debug = debug)
+  list(eqs = c(eqs, compare), source = src, debug = debug)
 }
 
 
@@ -808,7 +830,7 @@ ir_parse_expr_lhs <- function(lhs, line, source) {
     name_lhs <- name_equation
   } else if (special %in% c("initial", "dim")) {
     name_lhs <- name_equation
-  } else if (special %in% c("deriv", "output", "update", "config")) {
+  } else if (special %in% c("deriv", "output", "update", "config", "compare")) {
     name_lhs <- name_data
   } else {
     stop("odin bug") # nocov
@@ -1887,4 +1909,53 @@ ir_parse_debug_print <- function(eq, data, source) {
   ret$format <- debug_substitute_string(ret$expr, paste0("%", format))
 
   ret
+}
+
+
+ir_parse_compare <- function(eq, line, source) {
+  if (!is_call(eq, "~")) {
+    ir_parse_error(
+      "All compare() expressions must use '~' and not '<-' or '='",
+      line, source)
+  }
+
+  ## TODO: we need to compare here against expected
+  lhs <- ir_parse_expr_lhs(eq[[2L]], line, source)
+  rhs <- ir_parse_compare_rhs(eq[[3L]], line, source)
+
+  depends <- rhs$depends
+  depends$variables <- union(depends$variables, lhs$name_data)
+
+  list(name = lhs$name_equation,
+       type = "compare",
+       lhs = lhs,
+       rhs = rhs,
+       depends = depends,
+       source = line)
+}
+
+
+ir_parse_compare_rhs <- function(expr, line, source) {
+  if (!is.recursive(expr)) {
+    ir_parse_error(
+      "Expected rhs of compare() expression to be a call",
+      line, source)
+  }
+  stopifnot(is.name(expr[[1]]))
+  distribution <- deparse(expr[[1]])
+  valid <- c("normal", "binomial")
+  if (!(distribution %in% valid)) {
+    ir_parse_error(
+      sprintf("Expected rhs to be a valid distribution (%s)",
+              paste(squote(valid), collapse = ", ")),
+      line, source)
+  }
+
+  ir_parse_expr_rhs_check_usage(expr)
+
+  args <- as.list(expr[-1])
+  depends <- join_deps(lapply(args, find_symbols))
+  list(distribution = distribution,
+       args = args,
+       depends = depends)
 }
