@@ -153,7 +153,7 @@ ir_parse_data <- function(eqs, packing, stage, source) {
   is_alloc <- vlapply(eqs, function(x) {
     x$type == "alloc" && x$name != x$lhs$name_lhs
   })
-  i <- !(is_alloc | type %in% c("copy", "config", "compare", "data"))
+  i <- !(is_alloc | type %in% c("copy", "config", "compare"))
 
   elements <- lapply(eqs[i], ir_parse_data_element, stage)
   names(elements) <- vcapply(elements, "[[", "name")
@@ -180,7 +180,9 @@ ir_parse_data_element <- function(x, stage) {
 
   stage <- stage[[x$name]]
 
-  if (is.null(x$lhs$special)) {
+  if (x$type == "data") {
+    location <- "data"
+  } else if (is.null(x$lhs$special)) {
     if (rank == 0L && stage == STAGE_TIME) {
       location <- "transient"
     } else {

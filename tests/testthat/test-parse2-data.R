@@ -11,6 +11,10 @@ test_that("Can parse with a data element", {
     list(name = "d", type = "data", source = list(3),
          depends = NULL, lhs = "d", data = list(type = "real_type")))
   expect_true(d$features$has_data)
+  expect_mapequal(
+    d$data$elements$d,
+    list(name = "d", location = "data", storage_type = "double",
+         rank = 0L, dimnames = NULL, stage = "time"))
 })
 
 
