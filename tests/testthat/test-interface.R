@@ -164,7 +164,7 @@ test_that_odin("mixed models not supported by any odin target", {
 test_that_odin("compare and data not supported by any odin target", {
   expect_error(odin({
     initial(x) <- 0
-    deriv(x) <- a
+    update(x) <- a
     initial(a) <- 0
     update(a) <- a + 1
     y <- data()
@@ -174,7 +174,7 @@ test_that_odin("compare and data not supported by any odin target", {
 
   expect_error(odin({
     initial(x) <- 0
-    deriv(x) <- a
+    update(x) <- a
     initial(a) <- 0
     update(a) <- a + 1
     compare(a) ~ normal(0, 1)
