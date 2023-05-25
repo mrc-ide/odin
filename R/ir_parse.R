@@ -943,14 +943,16 @@ ir_parse_expr_check_lhs_name <- function(lhs, special, line, source) {
 
   name <- deparse(lhs)
 
-  if (name %in% RESERVED) {
-    ir_parse_error(sprintf("Reserved name '%s' for lhs", name), line, source)
-  }
-  re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse = "|"))
-  if (grepl(re, name)) {
-    ir_parse_error(sprintf("Variable name cannot start with '%s_'",
-                           sub(re, "\\1", name)),
-                   line, source)
+  if (!identical(special, "config")) {
+    if (name %in% RESERVED) {
+      ir_parse_error(sprintf("Reserved name '%s' for lhs", name), line, source)
+    }
+    re <- sprintf("^(%s)_.*", paste(RESERVED_PREFIX, collapse = "|"))
+    if (grepl(re, name)) {
+      ir_parse_error(sprintf("Variable name cannot start with '%s_'",
+                             sub(re, "\\1", name)),
+                     line, source)
+    }
   }
 
   name
