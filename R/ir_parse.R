@@ -1953,7 +1953,7 @@ ir_parse_compare <- function(eq, line, source) {
 
 ## TODO: these (for now at least) don't sanitise args. The list
 ## effectively depends on dust, but that feels suboptimal (e.g., for
-## the js target). Things like negative binomial will be a trick
+## the js target). Things like negative binomial is a trick
 ## because there are two different forms.  We'll expand support in
 ## dust fairly promptly I'd expect.
 ir_parse_compare_rhs <- function(expr, line, source) {
@@ -1964,7 +1964,8 @@ ir_parse_compare_rhs <- function(expr, line, source) {
   }
   stopifnot(is.name(expr[[1]]))
   distribution <- deparse(expr[[1]])
-  valid <- c("normal", "binomial", "negative_binomial", "beta_binomial",
+  valid <- c("normal", "binomial", "negative_binomial_mu",
+             "negative_binomial_prob", "beta_binomial",
              "poisson")
   if (!(distribution %in% valid)) {
     ir_parse_error(
@@ -1973,7 +1974,7 @@ ir_parse_compare_rhs <- function(expr, line, source) {
       line, source)
   }
 
-  ir_parse_expr_rhs_check_usage(expr)
+  ir_parse_expr_rhs_check_usage(expr, line, source)
 
   args <- as.list(expr[-1])
   depends <- join_deps(lapply(args, find_symbols))

@@ -115,3 +115,16 @@ test_that("compare expressions must be a call", {
     "Expected rhs to be a valid distribution",
     fixed = TRUE)
 })
+
+
+test_that("negative binomial still can't use args", {
+  expect_error(
+    odin_parse({
+      initial(x) <- 1
+      update(x) <- rnorm(0, 0.1)
+      d <- data()
+      compare(d) ~ normal(mean = 0, sd = 1)
+    }),
+    "Named argument calls not supported in odin",
+    fixed = TRUE)
+})
