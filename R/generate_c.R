@@ -28,6 +28,9 @@ generate_c_code <- function(dat, options, package) {
   if (dat$features$mixed) {
     stop("Models that mix deriv() and update() are not supported")
   }
+  if (dat$features$has_compare || dat$features$has_data) {
+    stop("data() and compare() not supported")
+  }
 
   if (dat$features$has_delay) {
     dat$data$elements[[dat$meta$c$use_dde]] <-

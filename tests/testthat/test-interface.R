@@ -160,4 +160,27 @@ test_that_odin("mixed models not supported by any odin target", {
   fixed = TRUE)
 })
 
+
+test_that_odin("compare and data not supported by any odin target", {
+  expect_error(odin({
+    initial(x) <- 0
+    deriv(x) <- a
+    initial(a) <- 0
+    update(a) <- a + 1
+    y <- data()
+  }),
+  "data() and compare() not supported",
+  fixed = TRUE)
+
+  expect_error(odin({
+    initial(x) <- 0
+    deriv(x) <- a
+    initial(a) <- 0
+    update(a) <- a + 1
+    compare(a) ~ normal(0, 1)
+  }),
+  "data() and compare() not supported",
+  fixed = TRUE)
+})
+
 unload_dlls()
