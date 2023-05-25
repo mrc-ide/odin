@@ -48,6 +48,36 @@ test_that("Can parse with a compare expression", {
 })
 
 
+test_that("correct components", {
+  ir <- odin_parse({
+    initial(x) <- 1
+    update(x) <- rnorm(0, 2 * sd)
+    d <- data()
+    sd <- user()
+    compare(d) ~ normal(x, sd)
+  })
+  d <- ir_deserialise(ir)
+  expect_equal(
+    d$components$update,
+    list(variables = character(), equations = character()))
+  expect_equal(
+    d$components$compare,
+    list(variables = "x", equations = "compare_d"))
+})
+
+
+test_that("can't refer to data outside of compare", {
+  expect_error(
+    odin_parse({
+      initial(x) <- 1
+      update(x) <- rnorm(0, 2 * d)
+      d <- data()
+    }),
+    "Data ('d') may only be referred to in compare expressions",
+    fixed = TRUE)
+})
+
+
 test_that("compare expressions must use ~ not <-", {
   expect_error(
     odin_parse({

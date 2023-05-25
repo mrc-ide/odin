@@ -520,6 +520,7 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
   eqs_constant <- intersect(names_if(stage == STAGE_CONSTANT), names(eqs))
   eqs_user <- intersect(names_if(stage == STAGE_USER), names(eqs))
   eqs_time <- intersect(names_if(stage == STAGE_TIME), names(eqs))
+  eqs_data <- names_if(vlapply(eqs, function(x) x$type == "data"))
 
   ## NOTE: we need the equation name here, not the variable name
   rhs_special <- if (common$continuous) "deriv" else "update"
@@ -559,7 +560,7 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     identical(x$lhs$special, "compare")
   }))
   v <- unique(c(compare, unlist(dependencies[compare], use.names = FALSE)))
-  eqs_compare <- intersect(eqs_time, v)
+  eqs_compare <- setdiff(intersect(eqs_time, v), eqs_data)
   variables_compare <- intersect(variables, v)
 
   type <- vcapply(eqs, "[[", "type")
@@ -577,7 +578,7 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
     ir_parse_check_unused(eqs, dependencies, core, stage, source)
   }
 
-  list(
+  ret <- list(
     create = list(variables = character(0), equations = eqs_constant),
     user = list(variables = character(0), equations = eqs_user),
     initial = list(variables = character(0), equations = eqs_initial),
@@ -586,6 +587,19 @@ ir_parse_components <- function(eqs, dependencies, variables, stage,
                              equations = eqs_update_stochastic),
     output = list(variables = variables_output, equations = eqs_output),
     compare = list(variables = variables_compare, equations = eqs_compare))
+
+  for (i in names(ret)) {
+    err <- intersect(ret[[i]]$equations, eqs_data)
+    if (length(err) > 0) {
+      ## TODO: this should be a proper parse error and we should find
+      ## the chain here that drags it in, not actually that easy!
+      stop(sprintf(
+        "Data (%s) may only be referred to in compare expressions",
+        paste(squote(err), collapse = ", ")))
+    }
+  }
+
+  ret
 }
 
 
