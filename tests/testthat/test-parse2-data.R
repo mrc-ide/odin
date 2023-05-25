@@ -34,3 +34,42 @@ test_that("Can parse with a compare expression", {
          compare = list(distribution = "normal",
                         args = list(0, 1))))
 })
+
+
+test_that("compare expressions must use ~ not <-", {
+  expect_error(
+    odin_parse({
+      initial(x) <- 1
+      update(x) <- rnorm(0, 0.1)
+      d <- data()
+      compare(d) <- normal(0, 1)
+    }),
+    "All compare() expressions must use '~' and not '<-' or '='",
+    fixed = TRUE)
+})
+
+
+test_that("compare expressions must be a call", {
+  expect_error(
+    odin_parse({
+      initial(x) <- 1
+      update(x) <- rnorm(0, 0.1)
+      d <- data()
+      compare(d) ~ normal
+    }),
+    "Expected rhs of compare() expression to be a call",
+    fixed = TRUE)
+})
+
+
+test_that("compare expressions must be a call", {
+  expect_error(
+    odin_parse({
+      initial(x) <- 1
+      update(x) <- rnorm(0, 0.1)
+      d <- data()
+      compare(d) ~ exciting(0, 1)
+    }),
+    "Expected rhs to be a valid distribution",
+    fixed = TRUE)
+})

@@ -199,11 +199,6 @@ ir_serialise_equation_user <- function(eq) {
 }
 
 
-ir_serialise_equation_data <- function(eq) {
-  list(data = list(type = scalar(eq$data$type)))
-}
-
-
 ir_serialise_equation_compare <- function(eq) {
   compare <- list(distribution = scalar(eq$rhs$distribution),
                   args = lapply(eq$rhs$args, ir_serialise_expression))
