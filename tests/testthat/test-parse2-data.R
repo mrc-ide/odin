@@ -14,6 +14,18 @@ test_that("Can parse with a data element", {
 })
 
 
+test_that("Can parse with a data element", {
+  expect_error(
+    odin_parse({
+      initial(x) <- 1
+      update(x) <- rnorm(0, 0.1)
+      d <- data(1, 2)
+    }),
+    "Calls to data() must have no arguments",
+    fixed = TRUE)
+})
+
+
 test_that("Can parse with a compare expression", {
   ir <- odin_parse({
     initial(x) <- 1

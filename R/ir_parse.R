@@ -707,8 +707,6 @@ ir_parse_expr <- function(expr, line, source) {
     type <- "dim"
   } else if (identical(lhs$special, "config")) {
     type <- "config"
-  } else if (identical(lhs$special, "compare")) {
-    type <- "compare"
   } else if (lhs$type == "expression_scalar") {
     type <- "expression_scalar"
   } else if (lhs$type == "expression_array") {
