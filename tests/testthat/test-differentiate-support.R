@@ -109,7 +109,7 @@ test_that("expectation of logistic is correct", {
 
 test_that("expectation of lnorm is correct", {
   expr <- make_deterministic(quote(rlnorm(x, y)))
-  expect_equal(expr, quote(exp(x + y^2/2)))
+  expect_equal(expr, quote(exp(x + y^2 / 2)))
   pars <- list(x = 3, y = 0.25)
   expect_equal(
     eval(expr, pars),
@@ -159,7 +159,7 @@ test_that("expectation of t is correct", {
 
 test_that("expectation of weibull is correct", {
   expr <- make_deterministic(quote(rweibull(a, b)))
-  expect_equal(expr, quote(b * gamma(1 + 1/a)))
+  expect_equal(expr, quote(b * gamma(1 + 1 / a)))
   pars <- list(a = 2, b = pi)
   expect_equal(
     eval(expr, pars),
