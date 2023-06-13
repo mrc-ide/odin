@@ -61,7 +61,7 @@ deterministic_rules <- list(
     substitute(exp(mu + sigma^2 / 2), list(mu = expr[[2]], sigma = expr[[3]]))
   },
   rnbinom = function(expr) {
-    substitute(n * p * (1 - p), list(n = expr[[2]], p = expr[[3]]))
+    substitute(n * (1 - p) / p, list(n = expr[[2]], p = expr[[3]]))
   },
   rnorm = function(expr) {
     expr[[2]]

@@ -1,4 +1,6 @@
 test_that("can rewrite expressions to make them deterministic", {
+  expect_equal(make_deterministic(quote(20)), quote(20))
+  expect_equal(make_deterministic(quote(a + b)), quote(a + b))
   expect_equal(
     make_deterministic(quote(rnorm(a, b))),
     quote(a))
@@ -88,8 +90,7 @@ test_that("expectation of geometric is correct", {
 test_that("expectation of hypergeometric is correct", {
   expr <- make_deterministic(quote(rhyper(m, n, k)))
   expect_equal(expr, quote(k * m / (m + n)))
-  pars <- list(k = 17, n = 42, m = 19)
-  skip("error here to fix")
+  pars <- list(m = 19, n = 42, k = 17)
   expect_equal(
     eval(expr, pars),
     expectation_discrete(dhyper, qhyper, pars))
@@ -127,6 +128,12 @@ test_that("expectation of norm is correct", {
 
 
 test_that("expectation of negative binomial is correct", {
+  expr <- make_deterministic(quote(rnbinom(n, p)))
+  expect_equal(expr, quote(n * (1 - p) / p))
+  pars <- list(n = 12, p = 0.234)
+  expect_equal(
+    eval(expr, pars),
+    expectation_discrete(dnbinom, qnbinom, pars))
 })
 
 
