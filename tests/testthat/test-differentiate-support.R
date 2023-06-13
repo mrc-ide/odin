@@ -206,3 +206,43 @@ test_that("can't compute expectation of cauchy", {
     make_deterministic(quote(rcauchy(x, y))),
     "The Cauchy distribution has no mean, and may not be used")
 })
+
+
+test_that("log density of normal is correct", {
+  expr <- log_density("normal", quote(d), list(quote(a), quote(b)))
+  expect_equal(expr, quote(-(d - a)^2/(2 * b^2) - log(sqrt(2 * pi)) - log(b)))
+  dat <- list(d = 2.341, a = 5.924, b = 4.2)
+  expect_equal(eval(expr, dat),
+               dnorm(dat$d, dat$a, dat$b, log = TRUE))
+})
+
+
+test_that("log density of poisson is correct", {
+  expr <- log_density("poisson", quote(d), list(quote(mu)))
+  expect_equal(expr, quote(d * log(mu) - mu - lfactorial(d)))
+  dat <- list(d = 3, mu = 5.234)
+  expect_equal(eval(expr, dat),
+               dpois(dat$d, dat$mu, log = TRUE))
+})
+
+
+test_that("log density of uniform is correct", {
+  expr <- log_density("uniform", quote(d), list(quote(x0), quote(x1)))
+  expect_equal(expr, quote(if (d < x0 || d > x1) -Inf else -log(x1 - x0)))
+  dat1 <- list(d = 3, x0 = 1, x1 = 75)
+  expect_equal(eval(expr, dat1),
+               dunif(dat1$d, dat1$x0, dat1$x1, log = TRUE))
+  dat2 <- list(d = 3, x0 = 9, x1 = 75)
+  expect_equal(eval(expr, dat2),
+               dunif(dat2$d, dat2$x0, dat2$x1, log = TRUE))
+  dat3 <- list(d = 3, x0 = 1, x1 = 2)
+  expect_equal(eval(expr, dat3),
+               dunif(dat3$d, dat3$x0, dat3$x1, log = TRUE))
+})
+
+
+test_that("disable unknown distributions", {
+  expect_error(
+    log_density("cauchy", quote(d), list(quote(a), quote(b))),
+    "Unsupported distribution 'cauchy'")
+})
