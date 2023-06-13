@@ -15,22 +15,6 @@ test_that("expectations of std distrbutions (with no args) are correct", {
 })
 
 
-## Continuous distributions are easy:
-expectation_continuous <- function(fd, pars, from, to) {
-  integrate(
-    function(x) x * do.call(fd, c(list(x), unname(pars))),
-    from, to)$value
-}
-
-
-## Discrete distrbutions are somewhat harder
-expectation_discrete <- function(fd, fq, pars, tol = 1e-12) {
-  end <- do.call(fq, c(list(p = 1 - tol), unname(pars)))
-  n <- seq(0, end, by = 1)
-  sum(n * do.call(fd, c(list(n), unname(pars))))
-}
-
-
 test_that("expectation of beta is correct", {
   expr <- make_deterministic(quote(rbeta(x, y)))
   expect_equal(expr, quote(x / (x + y)))
@@ -93,17 +77,22 @@ test_that("expectation of gamma is correct", {
 
 test_that("expectation of geometric is correct", {
   expr <- make_deterministic(quote(rgeom(pr)))
-  expect_equal(expr, quote(1 / pr))
+  expect_equal(expr, quote((1 - pr) / pr))
   pars <- list(pr = 1 / pi)
-  skip("needs work on expectation")
   expect_equal(
     eval(expr, pars),
     expectation_discrete(dgeom, qgeom, pars))
 })
 
 
-
 test_that("expectation of hypergeometric is correct", {
+  expr <- make_deterministic(quote(rhyper(m, n, k)))
+  expect_equal(expr, quote(k * m / (m + n)))
+  pars <- list(k = 17, n = 42, m = 19)
+  skip("error here to fix")
+  expect_equal(
+    eval(expr, pars),
+    expectation_discrete(dhyper, qhyper, pars))
 })
 
 
@@ -142,22 +131,52 @@ test_that("expectation of negative binomial is correct", {
 
 
 test_that("expectation of poisson is correct", {
+  expr <- make_deterministic(quote(rpois(a)))
+  expect_equal(expr, quote(a))
+  pars <- list(a = pi)
+  expect_equal(
+    eval(expr, pars),
+    expectation_discrete(dpois, qpois, pars))
 })
 
 
 test_that("expectation of t is correct", {
+  expr <- make_deterministic(quote(rt(x)))
+  expect_equal(expr, 0)
+  pars <- list(x = 5)
+  expect_equal(
+    eval(expr, pars),
+    expectation_continuous(dt, pars, -Inf, Inf))
 })
 
 
 test_that("expectation of weibull is correct", {
+  expr <- make_deterministic(quote(rweibull(a, b)))
+  expect_equal(expr, quote(b * gamma(1 + 1/a)))
+  pars <- list(a = 2, b = pi)
+  expect_equal(
+    eval(expr, pars),
+    expectation_continuous(dweibull, pars, -Inf, Inf))
 })
 
 
 test_that("expectation of wilcox is correct", {
+  expr <- make_deterministic(quote(rwilcox(a, b)))
+  expect_equal(expr, quote(a * b / 2))
+  pars <- list(a = 5, b = 9)
+  expect_equal(
+    eval(expr, pars),
+    expectation_discrete(dwilcox, qwilcox, pars))
 })
 
 
 test_that("expectation of signrank is correct", {
+  expr <- make_deterministic(quote(rsignrank(a)))
+  expect_equal(expr, quote(a * (a + 1) / 4))
+  pars <- list(a = 5)
+  expect_equal(
+    eval(expr, pars),
+    expectation_discrete(dsignrank, qsignrank, pars))
 })
 
 

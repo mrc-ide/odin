@@ -48,7 +48,7 @@ deterministic_rules <- list(
     substitute(shape / rate, list(shape = expr[[2]], rate = expr[[3]]))
   },
   rgeom = function(expr) {
-    substitute(1 / p, list(p = expr[[2]]))
+    substitute((1 - p) / p, list(p = expr[[2]]))
   },
   rhyper = function(expr) {
     substitute(k * m / (m + n),
