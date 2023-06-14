@@ -210,7 +210,7 @@ test_that("can't compute expectation of cauchy", {
 
 test_that("log density of normal is correct", {
   expr <- log_density("normal", quote(d), list(quote(a), quote(b)))
-  expect_equal(expr, quote(-(d - a)^2/(2 * b^2) - log(sqrt(2 * pi)) - log(b)))
+  expect_equal(expr, quote(-(d - a)^2 / (2 * b^2) - log(sqrt(2 * pi)) - log(b)))
   dat <- list(d = 2.341, a = 5.924, b = 4.2)
   expect_equal(eval(expr, dat),
                dnorm(dat$d, dat$a, dat$b, log = TRUE))

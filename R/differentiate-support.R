@@ -93,13 +93,13 @@ deterministic_rules <- list(
 ##
 ## The user is going to write out:
 ##
-##   compare(d) ~ poisson(lambda)
+##   > compare(d) ~ poisson(lambda)
 ##
 ## which corresponds to writing
 ##
-##   dpois(d, lambda, log = TRUE)
-##    ==> log(lambda^x * exp(-lambda) / x!)
-##    ==> x * log(lambda) - lambda - lfactorial(x)
+##   > dpois(d, lambda, log = TRUE)
+##     ==> log(lambda^x * exp(-lambda) / x!)
+##     ==> x * log(lambda) - lambda - lfactorial(x)
 ##
 ## All the density functions will have the same form here, with the
 ## lhs becoming the 'x' argument (all d* functions take 'x' as the
