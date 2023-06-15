@@ -11,8 +11,8 @@ test_that("can apply the product rule", {
   expect_equal(differentiate(quote(y * x), "x"), quote(y))
   expect_equal(differentiate(quote(2 * x * y), "x"), quote(2 * y))
 
-  differentiate(quote(-(y) * x), "x")
-  differentiate(quote((y) * x), "x")
+  expect_equal(differentiate(quote((y) * x), "x"), quote(y))
+  differentiate(quote(-(y) * x), "x") # TODO: simplify me
 })
 
 test_that("parentheses have no effect in product chains", {
@@ -36,12 +36,12 @@ test_that("can subtract derivatives", {
 })
 
 test_that("quotient rule is correct", {
-  expect_equal(differentiate(quote(x / x), "x"),
-               quote((x + x) / (x * x)))
   expect_equal(
-    differentiate(quote((2 * x) / (3 * x)), "x")
+    differentiate(quote(a / b), "a"),
+    quote(1 / b))
+  expect_equal(differentiate(quote(exp(x) / x), "x"),
+               quote(exp(x) / x - exp(x) / (x * x)))
 })
-
 
 test_that("Can differentiate all the bits for the basic SIR model", {
   expect_equal(differentiate(quote(beta * I/N * dt), "dt"),
@@ -52,7 +52,7 @@ test_that("Can differentiate all the bits for the basic SIR model", {
                quote(gamma * exp(-gamma * dt)))
   ## One too many layers of parens:
   expect_equal(differentiate(quote(beta * I/N * dt), "N"),
-               quote(-beta * I * dt/(N * N)))
+               quote(-beta * I * dt/(N * N))) # TODO
   expect_equal(differentiate(quote(I + n_SI - n_IR), "n_IR"),
                -1)
   expect_equal(differentiate(quote(R + n_IR), "n_IR"),
@@ -80,7 +80,7 @@ test_that("Can differentiate all the bits for the basic SIR model", {
   expect_equal(differentiate(quote(I * p_IR), "I"),
                quote(p_IR))
   ## There's some cancelling here, probably a better way of writing the quotient rule?
-  expect_equal(differentiate(quote(beta * I/N * dt), "I"), # TODO
+  expect_equal(differentiate(quote(beta * I/N * dt), "I"),
                quote(beta * dt/N))
   expect_equal(differentiate(quote(I + n_SI - n_IR), "I"),
                1)
@@ -94,8 +94,8 @@ test_that("Can differentiate all the bits for the basic SIR model", {
                quote(p_SI))
   expect_equal(differentiate(quote(S - n_SI), "S"),
                1)
-  expect_equal(differentiate(quote(beta * I/N * dt), "beta"), # TODO
-               quote(dt * I/N))
+  expect_equal(differentiate(quote(beta * I/N * dt), "beta"),
+               quote(I * dt/N))
   expect_equal(differentiate(quote(1L - exp(-gamma * dt)), "gamma"),
                quote(dt * exp(-gamma * dt)))
   ## Could simplify here in divide (TODO)

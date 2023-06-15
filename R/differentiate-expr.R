@@ -153,9 +153,19 @@ derivative <- list(
     b <- expr[[3]]
     da <- differentiate(a, name)
     db <- differentiate(b, name)
-    maths$divide(
-      maths$minus(maths$times(da, b), maths$times(a, db)),
-      maths$pow(b, 2))
+    ## we can either do this as
+    ##
+    ##  (f'(x)g(x) - f(x)g'(x)) / (g(x)^2)
+    ##
+    ## or
+    ##
+    ##  f'(x) / g(x) - f(x)g'(x) / (g(x)^2)
+    ##
+    ## and the latter seems to simplify better, especially where g'(x)
+    ## is zero
+    maths$minus(
+      maths$divide(da, b),
+      maths$divide(maths$times(a, db), maths$times(b, b)))
   },
   `(` = function(expr, name) {
     differentiate(expr[[2]], name)
