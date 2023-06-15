@@ -28,8 +28,11 @@ maths <- local({
   .is_minus_one <- function(x) {
     is.numeric(x) && x == -1
   }
-  .is_unary_minus <- function(expr) {
-    is_call(expr, "-") && length(expr) == 2
+  .is_unary_minus <- function(expr, recurse = FALSE) {
+    is_call(expr, "-") && length(expr) == 2 ||
+      (recurse && (
+        (is_call(expr, "*") || is_call(expr, "/")) &&
+        .is_unary_minus(expr[[2]], TRUE)))
   }
   plus <- function(a, b) {
     if (is.numeric(a) && is.numeric(b)) {
@@ -90,8 +93,12 @@ maths <- local({
       ## we have (a * (b2 / b3)) -> (a * b2) / b3
       maths$divide(maths$times(a, b[[2]]), b[[3]])
     } else {
+      if (.is_unary_minus(b, TRUE)) {
+        a <- maths$uminus(a)
+        b <- maths$uminus(b)
+      }
       aa <- .protect(a, c("*", "unary_minus", "/"))
-      bb <- .protect(b, c("*", "unary_minus"))
+      bb <- .protect(b, "*")
       if (is_call(b, "*")) {
         call("*", call("*", aa, bb[[2]]), bb[[3]])
       } else {
@@ -111,10 +118,13 @@ maths <- local({
     } else if (is_call(a, "/")) {
       maths$divide(a[[2]], maths$times(a[[3]], b))
     } else if (is_call(b, "/")) {
-      maths$times(a, math$divide(b[[3]], b[[2]]))
+      maths$times(a, maths$divide(b[[3]], b[[2]]))
     } else {
-      ## browser()
-      call("/", .protect(a, c("*", "^")), .protect(b, "^"))
+      if (.is_unary_minus(b, TRUE)) {
+        a <- maths$uminus(a)
+        b <- maths$uminus(b)
+      }
+      call("/", .protect(a, c("*", "unary_minus", "^")), .protect(b, "^"))
     }
   }
   pow <- function(a, b) {
