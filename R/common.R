@@ -21,8 +21,9 @@ RING <- "odin_ring"
 ## variables) but that needs checking too.  Not 100% sure this is done
 ## on the lhs index bits.  Probably need to standardise that at some
 ## point.
-SPECIAL_LHS <- c("initial", "deriv", "update", "output", "dim", "config")
-SPECIAL_RHS <- c("user", "interpolate", "delay")
+SPECIAL_LHS <- c("initial", "deriv", "update", "output", "dim", "config",
+                 "compare")
+SPECIAL_RHS <- c("user", "interpolate", "delay", "data")
 INDEX <- c("i", "j", "k", "l", "i5", "i6", "i7", "i8") # TODO: make open
 INTERNAL <- "internal"
 

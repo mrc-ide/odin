@@ -2,6 +2,9 @@ generate_r <- function(dat, options) {
   if (dat$features$mixed) {
     stop("Models that mix deriv() and update() are not supported")
   }
+  if (dat$features$has_compare || dat$features$has_data) {
+    stop("data() and compare() not supported")
+  }
 
   if (dat$features$has_delay) {
     ## We're going to need an additional bit of internal data here,

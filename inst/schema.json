@@ -44,7 +44,7 @@
 
             "location": {
                 "type": "string",
-                "enum": ["transient", "internal", "variable", "output"]
+                "enum": ["transient", "internal", "variable", "output", "data"]
             },
 
             "equation_type": {
@@ -59,6 +59,7 @@
                     "delay_discrete",
                     "interpolate",
                     "user",
+                    "compare",
                     "expression_array",
                     "expression_inplace",
                     "expression_scalar"
@@ -196,6 +197,8 @@
                 "has_array": { "type": "boolean" },
                 "has_output": { "type": "boolean" },
                 "has_user": { "type": "boolean" },
+                "has_data": { "type": "boolean" },
+                "has_compare": { "type": "boolean" },
                 "has_delay": { "type": "boolean" },
                 "has_interpolate": { "type": "boolean" },
                 "has_stochastic": { "type": "boolean" },
@@ -341,6 +344,7 @@
                         {"$ref": "#/definitions/equation_alloc_interpolate"},
                         {"$ref": "#/definitions/equation_alloc_ring"},
                         {"$ref": "#/definitions/equation_user"},
+                        {"$ref": "#/definitions/equation_compare"},
                         {"$ref": "#/definitions/equation_expression_array"},
                         {"$ref": "#/definitions/equation_expression_inplace"},
                         {"$ref": "#/definitions/equation_expression_scalar"},
@@ -654,6 +658,35 @@
             "additionalProperties": false
         },
 
+        "equation_compare": {
+            "type": "object",
+            "properties": {
+                "type": {"const": "compare"},
+                "name": {},
+                "source": {},
+                "depends": {},
+                "lhs": {},
+                "compare": {
+                    "type": "object",
+                    "properties": {
+                        "distribution": {
+                            "type": "string"
+                        },
+                        "args": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/sexpression"
+                            }
+                        }
+                    },
+                    "required": ["distribution", "args"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["type", "compare"],
+            "additionalProperties": false
+        },
+
         "equation_delay_continuous": {
             "type": "object",
             "properties": {
@@ -739,6 +772,7 @@
                 "initial": { "$ref": "#/definitions/component" },
                 "rhs": { "$ref": "#/definitions/component" },
                 "output": { "$ref": "#/definitions/component" },
+                "compare": { "$ref": "#/definitions/component" },
                 "update_stochastic": { "$ref": "#/definitions/component" }
             },
             "required": ["create", "user", "initial", "rhs", "output"],

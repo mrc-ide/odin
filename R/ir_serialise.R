@@ -136,7 +136,10 @@ ir_serialise_equation <- function(eq) {
     expression_inplace = ir_serialise_equation_expression_inplace(eq),
     interpolate = ir_serialise_equation_interpolate(eq),
     user = ir_serialise_equation_user(eq),
-    stop("odin bug"))
+    data = ir_serialise_equation_data(eq),
+    compare = ir_serialise_equation_compare(eq),
+    stop(sprintf("Can't serialise unknown equation type '%s' [odin bug]",
+                 eq$type)))
   c(base, extra)
 }
 
@@ -193,6 +196,13 @@ ir_serialise_equation_user <- function(eq) {
                    dim = scalar(eq$user$dim),
                    min = ir_serialise_expression(eq$user$min),
                    max = ir_serialise_expression(eq$user$max)))
+}
+
+
+ir_serialise_equation_compare <- function(eq) {
+  compare <- list(distribution = scalar(eq$rhs$distribution),
+                  args = lapply(eq$rhs$args, ir_serialise_expression))
+  list(compare = compare)
 }
 
 
