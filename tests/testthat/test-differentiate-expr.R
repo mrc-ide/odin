@@ -103,9 +103,9 @@ test_that("differentiate conditionals", {
 
 test_that("differentiate log factorial", {
   expect_equal(differentiate(quote(lfactorial(x)), "x"),
-               quote(digamma(x + 1)))
+               quote(digamma(1 + x)))
   expect_equal(differentiate(quote(lfactorial(log(x))), "x"),
-               quote(digamma(log(x) + 1) / x))
+               quote(digamma(1 + log(x)) / x))
 })
 
 test_that("differentiate absolute value function", {
@@ -219,33 +219,22 @@ test_that("uminus on subtraction reverses arguments", {
 })
 
 
-test_that("chains of multiplication are sorted canonically", {
-  expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
-  expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
-  expect_equal(maths$times(maths$times(2, quote(a)), maths$times(quote(b), 3)),
-               quote(6 * a * b))
+test_that("times copes with numeric edge cases", {
+  expect_equal(maths$times(3, 5), 15)
+  expect_equal(maths$times(1, quote(a)), quote(a))
+  expect_equal(maths$times(quote(a), 1), quote(a))
+  expect_equal(maths$times(0, quote(a)), 0)
+  expect_equal(maths$times(quote(a), 0), 0)
+  expect_equal(maths$times(-1, quote(a)), quote(-a))
+  expect_equal(maths$times(quote(a), -1), quote(-a))
 })
 
 
-test_that("multiplication strips excess parentheses", {
-  expect_equal(maths$times(quote((a)), 1), quote(a))
-  expect_equal(maths$times(quote((a)), quote(b)), quote(a * b))
-})
-
-
-test_that("simplify multiply-and-divide", {
+test_that("shift divisions down the multiplication chain", {
   expect_equal(maths$times(quote(a / b), quote(c)),
                quote(a * c / b))
-  expect_equal(maths$times(quote(a * b / c), quote(d)),
-               quote(a * b * d / c))
-})
-
-
-test_that("simplify repeated-divide", {
-  expect_equal(maths$divide(quote(a / b), quote(c)),
-               quote(a / (b * c)))
-  expect_equal(maths$times(quote(a * b / c), quote(d)),
-               quote(a * b * d / c))
+  expect_equal(maths$times(quote(a / b), quote(c * d)),
+               quote(a * c * d / b))
 })
 
 
@@ -262,6 +251,40 @@ test_that("can move unary minuses through product chains", {
 })
 
 
+test_that("chains of multiplication collect numbers", {
+  expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
+  expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
+  expect_equal(maths$times(maths$times(2, quote(a)), maths$times(quote(b), 3)),
+               quote(6 * a * b))
+})
+
+
+test_that("multiplication strips excess parentheses", {
+  expect_equal(maths$times(quote((a)), 1), quote(a))
+  expect_equal(maths$times(quote((a)), quote(b)), quote(a * b))
+})
+
+
+test_that("cope with division corner cases", {
+  expect_equal(maths$divide(3, 4), 3 / 4)
+  expect_equal(maths$divide(quote(a), 1), quote(a))
+  expect_equal(maths$divide(0, quote(a)), 0)
+  expect_equal(maths$divide(quote(a), 0), Inf)
+})
+
+
+test_that("simplify chains of divide", {
+  expect_equal(maths$divide(quote(a / b), quote(c)),
+               quote(a / (b * c)))
+  expect_equal(maths$divide(quote(a), quote(b / c)),
+               quote(a * c / b))
+  expect_equal(maths$divide(quote(a / b), quote(c / d)),
+               quote(a * d / (b * c)))
+  expect_equal(maths$times(quote(a * b / c), quote(d)),
+               quote(a * b * d / c))
+})
+
+
 test_that("can move unary minuses through divisions chains", {
   expect_equal(maths$divide(quote(a), quote(b)), quote(a / b))
   expect_equal(maths$divide(quote(-a), quote(b)), quote(-a / b))
@@ -272,6 +295,24 @@ test_that("can move unary minuses through divisions chains", {
   expect_equal(maths$divide(maths$divide(quote(a), quote(b)),
                             maths$divide(quote(c), quote(-d))),
                quote(-a * d / (b * c)))
+})
+
+
+test_that("pow copes with numeric edge cases", {
+  expect_equal(maths$pow(3, 2), 9)
+  expect_equal(maths$pow(quote(a), 1), quote(a))
+})
+
+
+test_that("rewrite squares of symbols", {
+  expect_equal(maths$pow(quote(a), 2), quote(a * a))
+  expect_equal(maths$pow(quote(a + b), 2), quote((a + b)^2))
+})
+
+
+test_that("protect arguments to pow", {
+  expect_identical(maths$pow(quote(a + b), quote(c + d)),
+                   quote((a + b)^(c + d)))
 })
 
 

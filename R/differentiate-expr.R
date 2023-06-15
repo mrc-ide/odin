@@ -168,7 +168,7 @@ maths <- local({
     } else if (is_zero(a)) {
       uminus(b)
     } else {
-      call("-", a, .protect(b, NULL))
+      call("-", a, .protect(b, c("*", "/", "^")))
     }
   }
   uminus <- function(a) {
@@ -219,10 +219,7 @@ maths <- local({
       }
       aa <- .protect(a, c("*", "unary_minus", "/", "^"))
       bb <- .protect(b, c("*", "^"))
-      if (is.numeric(bb)) {
-        stop("impossible?")
-        call("*", bb, aa)
-      } else if (is_call(bb, "*")) {
+      if (is_call(bb, "*")) {
         call("*", call("*", aa, bb[[2]]), bb[[3]])
       } else {
         call("*", aa, bb)
