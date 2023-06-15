@@ -39,6 +39,8 @@ test_that("quotient rule is correct", {
   expect_equal(
     differentiate(quote(a / b), "a"),
     quote(1 / b))
+  expect_equal(differentiate(quote(a / b), "b"),
+               quote(-a / (b * b)))
   expect_equal(differentiate(quote(exp(x) / x), "x"),
                quote(exp(x) / x - exp(x) / (x * x)))
 })
@@ -87,7 +89,7 @@ test_that("differentiate square roots", {
   expect_equal(differentiate(quote(sqrt(x)), "x"),
                quote(1 / (2 * sqrt(x))))
   expect_equal(differentiate(quote(sqrt(1 + exp(x))), "x"),
-               quote(exp(x)/(2 * sqrt(1 + exp(x)))))
+               quote(exp(x) / (2 * sqrt(1 + exp(x)))))
 })
 
 test_that("differentiate conditionals", {
@@ -195,4 +197,16 @@ test_that("can rewrite expressions", {
 test_that("uminus strips parentheses", {
   expect_equal(maths$uminus(quote(a)), quote(-a))
   expect_equal(maths$uminus(quote((a))), quote(-a))
+})
+
+
+test_that("uminus on fraction moves to numerator", {
+  expect_equal(maths$uminus(quote(a / b)),
+               quote(-a / b))
+  expect_equal(maths$uminus(quote(a / (b * c))),
+               quote(-a / (b * c)))
+  expect_equal(maths$uminus(quote((a * b) / (c * d))),
+               quote(-(a * b) / (c * d)))
+  expect_equal(maths$uminus(quote(a * b / (c * d))),
+               quote(-a * b / (c * d)))
 })

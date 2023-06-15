@@ -178,6 +178,8 @@ maths <- local({
       } else {
         times(uminus(a[[2]]), a[[3]])
       }
+    } else if (is_call(a, "/")) {
+      maths$divide(maths$uminus(a[[2]]), a[[3]])
     } else if (is_call(a, "-") && length(a) == 3) {
       minus(a[[3]], a[[2]])
     } else {
@@ -188,15 +190,14 @@ maths <- local({
     if (is.numeric(a) && is.numeric(b)) {
       a * b
     } else if (is.numeric(b)) {
+      ## below here, we can assume that 'b' is a language expression
       times(b, a)
-    } else if (is_zero(a) || is_zero(b)) {
+    } else if (is_zero(a)) {
       0
     } else if (is_one(a)) {
       rewrite(b)
     } else if (is_minus_one(a)) {
       uminus(b)
-    } else if (is_one(b)) {
-      rewrite(a)
     } else if (is_call(a, "/")) {
       ## we have (a2 / a3 * b -> a2 * b / a3)
       divide(times(a[[2]], b), a[[3]])
