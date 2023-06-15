@@ -1,3 +1,111 @@
+## Differentiation support for (eventually) the odin DSL (and not for
+## R generally). This will handle the same array and summation
+## semantics as used in odin, as well as differentiation of stochastic
+## processes made deterministic.
+
+## There are two levels here;
+##
+## 1. differentiate, via the list of functions "derivative" does the
+##    differentiation of each expression
+## 2. expression writing, via the environment of functions "maths"
+##    does a moderately sensible job of writing expressions with a bit
+##    of simplification.
+##
+## The maths step can be entirely removed but you do end up with lots
+## of really ugly expressions with extra parentheses and things
+## multiplied by zero that should be removed.
+differentiate <- function(expr, name) {
+  if (is.numeric(expr)) {
+    0
+  } else if (is.symbol(expr)) {
+    if (identical(expr, as.symbol(name))) 1 else 0
+  } else {
+    fn <- as.character(expr[[1]])
+    if (!fn %in% names(derivative)) {
+      stop(sprintf("Unsupported function '%s' in differentiate()", fn))
+    }
+    derivative[[fn]](expr, name)
+  }
+}
+
+
+derivative <- list(
+  `+` = function(expr, name) {
+    maths$plus(differentiate(expr[[2]], name),
+               differentiate(expr[[3]], name))
+  },
+  `-` = function(expr, name) {
+    if (length(expr) == 3) {
+      maths$minus(differentiate(expr[[2]], name),
+                  differentiate(expr[[3]], name))
+    } else {
+      maths$uminus(differentiate(expr[[2]], name))
+    }
+  },
+  `*` = function(expr, name) {
+    a <- maths$rewrite(expr[[2]])
+    b <- maths$rewrite(expr[[3]])
+    da <- differentiate(a, name)
+    db <- differentiate(b, name)
+    maths$plus(maths$times(da, b), maths$times(a, db))
+  },
+  `/` = function(expr, name) {
+    a <- maths$rewrite(expr[[2]])
+    b <- maths$rewrite(expr[[3]])
+    da <- differentiate(a, name)
+    db <- differentiate(b, name)
+    maths$minus(
+      maths$divide(da, b),
+      maths$divide(maths$times(a, db), maths$times(b, b)))
+  },
+  `^` = function(expr, name) {
+    a <- maths$rewrite(expr[[2]])
+    b <- maths$rewrite(expr[[3]])
+    da <- differentiate(a, name)
+    db <- differentiate(b, name)
+    if (maths$is_zero(db)) {
+      maths$times(b, maths$times(maths$pow(a, maths$minus(b, 1)), da))
+    } else if (maths$is_zero(da)) {
+      maths$times(maths$pow(a, b), maths$times(call("log", a), db))
+    } else {
+      ## a^(b - 1) * (b da + a log(a) db)
+      maths$times(
+        maths$pow(a, maths$minus(b, 1)),
+        maths$plus(maths$times(b, da),
+                   maths$times(a, maths$times(call("log", a), db))))
+    }
+  },
+  `(` = function(expr, name) {
+    differentiate(expr[[2]], name)
+  },
+  exp = function(expr, name) {
+    a <- maths$rewrite(expr[[2]])
+    maths$times(differentiate(a, name), call("exp", a))
+  },
+  log = function(expr, name) {
+    a <- maths$rewrite(expr[[2]])
+    maths$divide(differentiate(a, name), a)
+  },
+  sqrt = function(expr, name) {
+    maths$divide(differentiate(x, name),
+                 maths$times(2 * maths$rewrite(expr)))
+  },
+  `if` = function(expr, name) {
+    condition <- maths$rewrite(expr[[2]])
+    da <- differentiate(expr[[3]], name)
+    db <- differentiate(expr[[4]], name)
+    if (identical(da, db)) da else call("if", condition, da, db)
+  },
+  lfactorial = function(expr, name) {
+    a <- maths$rewrite(expr[[2]])
+    maths$times(differentiate(a, name), call("digamma", maths$plus(a, 1)))
+  },
+  abs = function(expr, name) {
+    a <- maths$rewrite(expr[[2]])
+    maths$times(differentiate(x, name) * call("sign", a))
+  }
+)
+
 maths <- local({
   .protect <- function(x, except) {
     if (is.recursive(x)) {
@@ -17,16 +125,7 @@ maths <- local({
     }
   }
   .drop_parens <- function(x) {
-    if (is_call(x, "(")) x[[2]] else x
-  }
-  .is_zero <- function(x) {
-    is.numeric(x) && x == 0
-  }
-  .is_one <- function(x) {
-    is.numeric(x) && x == 1
-  }
-  .is_minus_one <- function(x) {
-    is.numeric(x) && x == -1
+    if (is_call(x, "(")) .drop_parens(x[[2]]) else x
   }
   .is_unary_minus <- function(expr, recurse = FALSE) {
     (is.numeric(expr) && expr < 0) ||
@@ -35,12 +134,21 @@ maths <- local({
         (is_call(expr, "*") || is_call(expr, "/")) &&
         .is_unary_minus(expr[[2]], TRUE)))
   }
+  is_zero <- function(x) {
+    is.numeric(x) && x == 0
+  }
+  is_one <- function(x) {
+    is.numeric(x) && x == 1
+  }
+  is_minus_one <- function(x) {
+    is.numeric(x) && x == -1
+  }
   plus <- function(a, b) {
     if (is.numeric(a) && is.numeric(b)) {
       a + b
-    } else if (.is_zero(b)) {
+    } else if (is_zero(b)) {
       .drop_parens(a)
-    } else if (.is_zero(a)) {
+    } else if (is_zero(a)) {
       .drop_parens(b)
     } else {
       call("+", a, b)
@@ -49,9 +157,9 @@ maths <- local({
   minus <- function(a, b) {
     if (is.numeric(a) && is.numeric(b)) {
       a - b
-    } else if (.is_zero(b)) {
+    } else if (is_zero(b)) {
       .drop_parens(a)
-    } else if (.is_zero(a)) {
+    } else if (is_zero(a)) {
       uminus(b)
     } else {
       call("-", a, b)
@@ -81,14 +189,14 @@ maths <- local({
       a * b
     } else if (is.numeric(b)) {
       times(b, a)
-    } else if (.is_zero(a) || .is_zero(b)) {
+    } else if (is_zero(a) || is_zero(b)) {
       0
-    } else if (.is_one(a)) {
-      .drop_parens(b)
-    } else if (.is_minus_one(a)) {
+    } else if (is_one(a)) {
+      rewrite(b)
+    } else if (is_minus_one(a)) {
       uminus(b)
-    } else if (.is_one(b)) {
-      .drop_parens(a)
+    } else if (is_one(b)) {
+      rewrite(a)
     } else if (is_call(a, "/")) {
       ## we have (a2 / a3 * b -> a2 * b / a3)
       divide(times(a[[2]], b), a[[3]])
@@ -102,8 +210,8 @@ maths <- local({
         a <- uminus(a)
         b <- uminus(b)
       }
-      aa <- .protect(a, c("*", "unary_minus", "/"))
-      bb <- .protect(b, "*")
+      aa <- .protect(a, c("*", "unary_minus", "/", "^"))
+      bb <- .protect(b, c("*", "^"))
       if (is.numeric(bb)) {
         call("*", bb, aa)
       } else if (is_call(bb, "*")) {
@@ -116,11 +224,11 @@ maths <- local({
   divide <- function(a, b) {
     if (is.numeric(a) && is.numeric(b)) {
       a / b
-    } else if (.is_one(b)) {
+    } else if (is_one(b)) {
       a
-    } else if (.is_zero(a)) {
+    } else if (is_zero(a)) {
       0
-    } else if (.is_zero(b)) {
+    } else if (is_zero(b)) {
       Inf
     } else if (is_call(a, "/")) {
       divide(a[[2]], times(a[[3]], b))
@@ -137,7 +245,7 @@ maths <- local({
   pow <- function(a, b) {
     if (is.numeric(a) && is.numeric(b)) {
       a^b
-    } else if (.is_one(b)) {
+    } else if (is_one(b)) {
       a
     } else if (is.numeric(b) && b == 2 && is.symbol(a)) {
       times(a, a)
@@ -145,83 +253,30 @@ maths <- local({
       call("^", .protect(a, NULL), .protect(b, NULL))
     }
   }
+  rewrite <- function(expr) {
+    if (is.recursive(expr)) {
+      fn <- as.character(expr[[1]])
+      args <- lapply(expr[-1], rewrite)
+      if (fn == "+") {
+        plus(args[[1]], args[[2]])
+      } else if (fn == "-" && length(expr) == 3) {
+        minus(args[[1]], args[[2]])
+      } else if (fn == "-" && length(expr) == 2) {
+        uminus(args[[1]])
+      } else if (fn == "*") {
+        times(args[[1]], args[[2]])
+      } else if (fn == "/") {
+        divide(args[[1]], args[[2]])
+      } else if (fn == "*") {
+        times(args[[1]], args[[2]])
+      } else if (fn == "(") {
+        args[[1]]
+      } else {
+        as.call(c(list(expr[[1]]), args))
+      }
+    } else {
+      expr
+    }
+  }
   as.list(environment())
 })
-
-derivative <- list(
-  `+` = function(expr, name) {
-    maths$plus(differentiate(expr[[2]], name),
-               differentiate(expr[[3]], name))
-  },
-  `-` = function(expr, name) {
-    if (length(expr) == 3) {
-      maths$minus(differentiate(expr[[2]], name),
-                  differentiate(expr[[3]], name))
-    } else {
-      maths$uminus(differentiate(expr[[2]], name))
-    }
-  },
-  `*` = function(expr, name) {
-    a <- expr[[2]]
-    b <- expr[[3]]
-    da <- differentiate(a, name)
-    db <- differentiate(b, name)
-    maths$plus(maths$times(da, b), maths$times(a, db))
-  },
-  `/` = function(expr, name) {
-    a <- expr[[2]]
-    b <- expr[[3]]
-    da <- differentiate(a, name)
-    db <- differentiate(b, name)
-    ## we can either do this as
-    ##
-    ##  (f'(x)g(x) - f(x)g'(x)) / (g(x)^2)
-    ##
-    ## or
-    ##
-    ##  f'(x) / g(x) - f(x)g'(x) / (g(x)^2)
-    ##
-    ## and the latter seems to simplify better, especially where g'(x)
-    ## is zero
-    maths$minus(
-      maths$divide(da, b),
-      maths$divide(maths$times(a, db), maths$times(b, b)))
-  },
-  `(` = function(expr, name) {
-    differentiate(expr[[2]], name)
-  },
-  exp = function(expr, name) {
-    maths$times(differentiate(expr[[2]], name), expr)
-  },
-  log = function(expr, name) {
-    a <- expr[[2]]
-    maths$divide(differentiate(a, name), a)
-  },
-  `if` = function(expr, name) {
-    a <- differentiate(expr[[3]], name)
-    b <- differentiate(expr[[4]], name)
-    if (identical(a, b)) a else call("if", expr[[2]], a, b)
-  },
-  lfactorial = function(expr, name) {
-    a <- expr[[2]]
-    da <- differentiate(a, name)
-    maths$times(da, call("digamma", maths$plus(a, 1)))
-  }
-)
-
-differentiate <- function(expr, name) {
-  if (is.symbol(expr)) {
-    if (identical(expr, as.symbol(name))) 1 else 0
-  } else if (is.numeric(expr)) {
-    0
-  } else if (is.recursive(expr)) {
-    fn <- as.character(expr[[1]])
-   if (fn %in% names(derivative)) {
-      derivative[[fn]](expr, name)
-    } else {
-      browser()
-    }
-  } else {
-    stop("unreachable?")
-  }
-}

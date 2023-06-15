@@ -43,6 +43,36 @@ test_that("quotient rule is correct", {
                quote(exp(x) / x - exp(x) / (x * x)))
 })
 
+test_that("can differentiate f(x)^a", {
+  expect_equal(differentiate(quote(x^a), "x"),
+               quote(a * x^(a - 1)))
+  expect_equal(differentiate(quote((2 * x)^a), "x"),
+               quote(2 * a * (2 * x)^(a - 1)))
+  expect_equal(differentiate(quote(x^a), "a"),
+               quote(x^a * log(x)))
+  expect_equal(differentiate(quote(x^(2 * a)), "a"),
+               quote(2 * x^(2 * a) * log(x)))
+
+  ## d/dx (f(x)^g(x)) is much more complicated:
+  expect_equal(
+    differentiate(quote((2 * x)^exp(x)), "x"),
+    quote((2 * x)^(exp(x) - 1) * (2 * exp(x) + 2 * x * log(2 * x) * exp(x))))
+  expect_equal(
+    eval(differentiate(quote((2 * x)^exp(x)), "x"), list(x = 0.3)),
+    eval(D(quote((2 * x)^exp(x)), "x"), list(x = 0.3)))
+})
+
+
+test_that("differentiate expressions with exp()", {
+  expect_equal(differentiate(quote(exp(x)), "x"),
+               quote(exp(x)))
+  expect_equal(differentiate(quote(exp(2 * x)), "x"),
+               quote(2 * exp(2 * x)))
+  expect_equal(differentiate(quote(exp((2 * x))), "x"),
+               quote(2 * exp(2 * x)))
+})
+
+
 test_that("differentiate expressions with log()", {
   expect_equal(
     differentiate(quote(log(x)), "x"),
@@ -55,12 +85,23 @@ test_that("differentiate expressions with log()", {
     quote(a / x - 1))
 })
 
+test_that("differentiate conditionals", {
+  expect_equal(
+    differentiate(quote(if (a) x else 2 * x), "x"),
+    quote(if (a) 1 else 2))
+  expect_equal(
+    differentiate(quote(if (a) x else x), "x"),
+    1)
+  expect_equal(
+    differentiate(quote(if (a) 2 * x else 2 * x), "x"),
+    2)
+})
+
 
 test_that("can construct expressions", {
   expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
   expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
 })
-
 
 test_that("chains of multiplication are sorted canonically", {
   expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
@@ -115,4 +156,17 @@ test_that("can move unary minuses through divisions chains", {
   expect_equal(maths$divide(maths$divide(quote(a), quote(b)),
                             maths$divide(quote(c), quote(-d))),
                quote(-a * d / (b * c)))
+})
+
+
+test_that("can rewrite expressions", {
+  expect_equal(maths$rewrite(quote(1 / x * a)), quote(a / x))
+  expect_equal(maths$rewrite(quote(((b)) + (a))), quote(b + a))
+  expect_equal(maths$rewrite(quote((a + b) * c)), quote((a + b) * c))
+})
+
+
+test_that("uminus strips parentheses", {
+  expect_equal(maths$uminus(quote(a)), quote(-a))
+  expect_equal(maths$uminus(quote((a))), quote(-a))
 })
