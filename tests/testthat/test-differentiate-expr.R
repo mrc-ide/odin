@@ -58,13 +58,15 @@ test_that("differentiate expressions with log()", {
 
 test_that("can construct expressions", {
   expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
-  expect_equal(maths$times(quote((a * b)), 2), quote(a * b * 2))
+  expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
 })
 
 
 test_that("chains of multiplication are sorted canonically", {
-  expect_equal(maths$minus(2, quote((a * b))), quote(2 * a * b))
-  expect_equal(maths$times(quote((a * b)), 2), quote(a * b * 2))
+  expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
+  expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
+  expect_equal(maths$times(maths$times(2, quote(a)), maths$times(quote(b), 3)),
+               quote(6 * a * b))
 })
 
 
@@ -112,5 +114,5 @@ test_that("can move unary minuses through divisions chains", {
                quote(-a / (b * c)))
   expect_equal(maths$divide(maths$divide(quote(a), quote(b)),
                             maths$divide(quote(c), quote(-d))),
-               quote(-a * b * (c * d)))
+               quote(-a * d / (b * c)))
 })

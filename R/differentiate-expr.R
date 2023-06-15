@@ -29,7 +29,8 @@ maths <- local({
     is.numeric(x) && x == -1
   }
   .is_unary_minus <- function(expr, recurse = FALSE) {
-    is_call(expr, "-") && length(expr) == 2 ||
+    (is.numeric(expr) && expr < 0) ||
+      (is_call(expr, "-") && length(expr) == 2) ||
       (recurse && (
         (is_call(expr, "*") || is_call(expr, "/")) &&
         .is_unary_minus(expr[[2]], TRUE)))
@@ -63,14 +64,14 @@ maths <- local({
       a[[2]]
     } else if (is_call(a, "*")) {
       if (.is_unary_minus(a[[2]])) {
-        maths$times(a[[2]][[2]], a[[3]])
+        times(a[[2]][[2]], a[[3]])
       } else if (.is_unary_minus(a[[3]])) {
-        maths$times(a[[2]], a[[3]][[2]])
+        times(a[[2]], a[[3]][[2]])
       } else {
-        maths$times(uminus(a[[2]]), a[[3]])
+        times(uminus(a[[2]]), a[[3]])
       }
     } else if (is_call(a, "-") && length(a) == 3) {
-      maths$minus(a[[3]], a[[2]])
+      minus(a[[3]], a[[2]])
     } else {
       call("-", .protect(a, c("*", "/", "^")))
     }
@@ -78,28 +79,34 @@ maths <- local({
   times <- function(a, b) {
     if (is.numeric(a) && is.numeric(b)) {
       a * b
+    } else if (is.numeric(b)) {
+      times(b, a)
     } else if (.is_zero(a) || .is_zero(b)) {
       0
     } else if (.is_one(a)) {
       .drop_parens(b)
     } else if (.is_minus_one(a)) {
-      maths$uminus(b)
+      uminus(b)
     } else if (.is_one(b)) {
       .drop_parens(a)
     } else if (is_call(a, "/")) {
       ## we have (a2 / a3 * b -> a2 * b / a3)
-      maths$divide(maths$times(a[[2]], b), a[[3]])
+      divide(times(a[[2]], b), a[[3]])
     } else if (is_call(b, "/")) {
       ## we have (a * (b2 / b3)) -> (a * b2) / b3
-      maths$divide(maths$times(a, b[[2]]), b[[3]])
+      divide(times(a, b[[2]]), b[[3]])
+    } else if (is_call(b, "*") && is.numeric(b[[2]])) {
+      times(times(a, b[[2]]), b[[3]])
     } else {
       if (.is_unary_minus(b, TRUE)) {
-        a <- maths$uminus(a)
-        b <- maths$uminus(b)
+        a <- uminus(a)
+        b <- uminus(b)
       }
       aa <- .protect(a, c("*", "unary_minus", "/"))
       bb <- .protect(b, "*")
-      if (is_call(b, "*")) {
+      if (is.numeric(bb)) {
+        call("*", bb, aa)
+      } else if (is_call(bb, "*")) {
         call("*", call("*", aa, bb[[2]]), bb[[3]])
       } else {
         call("*", aa, bb)
@@ -116,13 +123,13 @@ maths <- local({
     } else if (.is_zero(b)) {
       Inf
     } else if (is_call(a, "/")) {
-      maths$divide(a[[2]], maths$times(a[[3]], b))
+      divide(a[[2]], times(a[[3]], b))
     } else if (is_call(b, "/")) {
-      maths$times(a, maths$divide(b[[3]], b[[2]]))
+      times(a, divide(b[[3]], b[[2]]))
     } else {
       if (.is_unary_minus(b, TRUE)) {
-        a <- maths$uminus(a)
-        b <- maths$uminus(b)
+        a <- uminus(a)
+        b <- uminus(b)
       }
       call("/", .protect(a, c("*", "unary_minus", "^")), .protect(b, "^"))
     }
