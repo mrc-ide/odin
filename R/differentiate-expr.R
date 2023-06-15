@@ -188,6 +188,8 @@ maths <- local({
       maths$divide(maths$uminus(a[[2]]), a[[3]])
     } else if (is_call(a, "-") && length(a) == 3) {
       minus(a[[3]], a[[2]])
+    } else if (is_call(a, "(")) {
+      uminus(.drop_parens(a))
     } else {
       call("-", .protect(a, c("*", "/", "^")))
     }
@@ -274,6 +276,8 @@ maths <- local({
         divide(args[[1]], args[[2]])
       } else if (fn == "*") {
         times(args[[1]], args[[2]])
+      } else if (fn == "^") {
+        pow(args[[1]], args[[2]])
       } else if (fn == "(") {
         args[[1]]
       } else {
