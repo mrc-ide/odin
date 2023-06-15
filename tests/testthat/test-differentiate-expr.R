@@ -131,6 +131,94 @@ test_that("can construct expressions", {
   expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
 })
 
+
+test_that("plus copes with numeric edge cases", {
+  expect_equal(maths$plus(1, 3), 4)
+  expect_equal(maths$plus(0, quote(a)), quote(a))
+  expect_equal(maths$plus(quote(a), 0), quote(a))
+  expect_equal(maths$plus(0, quote((a))), quote(a))
+  expect_equal(maths$plus(quote(((a + b))), 0), quote(a + b))
+})
+
+
+test_that("plus builds expressions if they can't be simplified", {
+  expect_equal(maths$plus(quote(a), quote(b)), quote(a + b))
+  expect_equal(maths$plus(quote(a), quote(1 + b)), quote(1 + a + b))
+})
+
+
+test_that("plus shifts numbers to the front and adds them up", {
+  expect_equal(
+    maths$plus(maths$plus(quote(a), quote(b)), maths$plus(1, quote(c))),
+    quote(1 + a + b + c))
+  expect_equal(
+    maths$plus(maths$plus(quote(a), 3), maths$plus(1, quote(c))),
+    quote(4 + a + c))
+  expect_equal(
+    maths$plus(maths$plus(quote(a), 3), maths$plus(quote(c), 1)),
+    quote(4 + a + c))
+})
+
+
+test_that("subtraction copes with numeric edge cases", {
+  expect_equal(maths$minus(10, 3), 7)
+  expect_equal(maths$minus(quote(a), 0), quote(a))
+  expect_equal(maths$minus(quote((a)), 0), quote(a))
+  expect_equal(maths$minus(quote(a - b), 0), quote(a - b))
+  expect_equal(maths$minus(0, quote(a)), quote(-a))
+  expect_equal(maths$minus(0, quote(-a)), quote(a))
+  expect_equal(maths$minus(0, quote(b - a)), quote(a - b))
+})
+
+
+test_that("subtraction appropriately protects second argument", {
+  expect_equal(maths$minus(quote(a), quote(b)), quote(a - b))
+  expect_equal(maths$minus(quote(a), quote(b + c)),
+               quote(a - (b + c)))
+  expect_equal(maths$minus(quote(a), quote(b + c))[[3]],
+               quote((b + c)))
+  ## could also simplify maths$minus(quote(a), quote(b - c)) to cancel
+  ## the double minus?
+})
+
+test_that("uminus copes with numbers", {
+  expect_equal(maths$uminus(4), -4)
+  expect_equal(maths$uminus(-4), 4)
+})
+
+
+test_that("uminus strips parentheses", {
+  expect_equal(maths$uminus(quote(a)), quote(-a))
+  expect_equal(maths$uminus(quote((a))), quote(-a))
+})
+
+
+test_that("uminus shifts into first argument of product", {
+  expect_equal(maths$uminus(quote(a * b)), quote(-a * b))
+  expect_equal(maths$uminus(quote(-a * b)), quote(a * b))
+  expect_equal(maths$uminus(quote(a * -b)), quote(a * b))
+  expect_equal(maths$uminus(quote(-a * -b)), quote(-a * b))
+})
+
+
+test_that("uminus on fraction moves to numerator", {
+  expect_equal(maths$uminus(quote(a / b)),
+               quote(-a / b))
+  expect_equal(maths$uminus(quote(a / (b * c))),
+               quote(-a / (b * c)))
+  expect_equal(maths$uminus(quote((a * b) / (c * d))),
+               quote(-(a * b) / (c * d)))
+  expect_equal(maths$uminus(quote(a * b / (c * d))),
+               quote(-a * b / (c * d)))
+})
+
+
+test_that("uminus on subtraction reverses arguments", {
+  expect_equal(maths$uminus(quote(a - b)),
+               quote(b - a))
+})
+
+
 test_that("chains of multiplication are sorted canonically", {
   expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
   expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
@@ -191,22 +279,4 @@ test_that("can rewrite expressions", {
   expect_equal(maths$rewrite(quote(1 / x * a)), quote(a / x))
   expect_equal(maths$rewrite(quote(((b)) + (a))), quote(b + a))
   expect_equal(maths$rewrite(quote((a + b) * c)), quote((a + b) * c))
-})
-
-
-test_that("uminus strips parentheses", {
-  expect_equal(maths$uminus(quote(a)), quote(-a))
-  expect_equal(maths$uminus(quote((a))), quote(-a))
-})
-
-
-test_that("uminus on fraction moves to numerator", {
-  expect_equal(maths$uminus(quote(a / b)),
-               quote(-a / b))
-  expect_equal(maths$uminus(quote(a / (b * c))),
-               quote(-a / (b * c)))
-  expect_equal(maths$uminus(quote((a * b) / (c * d))),
-               quote(-(a * b) / (c * d)))
-  expect_equal(maths$uminus(quote(a * b / (c * d))),
-               quote(-a * b / (c * d)))
 })

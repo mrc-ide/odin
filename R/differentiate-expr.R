@@ -144,12 +144,18 @@ maths <- local({
     is.numeric(x) && x == -1
   }
   plus <- function(a, b) {
+    ## there's more cancelling here that could be done with
+    ## expressions that involve subtraction and numbers, but I don't
+    ## see them turning up anywhere yet; probably best to implement
+    ## after we have them.
     if (is.numeric(a) && is.numeric(b)) {
       a + b
-    } else if (is_zero(b)) {
-      .drop_parens(a)
+    } else if (is.numeric(b)) {
+      plus(b, a)
     } else if (is_zero(a)) {
       .drop_parens(b)
+    } else if (is_call(b, "+")) {
+      plus(plus(a, b[[2]]), b[[3]])
     } else {
       call("+", a, b)
     }
@@ -162,7 +168,7 @@ maths <- local({
     } else if (is_zero(a)) {
       uminus(b)
     } else {
-      call("-", a, b)
+      call("-", a, .protect(b, NULL))
     }
   }
   uminus <- function(a) {
@@ -214,6 +220,7 @@ maths <- local({
       aa <- .protect(a, c("*", "unary_minus", "/", "^"))
       bb <- .protect(b, c("*", "^"))
       if (is.numeric(bb)) {
+        stop("impossible?")
         call("*", bb, aa)
       } else if (is_call(bb, "*")) {
         call("*", call("*", aa, bb[[2]]), bb[[3]])
