@@ -1,7 +1,7 @@
 test_that("Can parse with differentiable parameters", {
   ir <- odin_parse({
     initial(x) <- 1
-    update(x) <- rnorm(0, 0.1)
+    update(x) <- rnorm(x, 0.1)
     d <- data()
     compare(d) ~ normal(0, scale)
     scale <- user(differentiate = TRUE)
@@ -61,4 +61,9 @@ test_that("can't differentiate models with arrays", {
     "Can't use differentiate with models that use arrays")
   expect_match(err$message, "dim(x) <-", fixed = TRUE)
   expect_match(err$message, "scale <-", fixed = TRUE)
+})
+
+
+test_that("can differentiate nontrivial model", {
+  ir <- odin_parse_("examples/sir_adjoint.R")
 })

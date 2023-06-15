@@ -96,7 +96,6 @@ ir_parse <- function(x, options, type = NULL) {
   ## the rhs/update" then at least that's something reliable and
   ## generally not a bad idea, and we can always offer modifications
   ## to this as additional arguments.
-
   components <- ir_parse_components(eqs, dependencies, variables, stage,
                                     common, source, options)
   equations <- ir_parse_equations(eqs)
@@ -115,6 +114,12 @@ ir_parse <- function(x, options, type = NULL) {
               user = user,
               interpolate = interpolate,
               source = source)
+
+  ## Because the differentiation is a transformation of the model, we
+  ## do it here against the full set of fields, and allow any new data
+  ## to be added.
+  ret <- ir_parse_differentiate(ret)
+
   ir <- ir_serialise(ret, options$pretty)
   if (options$validate) {
     ir_validate(ir, TRUE)
@@ -2023,4 +2028,28 @@ ir_parse_compare_rhs <- function(expr, line, source) {
   list(distribution = distribution,
        args = args,
        depends = depends)
+}
+
+
+ir_parse_differentiate <- function(dat) {
+  if (!dat$features$has_derivative) {
+    ## Or null and do this in serialisation?
+    dat$derivative <- adjoint_no_derivatives()
+    return(dat)
+  }
+
+  parameters <-
+    names_if(vlapply(dat$equations, function(x) isTRUE(x$user$differentiate)))
+  adjoint <- list(update = adjoint_update(parameters, dat),
+                  compare = adjoint_compare(parameters, dat),
+                  initial = adjoint_initial(parameters, dat))
+
+  dat$derivative <- list(parameters = parameters,
+                         adjoint = adjoint)
+  dat
+}
+
+
+adjoint_no_derivatives <- function() {
+  list(parameters = character(0))
 }

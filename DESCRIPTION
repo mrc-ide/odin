@@ -37,6 +37,7 @@ Imports:
     withr
 Suggests:
     V8,
+    Deriv,
     dde (>= 1.0.0),
     jsonvalidate (>= 1.1.0),
     knitr,

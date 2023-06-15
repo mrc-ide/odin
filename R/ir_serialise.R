@@ -6,6 +6,7 @@ ir_serialise <- function(dat, pretty) {
               data = ir_serialise_data(dat$data),
               equations = ir_serialise_equations(dat$equations),
               debug = ir_serialise_debug(dat$debug),
+              derivative = ir_serialise_derivative(dat$derivative),
               components = ir_serialise_components(dat$components),
               user = ir_serialise_user(dat$user),
               interpolate = ir_serialise_interpolate(dat$interpolate),
@@ -287,4 +288,9 @@ ir_serialise_debug_expression <- function(expr) {
        args = lapply(expr$args, ir_serialise_expression),
        depends = expr$depends,
        when = ir_serialise_expression(expr$when))
+}
+
+
+ir_serialise_derivative <- function(derivative) {
+  derivative
 }

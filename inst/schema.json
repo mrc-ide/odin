@@ -774,6 +774,7 @@
                 "rhs": { "$ref": "#/definitions/component" },
                 "output": { "$ref": "#/definitions/component" },
                 "compare": { "$ref": "#/definitions/component" },
+                "adjoint": { "$ref": "#/definitions/component" },
                 "update_stochastic": { "$ref": "#/definitions/component" }
             },
             "required": ["create", "user", "initial", "rhs", "output"],
@@ -858,6 +859,15 @@
             "additionalProperties": false
         },
 
+        "derivative": {
+            "type": "object",
+            "properties": {
+                "parameters": {
+                    "$ref": "#/definitions/basic/character_vector"
+                }
+            }
+        },
+
         "debug": {
             "type": "array",
             "elements": {
@@ -915,6 +925,9 @@
         },
         "interpolate": {
             "$ref": "#/definitions/interpolate"
+        },
+        "derivative": {
+            "$ref": "#/definitions/derivative"
         },
         "debug": {
             "$ref": "#/definitions/debug"

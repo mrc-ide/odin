@@ -38,7 +38,8 @@ RESERVED_C <-
 
 RESERVED <- c(INDEX, TIME, STEP, STATE, DSTATEDT, STATE_NEXT, USER,
               SPECIAL_LHS, "delay", "dde", INTERNAL, RESERVED_C)
-RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate")
+RESERVED_PREFIX <- c(SPECIAL_LHS, "odin", "offset", "delay", "interpolate",
+                     "adjoint")
 VALID_ARRAY <- c("-", "+", ":", "(", "length", "dim", "[", "as.integer")
 INTERPOLATION_TYPES <- c("constant", "linear", "spline")
 SPECIAL_DATA_TYPES <- c("void", "ring_buffer")
@@ -199,6 +200,11 @@ array_dim_name <- function(name, sub = NULL, use = TRUE) {
 
 initial_name <- function(name) {
   sprintf("initial_%s", name)
+}
+
+
+adjoint_name <- function(name) {
+  sprintf("adjoint_%s", name)
 }
 
 
