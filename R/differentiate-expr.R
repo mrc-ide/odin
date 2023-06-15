@@ -87,8 +87,8 @@ derivative <- list(
     maths$divide(differentiate(a, name), a)
   },
   sqrt = function(expr, name) {
-    maths$divide(differentiate(x, name),
-                 maths$times(2 * maths$rewrite(expr)))
+    maths$divide(differentiate(expr[[2]], name),
+                 maths$times(2, maths$rewrite(expr)))
   },
   `if` = function(expr, name) {
     condition <- maths$rewrite(expr[[2]])
@@ -102,7 +102,7 @@ derivative <- list(
   },
   abs = function(expr, name) {
     a <- maths$rewrite(expr[[2]])
-    maths$times(differentiate(x, name) * call("sign", a))
+    maths$times(differentiate(a, name), call("sign", a))
   }
 )
 

@@ -4,6 +4,20 @@ test_that("can differentiate trivial expressions", {
   expect_equal(differentiate(quote(x), "x"), 1)
 })
 
+test_that("can add derivatives", {
+  expect_equal(differentiate(quote(x + 5), "x"), 1)
+  expect_equal(differentiate(quote(5 + x), "x"), 1)
+  expect_equal(differentiate(quote(x + y), "x"), 1)
+  expect_equal(differentiate(quote(y + x), "x"), 1)
+  expect_equal(differentiate(quote(5 + x + x), "x"), quote(2))
+})
+
+test_that("can subtract derivatives", {
+  expect_equal(differentiate(quote(x - y), "x"), 1)
+  expect_equal(differentiate(quote(y - x), "x"), -1)
+  expect_equal(differentiate(quote(2 * x - exp(x)), "x"), quote(2 - exp(x)))
+})
+
 test_that("can apply the product rule", {
   expect_equal(differentiate(quote(x * 2), "x"), 2)
   expect_equal(differentiate(quote(2 * x), "x"), 2)
@@ -21,20 +35,6 @@ test_that("parentheses have no effect in product chains", {
   expect_equal(differentiate(quote((2 * (x) * y)), "x"), quote(2 * y))
 })
 
-test_that("can add derivatives", {
-  expect_equal(differentiate(quote(x + 5), "x"), 1)
-  expect_equal(differentiate(quote(5 + x), "x"), 1)
-  expect_equal(differentiate(quote(x + y), "x"), 1)
-  expect_equal(differentiate(quote(y + x), "x"), 1)
-  expect_equal(differentiate(quote(5 + x + x), "x"), quote(2))
-})
-
-test_that("can subtract derivatives", {
-  expect_equal(differentiate(quote(x - y), "x"), 1)
-  expect_equal(differentiate(quote(y - x), "x"), -1)
-  expect_equal(differentiate(quote(2 * x - exp(x)), "x"), quote(2 - exp(x)))
-})
-
 test_that("quotient rule is correct", {
   expect_equal(
     differentiate(quote(a / b), "a"),
@@ -43,7 +43,7 @@ test_that("quotient rule is correct", {
                quote(exp(x) / x - exp(x) / (x * x)))
 })
 
-test_that("can differentiate f(x)^a", {
+test_that("can differentiate f(x)^g(x)", {
   expect_equal(differentiate(quote(x^a), "x"),
                quote(a * x^(a - 1)))
   expect_equal(differentiate(quote((2 * x)^a), "x"),
@@ -53,7 +53,7 @@ test_that("can differentiate f(x)^a", {
   expect_equal(differentiate(quote(x^(2 * a)), "a"),
                quote(2 * x^(2 * a) * log(x)))
 
-  ## d/dx (f(x)^g(x)) is much more complicated:
+  ## the full d/dx (f(x)^g(x)) is much more complicated:
   expect_equal(
     differentiate(quote((2 * x)^exp(x)), "x"),
     quote((2 * x)^(exp(x) - 1) * (2 * exp(x) + 2 * x * log(2 * x) * exp(x))))
@@ -61,7 +61,6 @@ test_that("can differentiate f(x)^a", {
     eval(differentiate(quote((2 * x)^exp(x)), "x"), list(x = 0.3)),
     eval(D(quote((2 * x)^exp(x)), "x"), list(x = 0.3)))
 })
-
 
 test_that("differentiate expressions with exp()", {
   expect_equal(differentiate(quote(exp(x)), "x"),
@@ -71,7 +70,6 @@ test_that("differentiate expressions with exp()", {
   expect_equal(differentiate(quote(exp((2 * x))), "x"),
                quote(2 * exp(2 * x)))
 })
-
 
 test_that("differentiate expressions with log()", {
   expect_equal(
@@ -85,18 +83,35 @@ test_that("differentiate expressions with log()", {
     quote(a / x - 1))
 })
 
-test_that("differentiate conditionals", {
-  expect_equal(
-    differentiate(quote(if (a) x else 2 * x), "x"),
-    quote(if (a) 1 else 2))
-  expect_equal(
-    differentiate(quote(if (a) x else x), "x"),
-    1)
-  expect_equal(
-    differentiate(quote(if (a) 2 * x else 2 * x), "x"),
-    2)
+test_that("differentiate square roots", {
+  expect_equal(differentiate(quote(sqrt(x)), "x"),
+               quote(1 / (2 * sqrt(x))))
+  expect_equal(differentiate(quote(sqrt(1 + exp(x))), "x"),
+               quote(exp(x)/(2 * sqrt(1 + exp(x)))))
 })
 
+test_that("differentiate conditionals", {
+  expect_equal(differentiate(quote(if (a) x else 2 * x), "x"),
+               quote(if (a) 1 else 2))
+  expect_equal(differentiate(quote(if (a) x else x), "x"),
+               1)
+  expect_equal(differentiate(quote(if (a) 2 * x else 2 * x), "x"),
+               2)
+})
+
+test_that("differentiate log factorial", {
+  expect_equal(differentiate(quote(lfactorial(x)), "x"),
+               quote(digamma(x + 1)))
+  expect_equal(differentiate(quote(lfactorial(log(x))), "x"),
+               quote(digamma(log(x) + 1) / x))
+})
+
+test_that("differentiate absolute value function", {
+  expect_equal(differentiate(quote(abs(x)), "x"),
+               quote(sign(x)))
+  expect_equal(differentiate(quote(abs(x^2 - 2 * x - 1)), "x"),
+               quote((2 * x - 2) * sign(x^2 - 2 * x - 1)))
+})
 
 test_that("error if asked to differentiate something not yet supported", {
   expect_error(
@@ -108,7 +123,6 @@ test_that("error if asked to differentiate something not yet supported", {
     "Unsupported function 'f' in differentiate()",
     fixed = TRUE)
 })
-
 
 test_that("can construct expressions", {
   expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
