@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.4.7</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.5.0</span>
       </span>
     </div>
 
@@ -98,7 +98,7 @@
                         <h4 data-toc-skip class="author">Rich
 FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2023-05-03</h4>
+            <h4 data-toc-skip class="date">2023-06-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/debugging.Rmd" class="external-link"><code>vignettes/debugging.Rmd</code></a></small>
       <div class="hidden name"><code>debugging.Rmd</code></div>
@@ -135,23 +135,23 @@ functionality in future versions, your feedback is very welcome.</p>
 <span><span class="op">}</span>, debug_enable <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Loading required namespace: pkgbuild</span></span></code></pre>
 <pre><code><span><span class="co">## Generating model in c</span></span></code></pre>
-<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Re-compiling <span style="color: #0000BB;">odinb5765c2b</span> (debug build)</span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Re-compiling <span style="color: #0000BB;">odin8981cbda</span> (debug build)</span></span></code></pre>
 <pre><code><span><span class="co">## <span style="color: #00BBBB;">──</span> <span style="color: #00BBBB;">R CMD INSTALL</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">## * installing *source* package ‘odinb5765c2b’ ...</span></span>
+<span><span class="co">## * installing *source* package ‘odin8981cbda’ ...</span></span>
 <span><span class="co">## ** using staged installation</span></span>
 <span><span class="co">## ** libs</span></span>
-<span><span class="co">## using C compiler: ‘gcc (Ubuntu 11.3.0-1ubuntu1~22.04) 11.3.0’</span></span>
+<span><span class="co">## using C compiler: ‘gcc (Ubuntu 11.3.0-1ubuntu1~22.04.1) 11.3.0’</span></span>
 <span><span class="co">## gcc -I"/opt/R/4.3.0/lib/R/include" -DNDEBUG   -I/usr/local/include    -fpic  -g -O2  -UNDEBUG -Wall -pedantic -g -O0 -fdiagnostics-color=always -c odin.c -o odin.o</span></span>
 <span><span class="co">## <span style="font-weight: bold;">odin.c:</span> In function ‘<span style="font-weight: bold;">odin_metadata</span>’:</span></span>
 <span><span class="co">## <span style="font-weight: bold;">odin.c:76:18:</span> <span style="color: #BB00BB; font-weight: bold;">warning: </span>unused variable ‘<span style="font-weight: bold;">internal</span>’ [<span style="color: #BB00BB; font-weight: bold;">-Wunused-variable</span>]</span></span>
 <span><span class="co">##    76 |   odin_internal *<span style="color: #BB00BB; font-weight: bold;">internal</span> = odin_get_internal(internal_p, 1);</span></span>
 <span><span class="co">##       |                  <span style="color: #BB00BB; font-weight: bold;">^~~~~~~~</span></span></span>
 <span><span class="co">## gcc -I"/opt/R/4.3.0/lib/R/include" -DNDEBUG   -I/usr/local/include    -fpic  -g -O2  -UNDEBUG -Wall -pedantic -g -O0 -fdiagnostics-color=always -c registration.c -o registration.o</span></span>
-<span><span class="co">## gcc -shared -L/opt/R/4.3.0/lib/R/lib -L/usr/local/lib -o odinb5765c2b.so odin.o registration.o -L/opt/R/4.3.0/lib/R/lib -lR</span></span>
-<span><span class="co">## installing to /tmp/RtmpYWIsH2/devtools_install_169957d278b4/00LOCK-file16997eec2c9e/00new/odinb5765c2b/libs</span></span>
+<span><span class="co">## gcc -shared -L/opt/R/4.3.0/lib/R/lib -L/usr/local/lib -o odin8981cbda.so odin.o registration.o -L/opt/R/4.3.0/lib/R/lib -lR</span></span>
+<span><span class="co">## installing to /tmp/RtmpVIZxUp/devtools_install_16f42d3a8768/00LOCK-file16f43f673fe5/00new/odin8981cbda/libs</span></span>
 <span><span class="co">## ** checking absolute paths in shared objects and dynamic libraries</span></span>
-<span><span class="co">## * DONE (odinb5765c2b)</span></span></code></pre>
-<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Loading <span style="color: #0000BB;">odinb5765c2b</span></span></span></code></pre>
+<span><span class="co">## * DONE (odin8981cbda)</span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Loading <span style="color: #0000BB;">odin8981cbda</span></span></span></code></pre>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">gen</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
