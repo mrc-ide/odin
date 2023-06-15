@@ -86,6 +86,9 @@ maths <- local({
     } else if (is_call(a, "/")) {
       ## we have (a2 / a3 * b -> a2 * b / a3)
       maths$divide(maths$times(a[[2]], b), a[[3]])
+    } else if (is_call(b, "/")) {
+      ## we have (a * (b2 / b3)) -> (a * b2) / b3
+      maths$divide(maths$times(a, b[[2]]), b[[3]])
     } else {
       aa <- .protect(a, c("*", "unary_minus", "/"))
       bb <- .protect(b, c("*", "unary_minus"))

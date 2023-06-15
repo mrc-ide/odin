@@ -43,6 +43,18 @@ test_that("quotient rule is correct", {
                quote(exp(x) / x - exp(x) / (x * x)))
 })
 
+test_that("differentiate expressions with log()", {
+  expect_equal(
+    differentiate(quote(log(x)), "x"),
+    quote(1 / x))
+  expect_equal(
+    differentiate(quote(log(2 * x)), "x"),
+    quote(2 / (2 * x)))
+  expect_equal(
+    differentiate(quote(a * log(x) - x), "x"),
+    quote(a / x - 1))
+})
+
 test_that("Can differentiate all the bits for the basic SIR model", {
   expect_equal(differentiate(quote(beta * I/N * dt), "dt"),
                quote(beta * I/N))
