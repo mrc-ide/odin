@@ -272,7 +272,8 @@ test_that("can move unary minuses through product chains", {
 test_that("chains of multiplication collect numbers", {
   expect_identical(maths$times(2, quote((a * b))), quote(2 * a * b))
   expect_identical(maths$times(quote((a * b)), 2), quote(2 * a * b))
-  expect_identical(maths$times(maths$times(2, quote(a)), maths$times(quote(b), 3)),
+  expect_identical(maths$times(maths$times(2, quote(a)),
+                               maths$times(quote(b), 3)),
                    quote(6 * a * b))
 })
 
