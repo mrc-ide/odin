@@ -98,6 +98,18 @@ test_that("differentiate conditionals", {
 })
 
 
+test_that("error if asked to differentiate something not yet supported", {
+  expect_error(
+    differentiate(quote(f(x)), "x"),
+    "Unsupported function 'f' in differentiate()",
+    fixed = TRUE)
+  expect_error(
+    differentiate(quote(exp(2 * f(x))), "x"),
+    "Unsupported function 'f' in differentiate()",
+    fixed = TRUE)
+})
+
+
 test_that("can construct expressions", {
   expect_equal(maths$times(2, quote((a * b))), quote(2 * a * b))
   expect_equal(maths$times(quote((a * b)), 2), quote(2 * a * b))
