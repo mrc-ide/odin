@@ -185,7 +185,7 @@ maths <- local({
         times(uminus(a[[2]]), a[[3]])
       }
     } else if (is_call(a, "/")) {
-      maths$divide(maths$uminus(a[[2]]), a[[3]])
+      divide(uminus(a[[2]]), a[[3]])
     } else if (is_call(a, "-") && length(a) == 3) {
       minus(a[[3]], a[[2]])
     } else if (is_call(a, "(")) {
