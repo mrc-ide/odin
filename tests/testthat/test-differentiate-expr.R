@@ -319,6 +319,7 @@ test_that("can move unary minuses through divisions chains", {
 test_that("pow copes with numeric edge cases", {
   expect_identical(maths$pow(3, 2), 9)
   expect_identical(maths$pow(quote(a), 1), quote(a))
+  expect_identical(maths$pow(quote(a), 0), 1)
 })
 
 

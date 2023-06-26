@@ -254,6 +254,8 @@ maths <- local({
       a^b
     } else if (is_one(b)) {
       a
+    } else if (is_zero(b)) {
+      1
     } else if (is.numeric(b) && b == 2 && is.symbol(a)) {
       times(a, a)
     } else {
