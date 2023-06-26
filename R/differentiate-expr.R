@@ -216,6 +216,9 @@ maths <- local({
       times(times(a, b[[2]]), b[[3]])
     } else {
       if (.is_unary_minus(b, TRUE)) {
+        ## We have expr * -b which we can write as -expr * b which
+        ## simplifies more nicely. If we really had -a * -b this then
+        ## becomes a * b which is nice.
         a <- uminus(a)
         b <- uminus(b)
       }
