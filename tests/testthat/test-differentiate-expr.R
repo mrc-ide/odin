@@ -291,6 +291,12 @@ test_that("cope with division corner cases", {
 })
 
 
+test_that("eliminate redundant division", {
+  expect_identical(maths$divide(quote(n), quote(n)), 1)
+  expect_identical(maths$divide(quote(2 * n), quote(2 * n)), 1)
+})
+
+
 test_that("simplify chains of divide", {
   expect_identical(maths$divide(quote(a / b), quote(c)),
                    quote(a / (b * c)))

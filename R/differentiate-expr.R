@@ -238,6 +238,8 @@ maths <- local({
       a
     } else if (is_zero(a)) {
       0
+    } else if (identical(a, b)) {
+      1
     } else if (is_call(a, "/")) {
       divide(a[[2]], times(a[[3]], b))
     } else if (is_call(b, "/")) {
