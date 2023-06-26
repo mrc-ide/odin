@@ -85,3 +85,40 @@ deterministic_rules <- list(
   rsignrank = function(expr) {
     substitute(n * (n + 1) / 4, list(n = expr[[2]]))
   })
+
+
+## These are all worked out by manually taking logarithms of the
+## densities - I've not been terribly exhaustive here, but have copied
+## what we use in dust already...
+##
+## The user is going to write out:
+##
+##   > compare(d) ~ poisson(lambda)
+##
+## which corresponds to writing
+##
+##   > dpois(d, lambda, log = TRUE)
+##     ==> log(lambda^x * exp(-lambda) / x!)
+##     ==> x * log(lambda) - lambda - lfactorial(x)
+##
+## All the density functions will have the same form here, with the
+## lhs becoming the 'x' argument (all d* functions take 'x' as the
+## first argument).
+log_density <- function(distribution, target, args) {
+  target <- as.name(target)
+  switch(
+    distribution,
+    ## Assumption here is that sd is never zero, which might warrant
+    ## special treatment (except that it's infinite so probably
+    ## problematic anyway).
+    normal = substitute(
+      - (x - mu)^2 / (2 * sd^2) - log(2 * pi) / 2 - log(sd),
+      list(x = target, mu = args[[1]], sd = args[[2]])),
+    poisson = substitute(
+      x * log(lambda) - lambda - lfactorial(x),
+      list(x = target, lambda = args[[1]])),
+    uniform = substitute(
+      if (x < a || x > b) -Inf else -log(b - a),
+      list(x = target, a = args[[1]], b = args[[2]])),
+    stop(sprintf("Unsupported distribution '%s'", distribution)))
+}
