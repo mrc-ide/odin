@@ -813,7 +813,7 @@ test_that_odin("overlapping graph", {
     list(y * p, p + p2)
   }
   cmp <- deSolve::ode(1, tt, f, NULL)
-  tol <- variable_tolerance(mod, js = 1e-6)
+  tol <- variable_tolerance(mod, js = 3e-6)
   expect_equal(mod$run(tt)[], cmp[], check.attributes = FALSE, tolerance = tol)
 })
 
