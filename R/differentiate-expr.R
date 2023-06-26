@@ -107,11 +107,11 @@ derivative <- list(
 )
 
 maths <- local({
-  .protect <- function(x, except) {
+  .parentheses_except <- function(x, except) {
     if (is.recursive(x)) {
       fn <- as.character(x[[1]])
       if (fn == "(") {
-        return(.protect(x[[2]], except))
+        return(.parentheses_except(x[[2]], except))
       }
       pass <- grepl("^[a-z]", fn) ||
         (length(except) > 0 && fn %in% except) ||
@@ -168,7 +168,7 @@ maths <- local({
     } else if (is_zero(a)) {
       uminus(b)
     } else {
-      call("-", a, .protect(b, c("*", "/", "^")))
+      call("-", a, .parentheses_except(b, c("*", "/", "^")))
     }
   }
   uminus <- function(a) {
@@ -191,7 +191,7 @@ maths <- local({
     } else if (is_call(a, "(")) {
       uminus(.drop_parens(a))
     } else {
-      call("-", .protect(a, c("*", "/", "^")))
+      call("-", .parentheses_except(a, c("*", "/", "^")))
     }
   }
   times <- function(a, b) {
@@ -219,8 +219,8 @@ maths <- local({
         a <- uminus(a)
         b <- uminus(b)
       }
-      aa <- .protect(a, c("*", "unary_minus", "/", "^"))
-      bb <- .protect(b, c("*", "^"))
+      aa <- .parentheses_except(a, c("*", "unary_minus", "/", "^"))
+      bb <- .parentheses_except(b, c("*", "^"))
       if (is_call(bb, "*")) {
         call("*", call("*", aa, bb[[2]]), bb[[3]])
       } else {
@@ -246,7 +246,9 @@ maths <- local({
         a <- uminus(a)
         b <- uminus(b)
       }
-      call("/", .protect(a, c("*", "unary_minus", "^")), .protect(b, "^"))
+      call("/",
+           .parentheses_except(a, c("*", "unary_minus", "^")),
+           .parentheses_except(b, "^"))
     }
   }
   pow <- function(a, b) {
@@ -257,7 +259,7 @@ maths <- local({
     } else if (is.numeric(b) && b == 2 && is.symbol(a)) {
       times(a, a)
     } else {
-      call("^", .protect(a, NULL), .protect(b, NULL))
+      call("^", .parentheses_except(a, NULL), .parentheses_except(b, NULL))
     }
   }
   rewrite <- function(expr) {
