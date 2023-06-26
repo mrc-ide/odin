@@ -112,7 +112,7 @@ log_density <- function(distribution, target, args) {
     ## special treatment (except that it's infinite so probably
     ## problematic anyway).
     normal = substitute(
-      - (x - mu)^2 / (2 * sd^2) - log(sqrt(2 * pi)) - log(sd),
+      - (x - mu)^2 / (2 * sd^2) - log(2 * pi) / 2 - log(sd),
       list(x = target, mu = args[[1]], sd = args[[2]])),
     poisson = substitute(
       x * log(lambda) - lambda - lfactorial(x),
