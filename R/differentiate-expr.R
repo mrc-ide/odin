@@ -235,8 +235,6 @@ maths <- local({
       a
     } else if (is_zero(a)) {
       0
-    } else if (is_zero(b)) {
-      Inf
     } else if (is_call(a, "/")) {
       divide(a[[2]], times(a[[3]], b))
     } else if (is_call(b, "/")) {

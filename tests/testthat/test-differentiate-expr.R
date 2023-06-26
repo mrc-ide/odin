@@ -288,7 +288,6 @@ test_that("cope with division corner cases", {
   expect_identical(maths$divide(3, 4), 3 / 4)
   expect_identical(maths$divide(quote(a), 1), quote(a))
   expect_identical(maths$divide(0, quote(a)), 0)
-  expect_identical(maths$divide(quote(a), 0), Inf)
 })
 
 
