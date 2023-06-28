@@ -2038,11 +2038,12 @@ ir_parse_differentiate <- function(dat) {
     return(dat)
   }
 
+  variables <- vcapply(dat$data$variable$contents, "[[", "name")
   parameters <-
     names_if(vlapply(dat$equations, function(x) isTRUE(x$user$differentiate)))
-  adjoint <- list(update = adjoint_update(parameters, dat),
-                  compare = adjoint_compare(parameters, dat),
-                  initial = adjoint_initial(parameters, dat))
+  adjoint <- list(update = adjoint_update(variables, parameters, dat),
+                  compare = adjoint_compare(variables, parameters, dat),
+                  initial = adjoint_initial(variables, parameters, dat))
 
   dat$derivative <- list(parameters = parameters,
                          adjoint = adjoint)
