@@ -67,20 +67,44 @@ test_that("can't differentiate models with arrays", {
 test_that("can differentiate nontrivial model", {
   ir <- odin_parse_("examples/sir_adjoint.R")
   d <- ir_deserialise(ir)
+
   expect_true(d$features$has_derivative)
   expect_equal(d$derivative$parameters, c("beta", "gamma", "I0"))
+
   expect_equal(
-    d$derivative$adjoint$components$update,
-    list(variables = c("S", "I", "R", "adjoint_cases_cumul",
-                       "adjoint_cases_inc", "adjoint_I", "adjoint_R",
-                       "adjoint_S", "adjoint_beta", "adjoint_gamma",
-                       "adjoint_I0"),
-         equations = c("adjoint_n_IR", "adjoint_n_SI",
-                       "adjoint_update_cases_cumul",
-                       "adjoint_update_cases_inc",
-                       "adjoint_update_I0", "N", "adjoint_p_IR",
-                       "adjoint_p_SI", "p_inf", "adjoint_p_inf",
-                       "adjoint_update_gamma", "p_SI", "adjoint_N",
-                       "adjoint_update_beta", "adjoint_update_I",
-                       "adjoint_update_R", "adjoint_update_S")))
+    d$derivative$adjoint$components$update$variables,
+    c("S", "I", "R", "adjoint_cases_cumul",
+      "adjoint_cases_inc", "adjoint_I", "adjoint_R",
+      "adjoint_S", "adjoint_beta", "adjoint_gamma",
+      "adjoint_I0"))
+  expect_equal(
+    d$derivative$adjoint$components$update$equations,
+    c("adjoint_n_IR", "adjoint_n_SI", "adjoint_update_cases_cumul",
+      "adjoint_update_cases_inc", "adjoint_update_I0", "N",
+      "adjoint_p_IR", "adjoint_p_SI", "p_inf", "adjoint_p_inf",
+      "adjoint_update_gamma", "p_SI", "adjoint_N",
+      "adjoint_update_beta", "adjoint_update_I", "adjoint_update_R",
+      "adjoint_update_S"))
+
+  expect_equal(
+    d$derivative$adjoint$components$compare$variables,
+    c("adjoint_S", "adjoint_I", "adjoint_R", "adjoint_cases_cumul",
+      "adjoint_cases_inc", "adjoint_beta", "adjoint_gamma", "adjoint_I0"))
+  expect_equal(
+    d$derivative$adjoint$components$compare$equations,
+    c("compare_adjoint_S", "compare_adjoint_I", "compare_adjoint_R",
+      "compare_adjoint_cases_cumul", "compare_adjoint_cases_inc",
+      "compare_adjoint_beta", "compare_adjoint_gamma",
+      "compare_adjoint_I0"))
+
+  expect_equal(
+    d$derivative$adjoint$components$initial$variables,
+    c("adjoint_S", "adjoint_I", "adjoint_R", "adjoint_cases_cumul",
+      "adjoint_cases_inc", "adjoint_beta", "adjoint_gamma", "adjoint_I0"))
+  expect_equal(
+    d$derivative$adjoint$components$initial$equations,
+    c("initial_adjoint_S", "initial_adjoint_I", "initial_adjoint_R",
+      "initial_adjoint_cases_cumul", "initial_adjoint_cases_inc",
+      "initial_adjoint_beta", "initial_adjoint_gamma",
+      "initial_adjoint_I0"))
 })

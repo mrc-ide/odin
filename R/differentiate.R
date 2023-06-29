@@ -96,7 +96,7 @@ adjoint_compare <- function(variables, parameters, dat) {
   names(res) <- sprintf("compare_%s", vcapply(res, "[[", "name"))
 
   stage <- c(viapply(dat$data$elements, "[[", "stage"),
-             set_names(rep_len("adjoint", length(res)), names(res)))
+             set_names(rep_len(STAGE_TIME, length(res)), names(res)))
 
   deps_adj <- lapply(res, function(eq) eq$depends$variables %||% character())
   deps_all <- c(deps_adj, deps)
@@ -131,7 +131,7 @@ adjoint_initial <- function(variables, parameters, dat) {
   names(res) <- sprintf("initial_%s", vcapply(res, "[[", "name"))
 
   stage <- c(viapply(dat$data$elements, "[[", "stage"),
-             set_names(rep_len("adjoint", length(res)), names(res)))
+             set_names(rep_len(STAGE_TIME, length(res)), names(res)))
 
   deps_adj <- lapply(res, function(eq) eq$depends$variables %||% character())
   deps_all <- c(deps_adj, deps)
