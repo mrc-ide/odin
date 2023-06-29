@@ -1,3 +1,25 @@
+adjoint_model <- function(dat) {
+  if (!dat$features$has_derivative) {
+    return(NULL)
+  }
+  variables <- vcapply(dat$data$variable$contents, "[[", "name")
+  parameters <-
+    names_if(vlapply(dat$equations, function(x) isTRUE(x$user$differentiate)))
+
+  adjoint <- list(update = adjoint_update(variables, parameters, dat),
+                  compare = adjoint_compare(variables, parameters, dat),
+                  initial = adjoint_initial(variables, parameters, dat))
+
+  equations <- unlist(lapply(adjoint, function(x) x$equations), FALSE, FALSE)
+  components <- lapply(adjoint, function(x) {
+    list(variables = c(x$depends$variables, x$depends$adjoint),
+         equations = x$order)
+  })
+  list(parameters = parameters,
+       adjoint = list(equations = equations, components = components))
+}
+
+
 adjoint_update <- function(variables, parameters, dat) {
   ## The update set is really the full set of things; we need all the
   ## equations, including those that are not actually time dependent,
@@ -73,17 +95,17 @@ adjoint_compare <- function(variables, parameters, dat) {
   res <- Map(adjoint_equation, nms, nms, MoreArgs = list(TRUE, deps, eqs))
   names(res) <- sprintf("compare_%s", vcapply(res, "[[", "name"))
 
-  stage <- c(vcapply(dat$data$elements, "[[", "stage"),
+  stage <- c(viapply(dat$data$elements, "[[", "stage"),
              set_names(rep_len("adjoint", length(res)), names(res)))
 
   deps_adj <- lapply(res, function(eq) eq$depends$variables %||% character())
   deps_all <- c(deps_adj, deps)
   deps_rec <- recursive_dependencies(names(deps_all), deps_all)
 
-  include <- sprintf("compare_%s", name_adjoint(c(variables, parameters)))
+  include <- sprintf("compare_%s", adjoint_name(c(variables, parameters)))
   used <- unique(unlist(deps_rec[include], FALSE, FALSE))
   order <- intersect(topological_order(deps_all), union(include, used))
-  order <- order[stage[order] %in% c("time", "adjoint")]
+  order <- order[stage[order] == STAGE_TIME]
 
   variables <- vcapply(dat$data$variable$contents, "[[", "name")
   used_variables <- intersect(unique(unlist(deps_rec[order], FALSE, FALSE)),
@@ -108,20 +130,20 @@ adjoint_initial <- function(variables, parameters, dat) {
   res <- Map(adjoint_equation, nms, nms, MoreArgs = list(TRUE, deps, eqs))
   names(res) <- sprintf("initial_%s", vcapply(res, "[[", "name"))
 
-  stage <- c(vcapply(dat$data$elements, "[[", "stage"),
+  stage <- c(viapply(dat$data$elements, "[[", "stage"),
              set_names(rep_len("adjoint", length(res)), names(res)))
 
   deps_adj <- lapply(res, function(eq) eq$depends$variables %||% character())
   deps_all <- c(deps_adj, deps)
   deps_rec <- recursive_dependencies(names(deps_all), deps_all)
 
-  include <- sprintf("initial_%s", name_adjoint(c(variables, parameters)))
+  include <- sprintf("initial_%s", adjoint_name(c(variables, parameters)))
   used <- unique(unlist(deps_rec[include], FALSE, FALSE))
   order <- intersect(topological_order(deps_all), union(include, used))
-  order <- order[stage[order] %in% c("time", "adjoint")]
+  order <- order[stage[order] == STAGE_TIME]
   used_variables <- intersect(unique(unlist(deps_rec[order], FALSE, FALSE)),
                               variables)
-  used_adjoint <- intersect(used, name_adjoint(c(variables, parameters)))
+  used_adjoint <- intersect(used, adjoint_name(c(variables, parameters)))
 
   list(equations = res,
        order = order,
@@ -141,9 +163,11 @@ adjoint_equation <- function(name, name_lhs, accumulate, deps, eqs) {
     if (eq$type == "compare") {
       ## TODO: some care needed here for interesting args,
       ## unfortunately; try the exponential noise trick inline?
-      expr <- log_density(eq$compare$distribution, eq$lhs, eq$compare$args)
+      expr <- log_density(eq$rhs$distribution,
+                          eq$lhs$name_data,
+                          eq$rhs$args)
       ## This is only correct if the lhs is data, which it should
-      ## always be, but we should check this, really.
+      ## always be, but we should check this, really, somewhere!
       name_adjoint <- 1
     } else {
       expr <- make_deterministic(eq$rhs$value)
@@ -163,10 +187,16 @@ adjoint_equation <- function(name, name_lhs, accumulate, deps, eqs) {
   rhs_expr <- fold_add(parts)
   rhs <- list(value = rhs_expr)
 
-  list(name = adjoint_name(name),
+  name_equation <- adjoint_name(name)
+  lhs <- list(name_data = adjoint_name(name_lhs),
+              name_equation = name_equation,
+              name_lhs = adjoint_name(name_lhs),
+              storage_type = "double")
+
+  list(name = name_equation,
        type = "expression_scalar", # can get from parent?
        depends = find_symbols(rhs_expr),
-       lhs = adjoint_name(name_lhs),
+       lhs = lhs,
        rhs = rhs)
 }
 

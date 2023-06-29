@@ -2031,26 +2031,9 @@ ir_parse_compare_rhs <- function(expr, line, source) {
 }
 
 
+## This returns the entire 'dat' object because we might later on add
+## additional data required to compute things here.
 ir_parse_differentiate <- function(dat) {
-  if (!dat$features$has_derivative) {
-    ## Or null and do this in serialisation?
-    dat$derivative <- adjoint_no_derivatives()
-    return(dat)
-  }
-
-  variables <- vcapply(dat$data$variable$contents, "[[", "name")
-  parameters <-
-    names_if(vlapply(dat$equations, function(x) isTRUE(x$user$differentiate)))
-  adjoint <- list(update = adjoint_update(variables, parameters, dat),
-                  compare = adjoint_compare(variables, parameters, dat),
-                  initial = adjoint_initial(variables, parameters, dat))
-
-  dat$derivative <- list(parameters = parameters,
-                         adjoint = adjoint)
+  dat$derivative <- adjoint_model(dat)
   dat
-}
-
-
-adjoint_no_derivatives <- function() {
-  list(parameters = character(0))
 }

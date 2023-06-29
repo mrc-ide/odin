@@ -292,5 +292,16 @@ ir_serialise_debug_expression <- function(expr) {
 
 
 ir_serialise_derivative <- function(derivative) {
+  if (is.null(derivative)) {
+    derivative$parameters <- character()
+    derivative$adjoint <- list(
+      equations = list(),
+      components = list(update = list(), compare = list(), initial = list()))
+  } else {
+    derivative$adjoint$equations <-
+      ir_serialise_equations(derivative$adjoint$equations)
+    derivative$adjoint$components <-
+      ir_serialise_components(derivative$adjoint$components)
+  }
   derivative
 }
