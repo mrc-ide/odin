@@ -85,8 +85,8 @@ ir_deserialise_debug <- function(eq) {
 
 ir_deserialise_derivative <- function(derivative) {
   derivative$parameters <- list_to_character(derivative$parameters)
-  derivative$adjoint$equations <-
-    ir_deserialise_equations(derivative$adjoint$equations)
+  derivative$adjoint$variables <-
+    list_to_character(derivative$adjoint$variables)
   derivative$adjoint$components <-
     ir_deserialise_components(derivative$adjoint$components)
   derivative

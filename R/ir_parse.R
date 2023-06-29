@@ -2034,6 +2034,21 @@ ir_parse_compare_rhs <- function(expr, line, source) {
 ## This returns the entire 'dat' object because we might later on add
 ## additional data required to compute things here.
 ir_parse_differentiate <- function(dat) {
-  dat$derivative <- adjoint_model(dat)
+  if (!dat$features$has_derivative) {
+    return(dat)
+  }
+
+  parameters <-
+    names_if(vlapply(dat$equations, function(x) isTRUE(x$user$differentiate)))
+
+  adjoint <- adjoint_model(parameters, dat)
+
+  stopifnot(
+    length(intersect(names(adjoint$equations), names(dat$equations))) == 0)
+
+  dat$equations <- c(dat$equations, adjoint$equations)
+  dat$derivative <- list(parameters = parameters,
+                         adjoint = list(variables = adjoint$variables,
+                                        components = adjoint$components))
   dat
 }

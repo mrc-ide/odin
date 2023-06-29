@@ -298,8 +298,6 @@ ir_serialise_derivative <- function(derivative) {
       equations = list(),
       components = list(update = list(), compare = list(), initial = list()))
   } else {
-    derivative$adjoint$equations <-
-      ir_serialise_equations(derivative$adjoint$equations)
     derivative$adjoint$components <-
       ir_serialise_components(derivative$adjoint$components)
   }

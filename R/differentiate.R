@@ -1,22 +1,20 @@
-adjoint_model <- function(dat) {
-  if (!dat$features$has_derivative) {
-    return(NULL)
-  }
+adjoint_model <- function(parameters, dat) {
   variables <- vcapply(dat$data$variable$contents, "[[", "name")
-  parameters <-
-    names_if(vlapply(dat$equations, function(x) isTRUE(x$user$differentiate)))
 
   adjoint <- list(update = adjoint_update(variables, parameters, dat),
                   compare = adjoint_compare(variables, parameters, dat),
                   initial = adjoint_initial(variables, parameters, dat))
 
   equations <- unlist(lapply(adjoint, function(x) x$equations), FALSE, FALSE)
+  names(equations) <- vcapply(equations, function(x) x$lhs$name_equation)
+
   components <- lapply(adjoint, function(x) {
     list(variables = c(x$depends$variables, x$depends$adjoint),
          equations = x$order)
   })
-  list(parameters = parameters,
-       adjoint = list(equations = equations, components = components))
+  list(equations = equations,
+       variables = adjoint_name(variables),
+       components = components)
 }
 
 
@@ -24,16 +22,7 @@ adjoint_update <- function(variables, parameters, dat) {
   ## The update set is really the full set of things; we need all the
   ## equations, including those that are not actually time dependent,
   ## out of the graph, *except* those that are initial conditions or
-  ## data comparison functions. We don't specially mark initial
-  ## conditions anywhere so we need to use some name matching here,
-  ## which is unfortunate (this regular expression appears throughout
-  ## this file and is something that we need to update in the schema I
-  ## think)
-  ##
-  ## Parameters are a bit harder because this is what we are flushing
-  ## towards, and because we want these at the end. So we keep these
-  ## at the end and go with the set that we're asked to report on
-  ## only.
+  ## data comparison functions.
   nms_eqs <- names_if(vlapply(dat$equations, function(x) {
     !(x$type %in% c("compare", "user")) && !identical(x$lhs$special, "initial")
   }))
@@ -41,8 +30,6 @@ adjoint_update <- function(variables, parameters, dat) {
   eqs_update_parameters <- set_names(dat$equations[parameters],
                                      sprintf("%s_%s", prefix, parameters))
   eqs <- c(dat$equations[nms_eqs], eqs_update_parameters)
-
-  ## for my adjoint eqs, nms_lhs and nms are the wrong way around...
 
   nms_lhs <- vcapply(eqs, function(x) x$lhs$name_lhs, USE.NAMES = FALSE)
   nms <- names(eqs)
@@ -178,7 +165,7 @@ adjoint_equation <- function(name, name_lhs, accumulate, deps, eqs) {
     if (is.numeric(expr_d) && expr_d == 0) {
       NULL
     } else {
-      call("*", name_adjoint, differentiate(expr, name_lhs))
+      maths$times(name_adjoint, differentiate(expr, name_lhs))
     }
   })
   if (accumulate) {
@@ -195,6 +182,7 @@ adjoint_equation <- function(name, name_lhs, accumulate, deps, eqs) {
 
   list(name = name_equation,
        type = "expression_scalar", # can get from parent?
+       source = integer(), # can get from parent?
        depends = find_symbols(rhs_expr),
        lhs = lhs,
        rhs = rhs)
@@ -214,105 +202,4 @@ fold_add <- function(x) {
     }
     ret
   }
-}
-
-
-## Full set of densities to support come from dust, which is a bit
-## weird.
-log_density <- function(distribution, target, args) {
-  switch(
-    distribution,
-    poisson = substitute(
-      lambda * log(x) - x - lfactorial(lambda),
-      list(x = as.name(args[[1]]), lambda = as.name(target))),
-    stop(sprintf("Unsupported distribution '%s'", distribution)))
-}
-
-
-deterministic_rules <- list(
-  unif_rand = function(expr) {
-    0.5
-  },
-  norm_rand = function(expr) {
-    0
-  },
-  exp_rand = function(expr) {
-    1
-  },
-  rbeta = function(expr) {
-    substitute(a / (a + b), list(a = expr[[2]], b = expr[[3]]))
-  },
-  rbinom = function(expr) {
-    substitute(n * p, list(n = expr[[2]], p = expr[[3]]))
-  },
-  rcauchy = function(expr) {
-    ## This needs to flow through to line numbers eventually, or we
-    ## need to throw an error if it remains in the code (so allow it
-    ## only if it is never used)
-    stop("The cauchy distribution has no mean, and may not be used")
-  },
-  rchisq = function(expr) {
-    expr[[2]]
-  },
-  rexp = function(expr) {
-    substitite(1 / rate, list(rate = expr[[2]]))
-  },
-  rf = function(expr) {
-    ## TODO: only valid for df2 > 2!
-    substitite(df2 / (df2 - 2), list(df2 = expr[[3]]))
-  },
-  rgamma = function(expr) {
-    substitute(shape / rate, list(shape = expr[[2]], rate = expr[[3]]))
-  },
-  rgeom = function(expr) {
-    substitute(1 / p, list(p = expr[[2]]))
-  },
-  rhyper = function(expr) {
-    substitute(k * m / (m + n),
-               list(m = expr[[2]], n = expr[[3]], k = expr[[4]]))
-  },
-  rlogis = function(expr) {
-    expr[[2]]
-  },
-  rlnorm = function(expr) {
-    substitute(exp(mu + sigma^2 / 2), list(mu = expr[[2]], sigma = expr[[3]]))
-  },
-  rnbinom = function(expr) {
-    substitute(n * p * (1 - p), list(n = expr[[2]], p = expr[[3]]))
-  },
-  rnorm = function(expr) {
-    expr[[2]]
-  },
-  rpois = function(expr) {
-    expr[[2]]
-  },
-  rt = function(expr) {
-    ## only if df > 1
-    0
-  },
-  runif = function(expr) {
-    substitute((a + b) / 2, list(a = expr[[2]], b = expr[[3]]))
-  },
-  rweibull = function(expr) {
-    substitute(b * gamma(1 + 1 / a), list(a = expr[[2]], b = expr[[3]]))
-  },
-  rwilcox = function(expr) {
-    substitite(m * n / 2, list(m = expr[[2]], n = expr[[3]]))
-  },
-  rsignrank = function(expr) {
-    substitite(n * (n + 1) / 4, list(n = expr[[2]]))
-  })
-
-
-make_deterministic <- function(expr) {
-  if (is.recursive(expr) && is.symbol(expr[[1]])) {
-    fn <- as.character(expr[[1]])
-    if (fn %in% names(deterministic_rules)) {
-      expr <- deterministic_rules[[fn]](expr)
-    }
-  }
-  if (is.recursive(expr)) {
-    expr <- as.call(lapply(expr, make_deterministic))
-  }
-  expr
 }
