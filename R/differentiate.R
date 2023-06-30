@@ -1,7 +1,7 @@
 adjoint_model <- function(parameters, dat) {
   variables <- vcapply(dat$data$variable$contents, "[[", "name")
 
-  adjoint <- list(update = adjoint_update(variables, parameters, dat),
+  adjoint <- list(rhs = adjoint_update(variables, parameters, dat),
                   compare = adjoint_compare(variables, parameters, dat),
                   initial = adjoint_initial(variables, parameters, dat))
 

@@ -75,13 +75,13 @@ test_that("can differentiate nontrivial model", {
                   c("variables", "components"))
 
   expect_equal(
-    d$derivative$adjoint$components$update$variables,
+    d$derivative$adjoint$components$rhs$variables,
     c("S", "I", "R", "adjoint_cases_cumul",
       "adjoint_cases_inc", "adjoint_I", "adjoint_R",
       "adjoint_S", "adjoint_beta", "adjoint_gamma",
       "adjoint_I0"))
   expect_equal(
-    d$derivative$adjoint$components$update$equations,
+    d$derivative$adjoint$components$rhs$equations,
     c("adjoint_n_IR", "adjoint_n_SI", "adjoint_update_cases_cumul",
       "adjoint_update_cases_inc", "adjoint_update_I0", "N",
       "adjoint_p_IR", "adjoint_p_SI", "p_inf", "adjoint_p_inf",
@@ -160,4 +160,24 @@ test_that("can differentiate nontrivial model", {
                  parse(text = expected[[i]])[[1]],
                  label = sprintf("Adjoint equation for '%s'", i))
   }
+})
+
+
+test_that("empty differentiate component on models that lack it", {
+  ir <- odin_parse({
+    initial(x) <- 1
+    update(x) <- rnorm(x, 0.1)
+    d <- data()
+    compare(d) ~ normal(0, scale)
+    scale <- user()
+  })
+  d <- ir_deserialise(ir)
+  expect_equal(d$derivative$parameters, character())
+  expect_equal(d$derivative$adjoint$variables, character())
+  expect_equal(d$derivative$adjoint$components$rhs,
+               list(variables = character(), equations = character()))
+  expect_equal(d$derivative$adjoint$components$compare,
+               list(variables = character(), equations = character()))
+  expect_equal(d$derivative$adjoint$components$initial,
+               list(variables = character(), equations = character()))
 })
