@@ -774,7 +774,6 @@
                 "rhs": { "$ref": "#/definitions/component" },
                 "output": { "$ref": "#/definitions/component" },
                 "compare": { "$ref": "#/definitions/component" },
-                "adjoint": { "$ref": "#/definitions/component" },
                 "update_stochastic": { "$ref": "#/definitions/component" }
             },
             "required": ["create", "user", "initial", "rhs", "output"],
@@ -864,8 +863,30 @@
             "properties": {
                 "parameters": {
                     "$ref": "#/definitions/basic/character_vector"
+                },
+                "adjoint": {
+                    "type": "object",
+                    "properties": {
+                        "variables": {
+                            "$ref": "#/definitions/basic/character_vector"
+                        },
+                        "components": {
+                            "type": "object",
+                            "properties": {
+                                "rhs": { "$ref": "#/definitions/component" },
+                                "compare": { "$ref": "#/definitions/component" },
+                                "initial": { "$ref": "#/definitions/component" }
+                            },
+                            "required": ["rhs", "compare", "initial"],
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": ["variables", "components"],
+                    "additionalProperties": false
                 }
-            }
+            },
+            "required": ["parameters", "adjoint"],
+            "additionalProperties": false
         },
 
         "debug": {
