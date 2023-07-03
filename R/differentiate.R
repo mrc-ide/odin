@@ -12,7 +12,16 @@ adjoint_model <- function(parameters, dat) {
     list(variables = c(x$depends$variables, x$depends$adjoint),
          equations = x$order)
   })
+
+  ## Drop equations that are never referenced in any part of the
+  ## adjoint model; these are fairly harmless but not interesting:
+  eqs_used <- unique(unlist(components, TRUE, FALSE))
+  equations <- equations[names(equations) %in% eqs_used]
+
+  data <- adjoint_data(variables, parameters, equations, dat)
+
   list(equations = equations,
+       data = data,
        variables = adjoint_name(variables),
        components = components)
 }
@@ -186,6 +195,34 @@ adjoint_equation <- function(name, name_lhs, accumulate, deps, eqs) {
        depends = find_symbols(rhs_expr),
        lhs = lhs,
        rhs = rhs)
+}
+
+
+adjoint_data <- function(variables, parameters, equations, dat) {
+  nms_eqs <- unique(vcapply(equations, function(x) x$lhs$name_data))
+  nms_vars <- adjoint_name(c(variables, parameters))
+
+  ## This only works while we have no arrays:
+  stopifnot(!dat$features$has_array)
+  length <- length(nms_vars)
+  contents <- Map(list,
+                  name = nms_vars,
+                  offset = seq_along(nms_vars) - 1L)
+
+  elements <- lapply(nms_eqs, function(nm) {
+    location <- if (nm %in% nms_vars) "adjoint" else "transient"
+    list(name = nm,
+         location = location,
+         storage_type = "double",
+         rank = 0L,
+         dimnames = NULL,
+         stage = STAGE_ADJOINT)
+  })
+  names(elements) <- nms_eqs
+
+  list(adjoint = list(length = length,
+                      contents = contents),
+       elements = elements)
 }
 
 

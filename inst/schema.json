@@ -44,7 +44,7 @@
 
             "location": {
                 "type": "string",
-                "enum": ["transient", "internal", "variable", "output", "data"]
+                "enum": ["transient", "internal", "variable", "output", "data", "adjoint"]
             },
 
             "equation_type": {
@@ -74,7 +74,7 @@
 
             "stage": {
                 "type": "string",
-                "enum": ["null", "constant", "user", "time"]
+                "enum": ["null", "constant", "user", "time", "adjoint"]
             },
 
             "index": {
@@ -227,9 +227,12 @@
                 },
                 "output": {
                     "$ref": "#/definitions/data_output"
+                },
+                "adjoint": {
+                    "$ref": "#/definitions/data_output"
                 }
             },
-            "required": ["elements", "variable", "output"],
+            "required": ["elements", "variable", "output", "adjoint"],
             "additionalProperties": false
         },
 

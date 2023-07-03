@@ -35,6 +35,8 @@ ir_deserialise <- function(ir) {
     vcapply(dat$data$variable$contents, "[[", "name")
   names(dat$data$output$contents) <-
     vcapply(dat$data$output$contents, "[[", "name")
+  names(dat$data$adjoint$contents) <-
+    vcapply(dat$data$adjoint$contents, "[[", "name")
   names(dat$user) <- vcapply(dat$user, "[[", "name")
 
   dat$interpolate <- lapply(dat$interpolate, list_to_character)

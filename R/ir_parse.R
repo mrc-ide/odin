@@ -2043,9 +2043,8 @@ ir_parse_differentiate <- function(dat) {
 
   adjoint <- adjoint_model(parameters, dat)
 
-  stopifnot(
-    length(intersect(names(adjoint$equations), names(dat$equations))) == 0)
-
+  dat$data$adjoint <- adjoint$data$adjoint
+  dat$data$elements <- c(dat$data$elements, adjoint$data$elements)
   dat$equations <- c(dat$equations, adjoint$equations)
   dat$derivative <- list(parameters = parameters,
                          adjoint = list(variables = adjoint$variables,

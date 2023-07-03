@@ -7,7 +7,8 @@ STAGE_NULL <- 0L
 STAGE_CONSTANT <- 1L
 STAGE_USER <- 2L
 STAGE_TIME <- 3L
-STAGE_NAME <- c("null", "constant", "user", "time")
+STAGE_ADJOINT <- 4L
+STAGE_NAME <- c("null", "constant", "user", "time", "adjoint")
 
 TIME <- "t"
 STEP <- "step"

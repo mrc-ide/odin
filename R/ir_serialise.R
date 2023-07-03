@@ -100,10 +100,14 @@ ir_serialise_data <- function(data) {
   output <- list(
     length = ir_serialise_expression(data$output$length),
     contents = lapply(unname(data$output$contents), f_output_contents))
+  adjoint <- list(
+    length = ir_serialise_expression(data$adjoint$length),
+    contents = lapply(unname(data$adjoint$contents), f_output_contents))
 
   list(elements = elements,
        variable = variable,
-       output = output)
+       output = output,
+       adjoint = adjoint)
 }
 
 
