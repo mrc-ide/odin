@@ -95,10 +95,10 @@ test_that("can differentiate nontrivial model", {
       "adjoint_cases_inc", "adjoint_beta", "adjoint_gamma", "adjoint_I0"))
   expect_equal(
     d$derivative$adjoint$components$compare$equations,
-    c("compare_adjoint_S", "compare_adjoint_I", "compare_adjoint_R",
-      "compare_adjoint_cases_cumul", "compare_adjoint_cases_inc",
-      "compare_adjoint_beta", "compare_adjoint_gamma",
-      "compare_adjoint_I0"))
+    c("adjoint_compare_S", "adjoint_compare_I", "adjoint_compare_R",
+      "adjoint_compare_cases_cumul", "adjoint_compare_cases_inc",
+      "adjoint_compare_beta", "adjoint_compare_gamma",
+      "adjoint_compare_I0"))
 
   expect_equal(
     d$derivative$adjoint$components$initial$variables,
@@ -106,18 +106,16 @@ test_that("can differentiate nontrivial model", {
       "adjoint_cases_inc", "adjoint_beta", "adjoint_gamma", "adjoint_I0"))
   expect_equal(
     d$derivative$adjoint$components$initial$equations,
-    c("initial_adjoint_S", "initial_adjoint_I", "initial_adjoint_R",
-      "initial_adjoint_cases_cumul", "initial_adjoint_cases_inc",
-      "initial_adjoint_beta", "initial_adjoint_gamma",
-      "initial_adjoint_I0"))
+    c("adjoint_initial_S", "adjoint_initial_I", "adjoint_initial_R",
+      "adjoint_initial_cases_cumul", "adjoint_initial_cases_inc",
+      "adjoint_initial_beta", "adjoint_initial_gamma",
+      "adjoint_initial_I0"))
 
   ## Then some equations, these are much harder to check, and there
   ## are quite a lot of them.
-  expect_length(d$equations, 55)
+  expect_length(d$equations, 53)
 
   expected <- list(
-    adjoint_dt = paste("adjoint_p_inf * beta * I/N +",
-                       "adjoint_p_IR * gamma * exp(-gamma * dt)"),
     adjoint_N = "-adjoint_p_inf * (beta * I) * dt/(N * N)",
     adjoint_n_IR = "-adjoint_I + adjoint_R",
     adjoint_n_SI = paste("adjoint_cases_cumul + adjoint_cases_inc +",
@@ -125,7 +123,6 @@ test_that("can differentiate nontrivial model", {
     adjoint_p_inf = "adjoint_p_SI * exp(-p_inf)",
     adjoint_p_IR = "adjoint_n_IR * I",
     adjoint_p_SI = "adjoint_n_SI * S",
-    adjoint_S0 = "0L",
     adjoint_update_cases_cumul = "adjoint_cases_cumul",
     adjoint_update_cases_inc =
       "adjoint_cases_inc * if (step%%freq == 0L) 0L else 1L",
@@ -134,26 +131,27 @@ test_that("can differentiate nontrivial model", {
     adjoint_update_R = "adjoint_N + adjoint_R",
     adjoint_update_S = "adjoint_N + adjoint_n_SI * p_SI + adjoint_S",
     adjoint_update_beta = "adjoint_beta + adjoint_p_inf * I * dt/N",
-    adjoint_update_gamma = paste("adjoint_gamma +",
-                                 "adjoint_p_IR * dt * exp(-gamma * dt)"),
+    adjoint_update_gamma =
+      "adjoint_gamma + adjoint_p_IR * dt * exp(-gamma * dt)",
     adjoint_update_I0 = "adjoint_I0",
-    adjoint_S = "adjoint_S",
-    adjoint_I = "adjoint_I",
-    adjoint_R = "adjoint_R",
-    adjoint_cases_cumul = "adjoint_cases_cumul",
-    adjoint_cases_inc = "adjoint_cases_inc + (cases_observed/cases_inc - 1L)",
-    adjoint_beta = "adjoint_beta",
-    adjoint_gamma = "adjoint_gamma",
-    adjoint_I0 = "adjoint_I0",
-    adjoint_S = "adjoint_S",
-    adjoint_I = "adjoint_I",
-    adjoint_R = "adjoint_R",
-    adjoint_cases_cumul = "adjoint_cases_cumul",
-    adjoint_cases_inc = "adjoint_cases_inc + (cases_observed/cases_inc - 1L)",
-    adjoint_beta = "adjoint_beta",
-    adjoint_gamma = "adjoint_gamma",
-    adjoint_I0 = "adjoint_I0")
-  expect_true(all(names(expected) %in% names(d$equation)))
+    adjoint_compare_S = "adjoint_S",
+    adjoint_compare_I = "adjoint_I",
+    adjoint_compare_R = "adjoint_R",
+    adjoint_compare_cases_cumul = "adjoint_cases_cumul",
+    adjoint_compare_cases_inc =
+      "adjoint_cases_inc + (cases_observed/cases_inc - 1L)",
+    adjoint_compare_beta = "adjoint_beta",
+    adjoint_compare_gamma = "adjoint_gamma",
+    adjoint_compare_I0 = "adjoint_I0",
+    adjoint_initial_S = "adjoint_S",
+    adjoint_initial_I = "adjoint_I",
+    adjoint_initial_R = "adjoint_R",
+    adjoint_initial_cases_cumul = "adjoint_cases_cumul",
+    adjoint_initial_cases_inc = "adjoint_cases_inc",
+    adjoint_initial_beta = "adjoint_beta",
+    adjoint_initial_gamma = "adjoint_gamma",
+    adjoint_initial_I0 = "adjoint_I0 + adjoint_I")
+  expect_true(all(names(expected) %in% names(d$equations)))
 
   for (i in names(expected)) {
     expect_equal(list_to_lang(d$equations[[i]]$rhs$value),
