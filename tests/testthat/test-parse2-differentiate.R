@@ -178,4 +178,6 @@ test_that("empty differentiate component on models that lack it", {
                list(variables = character(), equations = character()))
   expect_equal(d$derivative$adjoint$components$initial,
                list(variables = character(), equations = character()))
+  expect_equal(d$data$adjoint,
+               list(length = 0, contents = set_names(list(), character())))
 })
