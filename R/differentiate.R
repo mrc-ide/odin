@@ -65,7 +65,7 @@ adjoint_update <- function(variables, parameters, dat) {
   data_info <- dat$data$elements[nms_lhs]
 
   res <- Map(adjoint_equation, nms, data_info, accumulate,
-             MoreArgs = list("update", deps, eqs))
+             MoreArgs = list("update", deps, eqs, variables, parameters))
   names(res) <- vcapply(res, "[[", "name")
 
   ## Work out the "stage" of these; we just count stage here as
@@ -108,7 +108,7 @@ adjoint_compare <- function(variables, parameters, dat) {
   nms <- c(variables, parameters)
   data_info <- dat$data$elements[nms]
   res <- Map(adjoint_equation, nms, data_info,
-             MoreArgs = list(TRUE, role, deps, eqs))
+             MoreArgs = list(TRUE, role, deps, eqs, variables, parameters))
   names(res) <- vcapply(res, "[[", "name")
 
   stage <- c(viapply(dat$data$elements, "[[", "stage"),
@@ -146,7 +146,7 @@ adjoint_initial <- function(variables, parameters, dat) {
   nms <- c(variables, parameters)
   data_info <- dat$data$elements[nms]
   res <- Map(adjoint_equation, nms, data_info,
-             MoreArgs = list(TRUE, role, deps, eqs))
+             MoreArgs = list(TRUE, role, deps, eqs, variables, parameters))
   names(res) <- vcapply(res, "[[", "name")
 
   stage <- c(viapply(dat$data$elements, "[[", "stage"),
@@ -171,7 +171,8 @@ adjoint_initial <- function(variables, parameters, dat) {
 }
 
 
-adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs) {
+adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
+                             variables, parameters) {
   name_data <- data_info$name
   use <- names(which(vlapply(deps, function(x) name_data %in% x)))
   parts <- lapply(eqs[use], function(eq) {
@@ -202,14 +203,20 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs) {
   if (accumulate) {
     parts <- c(list(as.name(adjoint_name(name_data))), parts)
   }
+
+  name_lhs <- adjoint_name(name_data)
+  if (name_data %in% c(variables, parameters)) {
+    name_equation <- adjoint_name(sprintf("%s_%s", role, name_data))
+  } else {
+    name_equation <- name_lhs
+  }
+
   rhs <- list(value = fold_add(parts))
   depends <- find_symbols(rhs$value)
-
-  name_equation <- adjoint_name(sprintf("%s_%s", role, name_data))
   lhs <- list(
     name_equation = name_equation,
-    name_data = adjoint_name(name_data),
-    name_lhs = adjoint_name(name_data),
+    name_data = name_lhs,
+    name_lhs = name_lhs,
     storage_type = "double")
 
   ## This needs making more flexible later; I see this in the toy
