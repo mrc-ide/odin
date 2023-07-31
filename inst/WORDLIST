@@ -15,12 +15,14 @@ Rmath
 Rtools
 SEIRDS
 Thibaut
+TypeScript
 Vano
 VignetteEncoding
 VignetteEngine
 VignetteIndexEntry
 Volterra
 WIP
+ac
 api
 autogeneration
 codecov
@@ -35,7 +37,9 @@ dde
 deSolve
 debuggable
 deserialisation
+dide
 dt
+epimodels
 etc
 frac
 gcc
@@ -66,5 +70,6 @@ susceptibles
 th
 toc
 tradeoffs
+uk
 wikipedia
 wodin
