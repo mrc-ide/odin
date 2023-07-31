@@ -345,7 +345,7 @@ to_json_js <- function(x, auto_unbox = FALSE, digits = NA, ...) {
 ##' @title Report JS versions
 ##'
 ##' @return A named list of [package_version] versions, for `odinjs`
-##'   and other coponents used in the JavaScript support.
+##'   and other components used in the JavaScript support.
 ##'
 ##' @export
 ##' @examples

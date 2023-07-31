@@ -35,8 +35,7 @@ The documentation for `mcstate` concerns mostly performing inference with `odin.
 * [**Deterministic models**](https://mrc-ide.github.io/mcstate/articles/deterministic.html): describes how to create deterministic models from your stochastic models, and how these can speed up your inference.
 * [**Running inference on models with multiple parameter sets at once**](https://mrc-ide.github.io/mcstate/articles/nested_sir_models.html): for example a model where parameters are structured by region.
 * [**Parallelisation of inference**](https://mrc-ide.github.io/mcstate/articles/parallelisation.html): the two ways that you can parallelise models (at the chain and particle level), tradeoffs and how to control this.
-
-* [A stratgy for restarting a pMCMC inference in time](https://mrc-ide.github.io/mcstate/articles/restart.html), [Iterated filtering](https://mrc-ide.github.io/mcstate/articles/if2.html) - an algorithm familar to [`pomp`](https://cran.r-project.org/package=pomp) users, [comparison of our particle filter with a Kalman filter](https://mrc-ide.github.io/mcstate/articles/kalman.html).
+* Other, less generally useful articles include: [A strategy for restarting a pMCMC inference in time](https://mrc-ide.github.io/mcstate/articles/restart.html), [Iterated filtering](https://mrc-ide.github.io/mcstate/articles/if2.html) - an algorithm familiar to [`pomp`](https://cran.r-project.org/package=pomp) users, [comparison of our particle filter with a Kalman filter](https://mrc-ide.github.io/mcstate/articles/kalman.html).
 
 The documentation for [`dust`](https://mrc-ide.github.io/dust) is typically more advanced, but will be useful at times for users of `odin.dust` models
 
@@ -57,7 +56,7 @@ Missing topics:
 * Lower-level documentation on the relationship between deterministic and stochastic models
 * More details on constructing transformation functions in `mcstate`
 
-Each package also comes with reference documentation, which contains examples and detailed help for individual functiosn.
+Each package also comes with reference documentation, which contains examples and detailed help for individual functions.
 
 * [`odin`](https://mrc-ide.github.io/odin/reference/index.html)
 * [`odin.dust`](https://mrc-ide.github.io/odin.dust/reference/index.html)
