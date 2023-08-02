@@ -21,7 +21,7 @@ In addition, the same machinery can be used to generate discrete-time models tha
 
 `odin` works using code generation; the nice thing about this approach is that it never gets bored.  So if the generated code has lots of tedious repetitive bits, they're at least likely to be correct (compared with implementing yourself).
 
-There are lots of other things you can do with odin models, see [the guide](https://mrc-ide.github.io/odin/articles/guide.html) for to work out where to start.
+There are lots of other things you can do with odin models, see [the guide](https://mrc-ide.github.io/odin/articles/guide.html) to work out where to start.
 
 ## Background
 

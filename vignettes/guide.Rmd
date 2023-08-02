@@ -65,7 +65,7 @@ Each package also comes with reference documentation, which contains examples an
 
 # The TypeScript ecosystem
 
-In addition to the above, we are growing our ability to work with JavaScript models - the main output of this is [wodin](https://github.com/mrc-ide/wodin), an interface for running `odin` models on the web, which you can see at [`epimodels.dide.ic.ac.uk](https://epimodels.dide.ic.ac.uk/).
+In addition to the above, we are growing our ability to work with JavaScript models - the main output of this is [wodin](https://github.com/mrc-ide/wodin), an interface for running `odin` models on the web, which you can see at [`epimodels.dide.ic.ac.uk`](https://epimodels.dide.ic.ac.uk/).
 
 * [`wodin`](https://github.com/mrc-ide/wodin): wodin itself
 * [`dopri-js`](https://github.com/mrc-ide/dopri-js): an ODE solver in TypeScript allowing smooth interpolation of its solutions
