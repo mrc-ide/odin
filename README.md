@@ -21,6 +21,8 @@ In addition, the same machinery can be used to generate discrete-time models tha
 
 `odin` works using code generation; the nice thing about this approach is that it never gets bored.  So if the generated code has lots of tedious repetitive bits, they're at least likely to be correct (compared with implementing yourself).
 
+There are lots of other things you can do with odin models, see [the guide](https://mrc-ide.github.io/odin/articles/guide.html) to work out where to start.
+
 ## Background
 
 The "deSolve" package for R is the de-facto way of solving differential equations in R; it provides excellent solvers and has remained stable for over a decade.  However, users must implement equations in R and suffer a large speed cost, or implement their equations in C which is (depending on the complexity of the system) either routine and a bit boring, or complicated and error prone.  This translation can be especially complicated with delay differential equations, or with models where the variables are more naturally stored as variable sized arrays.

@@ -1,6 +1,6 @@
 Package: odin
 Title: ODE Generation and Integration
-Version: 1.5.4
+Version: 1.5.5
 Authors@R: c(person("Rich", "FitzJohn", role = c("aut", "cre"),
                     email = "rich.fitzjohn@gmail.com"),
              person("Thibaut", "Jombart", role = "ctb"),
@@ -47,7 +47,7 @@ Suggests:
     rmarkdown,
     testthat
 VignetteBuilder: knitr
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 Roxygen: list(old_usage = TRUE, markdown = TRUE)
 Encoding: UTF-8
 Language: en-GB

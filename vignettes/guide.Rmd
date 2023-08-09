@@ -1,0 +1,82 @@
+---
+title: "Guide to odin docs"
+author: "Rich FitzJohn"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Guide to odin docs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+`odin` has grown from just one package to a series of packages; this document aims to help orient you to the right place to understand how pieces fit together and where to find help.
+
+# The packages
+
+* [`odin`](https://mrc-ide.github.io/odin) contains the domain specific language (DSL), and the original implementation suitable for simple use.  It can compile continuous time (ODE) and discrete time models to C, R or JavaScript. It contains no ability to do inference.
+* [`dust`](https://mrc-ide.github.io/dust) contains an engine for running odin-style models in parallel. It supports both continuous time and discrete time models, but does not "know" anything about odin. This is the lower level support that many users will end up engaging with eventually.
+* [`odin.dust`](https://mrc-ide.github.io/odin.dust) is a package for compiling `odin` models to work with `dust`. It will likely merge into `odin` once `dust` is on CRAN.
+* [`mcstate`](https://mrc-ide.github.io/mcstate) is a package for performing inference with `odin` models compiled to work with `dust`. It implements a particle filter, particle MCMC and other statistical methods.
+
+# Documentation
+
+* [**Introduction to odin**](https://mrc-ide.github.io/odin/articles/odin.html): a tour of the original odin's features
+* [**Discrete time models**](https://mrc-ide.github.io/odin/articles/discrete.html):
+* [**Functions available in `odin`**](https://mrc-ide.github.io/odin/articles/functions.html): a brief summary of available functions in odin. This applies to both `odin` and `odin.dust` models, but with the conditions discussed in [the porting guide](https://mrc-ide.github.io/odin.dust/articles/porting.html)
+* [**Debugging `odin` code**](https://mrc-ide.github.io/odin/articles/debugging.html): this applies to both `odin` and `odin.dust` models
+* [**SIR models in `odin.dust`**](https://mrc-ide.github.io/odin.dust/articles/sir_models.html): shows how to use `odin.dust` to explore a stochastic SIR model, without doing inference on it
+* [**Porting `odin` models to `odin.dust`**](https://mrc-ide.github.io/odin.dust/articles/porting.html): Differences between the original version of `odin` and the subset of the DSL supported by `odin.dust`
+
+The documentation for `mcstate` concerns mostly performing inference with `odin.dust` models
+
+* [**An introduction**](https://mrc-ide.github.io/mcstate/articles/sir_models.html): walks through performing inference with a simple SIR model
+* [**Deterministic models**](https://mrc-ide.github.io/mcstate/articles/deterministic.html): describes how to create deterministic models from your stochastic models, and how these can speed up your inference.
+* [**Running inference on models with multiple parameter sets at once**](https://mrc-ide.github.io/mcstate/articles/nested_sir_models.html): for example a model where parameters are structured by region.
+* [**Parallelisation of inference**](https://mrc-ide.github.io/mcstate/articles/parallelisation.html): the two ways that you can parallelise models (at the chain and particle level), tradeoffs and how to control this.
+* Other, less generally useful articles include: [A strategy for restarting a pMCMC inference in time](https://mrc-ide.github.io/mcstate/articles/restart.html), [Iterated filtering](https://mrc-ide.github.io/mcstate/articles/if2.html) - an algorithm familiar to [`pomp`](https://cran.r-project.org/package=pomp) users, [comparison of our particle filter with a Kalman filter](https://mrc-ide.github.io/mcstate/articles/kalman.html).
+
+The documentation for [`dust`](https://mrc-ide.github.io/dust) is typically more advanced, but will be useful at times for users of `odin.dust` models
+
+* [**The ideas in `dust`**](https://mrc-ide.github.io/dust/articles/design.html): discusses what `dust` models can do, and how they try to help you.
+* [**Introduction to dust**](https://mrc-ide.github.io/dust/articles/dust.html): covers manually building a `dust` model (which you are unlikely to want to do) but also covers what `dust` models can do, by example.
+* [**Working with multiple parameter sets**](https://mrc-ide.github.io/dust/articles/multi.html): covers building dust objects that simultaneously run for multiple parameter sets at once.  This is the only source of documentation for this at present.
+* [**Comparing models and data**](https://mrc-ide.github.io/dust/articles/data.html): covers details of the lower-level model/data comparison.
+* [**Random number generation**](https://mrc-ide.github.io/dust/articles/rng.html): covers details of how the random number generation works, how it can generate numbers in parallel, and performance differences with R's built-in generators.
+* [**Running models on a GPU**](https://mrc-ide.github.io/dust/articles/gpu.html): lower-level details of running models on the GPU
+* Other, even more specialised topics such as [details of the random number algorithms](https://mrc-ide.github.io/dust/articles/rng_algorithms.html), [using the `dust` RNG in other packages](https://mrc-ide.github.io/dust/articles/rng_package.html) and [generating random numbers in highly-parallel situations](https://mrc-ide.github.io/dust/articles/rng_distributed.html).
+
+Missing topics:
+
+* Using ODE models with `odin.dust`
+* The DSL for comparing models and data
+* Higher-level documentation of multiple parameter sets at once
+* Higher-level documentation for running models on a GPU
+* Lower-level documentation on the relationship between deterministic and stochastic models
+* More details on constructing transformation functions in `mcstate`
+
+Each package also comes with reference documentation, which contains examples and detailed help for individual functions.
+
+* [`odin`](https://mrc-ide.github.io/odin/reference/index.html)
+* [`odin.dust`](https://mrc-ide.github.io/odin.dust/reference/index.html)
+* [`dust`](https://mrc-ide.github.io/dust/reference/index.html)
+* [`mcstate`](https://mrc-ide.github.io/mcstate/reference/index.html)
+
+# The TypeScript ecosystem
+
+In addition to the above, we are growing our ability to work with JavaScript models - the main output of this is [wodin](https://github.com/mrc-ide/wodin), an interface for running `odin` models on the web, which you can see at [`epimodels.dide.ic.ac.uk`](https://epimodels.dide.ic.ac.uk/).
+
+* [`wodin`](https://github.com/mrc-ide/wodin): wodin itself
+* [`dopri-js`](https://github.com/mrc-ide/dopri-js): an ODE solver in TypeScript allowing smooth interpolation of its solutions
+* [`dfoptim`](https://github.com/reside-ic/dfoptim): derivative-free optimisation methods for TypeScript
+* [`odin-js`](https://github.com/mrc-ide/odin-js): TypeScript support for running continuous time `odin` models
+* [`dust-js`](https://github.com/mrc-ide/dust-js): An implementation of part of the `dust` interface in TypeScript
+* [`random-js`](https://github.com/reside-ic/random-js): Another random number library for JavaScript
+
+# Roadmap
+
+* Eventually we will merge `odin.dust` into `odin` (once `dust` is on CRAN)
+* We may deprecate the original discrete time interface
+* We will implement some of the missing features mentioned in the [porting guide](https://mrc-ide.github.io/odin.dust/articles/porting.html) within `odin.dust`
+* We are designing a DSL for `mcstate` to make the inference part of the system nicer to work with; this will include an overhaul of the nested models.

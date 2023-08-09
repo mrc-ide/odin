@@ -8,7 +8,7 @@ odin_js_versions()
 }
 \value{
 A named list of \link{package_version} versions, for \code{odinjs}
-and other coponents used in the JavaScript support.
+and other components used in the JavaScript support.
 }
 \description{
 Report versions of JavaScript packages used to run odin models.
