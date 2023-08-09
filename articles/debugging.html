@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.5.4</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.5.5</span>
       </span>
     </div>
 
@@ -67,6 +67,9 @@
     </li>
     <li>
       <a href="../articles/functions.html">odin functions</a>
+    </li>
+    <li>
+      <a href="../articles/guide.html">Guide to odin docs</a>
     </li>
   </ul>
 </li>
@@ -98,7 +101,7 @@
                         <h4 data-toc-skip class="author">Rich
 FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2023-06-29</h4>
+            <h4 data-toc-skip class="date">2023-08-09</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/debugging.Rmd" class="external-link"><code>vignettes/debugging.Rmd</code></a></small>
       <div class="hidden name"><code>debugging.Rmd</code></div>
@@ -135,9 +138,9 @@ functionality in future versions, your feedback is very welcome.</p>
 <span><span class="op">}</span>, debug_enable <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Loading required namespace: pkgbuild</span></span></code></pre>
 <pre><code><span><span class="co">## Generating model in c</span></span></code></pre>
-<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Re-compiling <span style="color: #0000BB;">odin6e685a96</span> (debug build)</span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Re-compiling <span style="color: #0000BB;">odin5c068974</span> (debug build)</span></span></code></pre>
 <pre><code><span><span class="co">## <span style="color: #00BBBB;">──</span> <span style="color: #00BBBB;">R CMD INSTALL</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">## * installing *source* package ‘odin6e685a96’ ...</span></span>
+<span><span class="co">## * installing *source* package ‘odin5c068974’ ...</span></span>
 <span><span class="co">## ** using staged installation</span></span>
 <span><span class="co">## ** libs</span></span>
 <span><span class="co">## using C compiler: ‘gcc (Ubuntu 11.3.0-1ubuntu1~22.04.1) 11.3.0’</span></span>
@@ -147,11 +150,11 @@ functionality in future versions, your feedback is very welcome.</p>
 <span><span class="co">##    76 |   odin_internal *<span style="color: #BB00BB; font-weight: bold;">internal</span> = odin_get_internal(internal_p, 1);</span></span>
 <span><span class="co">##       |                  <span style="color: #BB00BB; font-weight: bold;">^~~~~~~~</span></span></span>
 <span><span class="co">## gcc -I"/opt/R/4.3.1/lib/R/include" -DNDEBUG   -I/usr/local/include    -fpic  -g -O2  -UNDEBUG -Wall -pedantic -g -O0 -fdiagnostics-color=always -c registration.c -o registration.o</span></span>
-<span><span class="co">## gcc -shared -L/opt/R/4.3.1/lib/R/lib -L/usr/local/lib -o odin6e685a96.so odin.o registration.o -L/opt/R/4.3.1/lib/R/lib -lR</span></span>
-<span><span class="co">## installing to /tmp/RtmpExbk6E/devtools_install_176511a9f505/00LOCK-file176553be027d/00new/odin6e685a96/libs</span></span>
+<span><span class="co">## gcc -shared -L/opt/R/4.3.1/lib/R/lib -L/usr/local/lib -o odin5c068974.so odin.o registration.o -L/opt/R/4.3.1/lib/R/lib -lR</span></span>
+<span><span class="co">## installing to /tmp/RtmpUn5Oip/devtools_install_182655e8205/00LOCK-file18266b601f/00new/odin5c068974/libs</span></span>
 <span><span class="co">## ** checking absolute paths in shared objects and dynamic libraries</span></span>
-<span><span class="co">## * DONE (odin6e685a96)</span></span></code></pre>
-<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Loading <span style="color: #0000BB;">odin6e685a96</span></span></span></code></pre>
+<span><span class="co">## * DONE (odin5c068974)</span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Loading <span style="color: #0000BB;">odin5c068974</span></span></span></code></pre>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="va">gen</span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">mod</span><span class="op">$</span><span class="fu">run</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
