@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -exu
 
-ODIN_JS_BRANCH=mrc-4432
+ODIN_JS_BRANCH=main
 DUST_JS_BRANCH=main
 
 HERE=$(dirname $0)
