@@ -116,6 +116,9 @@ odin_js_wrapper_continuous <- function(res) {
                      use_names = TRUE, return_statistics = FALSE) {
         t_js <- to_json_js(t, auto_unbox = FALSE)
         y_js <- to_json_js(y, auto_unbox = FALSE, null = "null")
+        if (!is.null(tcrit)) {
+          tcrit <- I(tcrit)
+        }
         control <- list(atol = atol,
                         rtol = rtol,
                         tcrit = tcrit,

@@ -176,6 +176,7 @@ test_that_odin("linear", {
   expect_error(mod$run(c(tt, max(tp) + 1)),
                "Integration times do not span interpolation range")
 
+  skip_for_target("js", "has better tcrit support")
   expect_error(mod$run(tt, tcrit = 3),
                "Interpolation failed as .+ is out of range")
 })
