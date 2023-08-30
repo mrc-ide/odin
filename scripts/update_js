@@ -2,7 +2,7 @@
 set -exu
 
 ODIN_JS_BRANCH=mrc-4455
-DUST_JS_BRANCH=main
+DUST_JS_BRANCH=update-odin-js
 
 HERE=$(dirname $0)
 PACKAGE_ROOT=$(realpath $HERE/..)
