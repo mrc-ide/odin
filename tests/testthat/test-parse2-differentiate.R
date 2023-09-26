@@ -65,51 +65,48 @@ test_that("can't differentiate models with arrays", {
 
 
 test_that("can differentiate nontrivial model", {
+  withr::local_locale(c("LC_COLLATE" = "C"))
   ir <- odin_parse_("examples/sir_adjoint.R")
   d <- ir_deserialise(ir)
 
   expect_true(d$features$has_derivative)
   expect_setequal(names(d$derivative), c("parameters", "adjoint"))
-  expect_equal(d$derivative$parameters, c("beta", "gamma", "I0"))
+  expect_equal(d$derivative$parameters, c("I0", "beta", "gamma"))
   expect_setequal(names(d$derivative$adjoint),
                   c("variables", "components"))
 
   expect_equal(
     d$derivative$adjoint$components$rhs$variables,
-    c("S", "I", "R", "adjoint_cases_cumul",
-      "adjoint_cases_inc", "adjoint_I", "adjoint_R",
-      "adjoint_S", "adjoint_beta", "adjoint_gamma",
-      "adjoint_I0"))
+    c("S", "I", "R", "adjoint_I", "adjoint_R", "adjoint_S",
+      "adjoint_cases_cumul", "adjoint_cases_inc", "adjoint_I0",
+      "adjoint_beta", "adjoint_gamma"))
   expect_equal(
     d$derivative$adjoint$components$rhs$equations,
     c("adjoint_n_IR", "adjoint_n_SI", "adjoint_update_cases_cumul",
-      "adjoint_update_cases_inc", "adjoint_update_I0", "N",
-      "adjoint_p_IR", "adjoint_p_SI", "p_inf", "adjoint_p_inf",
-      "adjoint_update_gamma", "p_SI", "adjoint_N",
-      "adjoint_update_beta", "adjoint_update_I", "adjoint_update_R",
-      "adjoint_update_S"))
+      "adjoint_update_cases_inc", "adjoint_update_I0", "N", "adjoint_p_IR",
+      "adjoint_p_SI", "p_inf", "adjoint_p_inf", "adjoint_update_gamma",
+      "p_SI", "adjoint_N", "adjoint_update_beta", "adjoint_update_I",
+      "adjoint_update_R", "adjoint_update_S"))
 
   expect_equal(
     d$derivative$adjoint$components$compare$variables,
     c("cases_inc", "adjoint_S", "adjoint_I", "adjoint_R", "adjoint_cases_cumul",
-      "adjoint_cases_inc", "adjoint_beta", "adjoint_gamma", "adjoint_I0"))
+      "adjoint_cases_inc", "adjoint_I0", "adjoint_beta", "adjoint_gamma"))
   expect_equal(
     d$derivative$adjoint$components$compare$equations,
     c("adjoint_compare_S", "adjoint_compare_I", "adjoint_compare_R",
       "adjoint_compare_cases_cumul", "adjoint_compare_cases_inc",
-      "adjoint_compare_beta", "adjoint_compare_gamma",
-      "adjoint_compare_I0"))
+      "adjoint_compare_I0", "adjoint_compare_beta", "adjoint_compare_gamma"))
 
   expect_equal(
     d$derivative$adjoint$components$initial$variables,
     c("adjoint_S", "adjoint_I", "adjoint_R", "adjoint_cases_cumul",
-      "adjoint_cases_inc", "adjoint_beta", "adjoint_gamma", "adjoint_I0"))
+      "adjoint_cases_inc", "adjoint_I0", "adjoint_beta", "adjoint_gamma"))
   expect_equal(
     d$derivative$adjoint$components$initial$equations,
     c("adjoint_initial_S", "adjoint_initial_I", "adjoint_initial_R",
       "adjoint_initial_cases_cumul", "adjoint_initial_cases_inc",
-      "adjoint_initial_beta", "adjoint_initial_gamma",
-      "adjoint_initial_I0"))
+      "adjoint_initial_I0", "adjoint_initial_beta", "adjoint_initial_gamma"))
 
   ## Then some equations, these are much harder to check, and there
   ## are quite a lot of them.
@@ -118,6 +115,8 @@ test_that("can differentiate nontrivial model", {
   expected <- list(
     adjoint_N = "-adjoint_p_inf * (beta * I) * dt/(N * N)",
     adjoint_n_IR = "-adjoint_I + adjoint_R",
+    adjoint_n_SI = paste("adjoint_I + -adjoint_S + adjoint_cases_cumul +",
+                         "adjoint_cases_inc"),
     adjoint_n_SI = paste("adjoint_cases_cumul + adjoint_cases_inc +",
                          "adjoint_I + -adjoint_S"),
     adjoint_p_inf = "adjoint_p_SI * exp(-p_inf)",
