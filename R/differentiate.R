@@ -193,12 +193,7 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
       name_adjoint <- as.name(adjoint_name(eq$lhs$name_data))
     }
 
-    expr_d <- differentiate(expr, name_data)
-    if (is.numeric(expr_d) && expr_d == 0) {
-      NULL
-    } else {
-      maths$times(name_adjoint, differentiate(expr, name_data))
-    }
+    maths$times(name_adjoint, differentiate(expr, name_data))
   })
   if (accumulate) {
     parts <- c(list(as.name(adjoint_name(name_data))), parts)
