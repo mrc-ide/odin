@@ -8,8 +8,6 @@ adjoint_model <- function(parameters, dat) {
   equations <- unlist(lapply(unname(adjoint), function(x) x$equations),
                       FALSE, TRUE)
 
-  ## Why is this not successfully pulling out our initial conditions;
-  ## some error in the processing of compare and initial it seems
   components <- lapply(adjoint, function(x) {
     list(variables = c(x$depends$variables, x$depends$adjoint),
          equations = x$order)
