@@ -176,9 +176,7 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
   name_data <- data_info$name
   use <- names(which(vlapply(deps, function(x) name_data %in% x)))
   parts <- lapply(eqs[use], function(eq) {
-    if (eq$type == "data") {
-      return(1)
-    }
+    stopifnot(eq$type != "data") # If assertion triggers, we should return 1.
     if (eq$type == "compare") {
       ## TODO: some care needed here for interesting args,
       ## unfortunately; try the exponential noise trick inline?
