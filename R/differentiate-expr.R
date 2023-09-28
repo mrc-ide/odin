@@ -103,6 +103,9 @@ derivative <- list(
   abs = function(expr, name) {
     a <- maths$rewrite(expr[[2]])
     maths$times(differentiate(a, name), call("sign", a))
+  },
+  "[" = function(expr, name) {
+    name <- as.character(expr[[2]])
   }
 )
 

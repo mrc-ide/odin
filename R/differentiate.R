@@ -172,7 +172,7 @@ adjoint_initial <- function(variables, parameters, dat) {
 ## TODO: the 'name' arg here is never used.
 adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
                              variables, parameters) {
-  if (data_info$rank != 0) browser()
+  ## if (data_info$rank != 0) browser()
   name_data <- data_info$name
   use <- names(which(vlapply(deps, function(x) name_data %in% x)))
   parts <- lapply(eqs[use], function(eq) {
@@ -189,10 +189,18 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
     } else if (eq$type == "expression_scalar") {
       expr <- make_deterministic(eq$rhs$value)
       name_adjoint <- as.name(adjoint_name(eq$lhs$name_data))
-    } else {
+    } else if (eq$type == "expression_array") {
+      if (length(eq$rhs$value) != 1) {
+        stop("Need to cope here with array equations with boundaries")
+      }
+      expr <- make_deterministic(eq$rhs[[1]]$value)
+      name_adjoint <- as.name(adjoint_name(eq$lhs$name_data))
       browser()
+    } else if (eq$type == "alloc") { # we get this for a dimension....
+      return(1)
+    } else {
+      stop("unhandled expression...")
     }
-
     maths$times(name_adjoint, differentiate(expr, name_data))
   })
   if (accumulate) {

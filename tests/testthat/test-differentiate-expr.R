@@ -346,3 +346,13 @@ test_that("can rewrite expressions", {
   expect_identical(maths$rewrite(quote(((b)) + (a))), quote(b + a))
   expect_identical(maths$rewrite(quote((a + b) * c)), quote((a + b) * c))
 })
+
+
+## This is where I am - I feel that this is correct, but need to make
+## sure I have this right for higher dimensional things, as then it
+## depends on the array lookup being in the right place. So if we are
+## looking up x[j] this is really if (i == j) 1 else 0 I think
+test_that("can differentiate trivial expressions that involve arrays", {
+  expect_equal(differentiate(quote(x[i]), "x"), 1)
+  expect_equal(differentiate(quote(x[i]), "y"), 0)
+})
