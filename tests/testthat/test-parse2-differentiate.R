@@ -49,18 +49,16 @@ test_that("can't differentiate continuous time models", {
 
 
 test_that("can't differentiate models with arrays", {
-  err <- expect_error(
-    odin_parse({
-      initial(x[]) <- 1
-      update(x[]) <- rnorm(x, 1)
-      dim(x) <- 5
-      d <- data()
-      compare(d) ~ normal(sum(x), scale)
-      scale <- user(differentiate = TRUE)
-    }),
-    "Can't use differentiate with models that use arrays")
-  expect_match(err$message, "dim(x) <-", fixed = TRUE)
-  expect_match(err$message, "scale <-", fixed = TRUE)
+
+  ir <- odin_parse({
+    initial(x[]) <- 1
+    update(x[]) <- rnorm(x[i], 1)
+    dim(x) <- 5
+    d <- data()
+    compare(d) ~ normal(sum(x), scale)
+    scale <- user(differentiate = TRUE)
+  })
+
 })
 
 

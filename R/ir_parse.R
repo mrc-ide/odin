@@ -524,11 +524,6 @@ ir_parse_features <- function(eqs, debug, config, source) {
       ir_parse_error("Can't use differentiate with continuous time models",
                      ir_parse_error_lines(eqs[is_user_differentiate]), source)
     }
-    if (has_array) {
-      ir_parse_error(
-        "Can't use differentiate with models that use arrays",
-        ir_parse_error_lines(eqs[is_user_differentiate | is_lhs_dim]), source)
-    }
   }
 
   list(continuous = continuous,

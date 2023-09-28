@@ -169,8 +169,10 @@ adjoint_initial <- function(variables, parameters, dat) {
 }
 
 
+## TODO: the 'name' arg here is never used.
 adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
                              variables, parameters) {
+  if (data_info$rank != 0) browser()
   name_data <- data_info$name
   use <- names(which(vlapply(deps, function(x) name_data %in% x)))
   parts <- lapply(eqs[use], function(eq) {
@@ -184,9 +186,11 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
       ## This is only correct if the lhs is data, which it should
       ## always be, but we should check this, really, somewhere!
       name_adjoint <- 1
-    } else {
+    } else if (eq$type == "expression_scalar") {
       expr <- make_deterministic(eq$rhs$value)
       name_adjoint <- as.name(adjoint_name(eq$lhs$name_data))
+    } else {
+      browser()
     }
 
     maths$times(name_adjoint, differentiate(expr, name_data))
@@ -210,18 +214,25 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
     name_lhs = name_lhs,
     storage_type = "double")
 
+  ## I am not sure if this is always correct?
+  if (data_info$rank == 0) {
+    type <- "expression_scalar"
+    array <- NULL
+  } else {
+    type <- "expression_array"
+    array <- data_info[c("rank", "dimnames")]
+  }
+
   ## This needs making more flexible later; I see this in the toy
   ## SIR model while looking at adjoint_compare_* for any variable
   ## or parameter.
-  stopifnot(data_info$rank == 0)
-  type <- "expression_scalar"
-
   list(name = name_equation,
        type = type,
        source = integer(0),
        depends = depends,
        lhs = lhs,
-       rhs = rhs)
+       rhs = rhs,
+       array = array)
 }
 
 
