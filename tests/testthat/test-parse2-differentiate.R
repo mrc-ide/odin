@@ -49,16 +49,14 @@ test_that("can't differentiate continuous time models", {
 
 
 test_that("can differentiate models with arrays", {
-
   ir <- odin_parse({
     initial(x[]) <- 1
     update(x[]) <- rnorm(x[i], 1)
-    dim(x) <- 5
+    dim(x) <- 3
     d <- data()
-    compare(d) ~ normal(sum(x), scale)
+    compare(d) ~ normal(x[1] + x[2] + x[3], scale)
     scale <- user(differentiate = TRUE)
   })
-
 
   ir <- odin_parse({
     initial(x) <- 1

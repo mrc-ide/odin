@@ -172,6 +172,9 @@ adjoint_initial <- function(variables, parameters, dat) {
 ## TODO: the 'name' arg here is never used.
 adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
                              variables, parameters) {
+  ## TODO: we're trying here to push through differentiation of
+  ## 'dim_x' which is stupid.
+
   ## if (data_info$rank != 0) browser()
   name_data <- data_info$name
   use <- names(which(vlapply(deps, function(x) name_data %in% x)))
@@ -194,8 +197,9 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
         stop("Need to cope here with array equations with boundaries")
       }
       expr <- make_deterministic(eq$rhs[[1]]$value)
-      name_adjoint <- as.name(adjoint_name(eq$lhs$name_data))
-      browser()
+      sym_adjoint <- as.name(adjoint_name(eq$lhs$name_data))
+      idx <- lapply(INDEX[seq_len(eq$array$rank)], as.name)
+      name_adjoint <- as.call(c(as.name("["), sym_adjoint, idx))
     } else if (eq$type == "alloc") { # we get this for a dimension....
       return(1)
     } else {
@@ -248,27 +252,27 @@ adjoint_data <- function(variables, parameters, equations, dat) {
   nms_eqs <- unique(vcapply(equations, function(x) x$lhs$name_data))
   nms_vars <- adjoint_name(c(variables, parameters))
 
-  ## This only works while we have no arrays:
-  stopifnot(!dat$features$has_array)
-  length <- length(nms_vars)
-  contents <- Map(list,
-                  name = nms_vars,
-                  offset = seq_along(nms_vars) - 1L)
+  ## TODO: This substitution here is really gross
+  data_info <- set_names(dat$data$elements[sub("^adjoint_", "", nms_eqs)],
+                         nms_eqs)
+  rank <- viapply(data_info, "[[", "rank", USE.NAMES = FALSE)
+  len <- unname(lapply(data_info, function(x) x$dimnames$length))
+  adjoint <- ir_parse_packing_internal(nms_vars, rank, len, TRUE, "adjoint")
 
   elements <- lapply(nms_eqs, function(nm) {
-    location <- if (nm %in% nms_vars) "adjoint" else "transient"
-    list(name = nm,
-         location = location,
-         storage_type = "double",
-         rank = 0L,
-         dimnames = NULL,
-         stage = STAGE_ADJOINT)
+    info <- data_info[[nm]]
+    info$location <- switch(info$location,
+                            transient = "transient",
+                            variable = "adjoint_variable",
+                            internal = "adjoint_internal",
+                            stop("bug")) # nocov
+    info$name <- nm
+    info$stage <- STAGE_ADJOINT
+    info
   })
   names(elements) <- nms_eqs
 
-  list(adjoint = list(length = length,
-                      contents = contents),
-       elements = elements)
+  list(adjoint = adjoint, elements = elements)
 }
 
 
