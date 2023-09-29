@@ -133,6 +133,13 @@ test_that("differentiate absolute value function", {
                    quote((x + x - 2) * sign(x * x - 2 * x - 1)))
 })
 
+test_that("can differentiate trivial expressions that involve arrays", {
+  expect_equal(differentiate(quote(x[i]), "x"), 1)
+  expect_equal(differentiate(quote(x[i]), "y"), 0)
+  expect_equal(differentiate(quote(x[j]), "x"), quote(if (i == j) 1 else 0))
+  expect_equal(differentiate(quote(x[j]), "y"), 0)
+})
+
 test_that("error if asked to differentiate something not yet supported", {
   expect_error(
     differentiate(quote(f(x)), "x"),
@@ -348,11 +355,35 @@ test_that("can rewrite expressions", {
 })
 
 
-## This is where I am - I feel that this is correct, but need to make
-## sure I have this right for higher dimensional things, as then it
-## depends on the array lookup being in the right place. So if we are
-## looking up x[j] this is really if (i == j) 1 else 0 I think
-test_that("can differentiate trivial expressions that involve arrays", {
-  expect_equal(differentiate(quote(x[i]), "x"), 1)
-  expect_equal(differentiate(quote(x[i]), "y"), 0)
+test_that("can and together logical expressions", {
+  expect_true(maths$and(TRUE, TRUE))
+  expect_false(maths$and(TRUE, FALSE))
+  expect_false(maths$and(FALSE, TRUE))
+  expect_false(maths$and(FALSE, FALSE))
+  expect_identical(maths$and(quote(a), TRUE), quote(a))
+  expect_identical(maths$and(TRUE, quote(a)), quote(a))
+  expect_false(maths$and(quote(a), FALSE))
+  expect_false(maths$and(FALSE, quote(a)))
+  expect_identical(maths$and(quote(a), quote(b)), quote(a && b))
+  expect_identical(maths$and(quote(a), quote(a)), quote(a))
+})
+
+
+test_that("can test equality", {
+  expect_true(maths$equals(TRUE, TRUE))
+  expect_false(maths$equals(TRUE, FALSE))
+  expect_false(maths$equals(FALSE, TRUE))
+  expect_true(maths$equals(FALSE, FALSE))
+  expect_true(maths$equals(quote(a), quote(a)))
+  expect_identical(maths$equals(quote(a), quote(b)), quote(a == b))
+  expect_identical(maths$equals(quote(b), quote(a)), quote(a == b))
+})
+
+
+test_that("can create conditional expressions", {
+  expect_identical(maths$test(TRUE, quote(a), quote(b)), quote(a))
+  expect_identical(maths$test(FALSE, quote(a), quote(b)), quote(b))
+  expect_identical(maths$test(quote(t), quote(a), quote(a)), quote(a))
+  expect_identical(maths$test(quote(t), quote(a), quote(b)),
+                   quote(if (t) a else b))
 })

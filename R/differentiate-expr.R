@@ -94,7 +94,7 @@ derivative <- list(
     condition <- maths$rewrite(expr[[2]])
     da <- differentiate(expr[[3]], name)
     db <- differentiate(expr[[4]], name)
-    if (identical(da, db)) da else call("if", condition, da, db)
+    maths$test(condition, da, db)
   },
   lfactorial = function(expr, name) {
     a <- maths$rewrite(expr[[2]])
@@ -104,8 +104,17 @@ derivative <- list(
     a <- maths$rewrite(expr[[2]])
     maths$times(differentiate(a, name), call("sign", a))
   },
-  "[" = function(expr, name) {
-    name <- as.character(expr[[2]])
+  `[` = function(expr, name) {
+    if (!identical(expr[[2]], as.name(name))) {
+      return(0)
+    }
+    idx <- as.list(expr[-(1:2)])
+    condition <- TRUE
+    for (i in seq_along(idx)) {
+      condition <- maths$and(condition,
+                             maths$equals(as.name(INDEX[[i]]), idx[[i]]))
+    }
+    maths$test(condition, 1, 0)
   }
 )
 
@@ -295,6 +304,37 @@ maths <- local({
       }
     } else {
       expr
+    }
+  }
+  test <- function(condition, a, b) {
+    if (is.logical(condition)) {
+      if (condition) a else b
+    } else if (identical(a, b)) {
+      a
+    } else {
+      call("if", condition, a, b)
+    }
+  }
+  equals <- function(a, b) {
+    if (identical(a, b)) {
+      TRUE
+    } else if (!is.language(a) && !is.language(b)) {
+      a == b
+    } else if (deparse1(a) > deparse1(b)) {
+      call("==", b, a)
+    } else {
+      call("==", a, b)
+    }
+  }
+  and <- function(a, b) {
+    if (identical(a, b)) {
+      a
+    } else if (is.logical(a)) {
+      if (a) b else a
+    } else if (is.logical(b)) {
+      if (b) a else b
+    } else {
+      call("&&", a, b)
     }
   }
   as.list(environment())

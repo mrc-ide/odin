@@ -190,7 +190,7 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
       expr <- make_deterministic(eq$rhs$value)
       name_adjoint <- as.name(adjoint_name(eq$lhs$name_data))
     } else if (eq$type == "expression_array") {
-      if (length(eq$rhs$value) != 1) {
+      if (length(eq$rhs) != 1) {
         stop("Need to cope here with array equations with boundaries")
       }
       expr <- make_deterministic(eq$rhs[[1]]$value)
