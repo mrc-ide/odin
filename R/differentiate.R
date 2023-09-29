@@ -46,7 +46,9 @@ adjoint_update <- function(variables, parameters, dat) {
   ## out of the graph, *except* those that are initial conditions or
   ## data comparison functions.
   nms_eqs <- names_if(vlapply(dat$equations, function(x) {
-    !(x$type %in% c("compare", "user")) && !identical(x$lhs$special, "initial")
+    !(x$type %in% c("compare", "user", "alloc")) &&
+       !identical(x$lhs$special, "initial") &&
+       !isTRUE(x$lhs$dim)
   }))
   prefix <- "update"
   eqs_update_parameters <- set_names(dat$equations[parameters],
