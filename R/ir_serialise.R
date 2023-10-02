@@ -250,6 +250,8 @@ ir_serialise_expression <- function(expr) {
     jsonlite::unbox(as.character(expr))
   } else if (is.atomic(expr)) {
     jsonlite::unbox(expr)
+  } else if (is.null(expr)) {
+    NULL
   } else if (is.call(expr)) {
     c(list(jsonlite::unbox(as.character(expr[[1L]]))),
       lapply(expr[-1L], ir_serialise_expression))
