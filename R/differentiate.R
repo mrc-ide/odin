@@ -235,6 +235,20 @@ adjoint_equation <- function(name, data_info, accumulate, role, deps, eqs,
   } else {
     type <- "expression_array"
     array <- data_info[c("rank", "dimnames")]
+    ## This is a huge assumption, and needs relaxing in the case where
+    ## any of the elements that go into this are multi-line array
+    ## assignments.
+    index <- lapply(seq_len(data_info$rank), function(i) {
+      nm <- as.name(data_info$name)
+      if (data_info$rank == 1) {
+        value <- bquote(1:length(.(nm)))
+      } else {
+        ## I think this is right, not sure...
+        value <- bquote(1:dim(.(nm), .(i)))
+      }
+      list(value = value, is_range = TRUE, index = INDEX[i])
+    })
+    rhs <- list(list(index = index, value = rhs$value))
   }
 
   ## This needs making more flexible later; I see this in the toy

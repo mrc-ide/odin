@@ -44,7 +44,7 @@
 
             "location": {
                 "type": "string",
-                "enum": ["transient", "internal", "variable", "output", "data", "adjoint"]
+                "enum": ["transient", "internal", "variable", "output", "data", "adjoint_variable", "adjoint_internal"]
             },
 
             "equation_type": {
