@@ -129,7 +129,7 @@ In other languages:
 
 * [`Paraiso`](https://hackage.haskell.org/package/Paraiso) in Haskell
 * [`VFGEN`](https://github.com/WarrenWeckesser/vfgen) in C++
-* [`pygom`](https://github.com/PublicHealthEngland/pygom) in Python for solving compartmental models
+* [`pygom`](https://github.com/ukhsa-collaboration/pygom) in Python for solving compartmental models
 
 ## Installation
 
