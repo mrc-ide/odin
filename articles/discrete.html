@@ -40,7 +40,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">odin</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.5.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.5.9</span>
       </span>
     </div>
 
@@ -101,7 +101,7 @@
                         <h4 data-toc-skip class="author">Thibaut
 Jombart, Rich FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2023-09-01</h4>
+            <h4 data-toc-skip class="date">2023-10-04</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/discrete.Rmd" class="external-link"><code>vignettes/discrete.Rmd</code></a></small>
       <div class="hidden name"><code>discrete.Rmd</code></div>
@@ -304,12 +304,12 @@ will trigger errors.</p>
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.deterministic.sir54de2169</span></span>
+<span><span class="co">##     dll: discrete.deterministic.sirbb030e6c</span></span>
 <span><span class="co">##     user: beta gamma I_ini S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.deterministic.sir54de2169&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.deterministic.sirbb030e6c&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -336,7 +336,7 @@ the model:</p>
 <span><span class="co">##     update: function (step, y) </span></span>
 <span><span class="co">##   Private:</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.deterministic.sir54de2169</span></span>
+<span><span class="co">##     dll: discrete.deterministic.sirbb030e6c</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     n_out: 0</span></span>
 <span><span class="co">##     odin: environment</span></span>
@@ -375,8 +375,10 @@ steps as single argument, e.g.:</p>
 <span>        type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="va">sir_col</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">sir_col</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"I"</span>, <span class="st">"R"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/sir-deterministic-1.png" alt="&lt;i&gt;An example of deterministic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
-<i>An example of deterministic, discrete-time SIR model</i><br></p>
+<img src="discrete_files/figure-html/sir-deterministic-1.png" alt="&lt;i&gt;An
+example of deterministic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;” width=“672”
+/&gt;
+&lt;p class=" caption><i>An example of deterministic, discrete-time SIR model</i><br>
 </div>
 </div>
 <div class="section level3">
@@ -442,12 +444,12 @@ initial infected individuals (<code>I_ini = 10</code>):</p>
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.stochastic.sira82de057</span></span>
+<span><span class="co">##     dll: discrete.stochastic.sirad4e695f</span></span>
 <span><span class="co">##     user: beta gamma I_ini S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sira82de057&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sirad4e695f&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -461,8 +463,10 @@ initial infected individuals (<code>I_ini = 10</code>):</p>
 <span>        type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="va">sir_col</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">sir_col</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"I"</span>, <span class="st">"R"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/sir-stochastic_1-1.png" alt="&lt;i&gt;An example of stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
-<i>An example of stochastic, discrete-time SIR model</i><br></p>
+<img src="discrete_files/figure-html/sir-stochastic_1-1.png" alt="&lt;i&gt;An
+example of stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;” width=“672”
+/&gt;
+&lt;p class=" caption><i>An example of stochastic, discrete-time SIR model</i><br>
 </div>
 <p>This gives us a single stochastic realisation of the model, which is
 of limited interest. As an alternative, we can generate a large number
@@ -533,12 +537,12 @@ of replicates using arrays for each compartment:</p>
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.stochastic.sir.arrays8f98472d</span></span>
+<span><span class="co">##     dll: discrete.stochastic.sir.arraysb3edd559</span></span>
 <span><span class="co">##     user: beta gamma I_ini nsim S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arrays8f98472d&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.sir.arraysb3edd559&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -553,8 +557,10 @@ of replicates using arrays for each compartment:</p>
 <span>        type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">sir_col_transp</span>, each <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"left"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">sir_col</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"I"</span>, <span class="st">"R"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/sir-stochastic_100-1.png" alt="&lt;i&gt;100 replicates of a stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
-<i>100 replicates of a stochastic, discrete-time SIR model</i><br></p>
+<img src="discrete_files/figure-html/sir-stochastic_100-1.png" alt="&lt;i&gt;100
+replicates of a stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;” width=“672”
+/&gt;
+&lt;p class=" caption><i>100 replicates of a stochastic, discrete-time SIR model</i><br>
 </div>
 </div>
 <div class="section level3">
@@ -711,12 +717,12 @@ D_{t+1} = D_t + \gamma_D I_{D,t}
 <span><span class="co">##     ynames: NULL</span></span>
 <span><span class="co">##     interpolate_t: NULL</span></span>
 <span><span class="co">##     cfuns: list</span></span>
-<span><span class="co">##     dll: discrete.stochastic.seirds2372f072</span></span>
+<span><span class="co">##     dll: discrete.stochastic.seirdse7c4215b</span></span>
 <span><span class="co">##     user: beta delta E_ini epsilon gamma_D gamma_R mu omega S_ini</span></span>
 <span><span class="co">##     registration: function () </span></span>
 <span><span class="co">##     set_initial: function (step, y, use_dde) </span></span>
 <span><span class="co">##     update_metadata: function () </span></span>
-<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.seirds2372f072&gt;</span></span>
+<span><span class="co">##   Parent env: &lt;environment: namespace:discrete.stochastic.seirdse7c4215b&gt;</span></span>
 <span><span class="co">##   Locked objects: TRUE</span></span>
 <span><span class="co">##   Locked class: FALSE</span></span>
 <span><span class="co">##   Portable: TRUE</span></span></code></pre>
@@ -758,8 +764,10 @@ instance, to get 100 replicates:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"right"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">seirds_col</span>,</span>
 <span>       legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"E"</span>, <span class="st">"Ir"</span>, <span class="st">"Id"</span>, <span class="st">"R"</span>, <span class="st">"D"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/seirds_100-1.png" alt="&lt;i&gt;100 replicates of a stochastic, discrete-time SEIRDS model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
-<i>100 replicates of a stochastic, discrete-time SEIRDS model</i><br></p>
+<img src="discrete_files/figure-html/seirds_100-1.png" alt="&lt;i&gt;100
+replicates of a stochastic, discrete-time SEIRDS model&lt;/i&gt;&lt;br&gt;”
+width=“672” /&gt;
+&lt;p class=" caption><i>100 replicates of a stochastic, discrete-time SEIRDS model</i><br>
 </div>
 <p>It is then possible to explore the behaviour of the model using a
 simple function:</p>
@@ -784,15 +792,18 @@ case:</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>beta <span class="op">=</span> <span class="fl">0</span>, epsilon <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/unnamed-chunk-10-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: sanity check with no infections&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
-<i>Stochastic SEIRDS model: sanity check with no infections</i><br></p>
+<img src="discrete_files/figure-html/unnamed-chunk-10-1.png" alt="&lt;i&gt;Stochastic
+SEIRDS model: sanity check with no infections&lt;/i&gt;&lt;br&gt;” width=“672” /&gt;
+&lt;p class=" caption><i>Stochastic SEIRDS model: sanity check with no infections</i><br>
 </div>
 <p>Another easy case: no importation, no waning immunity:</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>epsilon <span class="op">=</span> <span class="fl">0</span>, omega <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/unnamed-chunk-11-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: no importation or waning immunity&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
-<i>Stochastic SEIRDS model: no importation or waning immunity</i><br></p>
+<img src="discrete_files/figure-html/unnamed-chunk-11-1.png" alt="&lt;i&gt;Stochastic
+SEIRDS model: no importation or waning immunity&lt;/i&gt;&lt;br&gt;” width=“672”
+/&gt;
+&lt;p class=" caption><i>Stochastic SEIRDS model: no importation or waning immunity</i><br>
 </div>
 <p>A more nuanced case: persistence of the disease with limited import,
 waning immunity, low severity, larger population:</p>
@@ -800,8 +811,10 @@ waning immunity, low severity, larger population:</p>
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>t <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="op">(</span><span class="fl">365</span> <span class="op">*</span> <span class="fl">3</span><span class="op">)</span>, epsilon <span class="op">=</span> <span class="fl">0.1</span>, beta <span class="op">=</span> <span class="fl">.2</span>, omega <span class="op">=</span> <span class="fl">.01</span>,</span>
 <span>            mu <span class="op">=</span> <span class="fl">0.005</span>, S_ini <span class="op">=</span> <span class="fl">1e5</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/unnamed-chunk-12-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: endemic state in a larger population&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
-<i>Stochastic SEIRDS model: endemic state in a larger population</i><br></p>
+<img src="discrete_files/figure-html/unnamed-chunk-12-1.png" alt="&lt;i&gt;Stochastic
+SEIRDS model: endemic state in a larger population&lt;/i&gt;&lt;br&gt;” width=“672”
+/&gt;
+&lt;p class=" caption><i>Stochastic SEIRDS model: endemic state in a larger population</i><br>
 </div>
 </div>
 </div>
