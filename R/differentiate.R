@@ -279,7 +279,7 @@ adjoint_data <- function(variables, parameters, equations, dat) {
     info <- data_info[[nm]]
     info$location <- switch(info$location,
                             transient = "transient",
-                            variable = "adjoint_variable",
+                            variable = "adjoint",
                             internal = "adjoint_internal",
                             stop("bug")) # nocov
     info$name <- nm
