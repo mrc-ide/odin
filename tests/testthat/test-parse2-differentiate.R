@@ -57,14 +57,6 @@ test_that("can differentiate models with arrays", {
     compare(d) ~ normal(x[1] + x[2] + x[3], scale)
     scale <- user(differentiate = TRUE)
   })
-
-  ir <- odin_parse({
-    initial(x) <- 1
-    update(x) <- rnorm(x, 1)
-    d <- data()
-    compare(d) ~ normal(x, scale)
-    scale <- user(differentiate = TRUE)
-  })
   
 })
 
