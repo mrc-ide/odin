@@ -223,8 +223,7 @@ odin_file <- function(...) {
 
 
 glue_whisker <- function(template, data) {
-  glue::glue(template, .envir = data, .open = "{{", .close = "}}",
-             .trim = FALSE)
+  glue::glue_data(data, template, .open = "{{", .close = "}}", .trim = FALSE)
 }
 
 
