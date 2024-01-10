@@ -101,7 +101,7 @@
                         <h4 data-toc-skip class="author">Thibaut
 Jombart, Rich FitzJohn</h4>
             
-            <h4 data-toc-skip class="date">2023-10-04</h4>
+            <h4 data-toc-skip class="date">2024-01-10</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/mrc-ide/odin/blob/HEAD/vignettes/discrete.Rmd" class="external-link"><code>vignettes/discrete.Rmd</code></a></small>
       <div class="hidden name"><code>discrete.Rmd</code></div>
@@ -375,10 +375,8 @@ steps as single argument, e.g.:</p>
 <span>        type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="va">sir_col</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">sir_col</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"I"</span>, <span class="st">"R"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/sir-deterministic-1.png" alt="&lt;i&gt;An
-example of deterministic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;” width=“672”
-/&gt;
-&lt;p class=" caption><i>An example of deterministic, discrete-time SIR model</i><br>
+<img src="discrete_files/figure-html/sir-deterministic-1.png" alt="&lt;i&gt;An example of deterministic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
+<i>An example of deterministic, discrete-time SIR model</i><br></p>
 </div>
 </div>
 <div class="section level3">
@@ -463,10 +461,8 @@ initial infected individuals (<code>I_ini = 10</code>):</p>
 <span>        type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="va">sir_col</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">sir_col</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"I"</span>, <span class="st">"R"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/sir-stochastic_1-1.png" alt="&lt;i&gt;An
-example of stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;” width=“672”
-/&gt;
-&lt;p class=" caption><i>An example of stochastic, discrete-time SIR model</i><br>
+<img src="discrete_files/figure-html/sir-stochastic_1-1.png" alt="&lt;i&gt;An example of stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
+<i>An example of stochastic, discrete-time SIR model</i><br></p>
 </div>
 <p>This gives us a single stochastic realisation of the model, which is
 of limited interest. As an alternative, we can generate a large number
@@ -557,10 +553,8 @@ of replicates using arrays for each compartment:</p>
 <span>        type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">sir_col_transp</span>, each <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"left"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">sir_col</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"I"</span>, <span class="st">"R"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/sir-stochastic_100-1.png" alt="&lt;i&gt;100
-replicates of a stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;” width=“672”
-/&gt;
-&lt;p class=" caption><i>100 replicates of a stochastic, discrete-time SIR model</i><br>
+<img src="discrete_files/figure-html/sir-stochastic_100-1.png" alt="&lt;i&gt;100 replicates of a stochastic, discrete-time SIR model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
+<i>100 replicates of a stochastic, discrete-time SIR model</i><br></p>
 </div>
 </div>
 <div class="section level3">
@@ -764,10 +758,8 @@ instance, to get 100 replicates:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"right"</span>, lwd <span class="op">=</span> <span class="fl">1</span>, col <span class="op">=</span> <span class="va">seirds_col</span>,</span>
 <span>       legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S"</span>, <span class="st">"E"</span>, <span class="st">"Ir"</span>, <span class="st">"Id"</span>, <span class="st">"R"</span>, <span class="st">"D"</span><span class="op">)</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/seirds_100-1.png" alt="&lt;i&gt;100
-replicates of a stochastic, discrete-time SEIRDS model&lt;/i&gt;&lt;br&gt;”
-width=“672” /&gt;
-&lt;p class=" caption><i>100 replicates of a stochastic, discrete-time SEIRDS model</i><br>
+<img src="discrete_files/figure-html/seirds_100-1.png" alt="&lt;i&gt;100 replicates of a stochastic, discrete-time SEIRDS model&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
+<i>100 replicates of a stochastic, discrete-time SEIRDS model</i><br></p>
 </div>
 <p>It is then possible to explore the behaviour of the model using a
 simple function:</p>
@@ -792,18 +784,15 @@ case:</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>beta <span class="op">=</span> <span class="fl">0</span>, epsilon <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/unnamed-chunk-10-1.png" alt="&lt;i&gt;Stochastic
-SEIRDS model: sanity check with no infections&lt;/i&gt;&lt;br&gt;” width=“672” /&gt;
-&lt;p class=" caption><i>Stochastic SEIRDS model: sanity check with no infections</i><br>
+<img src="discrete_files/figure-html/unnamed-chunk-10-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: sanity check with no infections&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
+<i>Stochastic SEIRDS model: sanity check with no infections</i><br></p>
 </div>
 <p>Another easy case: no importation, no waning immunity:</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>epsilon <span class="op">=</span> <span class="fl">0</span>, omega <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/unnamed-chunk-11-1.png" alt="&lt;i&gt;Stochastic
-SEIRDS model: no importation or waning immunity&lt;/i&gt;&lt;br&gt;” width=“672”
-/&gt;
-&lt;p class=" caption><i>Stochastic SEIRDS model: no importation or waning immunity</i><br>
+<img src="discrete_files/figure-html/unnamed-chunk-11-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: no importation or waning immunity&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
+<i>Stochastic SEIRDS model: no importation or waning immunity</i><br></p>
 </div>
 <p>A more nuanced case: persistence of the disease with limited import,
 waning immunity, low severity, larger population:</p>
@@ -811,10 +800,8 @@ waning immunity, low severity, larger population:</p>
 <code class="sourceCode R"><span><span class="fu">check_model</span><span class="op">(</span>t <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="op">(</span><span class="fl">365</span> <span class="op">*</span> <span class="fl">3</span><span class="op">)</span>, epsilon <span class="op">=</span> <span class="fl">0.1</span>, beta <span class="op">=</span> <span class="fl">.2</span>, omega <span class="op">=</span> <span class="fl">.01</span>,</span>
 <span>            mu <span class="op">=</span> <span class="fl">0.005</span>, S_ini <span class="op">=</span> <span class="fl">1e5</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="discrete_files/figure-html/unnamed-chunk-12-1.png" alt="&lt;i&gt;Stochastic
-SEIRDS model: endemic state in a larger population&lt;/i&gt;&lt;br&gt;” width=“672”
-/&gt;
-&lt;p class=" caption><i>Stochastic SEIRDS model: endemic state in a larger population</i><br>
+<img src="discrete_files/figure-html/unnamed-chunk-12-1.png" alt="&lt;i&gt;Stochastic SEIRDS model: endemic state in a larger population&lt;/i&gt;&lt;br&gt;" width="672"><p class="caption">
+<i>Stochastic SEIRDS model: endemic state in a larger population</i><br></p>
 </div>
 </div>
 </div>
