@@ -27,7 +27,7 @@ int user_get_scalar_int(SEXP user, const char *name,
   SEXP el = user_list_element(user, name);
   if (el != R_NilValue) {
     if (length(el) != 1) {
-      Rf_error("Expected scalar integer for '%d'", name);
+      Rf_error("Expected scalar integer for '%s'", name);
     }
     if (TYPEOF(el) == REALSXP) {
       double tmp = REAL(el)[0];
@@ -100,7 +100,7 @@ void* user_get_array(SEXP user, bool is_integer, void * previous,
         Rf_error("Expected length %d value for '%s'", dim_expected, name);
       } else {
         Rf_error("Incorrect size of dimension %d of '%s' (expected %d)",
-                 i + 1, name, dim_expected);
+                 (int)i + 1, name, dim_expected);
       }
     }
   }
@@ -345,11 +345,11 @@ void interpolate_check_y(size_t nx, size_t ny, size_t i, const char *name_arg, c
     if (i == 0) {
       // vector case
       Rf_error("Expected %s to have length %d (for '%s')",
-               name_arg, nx, name_target);
+               name_arg, (int)nx, name_target);
     } else {
       // array case
       Rf_error("Expected dimension %d of %s to have size %d (for '%s')",
-               i, name_arg, nx, name_target);
+               (int)i, name_arg, (int)nx, name_target);
     }
   }
 }
