@@ -19,3 +19,14 @@ expectation_discrete <- function(fd, fq, pars, tol = 1e-12) {
   n <- seq(0, end, by = 1)
   sum(n * do.call(fd, c(list(n), unname(pars))))
 }
+
+
+list_to_lang <- function(expr) {
+  if (is.recursive(expr)) {
+    as.call(lapply(expr, list_to_lang))
+  } else if (is.character(expr)) {
+    as.name(expr)
+  } else {
+    expr
+  }
+}

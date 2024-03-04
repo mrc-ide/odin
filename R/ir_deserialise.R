@@ -28,22 +28,35 @@ odin_ir_deserialise <- function(x) {
 ir_deserialise <- function(ir) {
   dat <- from_json(ir)
   dat$version <- numeric_version(dat$version)
-  dat$components <- lapply(dat$components, lapply, list_to_character)
+  dat$components <- ir_deserialise_components(dat$components)
 
   names(dat$data$elements) <- vcapply(dat$data$elements, "[[", "name")
   names(dat$data$variable$contents) <-
     vcapply(dat$data$variable$contents, "[[", "name")
   names(dat$data$output$contents) <-
     vcapply(dat$data$output$contents, "[[", "name")
-  names(dat$equations) <- vcapply(dat$equations, "[[", "name")
+  names(dat$data$adjoint$contents) <-
+    vcapply(dat$data$adjoint$contents, "[[", "name")
   names(dat$user) <- vcapply(dat$user, "[[", "name")
 
   dat$interpolate <- lapply(dat$interpolate, list_to_character)
-  dat$equations <- lapply(dat$equations, ir_deserialise_equation)
+  dat$equations <- ir_deserialise_equations(dat$equations)
   dat$debug <- lapply(dat$debug, ir_deserialise_debug)
+  dat$derivative <- ir_deserialise_derivative(dat$derivative)
   dat$ir <- ir
 
   dat
+}
+
+
+ir_deserialise_equations <- function(eqs) {
+  names(eqs) <- vcapply(eqs, "[[", "name")
+  lapply(eqs, ir_deserialise_equation)
+}
+
+
+ir_deserialise_components <- function(components) {
+  lapply(components, lapply, list_to_character)
 }
 
 
@@ -69,4 +82,14 @@ ir_deserialise_debug <- function(eq) {
     eq$depends <- lapply(eq$depends, list_to_character)
   }
   eq
+}
+
+
+ir_deserialise_derivative <- function(derivative) {
+  derivative$parameters <- list_to_character(derivative$parameters)
+  derivative$adjoint$variables <-
+    list_to_character(derivative$adjoint$variables)
+  derivative$adjoint$components <-
+    ir_deserialise_components(derivative$adjoint$components)
+  derivative
 }

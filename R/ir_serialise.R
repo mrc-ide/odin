@@ -6,6 +6,7 @@ ir_serialise <- function(dat, pretty) {
               data = ir_serialise_data(dat$data),
               equations = ir_serialise_equations(dat$equations),
               debug = ir_serialise_debug(dat$debug),
+              derivative = ir_serialise_derivative(dat$derivative),
               components = ir_serialise_components(dat$components),
               user = ir_serialise_user(dat$user),
               interpolate = ir_serialise_interpolate(dat$interpolate),
@@ -99,10 +100,14 @@ ir_serialise_data <- function(data) {
   output <- list(
     length = ir_serialise_expression(data$output$length),
     contents = lapply(unname(data$output$contents), f_output_contents))
+  adjoint <- list(
+    length = ir_serialise_expression(data$adjoint$length %||% 0),
+    contents = lapply(unname(data$adjoint$contents), f_output_contents))
 
   list(elements = elements,
        variable = variable,
-       output = output)
+       output = output,
+       adjoint = adjoint)
 }
 
 
@@ -287,4 +292,20 @@ ir_serialise_debug_expression <- function(expr) {
        args = lapply(expr$args, ir_serialise_expression),
        depends = expr$depends,
        when = ir_serialise_expression(expr$when))
+}
+
+
+ir_serialise_derivative <- function(derivative) {
+  if (is.null(derivative)) {
+    empty <- list(variables = character(), equations = character())
+    derivative <- list(
+      parameters = character(),
+      adjoint = list(
+        variables = character(),
+        components = list(rhs = empty, compare = empty, initial = empty)))
+  } else {
+    derivative$adjoint$components <-
+      ir_serialise_components(derivative$adjoint$components)
+  }
+  derivative
 }

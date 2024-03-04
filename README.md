@@ -141,23 +141,23 @@ Install odin from CRAN with
 install.packages("odin")
 ```
 
-Alternatively, you can install a potentially more recent version of odin from the [`mrc-ide` drat repository](https://mrc-ide.github.io/drat/)
+Alternatively, you can install a potentially more recent version of odin from our [r-universe](https://mrc-ide.r-universe.dev/):
 
-```r
-# install.packages("drat") # -- if you don't have drat installed
-drat:::add("mrc-ide")
-install.packages("odin")
+```
+install.packages(
+  "odin",
+  repos = c("https://mrc-ide.r-universe.dev", "https://cloud.r-project.org"))
+```
+
+If you prefer, you can install from GitHub with remotes:
+
+```
+remotes::install_github("mrc-ide/odin.dust")
 ```
 
 You will need a compiler to install dependencies for the package, and to build any models with odin.  Windows users should install [Rtools](https://cran.r-project.org/bin/windows/Rtools/).  See the relevant section in [R-admin](https://cran.r-project.org/doc/manuals/r-release/R-admin.html#The-Windows-toolset) for advice.  Be sure to select the "edit PATH" checkbox during installation or the tools will not be found.
 
 The function `odin::can_compile()` will check if it is able to compile things, but by the time you install the package that will probably have been satisfied.
-
-The development version of the package can be installed directly from github if you prefer with:
-
-```r
-devtools::install_github("mrc-ide/odin", upgrade = FALSE)
-```
 
 ## License
 
