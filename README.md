@@ -101,7 +101,7 @@ Note that this includes initial conditions; all odin models include specificatio
 This generates an object that can be used to integrate the set of differential equations, by default starting at the initial conditions specified above (though custom initial conditions can be given).  The equations are translated into C, compiled, loaded, and bundled into an object.  `lorenz` here is a function that generates an instance of the model.
 
 ```r
-mod <- lorenz()
+mod <- lorenz$new()
 t <- seq(0, 100, length.out = 50000)
 y <- mod$run(t)
 ```

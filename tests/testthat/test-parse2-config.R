@@ -17,11 +17,11 @@ test_that("config(base)", {
                "Expected a single config(base) option",
                fixed = TRUE, class = "odin_error")
   expect_error(odin_parse("config(base) <- foo;"),
-               "Expected a character for config(base) but recieved a symbol",
+               "Expected a character for config(base) but received a symbol",
                fixed = TRUE, class = "odin_error")
   expect_error(
     odin_parse("config(base) <- 1;"),
-    "Expected a character for config(base) but recieved a double",
+    "Expected a character for config(base) but received a double",
     fixed = TRUE, class = "odin_error")
 
   ## some invalid identifiers:

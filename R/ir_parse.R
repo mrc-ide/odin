@@ -1677,10 +1677,10 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
       if (length(n) > 1L) {
         if (nargs < n[[1L]] || nargs > n[[2L]]) {
           if (is.finite(n[[2L]])) {
-            throw("Expected %d-%d arguments in %s call, but recieved %d",
+            throw("Expected %d-%d arguments in %s call, but received %d",
                   n[[1L]], n[[2L]], nm, nargs)
           } else {
-            throw("Expected %d or more arguments in %s call, but recieved %d",
+            throw("Expected %d or more arguments in %s call, but received %d",
                   n[[1L]], nm, nargs)
           }
         }
@@ -1691,7 +1691,7 @@ ir_parse_expr_rhs_check_usage <- function(rhs, line, source) {
             ## problem a little clearer.
             throw("All if statements must have an else clause")
           } else {
-            throw("Expected %d %s in %s call, but recieved %d",
+            throw("Expected %d %s in %s call, but received %d",
                   n, ngettext(n, "argument", "arguments"), nm, nargs)
           }
         }

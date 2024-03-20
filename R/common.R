@@ -184,7 +184,7 @@ rm(.join)
 FUNCTIONS_NARY <-
   names(which(vapply(FUNCTIONS, function(x) x[[length(x)]] == Inf, logical(1))))
 
-## This will probab;ly change later, as it should probably be more
+## This will probably change later, as it should probably be more
 ## configurable, bit this way we avoid a magic number
 DEFAULT_HISTORY_SIZE <- 10000L
 
