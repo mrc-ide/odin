@@ -71,6 +71,8 @@
 ##'   odin targets that support them, and will generally make your
 ##'   program slower.
 ##'
+##' @param future Enable future features. Not documented on purpose.
+##'
 ##' @param no_check_unused_equations If `TRUE`, then don't print
 ##'   messages about unused variables.  Defaults to the option
 ##'   `odin.no_check_unused_equations` or `FALSE` otherwise.
@@ -108,7 +110,8 @@
 odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                  validate = NULL, pretty = NULL, skip_cache = NULL,
                  compiler_warnings = NULL, debug_enable = NULL,
-                 no_check_unused_equations = NULL, options = NULL) {
+                 future = NULL, no_check_unused_equations = NULL,
+                 options = NULL) {
   xx <- substitute(x)
   if (is.symbol(xx)) {
     xx <- force(x)
@@ -117,7 +120,8 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
     xx <- force(x)
   }
   odin_(xx, verbose, target, workdir, validate, pretty, skip_cache,
-        compiler_warnings, debug_enable, no_check_unused_equations, options)
+        compiler_warnings, debug_enable, future, no_check_unused_equations,
+        options)
 }
 
 
@@ -126,7 +130,8 @@ odin <- function(x, verbose = NULL, target = NULL, workdir = NULL,
 odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
                   validate = NULL, pretty = NULL, skip_cache = NULL,
                   compiler_warnings = NULL, debug_enable = NULL,
-                  no_check_unused_equations = NULL, options = NULL) {
+                  future = NULL, no_check_unused_equations = NULL,
+                  options = NULL) {
   options <- odin_options(
     verbose = verbose,
     target = target,
@@ -135,6 +140,7 @@ odin_ <- function(x, verbose = NULL, target = NULL, workdir = NULL,
     pretty = pretty,
     skip_cache = skip_cache,
     debug_enable = debug_enable,
+    future = future,
     no_check_unused_equations = no_check_unused_equations,
     compiler_warnings = compiler_warnings,
     options = options)

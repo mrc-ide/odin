@@ -252,7 +252,7 @@ generate_r_metadata <- function(dat, rewrite) {
   ynames <- call(
     "make_names",
     quote(private$variable_order), quote(private$output_order),
-    dat$features$discrete)
+    dat$features$discrete && !("dt" %in% dat$options$future))
   n_out <- quote(support_n_out(private$output_order))
 
   env <- new.env(parent = environment(odin))

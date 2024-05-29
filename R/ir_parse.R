@@ -13,7 +13,7 @@ ir_parse <- function(x, options, type = NULL) {
                             options$config_custom)
   features <- ir_parse_features(eqs, debug, config, source)
 
-  common <- ir_parse_common(features)
+  common <- ir_parse_common(features, options)
 
   variables <- ir_parse_find_variables(eqs, common, source)
 
@@ -49,6 +49,9 @@ ir_parse <- function(x, options, type = NULL) {
   }
 
   if (features$has_delay) {
+    if ("dt" %in% options$future) {
+      stop("Not properly handled, but might also be banned?")
+    }
     eqs <- ir_parse_delay(eqs, common, packing$variables, source)
   }
 
@@ -61,8 +64,12 @@ ir_parse <- function(x, options, type = NULL) {
   ## variables.  So watch for the "data" element to have extra return
   ## objects perhaps.
 
-  dependencies <- ir_parse_dependencies(eqs, variables, common$time, source)
-  stage <- ir_parse_stage(eqs, dependencies, variables, common$time, source)
+  implicit <- common$time
+  if ("dt" %in% options$future && features$discrete) {
+    implicit <- c(implicit, DT)
+  }
+  dependencies <- ir_parse_dependencies(eqs, variables, implicit, source)
+  stage <- ir_parse_stage(eqs, dependencies, variables, implicit, source)
 
   eqs_initial <- names_if(vlapply(eqs, function(x) {
     identical(x$lhs$special, "initial")
@@ -208,8 +215,12 @@ ir_parse_data_element <- function(x, stage) {
 }
 
 
-ir_parse_common <- function(features) {
-  time <- if (features$continuous) TIME else STEP
+ir_parse_common <- function(features, options) {
+  if (features$continuous || "dt" %in% options$future) {
+    time <- TIME
+  } else {
+    time <- STEP
+  }
   rhs <- c(if (features$discrete) "update",
            if (features$continuous) "deriv")
   list(continuous = features$continuous,
@@ -312,12 +323,13 @@ ir_parse_find_exclusive_output <- function(eqs, source) {
 }
 
 
-ir_parse_dependencies <- function(eqs, variables, time_name, source) {
+ir_parse_dependencies <- function(eqs, variables, implicit, source) {
   ## For the derivative calculations the variables come in with no
   ## dependencies because they are provided by the integrator (but
   ## we'll add an implicit time dependency).
-  implicit <- set_names(rep(list(character(0)), length(variables) + 1),
-                        c(variables, time_name))
+  implicit <- set_names(rep(list(character(0)),
+                            length(variables) + length(implicit)),
+                        c(variables, implicit))
   explicit <- lapply(eqs, function(eq) {
     setdiff(eq$depends$variables, c(eq$name, INDEX, ""))
   })

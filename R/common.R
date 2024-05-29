@@ -10,6 +10,7 @@ STAGE_TIME <- 3L
 STAGE_NAME <- c("null", "constant", "user", "time")
 
 TIME <- "t"
+DT <- "dt"
 STEP <- "step"
 STATE <- "state"
 DSTATEDT <- "dstatedt"
