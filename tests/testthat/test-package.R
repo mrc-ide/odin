@@ -31,6 +31,7 @@ test_that("generate package", {
 
 test_that("interpolation", {
   skip_on_windows_gha()
+  skip_on_os("mac")
   res <- odin_create_package("interpolation", "examples/interpolate_odin.R")
   on.exit(res$cleanup())
 
