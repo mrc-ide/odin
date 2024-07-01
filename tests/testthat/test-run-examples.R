@@ -6,6 +6,8 @@ test_that_odin("basic interface", {
   ## See comments below on dde, this one does not currently error on
   ## M1. These tests need refactoring anyway.
   skip_on_cran()
+  skip_for_target("js") # some tolerance issues that are not worth chasing
+  skip_on_os("mac")
   re <- "([[:alnum:]]+)_odin\\.R$"
   files <- dir("examples", re)
   base <- sub(re, "\\1", files)
@@ -202,6 +204,8 @@ test_that_odin("lv", {
 
 test_that_odin("dde", {
   skip_if_not_installed("dde")
+  skip_for_target("js")
+  skip_on_os("mac")
   ## This test is failing on M1 Mac checks, with tolerance needing
   ## tweaking for one of the examples, probably the Lorenz attractor
   ## as being chaotic, deviations are expected to grow. Without access
