@@ -136,7 +136,7 @@ support for things like autocompletion.
 Because `r` is required, it is an error to initialise the model
 without any parameters:
 
-``` {r error = TRUE}
+``` {r error = TRUE, purl = FALSE}
 generator$new()
 ```
 
