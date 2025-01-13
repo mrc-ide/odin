@@ -112,10 +112,9 @@ test_that("Can avoid debug in compile_dll", {
   path <- tempfile()
   compile_attributes <- TRUE
   quiet <- FALSE
-  res <- with_mock(
-    "odin::has_user_makevars" = mock_has_user_makevars,
-    "pkgbuild::compile_dll" = mock_compile_dll,
-    compile_dll(path, compile_attributes, quiet))
+  mockery::stub(compile_dll, "has_user_makevars", mock_has_user_makevars)
+  mockery::stub(compile_dll, "pkgbuild::compile_dll", mock_compile_dll)
+  res <- compile_dll(path, compile_attributes, quiet)
 
   expect_equal(res[[1]], res[[2]])
   expect_equal(normalizePath(dirname(res[[1]])),
@@ -131,6 +130,7 @@ test_that("Can avoid debug in compile_dll", {
 
 test_that("Don't set envvar if not needed", {
   skip_if_not_installed("mockery")
+  skip_on_cran()
 
   env <- c("R_MAKEVARS_USER" = NA)
   cmp <- withr::with_envvar(
@@ -145,12 +145,12 @@ test_that("Don't set envvar if not needed", {
   compile_attributes <- TRUE
   quiet <- FALSE
 
+  mockery::stub(compile_dll, "has_user_makevars", mock_has_user_makevars)
+  mockery::stub(compile_dll, "pkgbuild::compile_dll", mock_compile_dll)
+
   res <- withr::with_envvar(
     env,
-    with_mock(
-      "odin::has_user_makevars" = mock_has_user_makevars,
-      "pkgbuild::compile_dll" = mock_compile_dll,
-      compile_dll(path, compile_attributes, quiet)))
+    compile_dll(path, compile_attributes, quiet))
 
   expect_equal(res[[1]], "")
   expect_equal(res[[2]], cmp)
