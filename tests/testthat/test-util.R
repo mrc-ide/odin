@@ -112,7 +112,7 @@ test_that("Can avoid debug in compile_dll", {
   path <- tempfile()
   compile_attributes <- TRUE
   quiet <- FALSE
-  res <- with_mock(
+  res <- with_mocked_bindings(
     "odin::has_user_makevars" = mock_has_user_makevars,
     "pkgbuild::compile_dll" = mock_compile_dll,
     compile_dll(path, compile_attributes, quiet))
@@ -147,7 +147,7 @@ test_that("Don't set envvar if not needed", {
 
   res <- withr::with_envvar(
     env,
-    with_mock(
+    with_mocked_bindings(
       "odin::has_user_makevars" = mock_has_user_makevars,
       "pkgbuild::compile_dll" = mock_compile_dll,
       compile_dll(path, compile_attributes, quiet)))
