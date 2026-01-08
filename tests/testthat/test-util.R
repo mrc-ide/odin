@@ -112,10 +112,10 @@ test_that("Can avoid debug in compile_dll", {
   path <- tempfile()
   compile_attributes <- TRUE
   quiet <- FALSE
-  res <- with_mocked_bindings(
-    "odin::has_user_makevars" = mock_has_user_makevars,
-    "pkgbuild::compile_dll" = mock_compile_dll,
-    compile_dll(path, compile_attributes, quiet))
+  local_mocked_bindings("has_user_makevars" = mock_has_user_makevars)
+  local_mocked_bindings("compile_dll" = mock_compile_dll,
+                        .package = "pkgbuild")
+  res <- compile_dll_wrapper(path, compile_attributes, quiet)
 
   expect_equal(res[[1]], res[[2]])
   expect_equal(normalizePath(dirname(res[[1]])),
@@ -146,11 +146,13 @@ test_that("Don't set envvar if not needed", {
   quiet <- FALSE
 
   res <- withr::with_envvar(
-    env,
-    with_mocked_bindings(
-      "odin::has_user_makevars" = mock_has_user_makevars,
-      "pkgbuild::compile_dll" = mock_compile_dll,
-      compile_dll(path, compile_attributes, quiet)))
+    env, {
+      local_mocked_bindings("has_user_makevars" = mock_has_user_makevars)
+      local_mocked_bindings("compile_dll" = mock_compile_dll,
+                            .package = "pkgbuild")
+      compile_dll_wrapper(path, compile_attributes, quiet)
+    }
+  )
 
   expect_equal(res[[1]], "")
   expect_equal(res[[2]], cmp)
