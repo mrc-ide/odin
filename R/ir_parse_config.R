@@ -85,7 +85,7 @@ ir_parse_config_custom <- function(x, source) {
 
   ## Is there any other validation that can really be done? We could
   ## require that custom cases conform to particular types or are
-  ## unique? For now we'll be really leniant since we don't document
+  ## unique? For now we'll be really lenient since we don't document
   ## this as a public interface yet.
   name <- vcapply(x, function(el) el$lhs$name_lhs)
   value <- lapply(x, function(el) el$rhs$value)
@@ -111,7 +111,7 @@ ir_parse_config1 <- function(eq, source, custom) {
   } else {
     if (storage.mode(value) != expected_type) {
       ir_parse_error(sprintf(
-        "Expected a %s for config(%s) but recieved a %s",
+        "Expected a %s for config(%s) but received a %s",
         expected_type, target, storage.mode(value)),
         eq$source, source)
     }
