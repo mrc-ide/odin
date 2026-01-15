@@ -2,7 +2,7 @@
 set -exu
 
 ODIN_JS_BRANCH=main
-DUST_JS_BRANCH=include-interpolate
+DUST_JS_BRANCH=main
 
 HERE=$(dirname $0)
 PACKAGE_ROOT=$(realpath $HERE/..)
