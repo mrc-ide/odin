@@ -45,9 +45,9 @@ odin_c_wrapper <- function(ir, options) {
 
   ## This will do us a fully consistent build/load that we can use for
   ## both the packaging version and the locally built version. Ideally
-  ## we could skip over the compile_dll step, but this has already had
-  ## the compilation flags bit worked out.
-  dll <- compile_dll(dest, compile_attributes = FALSE, quiet = quiet)
+  ## we could skip over the compile_dll_wrapper step, but this has already
+  ## had the compilation flags bit worked out.
+  dll <- compile_dll_wrapper(dest, compile_attributes = FALSE, quiet = quiet)
   env <- pkgload::load_all(dest, compile = FALSE, recompile = FALSE,
                            warn_conflicts = FALSE, export_all = FALSE,
                            helpers = FALSE, attach_testthat = FALSE,
@@ -71,7 +71,7 @@ has_user_makevars <- function() {
 }
 
 
-compile_dll <- function(...) {
+compile_dll_wrapper <- function(...) {
   if (has_user_makevars()) {
     pkgbuild::compile_dll(...)
   } else {
